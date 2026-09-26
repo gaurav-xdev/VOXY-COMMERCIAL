@@ -725,6 +725,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "bzip2"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdb116a6ef3f6c3698828873ad02c3014b3c85cadb88496095628e3ef1e347f8"
+dependencies = [
+ "bzip2-sys",
+ "libc",
+]
+
+[[package]]
+name = "bzip2-sys"
+version = "0.1.13+1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "225bff33b2141874fe80d71e07d6eec4f85c5c216453dd96388240f96e1acc14"
+dependencies = [
+ "cc",
+ "pkg-config",
+]
+
+[[package]]
 name = "cairo-rs"
 version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3254,7 +3274,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -3854,7 +3874,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tar",
- "ureq",
+ "ureq 3.3.0",
  "vcpkg",
  "zip",
 ]
@@ -5075,7 +5095,7 @@ dependencies = [
  "ort-sys",
  "smallvec",
  "tracing",
- "ureq",
+ "ureq 3.3.0",
 ]
 
 [[package]]
@@ -5086,7 +5106,7 @@ checksum = "d7b497d21a8b6fbb4b5a544f8fadb77e801a09ae0add9e411d31c6f89e3c1e90"
 dependencies = [
  "hmac-sha256",
  "lzma-rust2",
- "ureq",
+ "ureq 3.3.0",
 ]
 
 [[package]]
@@ -5968,7 +5988,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -6418,6 +6438,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "sherpa-onnx"
+version = "1.13.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93440301c4240bd5d83496ab9adeee889be48d9428f9c01c37e5ae4ef33ba9e2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sherpa-onnx-sys",
+]
+
+[[package]]
+name = "sherpa-onnx-sys"
+version = "1.13.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d627abc4624c845e628ad87cca4ff9ac265fc643021d155f2721ac589eeb324"
+dependencies = [
+ "bzip2",
+ "tar",
+ "ureq 2.12.1",
 ]
 
 [[package]]
@@ -7547,6 +7589,22 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "ureq"
+version = "2.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d1a66277ed75f640d608235660df48c8e3c19f3b4edb6a263315626cc3c01d"
+dependencies = [
+ "base64",
+ "flate2",
+ "log",
+ "once_cell",
+ "rustls",
+ "rustls-pki-types",
+ "url",
+ "webpki-roots 0.26.11",
+]
+
+[[package]]
+name = "ureq"
 version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dea7109cdcd5864d4eeb1b58a1648dc9bf520360d7af16ec26d0a9354bafcfc0"
@@ -7562,7 +7620,7 @@ dependencies = [
  "ureq-proto",
  "utf8-zero",
  "webpki-root-certs",
- "webpki-roots",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -7673,6 +7731,7 @@ name = "voxy-anthropic"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",
@@ -7757,6 +7816,20 @@ dependencies = [
  "tracing",
  "uuid",
  "voxy-shared",
+]
+
+[[package]]
+name = "voxy-cloud-stt"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "reqwest",
+ "serde",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "voxy-voice-orchestrator",
 ]
 
 [[package]]
@@ -7893,10 +7966,15 @@ dependencies = [
 name = "voxy-daemon"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
+ "dirs 6.0.0",
+ "dotenvy",
  "futures-util",
  "num_cpus",
+ "parking_lot",
  "reqwest",
+ "rusqlite",
  "serde",
  "serde_json",
  "sysinfo 0.33.1",
@@ -7904,22 +7982,26 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "voxy-anthropic",
  "voxy-audio",
  "voxy-automation",
+ "voxy-cloud-stt",
  "voxy-cognition",
  "voxy-cognitive-orchestrator",
  "voxy-companion-intelligence",
  "voxy-config",
  "voxy-desktop-runtime",
  "voxy-event-bus",
+ "voxy-gemini",
+ "voxy-hardware",
  "voxy-health",
  "voxy-kernel",
- "voxy-kokoro",
  "voxy-logging",
  "voxy-memory",
  "voxy-metrics",
  "voxy-model-router",
  "voxy-ollama",
+ "voxy-openai",
  "voxy-orchestrator",
  "voxy-provider-core",
  "voxy-runtime-guard",
@@ -7927,7 +8009,8 @@ dependencies = [
  "voxy-shared",
  "voxy-voice",
  "voxy-voice-orchestrator",
- "voxy-whisper",
+ "voxy-voice-stream",
+ "voxy-voxray",
  "voxy-world-model",
 ]
 
@@ -8107,6 +8190,7 @@ name = "voxy-gemini"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",
@@ -8407,6 +8491,7 @@ name = "voxy-ollama"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",
@@ -8481,6 +8566,8 @@ dependencies = [
  "chrono",
  "dioxus",
  "parking_lot",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -8780,6 +8867,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "voxy-stt-router"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "parking_lot",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "voxy-voice-orchestrator",
+]
+
+[[package]]
 name = "voxy-tool-calling"
 version = "0.1.0"
 dependencies = [
@@ -8873,6 +8973,8 @@ dependencies = [
  "voxy-provider-core",
  "voxy-shared",
  "voxy-voice-orchestrator",
+ "voxy-voice-stream",
+ "voxy-voxray",
 ]
 
 [[package]]
@@ -8917,6 +9019,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "voxy-voice-stream"
+version = "0.1.0"
+
+[[package]]
+name = "voxy-voxray"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64",
+ "chrono",
+ "futures",
+ "parking_lot",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "uuid",
+ "voxy-audio",
+ "voxy-config",
+ "voxy-event-bus",
+ "voxy-provider-core",
+ "voxy-shared",
+ "windows 0.58.0",
+]
+
+[[package]]
 name = "voxy-whisper"
 version = "0.1.0"
 dependencies = [
@@ -8924,13 +9054,16 @@ dependencies = [
  "chrono",
  "parking_lot",
  "serde",
+ "sherpa-onnx",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "voxy-config",
  "voxy-provider-core",
  "voxy-shared",
  "voxy-voice-orchestrator",
+ "voxy-voice-stream",
  "whisper-rs",
 ]
 
@@ -9301,6 +9434,15 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
+version = "0.26.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
+dependencies = [
+ "webpki-roots 1.0.9",
+]
+
+[[package]]
+name = "webpki-roots"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a"
@@ -9463,16 +9605,6 @@ dependencies = [
  "home",
  "once_cell",
  "rustix 0.38.44",
-]
-
-[[package]]
-name = "whisper-espeak-diag"
-version = "0.1.0"
-dependencies = [
- "espeak-rs",
- "espeak-rs-sys",
- "tokio",
- "whisper-rs",
 ]
 
 [[package]]

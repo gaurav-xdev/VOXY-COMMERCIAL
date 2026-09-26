@@ -62,13 +62,17 @@ impl DownloadManager {
 
     pub async fn download(&self, url: &str, filename: &str) -> Result<u64> {
         let id = self.counter.fetch_add(1, Ordering::Relaxed);
-        let dest = self.download_dir.join(filename);
+        let safe_name = sanitize_filename(filename)?;
+        let dest = self.download_dir.join(&safe_name);
+        // Download to a temp file and only move it into place on success so a
+        // failed or partial download never leaves a file that looks complete.
+        let temp_dest = dest.with_extension(format!("{}.part", id));
         let bytes = Arc::new(AtomicU64::new(0));
         self.downloads.write().insert(
             id,
             DownloadState {
                 url: url.to_string(),
-                filename: filename.to_string(),
+                filename: safe_name.clone(),
                 dest_path: dest.clone(),
                 bytes_downloaded: bytes.clone(),
                 total_bytes: None,
@@ -77,7 +81,7 @@ impl DownloadManager {
         );
 
         let url_clone = url.to_string();
-        let filename_clone = filename.to_string();
+        let filename_clone = safe_name;
         let sem = self.semaphore.clone();
         let dls = self.downloads.clone();
 
@@ -86,7 +90,7 @@ impl DownloadManager {
             if let Some(s) = dls.write().get_mut(&id) {
                 s.status = DownloadStatus::Downloading;
             }
-            match do_download(&url_clone, &dest, bytes.clone()).await {
+            match do_download(&url_clone, &temp_dest, &dest, bytes.clone()).await {
                 Ok(total) => {
                     if let Some(s) = dls.write().get_mut(&id) {
                         s.status = DownloadStatus::Completed;
@@ -145,7 +149,7 @@ impl DownloadManager {
     }
 }
 
-async fn do_download(url: &str, dest: &Path, bytes: Arc<AtomicU64>) -> Result<u64> {
+async fn do_download(url: &str, temp: &Path, dest: &Path, bytes: Arc<AtomicU64>) -> Result<u64> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
@@ -158,7 +162,7 @@ async fn do_download(url: &str, dest: &Path, bytes: Arc<AtomicU64>) -> Result<u6
     if !resp.status().is_success() {
         return Err(RuntimeError::Download(format!("HTTP {}", resp.status())));
     }
-    let mut file = tokio::fs::File::create(dest)
+    let mut file = tokio::fs::File::create(temp)
         .await
         .map_err(|e| RuntimeError::Download(format!("File create failed: {}", e)))?;
     let mut stream = resp.bytes_stream();
@@ -176,7 +180,67 @@ async fn do_download(url: &str, dest: &Path, bytes: Arc<AtomicU64>) -> Result<u6
     file.flush()
         .await
         .map_err(|e| RuntimeError::Download(format!("Flush error: {}", e)))?;
+    drop(file);
+
+    // Move the fully-downloaded temp file into place. On failure, clean up the
+    // partial temp file so nothing misleading is left behind.
+    if let Err(e) = tokio::fs::rename(temp, dest).await {
+        let _ = tokio::fs::remove_file(temp).await;
+        return Err(RuntimeError::Download(format!(
+            "Finalize error: {}",
+            e
+        )));
+    }
     Ok(downloaded)
+}
+
+/// Validate a download filename against path traversal and platform quirks.
+///
+/// Rejects absolute paths, path separators, and Windows reserved device names
+/// so a caller-controlled filename cannot escape the download directory.
+fn sanitize_filename(filename: &str) -> Result<String> {
+    if filename.is_empty() || filename.contains(['/', '\\']) {
+        return Err(RuntimeError::Download(format!(
+            "Invalid download filename: {filename:?}"
+        )));
+    }
+
+    let file_name = Path::new(filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+    if file_name.is_empty() || file_name == "." || file_name == ".." {
+        return Err(RuntimeError::Download(format!(
+            "Invalid download filename: {filename:?}"
+        )));
+    }
+
+    // Windows trims trailing spaces and dots and treats the resulting name as
+    // the real filename, which can cause collisions; refuse them up front.
+    let trimmed = file_name.trim_end_matches([' ', '.']);
+    if trimmed.is_empty() {
+        return Err(RuntimeError::Download(format!(
+            "Invalid download filename: {filename:?}"
+        )));
+    }
+
+    // Windows reserved device names (with or without extension).
+    let stem = trimmed
+        .split('.')
+        .next()
+        .unwrap_or(trimmed)
+        .to_ascii_uppercase();
+    const RESERVED: &[&str] = &[
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+    if RESERVED.contains(&stem.as_str()) {
+        return Err(RuntimeError::Download(format!(
+            "Invalid download filename: {filename:?}"
+        )));
+    }
+
+    Ok(trimmed.to_string())
 }
 
 #[cfg(test)]
@@ -199,5 +263,44 @@ mod tests {
     fn download_cancel_nonexistent() {
         let mgr = DownloadManager::new(3, None).unwrap();
         assert!(mgr.cancel(999).is_ok());
+    }
+
+    #[test]
+    fn sanitize_accepts_plain_filenames() {
+        assert_eq!(sanitize_filename("model.bin").unwrap(), "model.bin");
+        assert_eq!(sanitize_filename("readme.txt").unwrap(), "readme.txt");
+        assert_eq!(sanitize_filename("file with spaces.zip").unwrap(), "file with spaces.zip");
+    }
+
+    #[test]
+    fn sanitize_rejects_path_traversal() {
+        assert!(sanitize_filename("../../etc/passwd").is_err());
+        assert!(sanitize_filename("../evil.exe").is_err());
+        assert!(sanitize_filename("C:\\windows\\system32\\x.dll").is_err());
+        assert!(sanitize_filename("").is_err());
+        assert!(sanitize_filename(".").is_err());
+        assert!(sanitize_filename("..").is_err());
+    }
+
+    #[test]
+    fn sanitize_rejects_windows_reserved_names() {
+        assert!(sanitize_filename("CON").is_err());
+        assert!(sanitize_filename("con.txt").is_err());
+        assert!(sanitize_filename("NUL").is_err());
+        assert!(sanitize_filename("COM1").is_err());
+        assert!(sanitize_filename("LPT9").is_err());
+    }
+
+    #[test]
+    fn sanitize_normalizes_trailing_dots_or_spaces() {
+        // Windows trims trailing dots/spaces from real filenames; normalizing
+        // avoids two names resolving to the same file.
+        assert_eq!(sanitize_filename("evil.").unwrap(), "evil");
+        assert_eq!(sanitize_filename("evil ").unwrap(), "evil");
+    }
+
+    #[test]
+    fn sanitize_trims_trailing_whitespace() {
+        assert_eq!(sanitize_filename("file.txt ").unwrap(), "file.txt");
     }
 }

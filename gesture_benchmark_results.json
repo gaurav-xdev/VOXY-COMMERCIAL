@@ -1,0 +1,9 @@
+{
+  "camera_capture_ms": 68.80078664980829,
+  "mediapipe_infer_ms": 74.96277501340955,
+  "expansion_avg_ms": 170.16299999999998,
+  "clap_avg_ms": 137.28699999999998,
+  "collapse_avg_ms": 191.865,
+  "false_positives": 0,
+  "total_trials": 40
+}

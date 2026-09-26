@@ -106,6 +106,10 @@ impl SelfHealer {
                 .get_mut(name)
                 .ok_or_else(|| GuardError::SubsystemNotFound(name.to_string()))?;
 
+            if state.is_recovering {
+                return Ok(());
+            }
+
             if state.attempt_count >= self.config.max_restart_attempts {
                 return Err(GuardError::MaxRestartsExceeded(name.to_string()));
             }
@@ -147,6 +151,9 @@ impl SelfHealer {
                     state.last_success = Some(Utc::now());
                     state.last_error = None;
                     state.current_backoff_ms = self.config.base_backoff_ms;
+                    // A successful heal resets the attempt budget so a subsystem
+                    // that recovered is not permanently refused future healing.
+                    state.attempt_count = 0;
                 }
                 info!("Self-healing succeeded for {}", name);
                 Ok(())
@@ -339,5 +346,61 @@ mod tests {
         assert_eq!(healer.calculate_backoff(2), 2000);
         assert_eq!(healer.calculate_backoff(3), 4000);
         assert_eq!(healer.calculate_backoff(10), 30000); // capped
+    }
+
+    #[tokio::test]
+    async fn heal_success_resets_attempt_budget() {
+        let healer = SelfHealer::new(HealingConfig {
+            max_restart_attempts: 2,
+            base_backoff_ms: 0,
+            ..Default::default()
+        });
+        healer.register("flaky", || async { Ok(()) }).await;
+
+        assert!(healer.heal("flaky").await.is_ok());
+        let state = healer.get_state("flaky").await.unwrap();
+        assert_eq!(state.attempt_count, 0, "success must reset the attempt budget");
+        assert!(healer.can_heal("flaky").await);
+
+        // A later failure can still be retried within the budget.
+        assert!(healer.heal("flaky").await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn heal_is_idempotent_while_recovering() {
+        let (release_tx, release_rx) = tokio::sync::watch::channel(false);
+        let healer = Arc::new(SelfHealer::new(HealingConfig {
+            max_restart_attempts: 3,
+            base_backoff_ms: 0,
+            ..Default::default()
+        }));
+        healer
+            .register("slow", move || {
+                let mut release = release_rx.clone();
+                async move {
+                    // Block until the first heal is released, simulating a slow restart.
+                    loop {
+                        if *release.borrow() {
+                            break;
+                        }
+                        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+                    }
+                    Ok(())
+                }
+            })
+            .await;
+
+        let for_task = healer.clone();
+        let first = tokio::spawn(async move { for_task.heal("slow").await });
+        // Give the first heal a chance to set is_recovering.
+        tokio::task::yield_now().await;
+        let second = healer.heal("slow").await;
+
+        assert!(second.is_ok(), "a second heal while recovering must not error");
+
+        let _ = release_tx.send(true);
+        assert!(first.await.unwrap().is_ok());
+        let state = healer.get_state("slow").await.unwrap();
+        assert_eq!(state.attempt_count, 0);
     }
 }

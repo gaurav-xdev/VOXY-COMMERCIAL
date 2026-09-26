@@ -1,7 +1,7 @@
 use std::time::Duration;
 use zeroize::Zeroize;
 
-#[derive(Debug, Clone, Zeroize)]
+#[derive(Clone, Zeroize)]
 pub struct OpenAIConfig {
     #[zeroize(skip)]
     pub api_key: zeroize::Zeroizing<String>,
@@ -74,6 +74,19 @@ impl OpenAIConfig {
 
     pub fn bedrock(_api_key: impl Into<String>) -> Self {
         Self::new("", "https://bedrock-runtime.us-east-1.amazonaws.com")
+    }
+}
+
+impl std::fmt::Debug for OpenAIConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenAIConfig")
+            .field("api_key", &"[REDACTED]")
+            .field("base_url", &self.base_url)
+            .field("default_model", &self.default_model)
+            .field("timeout", &self.timeout)
+            .field("max_retries", &self.max_retries)
+            .field("organization", &self.organization)
+            .finish()
     }
 }
 

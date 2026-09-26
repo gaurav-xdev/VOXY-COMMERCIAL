@@ -96,10 +96,12 @@ mod benchmark_tests {
         }
 
         let avg = latencies.iter().sum::<f64>() / latencies.len() as f64;
+        let threshold = if cfg!(debug_assertions) { 25000.0 } else { 5000.0 };
         assert!(
-            avg < 10000.0,
-            "Echo cancellation avg too high: {:.2}us",
-            avg
+            avg < threshold,
+            "Echo cancellation avg too high: {:.2}us (threshold: {:.2}us)",
+            avg,
+            threshold
         );
     }
 

@@ -3,7 +3,7 @@ pub mod config;
 
 use async_trait::async_trait;
 
-use voxy_provider_core::{EmbeddingProvider, LlmProvider, ProviderError, Result};
+use voxy_provider_core::{EmbeddingProvider, LlmChunk, LlmProvider, ProviderError, Result};
 
 use self::client::OpenAIClient;
 pub use self::config::OpenAIConfig;
@@ -71,6 +71,25 @@ impl LlmProvider for OpenAIProvider {
         self.chat(messages).await
     }
 
+    async fn complete_streaming(
+        &self,
+        prompt: &str,
+        tx: tokio::sync::mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        let messages = vec![client::ChatMessage::user(prompt)];
+        self.client
+            .chat_completion_streaming(&self.model, messages, None, tx)
+            .await
+    }
+
+    fn supports_streaming(&self) -> bool {
+        true
+    }
+
+    async fn health(&self) -> Result<bool> {
+        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
+    }
+
     fn available_models(&self) -> Vec<String> {
         self.models.clone()
     }
@@ -114,6 +133,14 @@ mod tests {
         let config = OpenAIConfig::openai("sk-test");
         assert_eq!(*config.api_key, "sk-test");
         assert_eq!(config.base_url, "https://api.openai.com");
+    }
+
+    #[test]
+    fn test_openai_config_debug_redacts_api_key() {
+        let config = OpenAIConfig::openai("sk-super-secret");
+        let debug = format!("{:?}", config);
+        assert!(!debug.contains("sk-super-secret"), "Debug must not leak the API key");
+        assert!(debug.contains("[REDACTED]"));
     }
 
     #[test]

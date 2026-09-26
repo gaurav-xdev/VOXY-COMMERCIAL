@@ -1,7 +1,9 @@
 use async_trait::async_trait;
+use futures_util::StreamExt;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
-use voxy_provider_core::{LlmProvider, ProviderError, Result};
+use voxy_provider_core::{LlmChunk, LlmProvider, ProviderError, Result};
 
 const DEFAULT_MODEL: &str = "gemini-2.0-flash";
 
@@ -118,6 +120,116 @@ impl GeminiProvider {
         Ok(text)
     }
 
+    pub async fn chat_completion_streaming(
+        &self,
+        prompt: &str,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        let url = format!(
+            "https://generativelanguage.googleapis.com/v1/models/{}:streamGenerateContent?alt=sse",
+            self.model
+        );
+
+        let body = serde_json::json!({
+            "contents": [
+                {
+                    "parts": [
+                        { "text": prompt }
+                    ]
+                }
+            ]
+        });
+
+        let resp = self
+            .client
+            .post(&url)
+            .header("x-goog-api-key", self.api_key.as_str())
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_timeout() {
+                    ProviderError::RequestFailed("Gemini streaming request timed out".into())
+                } else if e.is_connect() {
+                    ProviderError::ConnectionFailed(format!(
+                        "Cannot connect to Gemini API: {}",
+                        e
+                    ))
+                } else {
+                    ProviderError::RequestFailed(e.to_string())
+                }
+            })?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let text = resp.text().await.unwrap_or_default();
+            return Err(match status.as_u16() {
+                401 | 403 => {
+                    ProviderError::AuthenticationFailed(format!("HTTP {}: {}", status, text))
+                }
+                429 => ProviderError::RateLimited,
+                404 => ProviderError::ModelNotFound(text),
+                _ => ProviderError::RequestFailed(format!("HTTP {}: {}", status, text)),
+            });
+        }
+
+        let mut stream = resp.bytes_stream();
+        let mut buffer = Vec::new();
+
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result.map_err(|e| {
+                ProviderError::RequestFailed(format!("Stream read error: {}", e))
+            })?;
+
+            buffer.extend_from_slice(&chunk);
+
+            while let Some(pos) = buffer.iter().position(|&b| b == b'\n') {
+                let line_bytes: Vec<u8> = buffer.drain(..=pos).collect();
+                let line = String::from_utf8_lossy(&line_bytes);
+                let line = line.trim();
+
+                if let Some(json_str) = line.strip_prefix("data: ") {
+                    if json_str == "[DONE]" {
+                        let _ = tx
+                            .send(LlmChunk {
+                                text: String::new(),
+                                done: true,
+                            })
+                            .await;
+                        return Ok(());
+                    }
+
+                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        if let Some(text) = data["candidates"]
+                            .as_array()
+                            .and_then(|candidates| candidates.first())
+                            .and_then(|c| c["content"]["parts"].as_array())
+                            .and_then(|parts| parts.first())
+                            .and_then(|part| part["text"].as_str())
+                        {
+                            if !text.is_empty() {
+                                let _ = tx
+                                    .send(LlmChunk {
+                                        text: text.to_string(),
+                                        done: false,
+                                    })
+                                    .await;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let _ = tx
+            .send(LlmChunk {
+                text: String::new(),
+                done: true,
+            })
+            .await;
+        Ok(())
+    }
+
     pub async fn health(&self) -> std::result::Result<bool, ProviderError> {
         if self.api_key.is_empty() {
             return Ok(false);
@@ -148,6 +260,22 @@ impl GeminiProvider {
 impl LlmProvider for GeminiProvider {
     async fn complete(&self, prompt: &str) -> Result<String> {
         self.send_message(prompt).await
+    }
+
+    async fn complete_streaming(
+        &self,
+        prompt: &str,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        self.chat_completion_streaming(prompt, tx).await
+    }
+
+    fn supports_streaming(&self) -> bool {
+        true
+    }
+
+    async fn health(&self) -> Result<bool> {
+        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {

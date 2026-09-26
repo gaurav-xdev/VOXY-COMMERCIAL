@@ -1,0 +1,16 @@
+[package]
+name = "voxy-stt-router"
+description = "Capability-aware STT router with fallback support"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+voxy-voice-orchestrator = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+chrono = { workspace = true }

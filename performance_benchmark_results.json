@@ -1,0 +1,77 @@
+{
+  "dormant": {
+    "mode": "Dormant (HUD Collapsed)",
+    "duration_sec": 15,
+    "samples": 15,
+    "overlay_cpu_pct": {
+      "avg": 0.11,
+      "peak": 1.6
+    },
+    "overlay_ram_mb": {
+      "avg": 40.52,
+      "peak": 40.52
+    },
+    "gesture_cpu_pct": {
+      "avg": 63.38,
+      "peak": 87.5
+    },
+    "gesture_ram_mb": {
+      "avg": 223.73,
+      "peak": 223.77
+    },
+    "total_cpu_pct": {
+      "avg": 63.49,
+      "peak": 87.5
+    }
+  },
+  "active": {
+    "mode": "Active (HUD Expanded, 60 FPS Canvas)",
+    "duration_sec": 15,
+    "samples": 15,
+    "overlay_cpu_pct": {
+      "avg": 0.0,
+      "peak": 0.0
+    },
+    "overlay_ram_mb": {
+      "avg": 40.52,
+      "peak": 40.52
+    },
+    "gesture_cpu_pct": {
+      "avg": 62.79,
+      "peak": 78.1
+    },
+    "gesture_ram_mb": {
+      "avg": 223.79,
+      "peak": 223.82
+    },
+    "total_cpu_pct": {
+      "avg": 62.79,
+      "peak": 78.1
+    }
+  },
+  "voice": {
+    "mode": "Voice Interaction (Active Pipeline & Audio)",
+    "duration_sec": 15,
+    "samples": 15,
+    "overlay_cpu_pct": {
+      "avg": 0.21,
+      "peak": 1.6
+    },
+    "overlay_ram_mb": {
+      "avg": 40.52,
+      "peak": 40.52
+    },
+    "gesture_cpu_pct": {
+      "avg": 54.81,
+      "peak": 65.6
+    },
+    "gesture_ram_mb": {
+      "avg": 224.13,
+      "peak": 224.3
+    },
+    "total_cpu_pct": {
+      "avg": 55.02,
+      "peak": 65.6
+    }
+  }
+}

@@ -32,6 +32,26 @@ Desktop.ini
 .env.local
 
 # Large model binaries (use release scripts to fetch)
+models/**/*.onnx
 models/*.onnx
+models/**/*.bin
 models/*.bin
+models/**/*.task
+models/*.task
 models/cache/
+models/sherpa-onnx-streaming-zipformer-en-2023-06-26/
+
+# Package build output
+package/windows/out/
+*.msix
+*.cer
+
+# Audio and Media captures
+*.wav
+*.mp3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+

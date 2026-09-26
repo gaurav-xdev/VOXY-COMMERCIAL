@@ -9,9 +9,7 @@ name = "voxy-daemon"
 path = "src/main.rs"
 
 [features]
-default = ["whisper-engine", "piper-engine"]
-whisper-engine = ["voxy-whisper/whisper-engine"]
-piper-engine = ["voxy-kokoro/piper-engine"]
+default = []
 
 [dependencies]
 voxy-shared = { path = "../../crates/shared" }
@@ -21,8 +19,8 @@ voxy-metrics = { path = "../../crates/metrics" }
 voxy-event-bus = { path = "../../crates/event_bus" }
 voxy-kernel = { path = "../../crates/kernel" }
 voxy-voice = { path = "../../crates/voice" }
-voxy-whisper = { path = "../../crates/whisper" }
-voxy-kokoro = { path = "../../crates/kokoro" }
+voxy-voxray = { path = "../../crates/voxray" }
+voxy-cloud-stt = { path = "../../crates/cloud_stt" }
 voxy-orchestrator = { path = "../../crates/orchestrator" }
 voxy-cognition = { path = "../../crates/cognition" }
 voxy-automation = { path = "../../crates/automation" }
@@ -38,7 +36,11 @@ voxy-runtime-guard = { path = "../../crates/runtime_guard" }
 voxy-health = { path = "../../crates/health" }
 voxy-security = { path = "../../crates/security" }
 voxy-ollama = { path = "../../crates/ollama" }
+voxy-openai = { path = "../../crates/openai" }
+voxy-anthropic = { path = "../../crates/anthropic" }
+voxy-gemini = { path = "../../crates/gemini" }
 voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
+voxy-voice-stream = { path = "../../crates/voice_stream" }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { workspace = true }
@@ -50,3 +52,9 @@ sysinfo = "0.33"
 serde = { workspace = true }
 serde_json = { workspace = true }
 futures-util = { workspace = true }
+dotenvy = "0.15"
+async-trait = { workspace = true }
+parking_lot = { workspace = true }
+rusqlite = { version = "0.31", features = ["bundled"] }
+dirs = "6"
+voxy-hardware = { path = "../../crates/hardware" }

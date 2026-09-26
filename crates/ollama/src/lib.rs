@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
-use voxy_provider_core::{EmbeddingProvider, LlmProvider, ProviderError, Result};
+use voxy_provider_core::{EmbeddingProvider, LlmChunk, LlmProvider, ProviderError, Result};
 
 pub struct OllamaProvider {
     base_url: String,
@@ -112,6 +113,98 @@ impl OllamaProvider {
             })
     }
 
+    async fn chat_completion_streaming(
+        &self,
+        prompt: &str,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        let body = serde_json::json!({
+            "model": self.model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "stream": true,
+        });
+
+        let url = format!("{}/api/chat", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_timeout() {
+                    ProviderError::RequestFailed("Ollama streaming request timed out".into())
+                } else if e.is_connect() {
+                    ProviderError::ConnectionFailed(format!(
+                        "Cannot connect to Ollama at {}. Is Ollama running?",
+                        self.base_url
+                    ))
+                } else {
+                    ProviderError::RequestFailed(e.to_string())
+                }
+            })?;
+
+        if !resp.status().is_success() {
+            return Err(ProviderError::RequestFailed(format!(
+                "Ollama returned HTTP {}",
+                resp.status()
+            )));
+        }
+
+        let mut stream = resp.bytes_stream();
+        use futures_util::StreamExt;
+
+        let mut buffer = String::new();
+        while let Some(item) = stream.next().await {
+            let bytes = item.map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+            buffer.push_str(&String::from_utf8_lossy(&bytes));
+
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].trim().to_string();
+                buffer = buffer[newline_pos + 1..].to_string();
+
+                if line.is_empty() {
+                    continue;
+                }
+
+                if let Ok(data) = serde_json::from_str::<serde_json::Value>(&line) {
+                    if let Some(done) = data.get("done").and_then(|d| d.as_bool()) {
+                        if done {
+                            let _ = tx
+                                .send(LlmChunk {
+                                    text: String::new(),
+                                    done: true,
+                                })
+                                .await;
+                            return Ok(());
+                        }
+                    }
+
+                    if let Some(content) = data["message"]["content"].as_str() {
+                        if !content.is_empty() {
+                            let _ = tx
+                                .send(LlmChunk {
+                                    text: content.to_string(),
+                                    done: false,
+                                })
+                                .await;
+                        }
+                    }
+                }
+            }
+        }
+
+        let _ = tx
+            .send(LlmChunk {
+                text: String::new(),
+                done: true,
+            })
+            .await;
+        Ok(())
+    }
+
     async fn generate_embeddings(&self, text: &str) -> Result<Vec<f32>> {
         let body = serde_json::json!({
             "model": self.model,
@@ -126,6 +219,13 @@ impl OllamaProvider {
             .send()
             .await
             .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            return Err(ProviderError::RequestFailed(format!(
+                "Ollama embeddings returned HTTP {}",
+                resp.status()
+            )));
+        }
 
         let data: serde_json::Value = resp
             .json()
@@ -152,6 +252,13 @@ impl OllamaProvider {
             .send()
             .await
             .map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            return Err(ProviderError::RequestFailed(format!(
+                "Ollama returned HTTP {} for /api/tags",
+                resp.status()
+            )));
+        }
 
         let data: serde_json::Value = resp
             .json()
@@ -182,6 +289,22 @@ impl OllamaProvider {
 impl LlmProvider for OllamaProvider {
     async fn complete(&self, prompt: &str) -> Result<String> {
         self.chat_completion(prompt).await
+    }
+
+    async fn complete_streaming(
+        &self,
+        prompt: &str,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        self.chat_completion_streaming(prompt, tx).await
+    }
+
+    fn supports_streaming(&self) -> bool {
+        true
+    }
+
+    async fn health(&self) -> Result<bool> {
+        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {

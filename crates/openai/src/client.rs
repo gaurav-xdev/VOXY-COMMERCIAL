@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+use tokio::sync::mpsc;
 
-use voxy_provider_core::ProviderError;
+use voxy_provider_core::{LlmChunk, ProviderError};
 
 use crate::config::OpenAIConfig;
 
@@ -126,14 +127,135 @@ impl OpenAIClient {
                     break;
                 }
                 if let Some(data) = line.strip_prefix("data: ") {
-                    if let Ok(parsed) = serde_json::from_str::<ChatCompletionResponse>(data) {
-                        responses.push(parsed);
+                    match parse_stream_frame(data) {
+                        Ok(Some(content)) => {
+                            responses.push(ChatCompletionResponse {
+                                id: None,
+                                choices: vec![Choice {
+                                    index: 0,
+                                    message: ResponseMessage {
+                                        role: None,
+                                        content: Some(content),
+                                        tool_calls: vec![],
+                                    },
+                                    finish_reason: None,
+                                }],
+                                usage: None,
+                                model: None,
+                            });
+                        }
+                        Ok(None) => {}
+                        Err(msg) => {
+                            return Err(ProviderError::RequestFailed(format!(
+                                "Stream error: {msg}"
+                            )));
+                        }
                     }
                 }
             }
         }
 
         Ok(responses)
+    }
+
+    pub async fn chat_completion_streaming(
+        &self,
+        model: &str,
+        messages: Vec<ChatMessage>,
+        tool_choice: Option<serde_json::Value>,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<(), ProviderError> {
+        let mut body = serde_json::json!({
+            "model": model,
+            "messages": messages,
+            "stream": true,
+        });
+
+        if let Some(tc) = tool_choice {
+            body["tool_choice"] = tc;
+        }
+
+        let url = format!("{}/v1/chat/completions", self.config.base_url);
+        let response = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_timeout() {
+                    ProviderError::RequestFailed("Request timed out".into())
+                } else if e.is_connect() {
+                    ProviderError::ConnectionFailed(e.to_string())
+                } else {
+                    ProviderError::RequestFailed(e.to_string())
+                }
+            })?;
+
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let text = response.text().await.unwrap_or_default();
+            return Err(self.handle_error_response(status, &text));
+        }
+
+        let mut stream = response.bytes_stream();
+        let mut buffer = String::new();
+        use futures_util::StreamExt;
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| ProviderError::RequestFailed(e.to_string()))?;
+            let text = String::from_utf8_lossy(&chunk);
+            buffer.push_str(&text);
+
+            while let Some(line_end) = buffer.find('\n') {
+                let line = buffer[..line_end].trim().to_string();
+                buffer = buffer[line_end + 1..].to_string();
+                if line.is_empty() {
+                    continue;
+                }
+                if line == "data: [DONE]" {
+                    let _ = tx
+                        .send(LlmChunk {
+                            text: String::new(),
+                            done: true,
+                        })
+                        .await;
+                    return Ok(());
+                }
+                if let Some(data) = line.strip_prefix("data: ") {
+                    match parse_stream_frame(data) {
+                        Ok(Some(content)) => {
+                            let _ = tx
+                                .send(LlmChunk {
+                                    text: content,
+                                    done: false,
+                                })
+                                .await;
+                        }
+                        Ok(None) => {}
+                        Err(msg) => {
+                            let _ = tx
+                                .send(LlmChunk {
+                                    text: String::new(),
+                                    done: true,
+                                })
+                                .await;
+                            return Err(ProviderError::RequestFailed(format!(
+                                "Stream error: {msg}"
+                            )));
+                        }
+                    }
+                }
+            }
+        }
+
+        let _ = tx
+            .send(LlmChunk {
+                text: String::new(),
+                done: true,
+            })
+            .await;
+        Ok(())
     }
 
     pub async fn embeddings(
@@ -241,6 +363,33 @@ impl OpenAIClient {
     }
 }
 
+/// Parse a single SSE `data:` frame from a streaming chat completion.
+///
+/// Returns:
+/// - `Ok(Some(text))` when the frame carries delta text content,
+/// - `Ok(None)` when the frame is a well-formed chunk with no text,
+/// - `Err(message)` when the frame is a stream error object or malformed.
+fn parse_stream_frame(data: &str) -> std::result::Result<Option<String>, String> {
+    if let Ok(parsed) = serde_json::from_str::<StreamChunkResponse>(data) {
+        for choice in parsed.choices {
+            if let Some(delta) = choice.delta {
+                if let Some(content) = delta.content {
+                    if !content.is_empty() {
+                        return Ok(Some(content));
+                    }
+                }
+            }
+        }
+        return Ok(None);
+    }
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(data) {
+        if let Some(err) = value.get("error") {
+            return Err(err.to_string());
+        }
+    }
+    Ok(None)
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChatMessage {
     pub role: String,
@@ -252,7 +401,6 @@ pub struct ChatMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
-
 impl ChatMessage {
     pub fn system(content: impl Into<String>) -> Self {
         Self {
@@ -371,4 +519,56 @@ pub struct EmbeddingResponse {
 pub struct EmbeddingData {
     pub embedding: Vec<f64>,
     pub index: u32,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct StreamChunkResponse {
+    pub choices: Vec<StreamChoice>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct StreamChoice {
+    pub index: u32,
+    pub delta: Option<StreamDelta>,
+    pub finish_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct StreamDelta {
+    pub role: Option<String>,
+    pub content: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_stream_frame_extracts_delta_content() {
+        let frame = r#"{"choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}"#;
+        let result = parse_stream_frame(frame);
+        assert_eq!(result, Ok(Some("Hello".to_string())));
+    }
+
+    #[test]
+    fn parse_stream_frame_ignores_role_only_chunks() {
+        let frame = r#"{"choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}"#;
+        let result = parse_stream_frame(frame);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn parse_stream_frame_detects_error_object() {
+        let frame = r#"{"error":{"message":"Rate limit exceeded","type":"rate_limit_error"}}"#;
+        let result = parse_stream_frame(frame);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("rate_limit"));
+    }
+
+    #[test]
+    fn parse_stream_frame_ignores_other_frames() {
+        // Lines such as comments, keep-alives, or the [DONE] sentinel carry no delta.
+        assert_eq!(parse_stream_frame("[DONE]"), Ok(None));
+        assert_eq!(parse_stream_frame(""), Ok(None));
+    }
 }

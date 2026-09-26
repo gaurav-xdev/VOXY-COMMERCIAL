@@ -90,7 +90,7 @@ impl SpscRingBuffer {
         buf[base..base + first_chunk].copy_from_slice(&data[..first_chunk]);
         if to_write > first_chunk {
             let second_chunk = to_write - first_chunk;
-            buf[..second_chunk].copy_from_slice(&data[first_chunk..]);
+            buf[..second_chunk].copy_from_slice(&data[first_chunk..first_chunk + second_chunk]);
         }
 
         self.write_pos
@@ -117,7 +117,7 @@ impl SpscRingBuffer {
         output[..first_chunk].copy_from_slice(&buf[base..base + first_chunk]);
         if to_read > first_chunk {
             let second_chunk = to_read - first_chunk;
-            output[first_chunk..].copy_from_slice(&buf[..second_chunk]);
+            output[first_chunk..first_chunk + second_chunk].copy_from_slice(&buf[..second_chunk]);
         }
 
         self.read_pos

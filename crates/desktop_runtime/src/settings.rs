@@ -5,10 +5,14 @@
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{broadcast, watch};
 use tracing::{error, info, warn};
 
 use crate::error::{Result, RuntimeError};
+
+/// Counter used to keep temp file names unique within this process.
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Application settings snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -511,10 +515,23 @@ impl SettingsManager {
                 .map_err(|e| RuntimeError::Settings(format!("TOML serialize failed: {}", e)))?
         };
 
-        // Atomic write
-        let temp_path = path.with_extension("tmp");
-        std::fs::write(&temp_path, &content)?;
-        std::fs::rename(&temp_path, path)?;
+        // Atomic write: serialize to a unique temp file first, then rename it
+        // over the target. Concurrent writers and readers never observe a
+        // partially-written settings file.
+        let temp_path = path.with_extension(format!(
+            "tmp{}_{}",
+            std::process::id(),
+            TEMP_COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+
+        if let Err(e) = std::fs::write(&temp_path, &content) {
+            let _ = std::fs::remove_file(&temp_path);
+            return Err(e.into());
+        }
+        if let Err(e) = std::fs::rename(&temp_path, path) {
+            let _ = std::fs::remove_file(&temp_path);
+            return Err(e.into());
+        }
 
         Ok(())
     }
@@ -601,5 +618,37 @@ mod tests {
 
         let loaded = SettingsManager::load_from_file(&path).unwrap();
         assert_eq!(loaded.app_name, s.app_name);
+    }
+
+    #[test]
+    fn settings_atomic_save_replaces_file_and_cleans_temp() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.toml");
+        std::fs::write(&path, "garbage").unwrap();
+
+        let (change_tx, _) = broadcast::channel(16);
+        let mgr = SettingsManager {
+            settings: RwLock::new(SettingsSnapshot::default()),
+            history: RwLock::new(Vec::new()),
+            max_history: 10,
+            path: path.clone(),
+            change_tx,
+        };
+
+        mgr.save_to_file(&path).unwrap();
+        let loaded = SettingsManager::load_from_file(&path).unwrap();
+        assert_eq!(loaded.app_name, "VOXY", "old content must be fully replaced");
+
+        let leftovers: Vec<String> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.contains("tmp"))
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "no temp files may be left behind: {:?}",
+            leftovers
+        );
     }
 }

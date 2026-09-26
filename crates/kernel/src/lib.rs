@@ -93,7 +93,14 @@ impl ServiceRegistry {
             service,
             dependencies: deps,
         };
-        self.services.write().await.insert(name, entry);
+        let mut services = self.services.write().await;
+        if services.contains_key(&name) {
+            tracing::warn!(
+                service = %name,
+                "Service already registered, replacing previous registration"
+            );
+        }
+        services.insert(name, entry);
     }
 
     /// Compute startup order based on dependencies (topological sort).
@@ -148,38 +155,89 @@ impl ServiceRegistry {
     }
 
     /// Start all services in dependency order.
+    ///
+    /// If a service fails to start, already-started services are stopped in
+    /// reverse dependency order so a partial startup does not leave orphaned
+    /// running services behind.
     pub async fn start_all(&self) -> voxy_shared::Result<()> {
         self.compute_startup_order().await?;
         let order = self.startup_order.read().await.clone();
 
+        let mut started: Vec<String> = Vec::new();
         for name in &order {
             let services = self.services.read().await;
-            if let Some(entry) = services.get(name) {
-                tracing::info!(service = %name, "Initializing service");
-                entry.service.initialize().await?;
-                tracing::info!(service = %name, "Starting service");
-                entry.service.start().await?;
-                tracing::info!(service = %name, "Service started");
+            let Some(entry) = services.get(name) else {
+                continue;
+            };
+            tracing::info!(service = %name, "Initializing service");
+            if let Err(e) = entry.service.initialize().await {
+                tracing::error!(service = %name, error = %e, "Service initialize failed");
+                self.rollback_started(&started).await;
+                return Err(e);
             }
+            tracing::info!(service = %name, "Starting service");
+            if let Err(e) = entry.service.start().await {
+                tracing::error!(service = %name, error = %e, "Service start failed");
+                self.rollback_started(&started).await;
+                return Err(e);
+            }
+            tracing::info!(service = %name, "Service started");
+            started.push(name.clone());
         }
 
         Ok(())
     }
 
+    /// Stop already-started services in reverse order after a startup failure.
+    async fn rollback_started(&self, started: &[String]) {
+        for name in started.iter().rev() {
+            let services = self.services.read().await;
+            if let Some(entry) = services.get(name) {
+                tracing::warn!(service = %name, "Rolling back service after startup failure");
+                if let Err(e) = entry.service.stop().await {
+                    tracing::error!(service = %name, error = %e, "Rollback stop failed");
+                }
+            }
+        }
+    }
+
     /// Stop all services in reverse dependency order.
+    ///
+    /// A single failing service must not prevent the remaining services from
+    /// being stopped. All services are stopped; failures are aggregated and
+    /// reported as a single error.
     pub async fn stop_all(&self) -> voxy_shared::Result<()> {
         let order = self.shutdown_order.read().await.clone();
+        let mut errors: Vec<String> = Vec::new();
 
         for name in &order {
             let services = self.services.read().await;
             if let Some(entry) = services.get(name) {
                 tracing::info!(service = %name, "Stopping service");
-                entry.service.stop().await?;
-                tracing::info!(service = %name, "Service stopped");
+                match entry.service.stop().await {
+                    Ok(()) => {
+                        tracing::info!(service = %name, "Service stopped");
+                    }
+                    Err(e) => {
+                        tracing::error!(service = %name, error = %e, "Service stop failed");
+                        errors.push(format!("{}: {}", name, e));
+                    }
+                }
             }
         }
 
-        Ok(())
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(voxy_shared::VoxyError::new(
+                voxy_shared::ErrorKind::Internal,
+                format!(
+                    "Failed to stop {} service(s): {}",
+                    errors.len(),
+                    errors.join("; ")
+                ),
+            ))
+        }
     }
 
     /// Check health of all services.
@@ -469,5 +527,132 @@ mod tests {
         registry.register(Arc::new(TestService)).await;
         assert!(registry.get_service("test").await.is_some());
         assert!(registry.get_service("nonexistent").await.is_none());
+    }
+
+    #[derive(Clone, Copy)]
+    enum Outcome {
+        Ok,
+        Err(&'static str),
+    }
+
+    struct FlagService {
+        name: &'static str,
+        deps: Vec<String>,
+        start_result: Outcome,
+        stop_result: Outcome,
+        started: Arc<std::sync::atomic::AtomicBool>,
+        stopped: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    fn outcome_to_result(outcome: Outcome) -> voxy_shared::Result<()> {
+        match outcome {
+            Outcome::Ok => Ok(()),
+            Outcome::Err(msg) => Err(voxy_shared::VoxyError::new(
+                voxy_shared::ErrorKind::Internal,
+                msg.to_string(),
+            )),
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl ManagedService for FlagService {
+        fn name(&self) -> &str {
+            self.name
+        }
+        fn dependencies(&self) -> Vec<String> {
+            self.deps.clone()
+        }
+        async fn start(&self) -> voxy_shared::Result<()> {
+            self.started
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+            outcome_to_result(self.start_result)
+        }
+        async fn stop(&self) -> voxy_shared::Result<()> {
+            self.stopped
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+            outcome_to_result(self.stop_result)
+        }
+        fn health_check(&self) -> HealthStatus {
+            HealthStatus::Healthy
+        }
+    }
+
+    #[tokio::test]
+    async fn start_all_rolls_back_started_services_on_failure() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let a_started = Arc::new(AtomicBool::new(false));
+        let a_stopped = Arc::new(AtomicBool::new(false));
+
+        let registry = ServiceRegistry::new();
+        registry
+            .register(Arc::new(FlagService {
+                name: "a",
+                deps: vec![],
+                start_result: Outcome::Ok,
+                stop_result: Outcome::Ok,
+                started: a_started.clone(),
+                stopped: a_stopped.clone(),
+            }))
+            .await;
+        registry
+            .register(Arc::new(FlagService {
+                name: "b",
+                deps: vec!["a".into()],
+                start_result: Outcome::Err("boom"),
+                stop_result: Outcome::Ok,
+                started: Arc::new(AtomicBool::new(false)),
+                stopped: Arc::new(AtomicBool::new(false)),
+            }))
+            .await;
+
+        let result = registry.start_all().await;
+        assert!(result.is_err(), "start_all must fail when a service fails");
+        assert!(
+            a_started.load(Ordering::SeqCst),
+            "service a should have started"
+        );
+        assert!(
+            a_stopped.load(Ordering::SeqCst),
+            "already-started service a must be rolled back on startup failure"
+        );
+    }
+
+    #[tokio::test]
+    async fn stop_all_continues_after_a_failing_service() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let a_stopped = Arc::new(AtomicBool::new(false));
+        let b_stopped = Arc::new(AtomicBool::new(false));
+
+        let registry = ServiceRegistry::new();
+        registry
+            .register(Arc::new(FlagService {
+                name: "a",
+                deps: vec![],
+                start_result: Outcome::Ok,
+                stop_result: Outcome::Err("cannot stop a"),
+                started: Arc::new(AtomicBool::new(false)),
+                stopped: a_stopped.clone(),
+            }))
+            .await;
+        registry
+            .register(Arc::new(FlagService {
+                name: "b",
+                deps: vec!["a".into()],
+                start_result: Outcome::Ok,
+                stop_result: Outcome::Ok,
+                started: Arc::new(AtomicBool::new(false)),
+                stopped: b_stopped.clone(),
+            }))
+            .await;
+
+        // Compute shutdown order (a -> b, reversed: b, a).
+        registry.compute_startup_order().await.unwrap();
+
+        let result = registry.stop_all().await;
+        assert!(result.is_err(), "stop_all must report the failing service");
+        assert!(
+            a_stopped.load(Ordering::SeqCst) && b_stopped.load(Ordering::SeqCst),
+            "all services must still be stopped even when one fails"
+        );
     }
 }

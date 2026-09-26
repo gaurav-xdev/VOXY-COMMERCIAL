@@ -226,7 +226,7 @@ impl KokoroTtsEngine {
         let piper = synth.as_mut().ok_or(KokoroError::ModelNotLoaded)?;
 
         let (audio, _sample_rate) = piper
-            .create(text, false, None, Some(self.speed), None, None)
+            .create(text, false, None, Some(1.0 / self.speed), None, None)
             .map_err(|e| KokoroError::SynthesisFailed(e.to_string()))?;
 
         Ok(audio)
@@ -252,7 +252,7 @@ impl KokoroTtsEngine {
             let piper = synth.as_mut().ok_or(KokoroError::ModelNotLoaded)?;
 
             let (audio, _sample_rate) = piper
-                .create(&text, false, None, Some(speed), None, None)
+                .create(&text, false, None, Some(1.0 / speed), None, None)
                 .map_err(|e| KokoroError::SynthesisFailed(e.to_string()))?;
 
             Ok(audio)
@@ -468,5 +468,28 @@ mod tests {
     fn test_kokoro_emotion_unknown_falls_to_neutral() {
         let engine = KokoroTtsEngine::new().with_emotion("unknown-style");
         assert_eq!(engine.emotion(), "neutral");
+    }
+
+    #[test]
+    fn test_speed_to_length_scale_conversion() {
+        let engine = KokoroTtsEngine::new();
+        let speed = engine.speed;
+
+        let length_scale = 1.0 / speed;
+        assert_eq!(length_scale, 1.0);
+    }
+
+    #[test]
+    fn test_speed_to_length_scale_half() {
+        let engine = KokoroTtsEngine::new().with_speed(0.5);
+        let length_scale = 1.0 / engine.speed;
+        assert_eq!(length_scale, 2.0);
+    }
+
+    #[test]
+    fn test_speed_to_length_scale_double() {
+        let engine = KokoroTtsEngine::new().with_speed(2.0);
+        let length_scale = 1.0 / engine.speed;
+        assert_eq!(length_scale, 0.5);
     }
 }

@@ -1,4 +1,4 @@
-#[derive(Clone)]
+﻿#[derive(Clone)]
 pub struct VoiceOrchestratorConfig {
     pub enabled: bool,
     pub wake_word_enabled: bool,
@@ -23,7 +23,10 @@ impl Default for VoiceOrchestratorConfig {
             wake_word: "hey voxy".into(),
             vad_enabled: true,
             vad_threshold: 0.5,
-            silence_timeout_ms: 1500,
+            // Phase 28: 1500ms of forced silence before commit added ~0.9s of
+            // dead time to every turn. 600ms still avoids mid-sentence cuts
+            // for natural phrase pauses while keeping turns snappy.
+            silence_timeout_ms: 600,
             max_duration_seconds: 30,
             auto_punctuate: true,
             stt_timeout_seconds: 10,
@@ -47,7 +50,7 @@ mod tests {
         assert_eq!(config.wake_word, "hey voxy");
         assert!(config.vad_enabled);
         assert!((config.vad_threshold - 0.5).abs() < f32::EPSILON);
-        assert_eq!(config.silence_timeout_ms, 1500);
+        assert_eq!(config.silence_timeout_ms, 600);
         assert_eq!(config.max_duration_seconds, 30);
         assert!(config.auto_punctuate);
         assert_eq!(config.stt_timeout_seconds, 10);
@@ -57,3 +60,4 @@ mod tests {
         assert_eq!(config.voice_activity_timeout_ms, 5000);
     }
 }
+

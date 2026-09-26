@@ -889,7 +889,7 @@ impl BenchmarkContext {
 
         let tts = voxy_kokoro::KokoroTtsEngine::new()
             .with_voice("default")
-            .with_speed(1.0)
+            .with_speed(0.55)
             .with_pitch(1.0)
             .with_model_path(config.piper_model_path.clone().into());
         let tts_loaded = match tts.load_model() {

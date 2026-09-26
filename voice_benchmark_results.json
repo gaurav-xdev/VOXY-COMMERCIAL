@@ -1,0 +1,97 @@
+{
+  "turns": [
+    {
+      "turn": 1,
+      "prompt": "What is the system status of the VOXY core engine?",
+      "ttft_ms": 539.0,
+      "total_llm_ms": 1009.7,
+      "total_turn_ms": 3745.5,
+      "mic_rms": 0.20089,
+      "reply": "I\u2019m sorry, but I don\u2019t have that information."
+    },
+    {
+      "turn": 2,
+      "prompt": "Provide current UTC time and date.",
+      "ttft_ms": 536.5,
+      "total_llm_ms": 1806.7,
+      "total_turn_ms": 3297.9,
+      "mic_rms": 0.05939,
+      "reply": "I\u2019m not able to retrieve real\u2011time information, so I can\u2019t g"
+    },
+    {
+      "turn": 3,
+      "prompt": "Check available memory on Windows.",
+      "ttft_ms": 568.5,
+      "total_llm_ms": 13030.4,
+      "total_turn_ms": 14500.7,
+      "mic_rms": 0.20115,
+      "reply": "Below is a quick\u2011reference guide for **checking the amount o"
+    },
+    {
+      "turn": 4,
+      "prompt": "Confirm WASAPI capture stream status.",
+      "ttft_ms": 0.0,
+      "total_llm_ms": 15000.2,
+      "total_turn_ms": 16519.8,
+      "mic_rms": 0.17579,
+      "reply": "Local fallback: "
+    },
+    {
+      "turn": 5,
+      "prompt": "List active voice pipeline components.",
+      "ttft_ms": 575.0,
+      "total_llm_ms": 10380.5,
+      "total_turn_ms": 12045.3,
+      "mic_rms": 0.18421,
+      "reply": "Below is a concise \u201cend\u2011to\u2011end\u201d view of the typical **active"
+    },
+    {
+      "turn": 6,
+      "prompt": "Explain the holographic HUD spatial orientation.",
+      "ttft_ms": 0.0,
+      "total_llm_ms": 15470.6,
+      "total_turn_ms": 16954.2,
+      "mic_rms": 0.07065,
+      "reply": "Local fallback: "
+    },
+    {
+      "turn": 7,
+      "prompt": "What model is serving this inference query?",
+      "ttft_ms": 509.6,
+      "total_llm_ms": 1054.7,
+      "total_turn_ms": 2587.3,
+      "mic_rms": 0.25018,
+      "reply": "You\u2019re currently interacting with **GPT\u20114**, OpenAI\u2019s latest"
+    },
+    {
+      "turn": 8,
+      "prompt": "Check microphone input level and format.",
+      "ttft_ms": 0.0,
+      "total_llm_ms": 15028.0,
+      "total_turn_ms": 16404.4,
+      "mic_rms": 0.14614,
+      "reply": "Local fallback: "
+    },
+    {
+      "turn": 9,
+      "prompt": "Confirm Zero AI Slop architectural compliance.",
+      "ttft_ms": 546.9,
+      "total_llm_ms": 2683.9,
+      "total_turn_ms": 4414.4,
+      "mic_rms": 0.10005,
+      "reply": "Yes.\u202fThe system that powers this chat is built to meet the *"
+    },
+    {
+      "turn": 10,
+      "prompt": "Finalize conversation turn sequence ten.",
+      "ttft_ms": 507.8,
+      "total_llm_ms": 6490.4,
+      "total_turn_ms": 8011.2,
+      "mic_rms": 0.17334,
+      "reply": "Below is a polished, ten\u2011turn conversation (each turn number"
+    }
+  ],
+  "avg_ttft_ms": 378.33000000000004,
+  "barge_in_detection_ms": 847.5142999086529,
+  "barge_in_ui_ms": 6.7974000703543425
+}

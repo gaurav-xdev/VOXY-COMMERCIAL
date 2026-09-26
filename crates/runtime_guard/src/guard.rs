@@ -224,15 +224,23 @@ impl RuntimeGuard {
                                 if guard.config.enable_self_healing && missed >= 2 {
                                     if guard.self_healer.can_heal(name).await {
                                         error!("Triggering self-healing for {}", name);
-                                        match guard.self_healer.heal(name).await {
-                                            Ok(()) => {
-                                                guard.total_restarts.fetch_add(1, Ordering::Relaxed);
-                                                info!("Self-healing succeeded for {}", name);
+                                        let healer = guard.self_healer.clone();
+                                        let total_restarts = guard.total_restarts.clone();
+                                        let name = name.clone();
+                                        // Run healing off the monitor loop so one slow or
+                                        // hung subsystem cannot block heartbeat checks and
+                                        // shutdown handling for all other subsystems.
+                                        tokio::spawn(async move {
+                                            match healer.heal(&name).await {
+                                                Ok(()) => {
+                                                    total_restarts.fetch_add(1, Ordering::Relaxed);
+                                                    info!("Self-healing succeeded for {}", name);
+                                                }
+                                                Err(e) => {
+                                                    error!("Self-healing failed for {}: {}", name, e);
+                                                }
                                             }
-                                            Err(e) => {
-                                                error!("Self-healing failed for {}: {}", name, e);
-                                            }
-                                        }
+                                        });
                                     } else {
                                         error!(
                                             "Subsystem {} exceeded max restart attempts",

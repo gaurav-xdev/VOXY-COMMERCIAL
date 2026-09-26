@@ -1,35 +1,31 @@
+pub mod client;
+
 use async_trait::async_trait;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
-use voxy_provider_core::{LlmProvider, ProviderError, Result};
+use voxy_provider_core::{LlmChunk, LlmProvider, ProviderError, Result};
+
+use crate::client::AnthropicClient;
 
 const DEFAULT_MODEL: &str = "claude-sonnet-4-20250514";
 
 pub struct AnthropicProvider {
-    api_key: zeroize::Zeroizing<String>,
-    base_url: String,
+    client: AnthropicClient,
     model: String,
-    timeout: Duration,
-    client: reqwest::Client,
 }
 
 impl AnthropicProvider {
     pub fn new(api_key: impl Into<String>) -> Self {
         let timeout = Duration::from_secs(120);
-        let client = reqwest::Client::builder()
-            .timeout(timeout)
-            .build()
-            .unwrap_or_else(|_| {
-                tracing::warn!("Failed to create HTTP client with custom config, using default");
-                reqwest::Client::new()
-            });
-        Self {
-            api_key: zeroize::Zeroizing::new(api_key.into()),
-            base_url: "https://api.anthropic.com".into(),
-            model: DEFAULT_MODEL.into(),
+        let model = DEFAULT_MODEL.to_string();
+        let client = AnthropicClient::new(
+            api_key.into(),
+            "https://api.anthropic.com".into(),
+            model.clone(),
             timeout,
-            client,
-        }
+        );
+        Self { client, model }
     }
 
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
@@ -37,110 +33,29 @@ impl AnthropicProvider {
         self
     }
 
-    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
-        self.base_url = base_url.into();
-        self
+    pub fn with_base_url(self, base_url: impl Into<String>) -> Self {
+        // Rebuild client with new base_url
+        let client = AnthropicClient::new(
+            self.client.api_key().to_string(),
+            base_url.into(),
+            self.model.clone(),
+            self.client.timeout(),
+        );
+        Self { client, ..self }
     }
 
-    pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
-        self.client = reqwest::Client::builder()
-            .timeout(timeout)
-            .build()
-            .unwrap_or_else(|_| {
-                tracing::warn!("Failed to create HTTP client with custom timeout, using default");
-                reqwest::Client::new()
-            });
-        self
-    }
-
-    async fn send_message(&self, prompt: &str) -> Result<String> {
-        let body = serde_json::json!({
-            "model": self.model,
-            "max_tokens": 4096,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        });
-
-        let url = format!("{}/v1/messages", self.base_url);
-        let resp = self
-            .client
-            .post(&url)
-            .header("x-api-key", self.api_key.as_str())
-            .header("anthropic-version", "2023-06-01")
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    ProviderError::RequestFailed("Anthropic request timed out".into())
-                } else if e.is_connect() {
-                    ProviderError::ConnectionFailed(format!(
-                        "Cannot connect to Anthropic API at {}",
-                        self.base_url
-                    ))
-                } else {
-                    ProviderError::RequestFailed(e.to_string())
-                }
-            })?;
-
-        let status = resp.status();
-        if !status.is_success() {
-            let text = resp.text().await.unwrap_or_default();
-            return Err(match status.as_u16() {
-                401 | 403 => {
-                    ProviderError::AuthenticationFailed(format!("HTTP {}: {}", status, text))
-                }
-                429 => ProviderError::RateLimited,
-                _ => ProviderError::RequestFailed(format!("HTTP {}: {}", status, text)),
-            });
-        }
-
-        let data: serde_json::Value = resp
-            .json()
-            .await
-            .map_err(|e| ProviderError::InvalidResponse(e.to_string()))?;
-
-        let content = data["content"]
-            .as_array()
-            .and_then(|arr| arr.first())
-            .and_then(|block| block["text"].as_str())
-            .map(|s| s.to_string())
-            .ok_or_else(|| {
-                ProviderError::InvalidResponse("Missing text content in response".into())
-            })?;
-
-        Ok(content)
+    pub fn with_timeout(self, timeout: Duration) -> Self {
+        let client = AnthropicClient::new(
+            self.client.api_key().to_string(),
+            self.client.base_url().to_string(),
+            self.model.clone(),
+            timeout,
+        );
+        Self { client, ..self }
     }
 
     pub async fn health(&self) -> std::result::Result<bool, ProviderError> {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .build()
-            .map_err(|_| ProviderError::ConnectionFailed("Failed to build client".into()))?;
-
-        let url = format!("{}/v1/messages", self.base_url);
-        match client
-            .post(&url)
-            .header("x-api-key", self.api_key.as_str())
-            .header("anthropic-version", "2023-06-01")
-            .json(&serde_json::json!({
-                "model": self.model,
-                "max_tokens": 1,
-                "messages": [{"role": "user", "content": "ping"}]
-            }))
-            .send()
-            .await
-        {
-            Ok(r) if r.status().is_success() => Ok(true),
-            Ok(r) if r.status().as_u16() == 401 => Ok(false),
-            Ok(_) => Ok(true),
-            Err(_) => Ok(false),
-        }
+        self.client.health().await
     }
 
     pub fn model(&self) -> &str {
@@ -151,7 +66,25 @@ impl AnthropicProvider {
 #[async_trait]
 impl LlmProvider for AnthropicProvider {
     async fn complete(&self, prompt: &str) -> Result<String> {
-        self.send_message(prompt).await
+        self.client.send_message(prompt).await
+    }
+
+    async fn complete_streaming(
+        &self,
+        prompt: &str,
+        tx: mpsc::Sender<LlmChunk>,
+    ) -> Result<()> {
+        self.client.chat_completion_streaming(prompt, tx).await
+    }
+
+    fn supports_streaming(&self) -> bool {
+        true
+    }
+
+    async fn health(&self) -> Result<bool> {
+        self.health()
+            .await
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {

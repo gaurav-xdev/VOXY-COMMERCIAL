@@ -113,8 +113,8 @@ pub struct PhaseReport {
 /// Manages deterministic startup of all subsystems.
 pub struct BootSequence {
     phases: RwLock<HashMap<BootPhase, PhaseReport>>,
-    #[allow(dead_code)]
     max_recovery_attempts: u32,
+    recovery_attempts: RwLock<HashMap<BootPhase, u32>>,
     boot_started_at: RwLock<Option<DateTime<Utc>>>,
 }
 
@@ -139,6 +139,7 @@ impl BootSequence {
         Self {
             phases: RwLock::new(phases),
             max_recovery_attempts,
+            recovery_attempts: RwLock::new(HashMap::new()),
             boot_started_at: RwLock::new(None),
         }
     }
@@ -173,9 +174,15 @@ impl BootSequence {
                 report.duration_ms = Some((now - started).num_milliseconds() as f64);
             }
         }
+        // A successful completion resets the recovery budget for this phase.
+        self.recovery_attempts.write().remove(phase);
     }
 
     /// Mark a phase as failed and attempt recovery.
+    ///
+    /// Returns `RecoveryDecision::Retry` until the phase has been retried
+    /// `max_recovery_attempts` times, after which it returns
+    /// `RecoveryDecision::Abort`.
     pub fn fail_phase(&self, phase: &BootPhase, reason: &str) -> RecoveryDecision {
         let mut phases = self.phases.write();
         let report = match phases.get_mut(phase) {
@@ -187,6 +194,17 @@ impl BootSequence {
             reason: reason.to_string(),
         };
         report.health = HealthStatus::Unhealthy(reason.to_string());
+
+        let attempt = {
+            let mut attempts = self.recovery_attempts.write();
+            let count = attempts.entry(phase.clone()).or_insert(0);
+            *count += 1;
+            *count
+        };
+
+        if attempt > self.max_recovery_attempts {
+            return RecoveryDecision::Abort;
+        }
 
         RecoveryDecision::Retry {
             phase: phase.clone(),
@@ -269,6 +287,7 @@ impl BootSequence {
     /// Reset the boot sequence.
     pub fn reset(&self) {
         *self.boot_started_at.write() = None;
+        self.recovery_attempts.write().clear();
         let mut phases = self.phases.write();
         for report in phases.values_mut() {
             report.status = BootStatus::Pending;
@@ -390,5 +409,54 @@ mod tests {
             BootStatus::Failed { reason } => assert_eq!(reason, "OOM"),
             _ => panic!("Expected Failed status"),
         }
+    }
+
+    #[test]
+    fn recovery_budget_aborts_after_max_attempts() {
+        let boot = BootSequence::new(2);
+        boot.start_phase(&BootPhase::Kernel);
+
+        assert!(matches!(
+            boot.fail_phase(&BootPhase::Kernel, "transient"),
+            RecoveryDecision::Retry { .. }
+        ));
+        assert!(matches!(
+            boot.fail_phase(&BootPhase::Kernel, "transient"),
+            RecoveryDecision::Retry { .. }
+        ));
+        assert!(matches!(
+            boot.fail_phase(&BootPhase::Kernel, "transient"),
+            RecoveryDecision::Abort
+        ));
+    }
+
+    #[test]
+    fn successful_retry_resets_recovery_budget() {
+        let boot = BootSequence::new(2);
+        boot.start_phase(&BootPhase::Config);
+        assert!(matches!(
+            boot.fail_phase(&BootPhase::Config, "transient"),
+            RecoveryDecision::Retry { .. }
+        ));
+
+        // Retry succeeds, budget is reset.
+        boot.complete_phase(&BootPhase::Config, None);
+        boot.start_phase(&BootPhase::Config);
+        assert!(matches!(
+            boot.fail_phase(&BootPhase::Config, "transient"),
+            RecoveryDecision::Retry { .. }
+        ));
+    }
+
+    #[test]
+    fn abort_does_not_change_phase_status() {
+        let boot = BootSequence::new(1);
+        boot.start_phase(&BootPhase::Database);
+        boot.fail_phase(&BootPhase::Database, "err1");
+        let decision = boot.fail_phase(&BootPhase::Database, "err2");
+        assert!(matches!(decision, RecoveryDecision::Abort));
+
+        let report = boot.phase_report(&BootPhase::Database).unwrap();
+        assert!(report.health.is_unhealthy());
     }
 }

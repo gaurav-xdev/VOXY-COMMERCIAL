@@ -54,6 +54,24 @@ fn audio_session(id: &str, name: &str, volume: f32, excluded: bool) -> AudioSess
     }
 }
 
+/// Drain an mpsc receiver on a background task until the channel closes.
+///
+/// `HotSwapManager`/`InMemorySessionManager` emit an event on a bounded
+/// (capacity 64) channel for every transition and block the caller when the
+/// buffer fills. Stress tests that pump hundreds of events must consume them
+/// concurrently or they will deadlock on `send().await`.
+///
+/// The caller drops the producer (the manager) after the burst so the channel
+/// closes, which lets this task finish; await the returned handle for clean
+/// shutdown.
+fn spawn_event_drainer<T: Send + 'static>(
+    mut rx: tokio::sync::mpsc::Receiver<T>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        while let Some(_) = rx.recv().await {}
+    })
+}
+
 // ============================================================================
 // Streaming STT Stress Tests
 // ============================================================================
@@ -99,6 +117,13 @@ async fn stress_wasapi_ducking_rapid_toggle() {
     let config = WasapiSessionConfig::default();
     mgr.initialize(&config).await.unwrap();
 
+    // Consume ducking events concurrently; otherwise the bounded channel
+    // blocks the sender after 64 toggles.
+    let drainer = match mgr.take_events().await {
+        Some(rx) => Some(spawn_event_drainer(rx)),
+        None => None,
+    };
+
     mgr.add_session(audio_session("1", "Spotify", 1.0, false));
     mgr.add_session(audio_session("2", "Discord", 0.8, true));
 
@@ -109,6 +134,12 @@ async fn stress_wasapi_ducking_rapid_toggle() {
 
     let vol = mgr.get_volume("1").await.unwrap();
     assert!((vol - 1.0).abs() < 0.01);
+
+    // Drop the manager to close the channel, then wait for the drainer.
+    drop(mgr);
+    if let Some(drainer) = drainer {
+        drainer.await.unwrap();
+    }
 }
 
 #[tokio::test]
@@ -153,6 +184,13 @@ async fn stress_hot_swap_concurrent_process() {
     let manager = HotSwapManager::new();
     manager.initialize(HotSwapConfig::default());
 
+    // Consume hot-swap events concurrently; otherwise the bounded channel
+    // blocks the sender after 64 events.
+    let drainer = match manager.take_events() {
+        Some(rx) => Some(spawn_event_drainer(rx)),
+        None => None,
+    };
+
     for i in 0..10 {
         for j in 0..50 {
             let event = crate::device_watcher::DeviceChangeEvent::DeviceConnected {
@@ -163,6 +201,11 @@ async fn stress_hot_swap_concurrent_process() {
             manager.process_event(&handler, event).await;
         }
     }
+
+    drop(manager);
+    if let Some(drainer) = drainer {
+        drainer.await.unwrap();
+    }
 }
 
 #[tokio::test]
@@ -170,6 +213,13 @@ async fn stress_hot_swap_device_churn() {
     let manager = HotSwapManager::new();
     manager.initialize(HotSwapConfig::default());
     let handler: Arc<dyn crate::hot_swap::HotSwapHandler> = Arc::new(NoopHotSwapHandler);
+
+    // Consume hot-swap events concurrently; otherwise the bounded channel
+    // blocks the sender after 64 events.
+    let drainer = match manager.take_events() {
+        Some(rx) => Some(spawn_event_drainer(rx)),
+        None => None,
+    };
 
     for i in 0..100 {
         let event = crate::device_watcher::DeviceChangeEvent::DeviceConnected {
@@ -182,6 +232,11 @@ async fn stress_hot_swap_device_churn() {
             name: format!("Device {}", i),
         };
         manager.process_event(&handler, event2).await;
+    }
+
+    drop(manager);
+    if let Some(drainer) = drainer {
+        drainer.await.unwrap();
     }
 }
 

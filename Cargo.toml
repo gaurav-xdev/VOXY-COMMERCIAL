@@ -3,7 +3,10 @@ resolver = "2"
 members = [
     "apps/*",
     "crates/*",
-    "tools/*",
+]
+exclude = [
+    "tools/whisper-espeak-diag",
+    "crates/espeak-rs-sys-patch",
 ]
 
 [workspace.package]
@@ -70,6 +73,10 @@ voxy-cognitive-orchestrator = { path = "crates/cognitive_orchestrator" }
 voxy-health = { path = "crates/health" }
 voxy-database = { path = "crates/database" }
 voxy-runtime-guard = { path = "crates/runtime_guard" }
+voxy-cloud-stt = { path = "crates/cloud_stt" }
+voxy-stt-router = { path = "crates/stt_router" }
+voxy-voice-stream = { path = "crates/voice_stream" }
+voxy-voxray = { path = "crates/voxray" }
 
 [profile.dev]
 opt-level = 0

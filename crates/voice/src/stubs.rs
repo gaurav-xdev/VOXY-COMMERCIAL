@@ -24,8 +24,8 @@ impl SttEngine for StableStubSttEngine {
 
     async fn transcribe(&self, _audio: &AudioChunk) -> Result<String, VoiceOrchestratorError> {
         Err(VoiceOrchestratorError::TranscriptionFailed(
-            "STT engine not configured. Enable a speech recognition provider (e.g., Whisper) \
-             by setting the 'whisper' feature flag, or configure a cloud STT endpoint."
+            "STT engine not configured. Enable Voxray STT service (e.g. CloudOpenAiSttService or EchoSttService) \
+             or configure a cloud STT endpoint."
                 .to_string(),
         ))
     }
@@ -35,8 +35,8 @@ impl SttEngine for StableStubSttEngine {
         _stream: Box<dyn AudioStream>,
     ) -> Result<String, VoiceOrchestratorError> {
         Err(VoiceOrchestratorError::TranscriptionFailed(
-            "STT streaming not configured. Enable a speech recognition provider (e.g., Whisper) \
-             by setting the 'whisper' feature flag, or configure a cloud STT endpoint."
+            "STT streaming not configured. Enable Voxray STT service (e.g. CloudOpenAiSttService or EchoSttService) \
+             or configure a cloud STT endpoint."
                 .to_string(),
         ))
     }
@@ -97,8 +97,8 @@ impl TtsEngine for StableStubTtsEngine {
 
     async fn synthesize(&self, _text: &str) -> Result<AudioChunk, VoiceOrchestratorError> {
         Err(VoiceOrchestratorError::SynthesisFailed(
-            "TTS engine not configured. Enable a text-to-speech provider (e.g., Kokoro) \
-             by setting the 'kokoro' feature flag, or configure a cloud TTS endpoint."
+            "TTS engine not configured. Enable Voxray TTS service (e.g. CloudOpenAiTtsService or ToneTtsService) \
+             or configure a cloud TTS endpoint."
                 .to_string(),
         ))
     }
@@ -108,8 +108,8 @@ impl TtsEngine for StableStubTtsEngine {
         _text: &str,
     ) -> Result<Box<dyn AudioStream>, VoiceOrchestratorError> {
         Err(VoiceOrchestratorError::SynthesisFailed(
-            "TTS streaming not configured. Enable a text-to-speech provider (e.g., Kokoro) \
-             by setting the 'kokoro' feature flag, or configure a cloud TTS endpoint."
+            "TTS streaming not configured. Enable Voxray TTS service (e.g. CloudOpenAiTtsService or ToneTtsService) \
+             or configure a cloud TTS endpoint."
                 .to_string(),
         ))
     }

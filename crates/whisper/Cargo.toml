@@ -9,12 +9,15 @@ license.workspace = true
 [features]
 default = []
 whisper-engine = ["dep:whisper-rs"]
+sherpa-engine = ["dep:sherpa-onnx"]
+cuda = ["dep:whisper-rs", "whisper-rs/cuda", "whisper-engine"]
 
 [dependencies]
 voxy-shared = { workspace = true }
 voxy-config = { workspace = true }
 voxy-provider-core = { path = "../provider_core" }
 voxy-voice-orchestrator = { path = "../voice_orchestrator" }
+voxy-voice-stream = { path = "../voice_stream" }
 parking_lot = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
@@ -23,6 +26,8 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 whisper-rs = { version = "0.16", optional = true, features = ["openmp"] }
+sherpa-onnx = { version = "1.13.6", optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
+tracing-subscriber = { workspace = true }

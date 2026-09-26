@@ -36,8 +36,26 @@ pub trait SttEngine: Send + Sync {
     fn name(&self) -> &str;
     async fn transcribe(&self, audio: &AudioChunk) -> Result<String>;
     async fn transcribe_stream(&self, stream: Box<dyn AudioStream>) -> Result<String>;
+    /// Transcribe the accumulated audio as an intermediate (non-final) result.
+    /// Backends that cannot produce partial transcriptions return the empty
+    /// string, or may re-decode the accumulated audio (see the implementing
+    /// engine's documentation). It must not consume the engine's internal
+    /// audio buffer.
+    async fn transcribe_partial(&self, _audio: &AudioChunk) -> Result<String> {
+        Ok(String::new())
+    }
+    fn supports_partial_transcription(&self) -> bool {
+        false
+    }
     fn supported_languages(&self) -> Vec<String>;
     fn is_available(&self) -> bool;
+}
+
+/// A partial or final transcript emitted while the user is still speaking.
+#[derive(Debug, Clone)]
+pub struct PartialTranscript {
+    pub text: String,
+    pub is_final: bool,
 }
 
 #[async_trait]

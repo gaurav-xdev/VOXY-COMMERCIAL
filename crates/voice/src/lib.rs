@@ -4,6 +4,7 @@ pub mod error;
 pub mod pipeline;
 pub mod session;
 pub mod stubs;
+pub mod voxray_adapter;
 
 pub use config::VoiceConfig;
 pub use detection::{EnergyVadDetector, EnergyWakeWordDetector};
@@ -11,6 +12,7 @@ pub use error::{Result, VoiceError};
 pub use pipeline::VoicePipeline;
 pub use session::SpeechSession;
 pub use stubs::{StableStubSttEngine, StableStubTtsEngine};
+pub use voxray_adapter::{SingleChunkAudioStream, VoxraySttEngine, VoxrayTtsEngine};
 pub use voxy_voice_orchestrator::VoiceEvent;
 
 #[cfg(test)]
@@ -28,6 +30,12 @@ mod tests {
         assert!(!config.auto_start_capture);
         assert!(config.enable_diagnostics);
         assert!(config.personality_id.is_none());
+        assert_eq!(config.preroll_ms, 500);
+        assert_eq!(config.partial_transcript_interval_ms, 500);
+        assert_eq!(config.vad_onset_frames, 2);
+        assert_eq!(config.vad_settle_ms, 120);
+        assert_eq!(config.vad_trailing_off_ms, 700);
+        assert_eq!(config.vad_max_silence_ms, 2000);
     }
 
     #[tokio::test]

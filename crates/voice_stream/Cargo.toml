@@ -1,0 +1,9 @@
+[package]
+name = "voxy-voice-stream"
+description = "Realtime voice streaming primitives: sentence chunking, transcript stabilization, tiered endpointing, speculative prefill, barge-in"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]

@@ -14,6 +14,8 @@ voxy-voice-orchestrator = { workspace = true }
 voxy-provider-core = { workspace = true }
 voxy-personality = { workspace = true }
 voxy-event-bus = { workspace = true }
+voxy-voice-stream = { path = "../voice_stream" }
+voxy-voxray = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }

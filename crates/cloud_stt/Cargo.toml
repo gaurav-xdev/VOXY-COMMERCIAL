@@ -1,0 +1,17 @@
+[package]
+name = "voxy-cloud-stt"
+description = "Cloud STT provider via OpenAI-compatible Whisper API"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+voxy-voice-orchestrator = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+reqwest = { workspace = true, features = ["multipart"] }
+chrono = { workspace = true }
