@@ -439,61 +439,9 @@ type PipelineFuture =
 
 #[allow(dead_code)]
 fn get_memory_usage() -> (u64, u64) {
-    let mut used = 0u64;
-    let mut total = 0u64;
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(output) = std::process::Command::new("wmic")
-            .args([
-                "OS",
-                "get",
-                "TotalVisibleMemorySize,FreePhysicalMemory",
-                "/format:csv",
-            ])
-            .output()
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines().skip(1) {
-                let parts: Vec<&str> = line.split(',').collect();
-                if parts.len() >= 3 {
-                    if let Ok(free_kb) = parts[2].trim().parse::<u64>() {
-                        if let Ok(total_kb) = parts[1].trim().parse::<u64>() {
-                            total = total_kb * 1024;
-                            used = total.saturating_sub(free_kb * 1024);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        if let Ok(info) = std::fs::read_to_string("/proc/meminfo") {
-            for line in info.lines() {
-                if let Some(val) = line.strip_prefix("MemTotal:") {
-                    total = val
-                        .trim()
-                        .split_whitespace()
-                        .next()
-                        .and_then(|s| s.parse::<u64>().ok())
-                        .unwrap_or(0)
-                        * 1024;
-                } else if let Some(val) = line.strip_prefix("MemAvailable:") {
-                    let avail = val
-                        .trim()
-                        .split_whitespace()
-                        .next()
-                        .and_then(|s| s.parse::<u64>().ok())
-                        .unwrap_or(0)
-                        * 1024;
-                    if total > avail {
-                        used = total - avail;
-                    }
-                }
-            }
-        }
-    }
-    (used, total)
+    let mut sys = sysinfo::System::new();
+    sys.refresh_memory();
+    (sys.used_memory(), sys.total_memory())
 }
 
 #[allow(dead_code)]

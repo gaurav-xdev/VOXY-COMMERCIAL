@@ -46,7 +46,7 @@ impl GlobalAppState {
                 ChatMessage {
                     id: 1,
                     sender: "VOXY CORE".into(),
-                    text: "System initialized. Hardware acoustic shield active on Intel SST array.".into(),
+                    text: "System initialized. Audio capture and speech pipeline active.".into(),
                     timestamp: "Startup".into(),
                     is_user: false,
                 }
@@ -54,8 +54,8 @@ impl GlobalAppState {
             tool_steps: parking_lot::RwLock::new(vec![
                 ToolStep {
                     id: 1,
-                    title: "Acoustic Shield Calibration".into(),
-                    detail: "FDAF AEC filter & beamformer initialized".into(),
+                    title: "Audio Stack Initialization".into(),
+                    detail: "WASAPI audio device stream calibrated".into(),
                     status: StepStatus::Completed,
                 }
             ]),
@@ -184,11 +184,11 @@ fn App() -> Element {
         });
     });
 
-    let profile_var = std::env::var("VOXY_PROFILE").unwrap_or_else(|_| "owner".into());
-    let (identity_name, profile_label) = if profile_var.to_lowercase() == "owner" || profile_var.to_lowercase() == "gaurav" {
-        ("JARVIS // MK-V", "PROFILE: GAURAV (OWNER)")
+    let profile_var = std::env::var("VOXY_PROFILE").unwrap_or_else(|_| "production".into());
+    let (identity_name, profile_label) = if profile_var.to_lowercase() == "pro" {
+        ("VOXY // PRO", "PROFILE: PROFESSIONAL")
     } else {
-        ("VOXY // CORE", "PROFILE: SYSTEM STANDARD")
+        ("VOXY // COM", "PROFILE: PRODUCTION")
     };
 
     let cur_mode = *desktop_mode.read();
