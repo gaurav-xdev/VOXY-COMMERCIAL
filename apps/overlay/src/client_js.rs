@@ -1,8 +1,6 @@
 pub const CLIENT_JS: &str = r##"
 <script>
 (function() {
-    let ws = null;
-    let wsConnected = false;
     let liveMicRms = 0.0;
     let liveOutputRms = 0.0;
     let smoothedMic = 0.0;
@@ -11,38 +9,27 @@ pub const CLIENT_JS: &str = r##"
     let lastRenderTime = 0;
     let animFrameId = null;
 
-    function initWebSocket() {
-        try {
-            ws = new WebSocket("ws://127.0.0.1:18888");
-            ws.onopen = function() {
-                console.log("[VOXY-UI] Connected to WebSocket live stream ws://127.0.0.1:18888");
-                wsConnected = true;
-                const statusDot = document.getElementById("connection-status-dot");
-                if (statusDot) {
-                    statusDot.style.background = "#10b981";
-                    statusDot.title = "Connected to VOXY Daemon";
-                }
-            };
-            ws.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    handleIncomingPacket(data);
-                } catch(e) {
-                    console.error("[VOXY-UI] Failed to parse message:", e);
-                }
-            };
-            ws.onerror = function(err) {};
-            ws.onclose = function() {
-                wsConnected = false;
-                const statusDot = document.getElementById("connection-status-dot");
-                if (statusDot) {
-                    statusDot.style.background = "#64748b";
-                    statusDot.title = "Disconnected (Retrying...)";
-                }
-                setTimeout(initWebSocket, 2000);
-            };
-        } catch(e) {}
-    }
+    // Exported bridge functions for native IPC driver
+    window.voxyUpdateAudioEnergy = function(micRms, outputRms) {
+        liveMicRms = typeof micRms === 'number' ? micRms : 0.0;
+        liveOutputRms = typeof outputRms === 'number' ? outputRms : 0.0;
+    };
+
+    window.voxySetVisualState = function(stateName) {
+        setVisualState(stateName);
+    };
+
+    window.voxySetTranscript = function(text) {
+        setTranscript(text);
+    };
+
+    window.voxySetConnectionStatus = function(connected) {
+        const statusDot = document.getElementById("connection-status-dot");
+        if (statusDot) {
+            statusDot.style.background = connected ? "#10b981" : "#64748b";
+            statusDot.title = connected ? "Connected to VOXY Daemon (Named Pipe IPC)" : "Disconnected (Reconnecting...)";
+        }
+    };
 
     function handleIncomingPacket(data) {
         if (!data || !data.type) return;
@@ -139,13 +126,6 @@ pub const CLIENT_JS: &str = r##"
     // Emergency Stop Trigger
     window.voxyEmergencyStop = function() {
         console.warn("[VOXY] EMERGENCY STOP TRIGGERED BY USER");
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: "emergency_stop",
-                timestamp: Date.now() / 1000.0,
-                reason: "manual_user_override"
-            }));
-        }
         setVisualState('Error');
         setTranscript("EMERGENCY STOP ACTIVATED: All computer control actions halted.");
     };
@@ -278,7 +258,6 @@ pub const CLIENT_JS: &str = r##"
     }
 
     window.addEventListener('DOMContentLoaded', function() {
-        initWebSocket();
         startCoreCanvas();
     });
 })();

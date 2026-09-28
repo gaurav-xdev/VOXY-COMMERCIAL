@@ -12,6 +12,7 @@ path = "src/main.rs"
 default = []
 
 [dependencies]
+voxy-ipc = { path = "../../crates/ipc" }
 voxy-shared = { path = "../../crates/shared" }
 voxy-config = { path = "../../crates/config" }
 voxy-logging = { path = "../../crates/logging" }

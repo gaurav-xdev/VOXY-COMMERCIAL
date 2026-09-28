@@ -29,6 +29,10 @@ pub fn ComputerControlBanner(
             button {
                 class: "emergency-stop-btn clickable",
                 onclick: move |_| {
+                    let client = crate::get_ipc_client();
+                    spawn(async move {
+                        let _ = client.send_command(voxy_ipc::ClientCommand::EmergencyStop).await;
+                    });
                     let _ = document::eval("window.voxyEmergencyStop();");
                 },
                 title: "Immediately halt all automated mouse, keyboard, and system actions",

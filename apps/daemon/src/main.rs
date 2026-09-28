@@ -44,6 +44,8 @@ struct SpecEntry {
     reply: String,
 }
 
+static CHAT_MSG_ID: AtomicU64 = AtomicU64::new(1);
+
 /// Create an LLM provider based on VOXY_LLM_PROVIDER env var.
 /// Supported: "ollama" (default), "openai", "anthropic", "gemini", "groq", "openrouter"
 fn create_llm_provider() -> Arc<dyn LlmProvider> {
@@ -569,6 +571,64 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
 
         pipeline.start_capture().await?;
 
+        // ── VOXY COM Native IPC Server (Windows Named Pipe) ──
+        let ipc_server = Arc::new(voxy_ipc::VoxyIpcServer::new());
+        ipc_server.start();
+        tracing::info!("[IPC] VOXY COM Named Pipe IPC server active on {}", voxy_ipc::VOXY_PIPE_NAME);
+
+        // Hook pipeline events -> IPC server broadcasts
+        {
+            let ipc_srv = ipc_server.clone();
+            let _ = pipeline.on_event(Box::new(move |event| {
+                let srv = ipc_srv.clone();
+                match event {
+                    voxy_voice::VoiceEvent::WakeWordDetected { .. } | voxy_voice::VoiceEvent::VoiceActivityStarted => {
+                        tokio::spawn(async move {
+                            srv.set_voice_state(voxy_ipc::VoiceState::Listening, None).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::VoiceActivityEnded { .. } => {
+                        tokio::spawn(async move {
+                            srv.set_voice_state(voxy_ipc::VoiceState::Thinking, None).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::TranscriptionResult { text, is_final, confidence } => {
+                        tokio::spawn(async move {
+                            srv.set_transcript(text, is_final, confidence).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::SynthesisStarted { .. } => {
+                        tokio::spawn(async move {
+                            srv.set_voice_state(voxy_ipc::VoiceState::Speaking, None).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::SynthesisCompleted { .. } => {
+                        tokio::spawn(async move {
+                            srv.set_voice_state(voxy_ipc::VoiceState::Idle, None).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::SynthesisError { .. } | voxy_voice::VoiceEvent::TranscriptionError { .. } => {
+                        tokio::spawn(async move {
+                            srv.set_voice_state(voxy_ipc::VoiceState::Error, None).await;
+                        });
+                    }
+                    voxy_voice::VoiceEvent::PipelineStateChanged { state } => {
+                        let st = match state.to_lowercase().as_str() {
+                            "idle" => voxy_ipc::VoiceState::Idle,
+                            "listening" => voxy_ipc::VoiceState::Listening,
+                            "thinking" | "processing" => voxy_ipc::VoiceState::Thinking,
+                            "speaking" => voxy_ipc::VoiceState::Speaking,
+                            "interrupted" => voxy_ipc::VoiceState::Interrupted,
+                            _ => voxy_ipc::VoiceState::Idle,
+                        };
+                        tokio::spawn(async move {
+                            srv.set_voice_state(st, None).await;
+                        });
+                    }
+                }
+            })).await;
+        }
+
         // ── Voice Engine V2: initialize watchdog, calibrator, metrics ──
         pipeline.initialize_v2().await?;
         if let Some(ref _watchdog) = pipeline.watchdog() {
@@ -712,6 +772,20 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 },
             );
         }
+        {
+            let ipc_srv = ipc_server.clone();
+            graceful.register_simple(
+                "ipc_server",
+                shutdown::ShutdownPriority::Services,
+                Duration::from_secs(3),
+                move || {
+                    let ipc_srv = ipc_srv.clone();
+                    async move {
+                        ipc_srv.stop();
+                    }
+                },
+            );
+        }
 
         // ── LLM Provider (multi-provider support) ──────────────────────
         let llm = create_llm_provider();
@@ -839,6 +913,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let audit_log = audit_log.clone();
             let recovery_mode = recovery_mode.clone();
             let tool_reg = tool_registry.clone();
+            let ipc_srv = ipc_server.clone();
             Box::new(
                 move |text: String| -> Pin<Box<dyn std::future::Future<Output = String> + Send>> {
                     let cognitive = cognitive.clone();
@@ -854,6 +929,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                     let tasks_completed = tasks_completed.clone();
                     let audit_log = audit_log.clone();
                     let tool_reg = tool_reg.clone();
+                    let ipc_srv = ipc_srv.clone();
                     Box::pin(async move {
                         // ── 0. SANITIZE INPUT (security boundary) ────────
                         let sanitized = sanitize_user_input(&text);
@@ -871,11 +947,18 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
 
                         let response_start = Instant::now();
 
-                        // ── 1. Feed transcript → Experience Layer ──────────
+                        // ── 1. Feed transcript → Experience Layer & IPC Clients ──────────
                         tracing::info!("[VOICE:LLM] Text: {}", text);
                         let _ = exp_input.send(ExperienceInput::VoiceTranscript {
                             text: text.clone(),
                             is_final: true,
+                        });
+                        ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                            id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                            sender: "USER".into(),
+                            text: text.clone(),
+                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                            is_user: true,
                         });
 
                         // ── 2. Store user turn in memory ───────────────────
@@ -894,9 +977,17 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         {
                             if let Some(ref tr) = tool_reg {
                                 tr.trigger_emergency_stop();
+                                ipc_srv.set_emergency_stop(true).await;
                                 tracing::warn!("[VOICE:EMERGENCY] Emergency Stop triggered via voice command");
                                 let response = "Emergency Stop activated. All computer control actions have been halted.".to_string();
                                 mem.add_turn("assistant", &response);
+                                ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                                    id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                                    sender: "VOXY".into(),
+                                    text: response.clone(),
+                                    timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                    is_user: false,
+                                });
                                 return response;
                             }
                         }
@@ -906,9 +997,17 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         {
                             if let Some(ref tr) = tool_reg {
                                 tr.reset_emergency_stop();
+                                ipc_srv.set_emergency_stop(false).await;
                                 tracing::info!("[VOICE:EMERGENCY] Emergency Stop reset via voice command");
                                 let response = "Emergency Stop reset. Computer control is re-enabled.".to_string();
                                 mem.add_turn("assistant", &response);
+                                ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                                    id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                                    sender: "VOXY".into(),
+                                    text: response.clone(),
+                                    timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                    is_user: false,
+                                });
                                 return response;
                             }
                         }
@@ -1147,7 +1246,27 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         let response = if let Some(ref tr) = tool_reg {
                             if let Some((call, remaining)) = tools::ToolRegistry::parse_tool_call(&response) {
                                 tracing::info!("[VOICE:TOOL] Parsed tool call: {} {:?}", call.tool, call.params);
+                                let step_id = uuid::Uuid::new_v4().as_u128() as u64;
+                                ipc_srv.broadcast_tool_step(
+                                    step_id,
+                                    call.tool.clone(),
+                                    format!("Executing {}", call.tool),
+                                    call.params.to_string(),
+                                    voxy_ipc::ToolStepStatus::Running,
+                                );
                                 let result = tr.execute(&call).await;
+                                let status = if result.success {
+                                    voxy_ipc::ToolStepStatus::Completed
+                                } else {
+                                    voxy_ipc::ToolStepStatus::Failed
+                                };
+                                ipc_srv.broadcast_tool_step(
+                                    step_id,
+                                    call.tool.clone(),
+                                    result.message.clone(),
+                                    call.params.to_string(),
+                                    status,
+                                );
                                 if !remaining.is_empty() {
                                     format!("{}\n{}", remaining, result.message)
                                 } else {
@@ -1193,10 +1312,17 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             }
                         }
 
-                        // ── 7. Feed response → Experience Layer ────────────
+                        // ── 7. Feed response → Experience Layer & IPC Clients ────────────
                         let _ = exp_input.send(ExperienceInput::VoiceTranscript {
                             text: response.clone(),
                             is_final: true,
+                        });
+                        ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                            id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                            sender: "VOXY".into(),
+                            text: response.clone(),
+                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                            is_user: false,
                         });
 
                         // ── 8. Track task completion for moments ──────────
@@ -1489,6 +1615,49 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 dev_text_input::run(dev_llm, dev_pipeline, dev_memory, dev_sys_prompt, dev_tool_reg).await;
             });
             tracing::info!("[DEV-TEXT] Dev text input active. Type messages at the VOXY > prompt.");
+        }
+
+        // ── VOXY COM IPC Inbound Command Processing Loop ──
+        {
+            let ipc_srv = ipc_server.clone();
+            let tr_opt = tool_registry.clone();
+            let running_flag = running.clone();
+            tokio::spawn(async move {
+                while running_flag.load(Ordering::Relaxed) {
+                    match ipc_srv.recv_command().await {
+                        Some(voxy_ipc::ClientCommand::EmergencyStop) => {
+                            tracing::warn!("[IPC] Emergency stop command received from client");
+                            if let Some(ref tr) = tr_opt {
+                                tr.trigger_emergency_stop();
+                            }
+                            ipc_srv.set_emergency_stop(true).await;
+                        }
+                        Some(voxy_ipc::ClientCommand::ResetEmergencyStop) => {
+                            tracing::info!("[IPC] Reset emergency stop command received from client");
+                            if let Some(ref tr) = tr_opt {
+                                tr.reset_emergency_stop();
+                            }
+                            ipc_srv.set_emergency_stop(false).await;
+                        }
+                        Some(voxy_ipc::ClientCommand::ClientHandshake { client_name, client_version }) => {
+                            tracing::info!(client = %client_name, version = %client_version, "[IPC] Client connected and registered");
+                        }
+                        Some(voxy_ipc::ClientCommand::RequestSnapshot) => {
+                            tracing::debug!("[IPC] Client requested snapshot refresh");
+                        }
+                        Some(voxy_ipc::ClientCommand::InterruptSpeech) => {
+                            tracing::info!("[IPC] Client requested speech interrupt");
+                        }
+                        Some(voxy_ipc::ClientCommand::SendTextInput { text }) => {
+                            tracing::info!(text = %text, "[IPC] Text input command received from client");
+                        }
+                        Some(voxy_ipc::ClientCommand::HeartbeatPong) => {}
+                        None => {
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                        }
+                    }
+                }
+            });
         }
 
         // ── Desktop Event Bridge ──────────────────────────────────────────

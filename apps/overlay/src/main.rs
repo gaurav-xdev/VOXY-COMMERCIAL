@@ -7,7 +7,6 @@ use dioxus::prelude::*;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tracing_subscriber::EnvFilter;
-use voxy_event_bus::EventBus;
 
 use types::{ChatMessage, DesktopMode, StepStatus, SystemTelemetry, ToolStep, VisualState};
 use styles::GLOBAL_STYLES;
@@ -69,6 +68,18 @@ fn get_app_state() -> Arc<GlobalAppState> {
     APP_STATE.get_or_init(|| Arc::new(GlobalAppState::new())).clone()
 }
 
+static IPC_CLIENT: OnceLock<Arc<voxy_ipc::VoxyIpcClient>> = OnceLock::new();
+
+pub fn get_ipc_client() -> Arc<voxy_ipc::VoxyIpcClient> {
+    IPC_CLIENT
+        .get_or_init(|| {
+            let client = Arc::new(voxy_ipc::VoxyIpcClient::new());
+            client.start();
+            client
+        })
+        .clone()
+}
+
 #[component]
 fn App() -> Element {
     let global_state = get_app_state();
@@ -84,102 +95,186 @@ fn App() -> Element {
     let tool_steps = use_signal(|| global_state.tool_steps.read().clone());
     let telemetry = use_signal(SystemTelemetry::default);
 
-    // Listen to local EventBus for voice pipeline transitions
+    // Listen to VOXY Daemon via native Windows Named Pipe IPC
     use_effect(move || {
         let vs = visual_state.clone();
         let ts = transcript.clone();
         let tc = turn_count.clone();
         let msgs = messages.clone();
+        let t_steps = tool_steps.clone();
+        let mut telem = telemetry.clone();
         let gs = global_state.clone();
 
         spawn(async move {
-            let bus = Arc::new(EventBus::new(256));
+            let client = get_ipc_client();
+            let mut event_rx = client.subscribe();
+            let conn_watch = client.watch_connected();
 
-            // 1. Wake event -> Listening
-            if let Ok(mut rx) = bus.subscribe("voice.wake").await {
-                let gs_c = gs.clone();
-                let mut vs_c = vs.clone();
-                let mut ts_c = ts.clone();
+            // Background task watching connection state
+            {
+                let mut vs_conn = vs.clone();
+                let mut ts_conn = ts.clone();
+                let mut conn_rx = conn_watch.clone();
                 spawn(async move {
-                    while let Ok(_event) = rx.recv().await {
-                        *gs_c.visual_state.write() = VisualState::Listening;
-                        vs_c.set(VisualState::Listening);
-                        ts_c.set("Listening to microphone...".to_string());
+                    while conn_rx.changed().await.is_ok() {
+                        let is_conn = *conn_rx.borrow();
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetConnectionStatus) window.voxySetConnectionStatus({});",
+                            is_conn
+                        ));
+                        if !is_conn {
+                            vs_conn.set(VisualState::Offline);
+                            ts_conn.set("Connecting to VOXY Daemon...".to_string());
+                        }
                     }
                 });
             }
 
-            // 2. STT Final -> Thinking
-            if let Ok(mut rx) = bus.subscribe("stt.final").await {
-                let gs_c = gs.clone();
-                let mut vs_c = vs.clone();
-                let mut ts_c = ts.clone();
-                let mut tc_c = tc.clone();
-                let mut msgs_c = msgs.clone();
-                spawn(async move {
-                    while let Ok(event) = rx.recv().await {
-                        let text = String::from_utf8_lossy(event.payload()).to_string();
-                        *gs_c.visual_state.write() = VisualState::Thinking;
-                        let count = *tc_c.read() + 1;
-                        *tc_c.write() = count;
-
-                        let new_msg = ChatMessage {
-                            id: count * 2,
-                            sender: "USER".into(),
-                            text: text.clone(),
-                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                            is_user: true,
+            // Main event dispatch loop
+            while let Ok(daemon_msg) = event_rx.recv().await {
+                match daemon_msg {
+                    voxy_ipc::DaemonMessage::StateSnapshot {
+                        voice_state,
+                        transcript: snap_t,
+                        emergency_stopped,
+                        ..
+                    } => {
+                        let state = match voice_state {
+                            voxy_ipc::VoiceState::Idle => VisualState::Idle,
+                            voxy_ipc::VoiceState::Listening => VisualState::Listening,
+                            voxy_ipc::VoiceState::Thinking => VisualState::Thinking,
+                            voxy_ipc::VoiceState::Speaking => VisualState::Speaking,
+                            voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => {
+                                VisualState::Error
+                            }
                         };
-                        gs_c.messages.write().push(new_msg.clone());
-                        msgs_c.write().push(new_msg);
-
-                        vs_c.set(VisualState::Thinking);
-                        ts_c.set(format!("User: \"{}\"", text));
-                    }
-                });
-            }
-
-            // 3. LLM Response -> Speaking
-            if let Ok(mut rx) = bus.subscribe("llm.response").await {
-                let gs_c = gs.clone();
-                let mut vs_c = vs.clone();
-                let mut ts_c = ts.clone();
-                let mut msgs_c = msgs.clone();
-                spawn(async move {
-                    while let Ok(event) = rx.recv().await {
-                        let text = String::from_utf8_lossy(event.payload()).to_string();
-                        *gs_c.visual_state.write() = VisualState::Speaking;
-                        vs_c.set(VisualState::Speaking);
-                        ts_c.set(format!("VOXY: \"{}\"", text));
-
-                        let new_msg = ChatMessage {
-                            id: msgs_c.read().len() + 1,
-                            sender: "VOXY".into(),
-                            text: text.clone(),
-                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                            is_user: false,
+                        let state = if emergency_stopped {
+                            VisualState::Error
+                        } else {
+                            state
                         };
-                        gs_c.messages.write().push(new_msg.clone());
-                        msgs_c.write().push(new_msg);
+                        *gs.visual_state.write() = state;
+                        let mut vs_mut = vs.clone();
+                        vs_mut.set(state);
+                        *gs.transcript.write() = snap_t.clone();
+                        let mut ts_mut = ts.clone();
+                        ts_mut.set(snap_t);
                     }
-                });
-            }
-
-            // 4. Barge-in cutoff -> Acoustic interruption
-            if let Ok(mut rx) = bus.subscribe("voice.barge_in").await {
-                let gs_c = gs.clone();
-                let mut vs_c = vs.clone();
-                let mut ts_c = ts.clone();
-                spawn(async move {
-                    while let Ok(_event) = rx.recv().await {
-                        *gs_c.visual_state.write() = VisualState::Error;
-                        vs_c.set(VisualState::Error);
-                        ts_c.set("Acoustic barge-in detected. Listening to speaker...".to_string());
+                    voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
+                        let v_state = match state {
+                            voxy_ipc::VoiceState::Idle => VisualState::Idle,
+                            voxy_ipc::VoiceState::Listening => VisualState::Listening,
+                            voxy_ipc::VoiceState::Thinking => VisualState::Thinking,
+                            voxy_ipc::VoiceState::Speaking => VisualState::Speaking,
+                            voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => {
+                                VisualState::Error
+                            }
+                        };
+                        *gs.visual_state.write() = v_state;
+                        let mut vs_mut = vs.clone();
+                        vs_mut.set(v_state);
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetVisualState) window.voxySetVisualState('{}');",
+                            v_state.label()
+                        ));
+                    }
+                    voxy_ipc::DaemonMessage::TranscriptUpdate { text, .. } => {
+                        *gs.transcript.write() = text.clone();
+                        let mut ts_mut = ts.clone();
+                        ts_mut.set(text.clone());
+                        let json_text = serde_json::to_string(&text).unwrap_or_default();
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetTranscript) window.voxySetTranscript({});",
+                            json_text
+                        ));
+                    }
+                    voxy_ipc::DaemonMessage::AudioEnergy {
+                        mic_rms,
+                        output_rms,
+                    } => {
+                        telem.write().mic_rms = mic_rms;
+                        telem.write().output_rms = output_rms;
+                        let _ = document::eval(&format!(
+                            "if (window.voxyUpdateAudioEnergy) window.voxyUpdateAudioEnergy({}, {});",
+                            mic_rms, output_rms
+                        ));
+                    }
+                    voxy_ipc::DaemonMessage::ToolStep {
+                        id,
+                        title,
+                        detail,
+                        status,
+                        ..
+                    } => {
+                        let step_status = match status {
+                            voxy_ipc::ToolStepStatus::Running => StepStatus::Running,
+                            voxy_ipc::ToolStepStatus::Completed => StepStatus::Completed,
+                            voxy_ipc::ToolStepStatus::Failed => StepStatus::Failed,
+                        };
+                        let new_step = ToolStep {
+                            id: id as usize,
+                            title,
+                            detail,
+                            status: step_status,
+                        };
+                        let mut steps = t_steps.clone();
+                        let mut found = false;
+                        for s in steps.write().iter_mut() {
+                            if s.id == new_step.id {
+                                *s = new_step.clone();
+                                found = true;
+                                break;
+                            }
+                        }
+                        if !found {
+                            steps.write().push(new_step);
+                        }
+                        if status == voxy_ipc::ToolStepStatus::Running {
+                            let mut vs_mut = vs.clone();
+                            vs_mut.set(VisualState::Executing);
+                        }
+                    }
+                    voxy_ipc::DaemonMessage::ChatMessage {
+                        id,
+                        sender,
+                        text,
+                        timestamp,
+                        is_user,
+                    } => {
+                        let chat_msg = ChatMessage {
+                            id: id as usize,
+                            sender,
+                            text,
+                            timestamp,
+                            is_user,
+                        };
+                        let mut m_mut = msgs.clone();
+                        m_mut.write().push(chat_msg.clone());
+                        gs.messages.write().push(chat_msg);
+                        let count = *tc.read() + 1;
+                        let mut tc_mut = tc.clone();
+                        tc_mut.set(count);
+                    }
+                    voxy_ipc::DaemonMessage::Interrupted { .. } => {
+                        let mut vs_mut = vs.clone();
+                        vs_mut.set(VisualState::Error);
+                        let mut ts_mut = ts.clone();
+                        ts_mut.set("Interrupted by user speech...".to_string());
                         tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-                        *gs_c.visual_state.write() = VisualState::Listening;
-                        vs_c.set(VisualState::Listening);
+                        vs_mut.set(VisualState::Listening);
                     }
-                });
+                    voxy_ipc::DaemonMessage::EmergencyStopChanged { is_stopped } => {
+                        if is_stopped {
+                            let mut vs_mut = vs.clone();
+                            vs_mut.set(VisualState::Error);
+                            let mut ts_mut = ts.clone();
+                            ts_mut.set(
+                                "EMERGENCY STOP ACTIVATED: All computer control halted.".to_string(),
+                            );
+                        }
+                    }
+                    _ => {}
+                }
             }
         });
     });

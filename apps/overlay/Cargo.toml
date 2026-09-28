@@ -11,6 +11,7 @@ name = "voxy-overlay"
 path = "src/main.rs"
 
 [dependencies]
+voxy-ipc = { path = "../../crates/ipc" }
 voxy-shared = { path = "../../crates/shared" }
 voxy-event-bus = { path = "../../crates/event_bus" }
 tokio = { workspace = true }

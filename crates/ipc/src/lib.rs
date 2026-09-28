@@ -23,6 +23,8 @@ pub mod error;
 pub mod protocol;
 pub mod replay;
 pub mod transport;
+pub mod voxy_protocol;
+pub mod named_pipe;
 
 pub use auth::{AuthMethod, AuthRequest, AuthResponse, CapabilityClaim, CapabilityToken};
 pub use auth_middleware::{AuthError, AuthMiddleware};
@@ -40,6 +42,11 @@ pub use replay::{
 pub use transport::{
     JsonCodec, Transport, TransportAddr, TransportConnection, TransportListener, WireCodec,
 };
+pub use voxy_protocol::{
+    encode_ipc_frame, decode_ipc_payload, ClientCommand, DaemonMessage, IpcEnvelope,
+    ToolStepStatus, VoiceState, MAX_IPC_FRAME_SIZE, VOXY_IPC_VERSION, VOXY_PIPE_NAME,
+};
+pub use named_pipe::{DaemonStateSnapshot, VoxyIpcClient, VoxyIpcServer};
 
 #[cfg(test)]
 mod tests {

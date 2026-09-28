@@ -7995,6 +7995,7 @@ dependencies = [
  "voxy-gemini",
  "voxy-hardware",
  "voxy-health",
+ "voxy-ipc",
  "voxy-kernel",
  "voxy-logging",
  "voxy-memory",
@@ -8572,6 +8573,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "voxy-event-bus",
+ "voxy-ipc",
  "voxy-shared",
 ]
 
