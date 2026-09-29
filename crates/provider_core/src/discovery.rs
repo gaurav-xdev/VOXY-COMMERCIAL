@@ -242,12 +242,7 @@ impl LocalProviderDetector {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models,
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: Some(5.0),
-                details: Some(format!("Auto-discovered at {}", discovered.base_url)),
-            },
+            health: ProviderHealth::new_healthy(Some(5.0)),
             base_url: Some(discovered.base_url.clone()),
             priority: 10,
         }

@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use voxy_provider_core::{
     CapabilityDiscovery, DefaultCapabilityDiscovery, EmbeddingProvider, LlmProvider,
-    ProviderCapability, ProviderInfo, ProviderRegistry,
+    ProviderCapability, ProviderInfo, ProviderRegistry, SttProvider, TtsProvider,
 };
 
 pub use error::{Result, RouterError};
@@ -80,6 +80,9 @@ pub struct ModelRouter {
     config: parking_lot::RwLock<RouterConfig>,
     breakers: parking_lot::RwLock<HashMap<String, BreakerEntry>>,
     last_health_check: AtomicU64,
+    llm_providers: parking_lot::RwLock<HashMap<String, Arc<dyn LlmProvider>>>,
+    stt_providers: parking_lot::RwLock<HashMap<String, Arc<dyn SttProvider>>>,
+    tts_providers: parking_lot::RwLock<HashMap<String, Arc<dyn TtsProvider>>>,
 }
 
 impl ModelRouter {
@@ -89,6 +92,9 @@ impl ModelRouter {
             config: parking_lot::RwLock::new(RouterConfig::default()),
             breakers: parking_lot::RwLock::new(HashMap::new()),
             last_health_check: AtomicU64::new(0),
+            llm_providers: parking_lot::RwLock::new(HashMap::new()),
+            stt_providers: parking_lot::RwLock::new(HashMap::new()),
+            tts_providers: parking_lot::RwLock::new(HashMap::new()),
         }
     }
 
@@ -98,6 +104,9 @@ impl ModelRouter {
             config: parking_lot::RwLock::new(config),
             breakers: parking_lot::RwLock::new(HashMap::new()),
             last_health_check: AtomicU64::new(0),
+            llm_providers: parking_lot::RwLock::new(HashMap::new()),
+            stt_providers: parking_lot::RwLock::new(HashMap::new()),
+            tts_providers: parking_lot::RwLock::new(HashMap::new()),
         }
     }
 
@@ -401,6 +410,138 @@ impl ModelRouter {
     pub fn registry(&self) -> &Arc<dyn ProviderRegistry> {
         &self.registry
     }
+
+    pub fn register_llm(&self, id: &str, provider: Arc<dyn LlmProvider>) {
+        self.llm_providers.write().insert(id.to_string(), provider);
+    }
+
+    pub fn register_stt(&self, id: &str, provider: Arc<dyn SttProvider>) {
+        self.stt_providers.write().insert(id.to_string(), provider);
+    }
+
+    pub fn register_tts(&self, id: &str, provider: Arc<dyn TtsProvider>) {
+        self.tts_providers.write().insert(id.to_string(), provider);
+    }
+
+    pub async fn route_complete(&self, prompt: &str) -> Result<String> {
+        let provider_info = self.select_provider(&ProviderCapability::Llm).await?;
+        let maybe_inst = {
+            self.llm_providers.read().get(&provider_info.id).cloned()
+        };
+        if let Some(inst) = maybe_inst {
+            match self.complete(inst.as_ref(), prompt).await {
+                Ok(res) => {
+                    self.record_success(&provider_info.id);
+                    Ok(res)
+                }
+                Err(e) => {
+                    self.record_failure(&provider_info.id);
+                    // Automatic fallback: try another healthy provider
+                    let all = self.registry.find_by_capability(ProviderCapability::Llm).await.unwrap_or_default();
+                    let healthy = self.filter_healthy(all);
+                    for fallback_info in healthy {
+                        if fallback_info.id != provider_info.id {
+                            if let Some(fb_inst) = self.llm_providers.read().get(&fallback_info.id).cloned() {
+                                if let Ok(res) = self.complete(fb_inst.as_ref(), prompt).await {
+                                    self.record_success(&fallback_info.id);
+                                    return Ok(res);
+                                }
+                            }
+                        }
+                    }
+                    Err(e)
+                }
+            }
+        } else {
+            Err(RouterError::ProviderError(format!("Provider '{}' registered in registry but no implementation loaded in router", provider_info.id)))
+        }
+    }
+
+    pub async fn route_transcribe(&self, audio: &[u8]) -> Result<String> {
+        let provider_info = self.select_provider(&ProviderCapability::Stt).await?;
+        let timeout = {
+            let config = self.config.read();
+            Duration::from_secs(config.provider_timeout_secs)
+        };
+        let maybe_inst = {
+            self.stt_providers.read().get(&provider_info.id).cloned()
+        };
+        if let Some(inst) = maybe_inst {
+            let res = tokio::time::timeout(timeout, inst.transcribe(audio)).await;
+            match res {
+                Ok(Ok(text)) => {
+                    self.record_success(&provider_info.id);
+                    Ok(text)
+                }
+                Ok(Err(e)) => {
+                    self.record_failure(&provider_info.id);
+                    // Failover to local/healthy STT
+                    let all = self.registry.find_by_capability(ProviderCapability::Stt).await.unwrap_or_default();
+                    let healthy = self.filter_healthy(all);
+                    for fallback in healthy {
+                        if fallback.id != provider_info.id {
+                            if let Some(fb_inst) = self.stt_providers.read().get(&fallback.id).cloned() {
+                                if let Ok(Ok(text)) = tokio::time::timeout(timeout, fb_inst.transcribe(audio)).await {
+                                    self.record_success(&fallback.id);
+                                    return Ok(text);
+                                }
+                            }
+                        }
+                    }
+                    Err(RouterError::ProviderError(format!("STT failed: {e}")))
+                }
+                Err(_) => {
+                    self.record_failure(&provider_info.id);
+                    Err(RouterError::ProviderError("STT timed out".into()))
+                }
+            }
+        } else {
+            Err(RouterError::ProviderError(format!("STT provider '{}' not loaded", provider_info.id)))
+        }
+    }
+
+    pub async fn route_synthesize(&self, text: &str) -> Result<Vec<u8>> {
+        let provider_info = self.select_provider(&ProviderCapability::Tts).await?;
+        let timeout = {
+            let config = self.config.read();
+            Duration::from_secs(config.provider_timeout_secs)
+        };
+        let maybe_inst = {
+            self.tts_providers.read().get(&provider_info.id).cloned()
+        };
+        if let Some(inst) = maybe_inst {
+            let res = tokio::time::timeout(timeout, inst.synthesize(text)).await;
+            match res {
+                Ok(Ok(bytes)) => {
+                    self.record_success(&provider_info.id);
+                    Ok(bytes)
+                }
+                Ok(Err(e)) => {
+                    self.record_failure(&provider_info.id);
+                    // Failover to local/healthy TTS
+                    let all = self.registry.find_by_capability(ProviderCapability::Tts).await.unwrap_or_default();
+                    let healthy = self.filter_healthy(all);
+                    for fallback in healthy {
+                        if fallback.id != provider_info.id {
+                            if let Some(fb_inst) = self.tts_providers.read().get(&fallback.id).cloned() {
+                                if let Ok(Ok(bytes)) = tokio::time::timeout(timeout, fb_inst.synthesize(text)).await {
+                                    self.record_success(&fallback.id);
+                                    return Ok(bytes);
+                                }
+                            }
+                        }
+                    }
+                    Err(RouterError::ProviderError(format!("TTS failed: {e}")))
+                }
+                Err(_) => {
+                    self.record_failure(&provider_info.id);
+                    Err(RouterError::ProviderError("TTS timed out".into()))
+                }
+            }
+        } else {
+            Err(RouterError::ProviderError(format!("TTS provider '{}' not loaded", provider_info.id)))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -424,12 +565,7 @@ mod tests {
             capability: cap,
             status,
             models: vec![ModelInfo::new(id, id)],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: Some(10.0),
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(Some(10.0)),
             base_url: None,
             priority,
         }
@@ -592,5 +728,186 @@ mod tests {
         let config = RouterConfig::default();
         assert!(config.local_first);
         assert!(matches!(config.mode, RoutingMode::Auto));
+    }
+
+    struct MockLlm {
+        name: String,
+        should_fail: std::sync::atomic::AtomicBool,
+    }
+    #[async_trait::async_trait]
+    impl LlmProvider for MockLlm {
+        async fn complete(&self, prompt: &str) -> voxy_provider_core::Result<String> {
+            if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
+                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated API failure".into()))
+            } else {
+                Ok(format!("Mock response from {} to: {}", self.name, prompt))
+            }
+        }
+        fn available_models(&self) -> Vec<String> {
+            vec!["mock".into()]
+        }
+        fn name(&self) -> &str {
+            &self.name
+        }
+    }
+
+    struct MockStt {
+        name: String,
+        should_fail: std::sync::atomic::AtomicBool,
+    }
+    #[async_trait::async_trait]
+    impl SttProvider for MockStt {
+        async fn transcribe(&self, _audio: &[u8]) -> voxy_provider_core::Result<String> {
+            if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
+                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated STT failure".into()))
+            } else {
+                Ok(format!("Transcribed by {}", self.name))
+            }
+        }
+        fn supported_languages(&self) -> Vec<String> {
+            vec!["en".into(), "hi".into()]
+        }
+        fn name(&self) -> &str {
+            &self.name
+        }
+    }
+
+    struct MockTts {
+        name: String,
+        should_fail: std::sync::atomic::AtomicBool,
+    }
+    #[async_trait::async_trait]
+    impl TtsProvider for MockTts {
+        async fn synthesize(&self, text: &str) -> voxy_provider_core::Result<Vec<u8>> {
+            if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
+                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated TTS failure".into()))
+            } else {
+                Ok(format!("Audio from {}: {}", self.name, text).into_bytes())
+            }
+        }
+        fn list_voices(&self) -> Vec<String> {
+            vec!["default".into()]
+        }
+        fn name(&self) -> &str {
+            &self.name
+        }
+    }
+
+    #[tokio::test]
+    async fn test_route_complete_with_fallback() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "cloud-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            1,
+        );
+        let fallback_info = make_provider(
+            "local-llm",
+            ProviderKind::Local,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(fallback_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::CloudOnly);
+
+        let primary_inst = Arc::new(MockLlm {
+            name: "Cloud LLM".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(true), // primary fails!
+        });
+        let fallback_inst = Arc::new(MockLlm {
+            name: "Local LLM".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(false),
+        });
+
+        router.register_llm("cloud-llm", primary_inst);
+        router.register_llm("local-llm", fallback_inst);
+
+        let response = router.route_complete("hello").await.unwrap();
+        assert!(response.contains("Local LLM"), "Expected fallback response but got: {response}");
+    }
+
+    #[tokio::test]
+    async fn test_route_transcribe_with_fallback() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "cloud-stt",
+            ProviderKind::Cloud,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            1,
+        );
+        let fallback_info = make_provider(
+            "local-stt",
+            ProviderKind::Local,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(fallback_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::CloudOnly);
+
+        let primary_inst = Arc::new(MockStt {
+            name: "Cloud STT".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(true), // cloud fails
+        });
+        let fallback_inst = Arc::new(MockStt {
+            name: "Local STT".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(false),
+        });
+
+        router.register_stt("cloud-stt", primary_inst);
+        router.register_stt("local-stt", fallback_inst);
+
+        let transcript = router.route_transcribe(b"test audio").await.unwrap();
+        assert!(transcript.contains("Local STT"), "Expected fallback STT but got: {transcript}");
+    }
+
+    #[tokio::test]
+    async fn test_route_synthesize_with_fallback() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "cloud-tts",
+            ProviderKind::Cloud,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            1,
+        );
+        let fallback_info = make_provider(
+            "local-tts",
+            ProviderKind::Local,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(fallback_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::CloudOnly);
+
+        let primary_inst = Arc::new(MockTts {
+            name: "Cloud TTS".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(true), // cloud fails
+        });
+        let fallback_inst = Arc::new(MockTts {
+            name: "Local TTS".into(),
+            should_fail: std::sync::atomic::AtomicBool::new(false),
+        });
+
+        router.register_tts("cloud-tts", primary_inst);
+        router.register_tts("local-tts", fallback_inst);
+
+        let audio = router.route_synthesize("Hello world").await.unwrap();
+        let audio_str = String::from_utf8_lossy(&audio);
+        assert!(audio_str.contains("Local TTS"), "Expected fallback TTS but got: {audio_str}");
     }
 }

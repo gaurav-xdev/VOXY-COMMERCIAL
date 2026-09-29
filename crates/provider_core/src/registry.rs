@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::error::Result;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ProviderCapability {
     Llm,
     Stt,
@@ -32,7 +32,7 @@ impl ProviderCapability {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ProviderStatus {
     Available,
     Busy,
@@ -40,11 +40,52 @@ pub enum ProviderStatus {
     Unavailable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum HealthStatus {
+    Unknown,
+    Checking,
+    Healthy,
+    Degraded(String),
+    Unavailable(String),
+    RateLimited { retry_after_secs: Option<u64> },
+    AuthenticationFailed(String),
+}
+
+impl Default for HealthStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ModelCapabilities {
+    pub streaming: bool,
+    pub tool_calling: bool,
+    pub vision: bool,
+    pub multilingual: Vec<String>,
+    pub local: bool,
+    pub context_size: Option<u32>,
+}
+
+impl Default for ModelCapabilities {
+    fn default() -> Self {
+        Self {
+            streaming: true,
+            tool_calling: false,
+            vision: false,
+            multilingual: vec!["en".to_string(), "hi".to_string(), "hinglish".to_string()],
+            local: false,
+            context_size: Some(4096),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelInfo {
     pub id: String,
     pub name: String,
     pub capabilities: Vec<ProviderCapability>,
+    pub model_capabilities: ModelCapabilities,
     pub version: String,
     pub context_size: Option<u32>,
     pub supports_vision: bool,
@@ -60,6 +101,7 @@ impl ModelInfo {
             id: id.into(),
             name: name.into(),
             capabilities: Vec::new(),
+            model_capabilities: ModelCapabilities::default(),
             version: String::new(),
             context_size: None,
             supports_vision: false,
@@ -69,23 +111,119 @@ impl ModelInfo {
             metadata: HashMap::new(),
         }
     }
+
+    pub fn with_capabilities(mut self, caps: ModelCapabilities) -> Self {
+        self.supports_streaming = caps.streaming;
+        self.supports_tool_calling = caps.tool_calling;
+        self.supports_vision = caps.vision;
+        self.context_size = caps.context_size;
+        self.model_capabilities = caps;
+        self
+    }
+
+    pub fn with_multilingual(mut self, languages: &[&str]) -> Self {
+        self.model_capabilities.multilingual = languages.iter().map(|s| s.to_string()).collect();
+        self
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ProviderHealth {
     pub is_healthy: bool,
+    pub status: HealthStatus,
     pub last_check: chrono::DateTime<chrono::Utc>,
     pub latency_ms: Option<f64>,
     pub details: Option<String>,
+    pub consecutive_failures: u32,
+    pub circuit_broken: bool,
 }
 
-#[derive(Debug, Clone)]
+impl Default for ProviderHealth {
+    fn default() -> Self {
+        Self {
+            is_healthy: true,
+            status: HealthStatus::Healthy,
+            last_check: chrono::Utc::now(),
+            latency_ms: None,
+            details: None,
+            consecutive_failures: 0,
+            circuit_broken: false,
+        }
+    }
+}
+
+impl ProviderHealth {
+    pub fn new_healthy(latency_ms: Option<f64>) -> Self {
+        Self {
+            is_healthy: true,
+            status: HealthStatus::Healthy,
+            last_check: chrono::Utc::now(),
+            latency_ms,
+            details: None,
+            consecutive_failures: 0,
+            circuit_broken: false,
+        }
+    }
+
+    pub fn new_degraded(reason: impl Into<String>, latency_ms: Option<f64>) -> Self {
+        let r = reason.into();
+        Self {
+            is_healthy: true,
+            status: HealthStatus::Degraded(r.clone()),
+            last_check: chrono::Utc::now(),
+            latency_ms,
+            details: Some(r),
+            consecutive_failures: 0,
+            circuit_broken: false,
+        }
+    }
+
+    pub fn new_unavailable(reason: impl Into<String>) -> Self {
+        let r = reason.into();
+        Self {
+            is_healthy: false,
+            status: HealthStatus::Unavailable(r.clone()),
+            last_check: chrono::Utc::now(),
+            latency_ms: None,
+            details: Some(r),
+            consecutive_failures: 1,
+            circuit_broken: false,
+        }
+    }
+
+    pub fn new_rate_limited(retry_after_secs: Option<u64>) -> Self {
+        Self {
+            is_healthy: false,
+            status: HealthStatus::RateLimited { retry_after_secs },
+            last_check: chrono::Utc::now(),
+            latency_ms: None,
+            details: Some(format!("Rate limited. Retry after: {:?}", retry_after_secs)),
+            consecutive_failures: 1,
+            circuit_broken: false,
+        }
+    }
+
+    pub fn new_auth_failed(reason: impl Into<String>) -> Self {
+        let r = reason.into();
+        Self {
+            is_healthy: false,
+            status: HealthStatus::AuthenticationFailed(r.clone()),
+            last_check: chrono::Utc::now(),
+            latency_ms: None,
+            details: Some(r),
+            consecutive_failures: 1,
+            circuit_broken: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ProviderKind {
     Local,
     Cloud,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ProviderInfo {
     pub id: String,
     pub name: String,
@@ -239,6 +377,7 @@ mod tests {
             id: "gpt-4".into(),
             name: "GPT-4".into(),
             capabilities: vec![ProviderCapability::Llm],
+            model_capabilities: ModelCapabilities::default(),
             version: "1.0".into(),
             context_size: Some(8192),
             supports_vision: true,
@@ -269,12 +408,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(None),
             base_url: None,
             priority: 0,
         };
@@ -293,12 +427,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(None),
             base_url: None,
             priority: 0,
         };
@@ -318,12 +447,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(None),
             base_url: None,
             priority: 0,
         };
@@ -342,13 +466,9 @@ mod tests {
 
     #[test]
     fn test_provider_health_default() {
-        let health = ProviderHealth {
-            is_healthy: true,
-            last_check: chrono::Utc::now(),
-            latency_ms: Some(42.0),
-            details: None,
-        };
+        let health = ProviderHealth::new_healthy(Some(42.0));
         assert!(health.is_healthy);
+        assert_eq!(health.status, HealthStatus::Healthy);
         assert!(health.latency_ms.is_some());
     }
 
@@ -371,12 +491,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: Some(50.0),
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(Some(50.0)),
             base_url: None,
             priority: 0,
         };
@@ -398,12 +513,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Degraded("down".into()),
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: false,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: Some("unhealthy".into()),
-            },
+            health: ProviderHealth::new_unavailable("unhealthy"),
             base_url: None,
             priority: 0,
         };
@@ -422,12 +532,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(None),
             base_url: None,
             priority: 10,
         };
@@ -438,12 +543,7 @@ mod tests {
             capability: ProviderCapability::Llm,
             status: ProviderStatus::Available,
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: true,
-                last_check: chrono::Utc::now(),
-                latency_ms: None,
-                details: None,
-            },
+            health: ProviderHealth::new_healthy(None),
             base_url: None,
             priority: 1,
         };

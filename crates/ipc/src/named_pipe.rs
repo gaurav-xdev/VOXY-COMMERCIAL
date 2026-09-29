@@ -191,6 +191,42 @@ impl VoxyIpcServer {
         self.broadcast(DaemonMessage::EmergencyStopChanged { is_stopped });
     }
 
+    /// Broadcast a routing status update.
+    pub fn broadcast_routing_status(
+        &self,
+        mode: String,
+        active_llm: String,
+        active_stt: String,
+        active_tts: String,
+        is_offline: bool,
+    ) {
+        self.broadcast(DaemonMessage::RoutingStatusUpdate {
+            mode,
+            active_llm,
+            active_stt,
+            active_tts,
+            is_offline,
+        });
+    }
+
+    /// Broadcast a hardware status update.
+    pub fn broadcast_hardware_status(
+        &self,
+        cpu_brand: String,
+        cpu_cores: usize,
+        ram_gb: f64,
+        gpu_name: Option<String>,
+        vram_gb: f64,
+    ) {
+        self.broadcast(DaemonMessage::HardwareStatusUpdate {
+            cpu_brand,
+            cpu_cores,
+            ram_gb,
+            gpu_name,
+            vram_gb,
+        });
+    }
+
     /// Broadcast an arbitrary DaemonMessage to all connected clients.
     pub fn broadcast(&self, message: DaemonMessage) {
         let envelope = IpcEnvelope::new(message);

@@ -4,7 +4,7 @@ Write-Output "Cert Thumbprint: $($cert.Thumbprint)"
 
 # Sign the MSIX package
 $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe"
-$msix = "c:\Users\gaurav\OneDrive\Documents\Desktop\VOXY-BUILD\crates\audio\examples\sparse_poc\SparseMicPoc.msix"
+$msix = "$PSScriptRoot\SparseMicPoc.msix"
 & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint /s My /sm $msix
 if ($LASTEXITCODE -ne 0) {
     & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint $msix

@@ -1,21 +1,36 @@
+pub mod compatibility;
 pub mod config;
 pub mod device;
 pub mod error;
 pub mod event;
+pub mod hardware_detector;
+pub mod model_lifecycle;
+pub mod model_scanner;
 pub mod traits;
+pub mod vram_manager;
 
+pub use compatibility::*;
 pub use config::HardwareConfig;
 pub use device::{DeviceInfo, DeviceStatus, DeviceType};
 pub use error::{HardwareError, Result};
 pub use event::HardwareEvent;
+pub use hardware_detector::*;
+pub use model_lifecycle::*;
+pub use model_scanner::*;
 pub use traits::*;
+pub use vram_manager::*;
 
 pub mod prelude {
+    pub use crate::compatibility::*;
     pub use crate::config::{AudioConfig, HardwareConfig, VideoConfig};
     pub use crate::device::{DeviceInfo, DeviceStatus, DeviceType};
     pub use crate::error::{HardwareError, Result};
     pub use crate::event::HardwareEvent;
+    pub use crate::hardware_detector::*;
+    pub use crate::model_lifecycle::*;
+    pub use crate::model_scanner::*;
     pub use crate::traits::{Camera, HardwareInfo, HardwareMonitor, Microphone, Speaker};
+    pub use crate::vram_manager::*;
 }
 
 #[cfg(test)]

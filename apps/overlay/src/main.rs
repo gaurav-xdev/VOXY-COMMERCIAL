@@ -273,6 +273,31 @@ fn App() -> Element {
                             );
                         }
                     }
+                    voxy_ipc::DaemonMessage::RoutingStatusUpdate {
+                        mode,
+                        active_llm,
+                        active_stt,
+                        active_tts,
+                        is_offline,
+                    } => {
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetRoutingStatus) window.voxySetRoutingStatus('{}', '{}', '{}', '{}', {});",
+                            mode, active_llm, active_stt, active_tts, is_offline
+                        ));
+                    }
+                    voxy_ipc::DaemonMessage::HardwareStatusUpdate {
+                        cpu_brand,
+                        cpu_cores,
+                        ram_gb,
+                        gpu_name,
+                        vram_gb,
+                    } => {
+                        let gpu_str = gpu_name.unwrap_or_else(|| "CPU Only".into());
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetHardwareStatus) window.voxySetHardwareStatus('{}', {}, {:.1}, '{}', {:.1});",
+                            cpu_brand, cpu_cores, ram_gb, gpu_str, vram_gb
+                        ));
+                    }
                     _ => {}
                 }
             }

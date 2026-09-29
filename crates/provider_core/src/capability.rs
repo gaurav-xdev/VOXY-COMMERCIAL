@@ -160,11 +160,10 @@ mod tests {
                 ProviderStatus::Unavailable
             },
             models: vec![],
-            health: ProviderHealth {
-                is_healthy: healthy,
-                last_check: chrono::Utc::now(),
-                latency_ms: Some(50.0),
-                details: None,
+            health: if healthy {
+                ProviderHealth::new_healthy(Some(50.0))
+            } else {
+                ProviderHealth::new_unavailable("unhealthy")
             },
             base_url: None,
             priority,

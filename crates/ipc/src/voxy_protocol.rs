@@ -153,6 +153,24 @@ pub enum DaemonMessage {
         is_stopped: bool,
     },
 
+    /// Routing mode and active provider status update.
+    RoutingStatusUpdate {
+        mode: String,
+        active_llm: String,
+        active_stt: String,
+        active_tts: String,
+        is_offline: bool,
+    },
+
+    /// Host hardware summary update.
+    HardwareStatusUpdate {
+        cpu_brand: String,
+        cpu_cores: usize,
+        ram_gb: f64,
+        gpu_name: Option<String>,
+        vram_gb: f64,
+    },
+
     /// Heartbeat ping from daemon (every 5-10s).
     Heartbeat {
         uptime_secs: u64,
@@ -189,6 +207,14 @@ pub enum ClientCommand {
     SendTextInput {
         text: String,
     },
+
+    /// Change the active AI routing mode ("Auto", "LocalOnly", "CloudOnly").
+    SetRoutingMode {
+        mode: String,
+    },
+
+    /// Request an updated hardware status report.
+    RequestHardwareStatus,
 
     /// Client heartbeat pong response.
     HeartbeatPong,
@@ -281,13 +307,49 @@ mod tests {
 
     #[test]
     fn test_client_command_roundtrip() {
-        let cmd = ClientCommand::EmergencyStop;
+        let cmd = ClientCommand::SetRoutingMode {
+            mode: "LocalOnly".into(),
+        };
         let env = IpcEnvelope::new(cmd.clone());
         let frame = encode_ipc_frame(&env).unwrap();
 
         let decoded: IpcEnvelope<ClientCommand> = decode_ipc_payload(&frame[4..]).unwrap();
         assert_eq!(decoded.version, VOXY_IPC_VERSION);
         assert_eq!(decoded.payload, cmd);
+    }
+
+    #[test]
+    fn test_routing_status_update_roundtrip() {
+        let msg = DaemonMessage::RoutingStatusUpdate {
+            mode: "Auto".into(),
+            active_llm: "Ollama (llama-3.2-3b)".into(),
+            active_stt: "Local SAPI".into(),
+            active_tts: "Local SAPI".into(),
+            is_offline: true,
+        };
+        let env = IpcEnvelope::new(msg.clone());
+        let frame = encode_ipc_frame(&env).unwrap();
+
+        let decoded: IpcEnvelope<DaemonMessage> = decode_ipc_payload(&frame[4..]).unwrap();
+        assert_eq!(decoded.version, VOXY_IPC_VERSION);
+        assert_eq!(decoded.payload, msg);
+    }
+
+    #[test]
+    fn test_hardware_status_update_roundtrip() {
+        let msg = DaemonMessage::HardwareStatusUpdate {
+            cpu_brand: "AMD Ryzen 9".into(),
+            cpu_cores: 16,
+            ram_gb: 32.0,
+            gpu_name: Some("NVIDIA GeForce RTX 4090".into()),
+            vram_gb: 24.0,
+        };
+        let env = IpcEnvelope::new(msg.clone());
+        let frame = encode_ipc_frame(&env).unwrap();
+
+        let decoded: IpcEnvelope<DaemonMessage> = decode_ipc_payload(&frame[4..]).unwrap();
+        assert_eq!(decoded.version, VOXY_IPC_VERSION);
+        assert_eq!(decoded.payload, msg);
     }
 
     #[test]

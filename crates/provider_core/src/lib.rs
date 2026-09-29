@@ -43,6 +43,14 @@ pub trait LlmProvider: Send + Sync {
     async fn health(&self) -> Result<bool> {
         Ok(true)
     }
+    async fn detailed_health(&self) -> Result<ProviderHealth> {
+        let is_h = self.health().await.unwrap_or(false);
+        if is_h {
+            Ok(ProviderHealth::new_healthy(None))
+        } else {
+            Ok(ProviderHealth::new_unavailable("Health check failed"))
+        }
+    }
     fn available_models(&self) -> Vec<String>;
     fn name(&self) -> &str;
 }
@@ -52,6 +60,17 @@ pub trait SttProvider: Send + Sync {
     async fn transcribe(&self, audio: &[u8]) -> Result<String>;
     fn supported_languages(&self) -> Vec<String>;
     fn name(&self) -> &str;
+    async fn health(&self) -> Result<bool> {
+        Ok(true)
+    }
+    async fn detailed_health(&self) -> Result<ProviderHealth> {
+        let is_h = self.health().await.unwrap_or(false);
+        if is_h {
+            Ok(ProviderHealth::new_healthy(None))
+        } else {
+            Ok(ProviderHealth::new_unavailable("Health check failed"))
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -59,6 +78,17 @@ pub trait TtsProvider: Send + Sync {
     async fn synthesize(&self, text: &str) -> Result<Vec<u8>>;
     fn list_voices(&self) -> Vec<String>;
     fn name(&self) -> &str;
+    async fn health(&self) -> Result<bool> {
+        Ok(true)
+    }
+    async fn detailed_health(&self) -> Result<ProviderHealth> {
+        let is_h = self.health().await.unwrap_or(false);
+        if is_h {
+            Ok(ProviderHealth::new_healthy(None))
+        } else {
+            Ok(ProviderHealth::new_unavailable("Health check failed"))
+        }
+    }
 }
 
 #[async_trait::async_trait]

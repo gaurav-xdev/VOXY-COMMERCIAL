@@ -15,12 +15,9 @@ pub struct NoopHealthChecker;
 #[async_trait]
 impl ProviderHealthChecker for NoopHealthChecker {
     async fn check_health(&self, provider_id: &str) -> Result<ProviderHealth> {
-        Ok(ProviderHealth {
-            is_healthy: true,
-            last_check: chrono::Utc::now(),
-            latency_ms: None,
-            details: Some(format!("No-op health check for {provider_id}")),
-        })
+        let mut h = ProviderHealth::new_healthy(None);
+        h.details = Some(format!("No-op health check for {provider_id}"));
+        Ok(h)
     }
 
     async fn is_healthy(&self, _provider_id: &str) -> Result<bool> {

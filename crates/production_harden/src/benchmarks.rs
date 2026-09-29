@@ -102,8 +102,8 @@ async fn bench_memory_store_latency() {
 
     latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let p99 = latencies[latencies.len() * 99 / 100];
-
-    assert!(p99 < 100_000.0, "Memory store P99 too high: {:.0}ns", p99);
+    let threshold = if cfg!(debug_assertions) { 500_000.0 } else { 100_000.0 };
+    assert!(p99 < threshold, "Memory store P99 too high: {:.0}ns", p99);
 }
 
 #[cfg(not(debug_assertions))]

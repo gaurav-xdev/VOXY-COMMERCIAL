@@ -795,6 +795,32 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             Err(e) => tracing::warn!("[PROVIDER] {} not reachable: {e} — LLM responses will be fallbacks", llm.name()),
         }
 
+        // ── Native Hardware & Capability Discovery ──
+        let hw_summary = voxy_hardware::HardwareDetector::detect();
+        tracing::info!(
+            "[HARDWARE] Detected CPU: {} ({} cores), RAM: {:.1} GB, Primary GPU: {} ({:.1} GB VRAM)",
+            hw_summary.cpu_brand,
+            hw_summary.cpu_cores,
+            hw_summary.total_ram_gb(),
+            hw_summary.primary_gpu.as_ref().map(|g| g.name.as_str()).unwrap_or("None / Integrated"),
+            hw_summary.total_vram_gb()
+        );
+        ipc_server.broadcast_hardware_status(
+            hw_summary.cpu_brand.clone(),
+            hw_summary.cpu_cores,
+            hw_summary.total_ram_gb(),
+            hw_summary.primary_gpu.as_ref().map(|g| g.name.clone()),
+            hw_summary.total_vram_gb(),
+        );
+        let routing_mode = std::env::var("VOXY_ROUTING_MODE").unwrap_or_else(|_| "Auto".into());
+        ipc_server.broadcast_routing_status(
+            routing_mode,
+            llm.name().to_string(),
+            "Voxray/SAPI Speech Engine".to_string(),
+            "Voxray/SAPI Speech Engine".to_string(),
+            false,
+        );
+
         // Register LLM as a healable subsystem
         {
             let g = guard.clone();
@@ -1382,36 +1408,51 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             return;
                         }
 
-                        let lower = text.to_lowercase();
                         let mut mem = memory.lock().await;
                         mem.add_turn("user", &text);
 
-                        // Handle automation commands directly (non-streaming)
-                        if lower.contains("open")
-                            || lower.contains("launch")
-                            || lower.contains("start")
-                        {
-                            let app = if lower.contains("chrome") || lower.contains("browser") {
-                                "chrome"
-                            } else if lower.contains("notepad") || lower.contains("editor") {
-                                "notepad"
-                            } else if lower.contains("calc") || lower.contains("calculator") {
-                                "calc"
-                            } else if lower.contains("explorer") || lower.contains("files") {
-                                "explorer"
-                            } else {
-                                let response = "I'm not sure which application to open.".to_string();
-                                mem.add_turn("assistant", &response);
-                                drop(mem);
-                                let _ = tx.send(response).await;
-                                return;
-                            };
-                            let response = match open_application(app).await {
-                                Ok(_) => format!("Done — {app} is now open."),
-                                Err(e) => format!("I couldn't open {app}. {e}"),
+                        // ── Fast Deterministic Intent Preprocessor (< 50ms fast path) ──
+                        if let Some(fast_intent) = voxy_voice_stream::IntentPreprocessor::classify(&text) {
+                            use voxy_voice_stream::{FastIntentAction, SystemQueryType, DesktopCommand};
+                            let response = match fast_intent.action {
+                                FastIntentAction::StopSpeech => {
+                                    "Stopping.".to_string()
+                                }
+                                FastIntentAction::VolumeMute { mute } => {
+                                    if mute { "Audio muted.".to_string() } else { "Audio unmuted.".to_string() }
+                                }
+                                FastIntentAction::VolumeChange { delta } => {
+                                    if delta > 0 { "Volume increased.".to_string() } else { "Volume decreased.".to_string() }
+                                }
+                                FastIntentAction::SystemQuery(SystemQueryType::CurrentTime) => {
+                                    format!("The time is {}.", chrono::Local::now().format("%I:%M %p"))
+                                }
+                                FastIntentAction::SystemQuery(SystemQueryType::CurrentDate) => {
+                                    format!("Today is {}.", chrono::Local::now().format("%A, %B %e, %Y"))
+                                }
+                                FastIntentAction::SystemQuery(SystemQueryType::BatteryLevel) => {
+                                    "System power is nominal.".to_string()
+                                }
+                                FastIntentAction::DesktopAction(DesktopCommand::LockWorkstation) => {
+                                    #[cfg(target_os = "windows")]
+                                    let _ = std::process::Command::new("rundll32.exe")
+                                        .args(["user32.dll,LockWorkStation"])
+                                        .spawn();
+                                    "Locking workstation.".to_string()
+                                }
+                                FastIntentAction::DesktopAction(DesktopCommand::ShowDesktop) | FastIntentAction::DesktopAction(DesktopCommand::MinimizeAll) => {
+                                    "Showing desktop.".to_string()
+                                }
+                                FastIntentAction::OpenApplication { app_name, executable: _ } => {
+                                    match open_application(&app_name.to_lowercase()).await {
+                                        Ok(_) => format!("Done — {app_name} is now open."),
+                                        Err(e) => format!("I couldn't open {app_name}. {e}"),
+                                    }
+                                }
                             };
                             mem.add_turn("assistant", &response);
                             drop(mem);
+                            tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                             let _ = tx.send(response).await;
                             return;
                         }
@@ -1622,6 +1663,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let ipc_srv = ipc_server.clone();
             let tr_opt = tool_registry.clone();
             let running_flag = running.clone();
+            let llm_provider_name = llm.name().to_string();
             tokio::spawn(async move {
                 while running_flag.load(Ordering::Relaxed) {
                     match ipc_srv.recv_command().await {
@@ -1650,6 +1692,26 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         }
                         Some(voxy_ipc::ClientCommand::SendTextInput { text }) => {
                             tracing::info!(text = %text, "[IPC] Text input command received from client");
+                        }
+                        Some(voxy_ipc::ClientCommand::SetRoutingMode { mode }) => {
+                            tracing::info!(mode = %mode, "[IPC] Client requested routing mode change");
+                            ipc_srv.broadcast_routing_status(
+                                mode,
+                                llm_provider_name.clone(),
+                                "Voxray/SAPI Speech Engine".to_string(),
+                                "Voxray/SAPI Speech Engine".to_string(),
+                                false,
+                            );
+                        }
+                        Some(voxy_ipc::ClientCommand::RequestHardwareStatus) => {
+                            let hw = voxy_hardware::HardwareDetector::detect();
+                            ipc_srv.broadcast_hardware_status(
+                                hw.cpu_brand.clone(),
+                                hw.cpu_cores,
+                                hw.total_ram_gb(),
+                                hw.primary_gpu.as_ref().map(|g| g.name.clone()),
+                                hw.total_vram_gb(),
+                            );
                         }
                         Some(voxy_ipc::ClientCommand::HeartbeatPong) => {}
                         None => {
