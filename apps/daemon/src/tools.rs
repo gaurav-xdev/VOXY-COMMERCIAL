@@ -48,12 +48,14 @@ impl ToolRegistry {
     }
 
     /// Provide a custom or shared emergency stop token.
+    #[allow(dead_code)]
     pub fn with_emergency_stop(mut self, stop: Arc<AtomicBool>) -> Self {
         self.emergency_stop = stop;
         self
     }
 
     /// Obtain a clone of the emergency stop token.
+    #[allow(dead_code)]
     pub fn emergency_stop_token(&self) -> Arc<AtomicBool> {
         Arc::clone(&self.emergency_stop)
     }

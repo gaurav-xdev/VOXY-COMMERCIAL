@@ -13,6 +13,7 @@ use voxy_voice::VoiceConfig;
 
 struct IterationTimings {
     t_play_start: Option<Instant>,
+    #[allow(dead_code)]
     t_mic_speech: Option<Instant>,
     t_stt_start: Option<Instant>,
     t_stt_done: Option<Instant>,

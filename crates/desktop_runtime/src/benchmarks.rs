@@ -166,6 +166,7 @@ mod benchmarks {
     }
 
     #[test]
+    #[ignore = "manual benchmark requiring isolated desktop clipboard access"]
     fn bench_clipboard_read() {
         use crate::clipboard::ClipboardManager;
         let cb = ClipboardManager::new();

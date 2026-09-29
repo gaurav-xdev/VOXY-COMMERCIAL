@@ -10,6 +10,8 @@ path = "src/main.rs"
 
 [features]
 default = []
+piper-engine = []
+whisper-engine = []
 
 [dependencies]
 voxy-ipc = { path = "../../crates/ipc" }

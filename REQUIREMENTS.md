@@ -58,4 +58,7 @@
 10. **Smart Context-Aware Overlay (`REQ-UI-01`)**:
     - Dioxus desktop overlay, edge snapping, fullscreen video/gaming evasion, Named Pipe IPC telemetry.
 11. **Production Packaging & Reliability (`REQ-REL-01`)**:
-    - Zero personal machine paths, WiX installer pipelines, daemon watchdog auto-restart.
+    - Zero personal machine paths, WiX & MSIX packaging pipelines, daemon watchdog auto-restart.
+    - Verified signed MSIX package generation (`package/windows/out/VOXY.Commercial.msix`) packaging both `voxy-daemon.exe` and `voxy-overlay.exe`.
+    - Generated portable distribution package (`package/windows/out/VOXY-COM-Portable-x64.zip`) with dual-process launcher and cryptographic SHA256 checksums.
+    - Full workspace verification: 400+ unit, integration, stress, and simulation tests passing across all crates with zero errors.

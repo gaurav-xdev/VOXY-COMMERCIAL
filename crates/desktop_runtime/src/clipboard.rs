@@ -27,14 +27,12 @@ impl ClipboardManager {
         use windows::Win32::System::DataExchange::{
             CloseClipboard, GetClipboardData, OpenClipboard,
         };
-        use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
+        use windows::Win32::System::Memory::{GlobalLock, GlobalSize, GlobalUnlock};
         unsafe {
             match OpenClipboard(None) {
                 Ok(()) => {}
                 Err(_) => {
-                    return Err(crate::error::RuntimeError::Clipboard(
-                        "OpenClipboard failed".into(),
-                    ))
+                    return Ok(None);
                 }
             }
             let data = match GetClipboardData(13) {
@@ -51,9 +49,11 @@ impl ClipboardManager {
                 let _ = CloseClipboard();
                 return Ok(None);
             }
-            let mut len = 0;
+            let byte_len = GlobalSize(hglobal);
+            let max_chars = byte_len / 2;
             let p = ptr as *const u16;
-            while *p.add(len) != 0 {
+            let mut len = 0;
+            while len < max_chars && *p.add(len) != 0 {
                 len += 1;
             }
             let text = String::from_utf16_lossy(std::slice::from_raw_parts(p, len));

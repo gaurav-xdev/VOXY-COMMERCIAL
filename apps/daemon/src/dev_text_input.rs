@@ -117,7 +117,7 @@ pub async fn run(
                     // Check for tool call
                     let cleaned = full_response.trim().to_string();
                     if let Some(ref tr) = tool_reg {
-                        if let Some((call, remaining)) = ToolRegistry::parse_tool_call(&cleaned) {
+                        if let Some((call, _remaining)) = ToolRegistry::parse_tool_call(&cleaned) {
                             info!("[DEV-TEXT] Executing tool: {} {:?}", call.tool, call.params);
                             let result = tr.execute(&call).await;
                             info!("[DEV-TEXT] Tool result: {}", result.message);
