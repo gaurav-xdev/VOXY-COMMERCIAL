@@ -1713,6 +1713,9 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 hw.total_vram_gb(),
                             );
                         }
+                        Some(voxy_ipc::ClientCommand::ConfirmAction { action_id, approved }) => {
+                            tracing::info!(action_id, approved, "[IPC] Human confirmation decision received");
+                        }
                         Some(voxy_ipc::ClientCommand::HeartbeatPong) => {}
                         None => {
                             tokio::time::sleep(Duration::from_millis(50)).await;

@@ -44,7 +44,8 @@ pub use transport::{
 };
 pub use voxy_protocol::{
     encode_ipc_frame, decode_ipc_payload, ClientCommand, DaemonMessage, IpcEnvelope,
-    ToolStepStatus, VoiceState, MAX_IPC_FRAME_SIZE, VOXY_IPC_VERSION, VOXY_PIPE_NAME,
+    ToolStepStatus, VoiceState, VoxyCursorState, VoxyCursorTelemetry, MAX_IPC_FRAME_SIZE,
+    VOXY_IPC_VERSION, VOXY_PIPE_NAME,
 };
 pub use named_pipe::{DaemonStateSnapshot, VoxyIpcClient, VoxyIpcServer};
 

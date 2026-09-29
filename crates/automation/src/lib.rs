@@ -13,6 +13,7 @@
 
 pub mod backends;
 pub mod config;
+pub mod cursor;
 pub mod error;
 
 pub use backends::{
@@ -20,6 +21,10 @@ pub use backends::{
     recovery::RecoveryEngine, verification::VerificationEngine, windows_uia::WindowsUiaBackend,
 };
 pub use config::AutomationConfig;
+pub use cursor::{
+    AutomationAction, ConfirmationStatus, DestructiveActionGuard, RiskEvaluation, RiskLevel,
+    VoxyCursorController,
+};
 pub use error::{AutomationError, Result};
 
 #[cfg(test)]

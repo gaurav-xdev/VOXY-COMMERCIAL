@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod commercial;
 pub mod config;
 pub mod conversation;
 pub mod error;
@@ -13,6 +14,11 @@ pub mod encryption;
 pub mod remote;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
+
+pub use commercial::{
+    get_commercial_migrations, CommercialStore, ConsentRecord, EntitlementRecord, PlanRecord,
+    SessionRecord, SubscriptionRecord, UserRecord, WebhookEventRecord,
+};
 
 pub use backup::BackupManager;
 pub use config::{DatabaseConfig, DatabaseKind};

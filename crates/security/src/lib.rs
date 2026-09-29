@@ -3,6 +3,7 @@
 //! system prompts, input sanitization, signed artifacts, monitoring, and auto-defense.
 
 pub mod audit;
+pub mod auth;
 pub mod capability;
 pub mod consent;
 pub mod defense;
@@ -23,6 +24,7 @@ pub mod threat;
 pub mod token;
 pub mod trust;
 
+pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};
 pub use audit::{AuditEntry, AuditLog, AuditEventType};
 pub use capability::{Capability, CapabilityCategory, CapabilityRegistry, RiskLevel};
 pub use consent::{ConsentManager, ConsentRequest};

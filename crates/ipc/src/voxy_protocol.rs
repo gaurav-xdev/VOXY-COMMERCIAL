@@ -171,10 +171,44 @@ pub enum DaemonMessage {
         vram_gb: f64,
     },
 
+    /// Real-time VOXY visual cursor and computer control telemetry.
+    CursorUpdate(VoxyCursorTelemetry),
+
     /// Heartbeat ping from daemon (every 5-10s).
     Heartbeat {
         uptime_secs: u64,
     },
+}
+
+/// Visual interaction state of the dedicated VOXY computer control cursor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum VoxyCursorState {
+    Idle,
+    Moving,
+    Clicking,
+    Typing,
+    Dragging,
+    ExecutingAction,
+    WaitingConfirmation,
+}
+
+impl Default for VoxyCursorState {
+    fn default() -> Self {
+        Self::Idle
+    }
+}
+
+/// Real-time visual cursor telemetry broadcast over IPC to ensure all automated control is visible.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VoxyCursorTelemetry {
+    pub x: i32,
+    pub y: i32,
+    pub state: VoxyCursorState,
+    pub target_element: String,
+    pub action_description: String,
+    pub confidence: f32,
+    pub requires_confirmation: bool,
+    pub action_id: Option<u64>,
 }
 
 // ==============================================================================
@@ -199,6 +233,12 @@ pub enum ClientCommand {
 
     /// Reset Emergency Stop: re-enables computer control.
     ResetEmergencyStop,
+
+    /// User approval or rejection for a pending high-risk / destructive action.
+    ConfirmAction {
+        action_id: u64,
+        approved: bool,
+    },
 
     /// Interrupt ongoing speech synthesis immediately.
     InterruptSpeech,

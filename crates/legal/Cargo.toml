@@ -1,0 +1,21 @@
+[package]
+name = "voxy-legal"
+description = "Privacy policy, Terms of Service, GDPR/CCPA data subject rights, and versioned clickwrap consent engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+voxy-shared = { workspace = true }
+voxy-database = { path = "../database" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

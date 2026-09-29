@@ -1,6 +1,6 @@
 [package]
-name = "voxy-security"
-description = "Capability registry, tokens, and policy engine"
+name = "voxy-billing"
+description = "Commercial Dodo Payments integration, webhook verification, subscription state machine, and entitlements"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,19 +8,20 @@ license.workspace = true
 
 [dependencies]
 voxy-shared = { workspace = true }
+voxy-database = { workspace = true }
+voxy-security = { workspace = true }
+reqwest = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
-parking_lot = { workspace = true }
+hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
-hmac = "0.12"
-zeroize = { workspace = true }
-argon2 = "0.5"
-rand = "0.8"
 
 [dev-dependencies]
 tokio = { workspace = true }
+tempfile = "3"

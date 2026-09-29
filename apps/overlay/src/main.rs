@@ -13,7 +13,7 @@ use styles::GLOBAL_STYLES;
 use client_js::CLIENT_JS;
 use components::core_entity::CoreEntity;
 use components::context_layer::{ContextBottomBar, ContextTopBar};
-use components::computer_control::ComputerControlBanner;
+use components::computer_control::{ComputerControlBanner, VoxyCursorBeacon};
 use components::depth_drawer::{DepthDrawer, DrawerTab};
 use components::mode_views::{CompactModeView, EdgeDockView, MinimalView};
 
@@ -94,6 +94,7 @@ fn App() -> Element {
     let messages = use_signal(|| global_state.messages.read().clone());
     let tool_steps = use_signal(|| global_state.tool_steps.read().clone());
     let telemetry = use_signal(SystemTelemetry::default);
+    let cursor_telem = use_signal(|| None::<voxy_ipc::VoxyCursorTelemetry>);
 
     // Listen to VOXY Daemon via native Windows Named Pipe IPC
     use_effect(move || {
@@ -104,6 +105,7 @@ fn App() -> Element {
         let t_steps = tool_steps.clone();
         let mut telem = telemetry.clone();
         let gs = global_state.clone();
+        let mut ct_mut = cursor_telem.clone();
 
         spawn(async move {
             let client = get_ipc_client();
@@ -298,6 +300,20 @@ fn App() -> Element {
                             cpu_brand, cpu_cores, ram_gb, gpu_str, vram_gb
                         ));
                     }
+                    voxy_ipc::DaemonMessage::CursorUpdate(telem_data) => {
+                        let is_active = telem_data.state != voxy_ipc::VoxyCursorState::Idle;
+                        let desc = telem_data.action_description.clone();
+                        let elem = telem_data.target_element.clone();
+                        ct_mut.set(Some(telem_data.clone()));
+                        let _ = document::eval(&format!(
+                            "if (window.voxySetCursorTelemetry) window.voxySetCursorTelemetry({}, {}, '{:?}', '{}', '{}', {}, {}, {});",
+                            telem_data.x, telem_data.y, telem_data.state, elem, desc, telem_data.confidence, telem_data.requires_confirmation, telem_data.action_id.unwrap_or(0)
+                        ));
+                        if is_active && telem_data.requires_confirmation {
+                            let mut vs_mut = vs.clone();
+                            vs_mut.set(VisualState::Thinking);
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -406,6 +422,19 @@ fn App() -> Element {
                         on_close: toggle_drawer,
                     }
                 },
+            }
+            if let Some(ct) = cursor_telem.read().as_ref() {
+                VoxyCursorBeacon {
+                    x: ct.x,
+                    y: ct.y,
+                    state_name: format!("{:?}", ct.state),
+                    target_element: ct.target_element.clone(),
+                    action_description: ct.action_description.clone(),
+                    confidence: ct.confidence,
+                    requires_confirmation: ct.requires_confirmation,
+                    action_id: ct.action_id,
+                    is_active: ct.state != voxy_ipc::VoxyCursorState::Idle,
+                }
             }
         }
     }

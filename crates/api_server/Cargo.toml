@@ -1,0 +1,24 @@
+[package]
+name = "voxy-api-server"
+description = "Commercial Web & Server-Side REST API architecture: /auth, /billing, /checkout, /entitlements, /consent, /health"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+voxy-shared = { workspace = true }
+voxy-security = { path = "../security" }
+voxy-database = { path = "../database" }
+voxy-billing = { path = "../billing" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+parking_lot = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

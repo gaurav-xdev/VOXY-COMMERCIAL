@@ -22,6 +22,7 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 parking_lot = { workspace = true }
 zeroize = { version = "1", features = ["derive"] }
+voxy-ipc = { path = "../ipc" }
 
 [target.'cfg(windows)'.dependencies]
 enigo = { version = "0.2", features = ["serde"] }

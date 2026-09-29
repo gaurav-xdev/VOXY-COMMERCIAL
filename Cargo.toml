@@ -51,6 +51,7 @@ voxy-dependency = { path = "crates/dependency" }
 voxy-runtime = { path = "crates/runtime" }
 voxy-personality = { path = "crates/personality" }
 voxy-guardian = { path = "crates/guardian" }
+voxy-security = { path = "crates/security" }
 voxy-home = { path = "crates/home" }
 voxy-audio = { path = "crates/audio" }
 voxy-world-model = { path = "crates/world_model" }
@@ -77,6 +78,11 @@ voxy-cloud-stt = { path = "crates/cloud_stt" }
 voxy-stt-router = { path = "crates/stt_router" }
 voxy-voice-stream = { path = "crates/voice_stream" }
 voxy-voxray = { path = "crates/voxray" }
+voxy-billing = { path = "crates/billing" }
+voxy-harness = { path = "crates/harness" }
+voxy-office = { path = "crates/office" }
+voxy-api-server = { path = "crates/api_server" }
+voxy-legal = { path = "crates/legal" }
 
 [profile.dev]
 opt-level = 0
