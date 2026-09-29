@@ -88,6 +88,13 @@ impl EntitlementEngine {
 
         if let Some(sub) = active_sub {
             if sub.status == "active" {
+                // If period end is in the past, subscription is expired pending renewal
+                if let Ok(end_dt) = chrono::DateTime::parse_from_rfc3339(&sub.current_period_end) {
+                    if end_dt.with_timezone(&chrono::Utc) < chrono::Utc::now() {
+                        return Ok(false);
+                    }
+                }
+
                 let tier = if sub.plan_id.contains("enterprise") || sub.plan_id.contains("team") {
                     "enterprise"
                 } else if sub.plan_id.contains("pro") {
@@ -178,5 +185,44 @@ mod tests {
         // Client claiming they have Pro cannot access CodingHarness without DB record
         let is_granted = EntitlementEngine::is_authorized(&store, &free_user.id, FeatureFlag::CodingHarness).await.unwrap();
         assert!(!is_granted, "Client claims must be rejected without server database backing");
+    }
+
+    #[tokio::test]
+    async fn test_expired_subscription_denies_authorization() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("expired_entitlement_test.db");
+        let config = DatabaseConfig {
+            path: Some(db_path.to_string_lossy().to_string()),
+            ..Default::default()
+        };
+
+        let db = Arc::new(SqliteDatabase::new());
+        db.connect(&config).await.unwrap();
+
+        let store = CommercialStore::new(db.clone());
+        store.initialize_schema().await.unwrap();
+        store.seed_default_plans().await.unwrap();
+
+        let user = store.create_user("expired_user@voxy.ai", "hash").await.unwrap();
+
+        // Expired subscription (period end was yesterday)
+        let expired_sub = voxy_database::SubscriptionRecord {
+            id: uuid::Uuid::new_v4().to_string(),
+            user_id: user.id.clone(),
+            plan_id: "plan_pro_monthly".into(),
+            dodo_customer_id: "cus_expired".into(),
+            dodo_subscription_id: "sub_expired".into(),
+            status: "active".into(),
+            current_period_start: (chrono::Utc::now() - chrono::Duration::days(31)).to_rfc3339(),
+            current_period_end: (chrono::Utc::now() - chrono::Duration::days(1)).to_rfc3339(),
+            cancel_at_period_end: false,
+            cancelled_at: None,
+            created_at: (chrono::Utc::now() - chrono::Duration::days(31)).to_rfc3339(),
+            updated_at: (chrono::Utc::now() - chrono::Duration::days(31)).to_rfc3339(),
+        };
+        store.upsert_subscription(&expired_sub).await.unwrap();
+
+        let authorized = EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness).await.unwrap();
+        assert!(!authorized, "Expired subscription must not authorize premium features");
     }
 }

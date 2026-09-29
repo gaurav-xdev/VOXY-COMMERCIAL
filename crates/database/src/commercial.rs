@@ -487,6 +487,64 @@ impl CommercialStore {
         }))
     }
 
+    pub async fn get_subscription_by_dodo_id(&self, dodo_subscription_id: &str) -> Result<Option<SubscriptionRecord>> {
+        let sql = "SELECT id, user_id, plan_id, dodo_customer_id, dodo_subscription_id, status, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, created_at, updated_at FROM subscriptions WHERE dodo_subscription_id = ? LIMIT 1";
+        let rows = self.db.query(sql, &[Value::String(dodo_subscription_id.to_string())]).await?;
+        if rows.is_empty() {
+            return Ok(None);
+        }
+        let r = &rows[0];
+        Ok(Some(SubscriptionRecord {
+            id: r["id"].as_str().unwrap_or_default().to_string(),
+            user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
+            plan_id: r["plan_id"].as_str().unwrap_or_default().to_string(),
+            dodo_customer_id: r["dodo_customer_id"].as_str().unwrap_or_default().to_string(),
+            dodo_subscription_id: r["dodo_subscription_id"].as_str().unwrap_or_default().to_string(),
+            status: r["status"].as_str().unwrap_or_default().to_string(),
+            current_period_start: r["current_period_start"].as_str().unwrap_or_default().to_string(),
+            current_period_end: r["current_period_end"].as_str().unwrap_or_default().to_string(),
+            cancel_at_period_end: r["cancel_at_period_end"].as_i64().unwrap_or(0) == 1,
+            cancelled_at: r["cancelled_at"].as_str().map(|s| s.to_string()),
+            created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
+            updated_at: r["updated_at"].as_str().unwrap_or_default().to_string(),
+        }))
+    }
+
+    pub async fn update_subscription_status(
+        &self,
+        dodo_subscription_id: &str,
+        status: &str,
+        cancelled_at: Option<&str>,
+        cancel_at_period_end: Option<bool>,
+    ) -> Result<bool> {
+        let now = Utc::now().to_rfc3339();
+        let sql = "UPDATE subscriptions SET status = ?, cancelled_at = COALESCE(?, cancelled_at), cancel_at_period_end = COALESCE(?, cancel_at_period_end), updated_at = ? WHERE dodo_subscription_id = ?";
+        let rows = self.db.execute(sql, &[
+            Value::String(status.to_string()),
+            cancelled_at.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+            cancel_at_period_end.map(Value::Bool).unwrap_or(Value::Null),
+            Value::String(now),
+            Value::String(dodo_subscription_id.to_string()),
+        ]).await?;
+        Ok(rows > 0)
+    }
+
+    pub async fn revoke_premium_entitlements(&self, user_id: &str) -> Result<()> {
+        let premium_features = [
+            "coding_harness",
+            "cloud_voice",
+            "unlimited_models",
+            "computer_control",
+            "office_automation",
+            "multi_agent_teams",
+            "priority_cloud_routing",
+        ];
+        for feat in premium_features {
+            self.set_entitlement(user_id, feat, false, None, None).await?;
+        }
+        Ok(())
+    }
+
     // ── Entitlements ──
 
     pub async fn set_entitlement(
@@ -495,15 +553,17 @@ impl CommercialStore {
         feature_key: &str,
         is_granted: bool,
         max_usage: Option<i64>,
+        expires_at: Option<&str>,
     ) -> Result<()> {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
         let sql = "
-            INSERT INTO entitlements (id, user_id, feature_key, is_granted, max_usage, current_usage, updated_at)
-            VALUES (?, ?, ?, ?, ?, 0, ?)
+            INSERT INTO entitlements (id, user_id, feature_key, is_granted, max_usage, current_usage, expires_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?, ?)
             ON CONFLICT(user_id, feature_key) DO UPDATE SET
                 is_granted = excluded.is_granted,
                 max_usage = excluded.max_usage,
+                expires_at = excluded.expires_at,
                 updated_at = excluded.updated_at
         ";
 
@@ -513,6 +573,7 @@ impl CommercialStore {
             Value::String(feature_key.to_string()),
             Value::Bool(is_granted),
             max_usage.map(Value::I64).unwrap_or(Value::Null),
+            expires_at.map(|e| Value::String(e.to_string())).unwrap_or(Value::Null),
             Value::String(now),
         ]).await?;
 
@@ -520,7 +581,7 @@ impl CommercialStore {
     }
 
     pub async fn check_entitlement(&self, user_id: &str, feature_key: &str) -> Result<bool> {
-        let sql = "SELECT is_granted, max_usage, current_usage FROM entitlements WHERE user_id = ? AND feature_key = ? LIMIT 1";
+        let sql = "SELECT is_granted, max_usage, current_usage, expires_at FROM entitlements WHERE user_id = ? AND feature_key = ? LIMIT 1";
         let rows = self.db.query(sql, &[
             Value::String(user_id.to_string()),
             Value::String(feature_key.to_string()),
@@ -533,6 +594,15 @@ impl CommercialStore {
         let is_granted = rows[0]["is_granted"].as_i64().unwrap_or(0) == 1;
         if !is_granted {
             return Ok(false);
+        }
+
+        // Authoritative expiration verification
+        if let Some(exp_str) = rows[0]["expires_at"].as_str() {
+            if let Ok(exp_dt) = DateTime::parse_from_rfc3339(exp_str) {
+                if exp_dt.to_utc() < Utc::now() {
+                    return Ok(false); // Entitlement expired
+                }
+            }
         }
 
         if let Some(max_usage) = rows[0]["max_usage"].as_i64() {
@@ -725,9 +795,14 @@ mod tests {
         assert_eq!(active_sub.unwrap().plan_id, "plan_pro_monthly");
 
         // Grant entitlement
-        store.set_entitlement(&user.id, "coding_harness", true, None).await.unwrap();
+        store.set_entitlement(&user.id, "coding_harness", true, None, None).await.unwrap();
         assert!(store.check_entitlement(&user.id, "coding_harness").await.unwrap());
         assert!(!store.check_entitlement(&user.id, "unauthorized_feature").await.unwrap());
+
+        // Test expired entitlement
+        let past = (Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
+        store.set_entitlement(&user.id, "temp_feature", true, None, Some(&past)).await.unwrap();
+        assert!(!store.check_entitlement(&user.id, "temp_feature").await.unwrap());
 
         // 5. Webhook idempotency
         let event_id = "evt_dodo_9999";

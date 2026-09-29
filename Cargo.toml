@@ -14,7 +14,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["VOXY Engineering Team"]
 license = "MIT"
-repository = "https://github.com/voxy-ai/voxy"
+repository = "https://github.com/gaurav-xdev/VOXY-COMMERCIAL"
 rust-version = "1.75"
 
 [workspace.dependencies]

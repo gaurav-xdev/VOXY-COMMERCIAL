@@ -2,8 +2,8 @@ use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use voxy_billing::{
-    verify_webhook_signature, verify_webhook_timestamp, CreateCheckoutSessionRequest,
-    DodoPaymentsClient, EntitlementEngine, FeatureFlag,
+    CreateCheckoutSessionRequest, DodoPaymentsClient, EntitlementEngine, FeatureFlag,
+    WebhookError, WebhookHandler,
 };
 use voxy_database::CommercialStore;
 use voxy_security::{AuthPasswordHasher, SessionTokenManager};
@@ -64,14 +64,34 @@ pub struct ConsentRequest {
     pub agreed: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateCheckoutRequest {
+    pub plan_id: String,
+    pub return_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateCheckoutResponse {
+    pub checkout_url: String,
+}
+
 pub struct ApiHandlers {
     store: Arc<CommercialStore>,
     dodo_client: Option<Arc<DodoPaymentsClient>>,
+    webhook_secret: Option<String>,
 }
 
 impl ApiHandlers {
-    pub fn new(store: Arc<CommercialStore>, dodo_client: Option<Arc<DodoPaymentsClient>>) -> Self {
-        Self { store, dodo_client }
+    pub fn new(
+        store: Arc<CommercialStore>,
+        dodo_client: Option<Arc<DodoPaymentsClient>>,
+        webhook_secret: Option<String>,
+    ) -> Self {
+        Self {
+            store,
+            dodo_client,
+            webhook_secret,
+        }
     }
 
     /// GET /health
@@ -191,13 +211,13 @@ impl ApiHandlers {
             .map_err(|e| ApiError::Internal(e.to_string()))?
             .ok_or_else(|| ApiError::NotFound("User not found".to_string()))?;
 
-        let req = CreateCheckoutSessionRequest {
-            product_id: plan_id.to_string(),
-            customer_email: user.email,
-            customer_name: None,
-            return_url: return_url.to_string(),
-            metadata: std::collections::HashMap::from([("user_id".to_string(), auth.user_id.clone())]),
-        };
+        let req = CreateCheckoutSessionRequest::single_product(
+            plan_id.to_string(),
+            user.email,
+            None,
+            return_url.to_string(),
+            auth.user_id.clone(),
+        );
 
         let session = client
             .create_checkout_session(&req)
@@ -212,46 +232,34 @@ impl ApiHandlers {
         &self,
         signature_header: Option<&str>,
         timestamp_header: Option<&str>,
-        webhook_secret: &str,
+        webhook_id_header: Option<&str>,
         payload: &[u8],
-    ) -> Result<(), ApiError> {
-        let sig = signature_header
-            .ok_or_else(|| ApiError::Unauthorized("Missing signature header".to_string()))?;
-        let ts_str = timestamp_header
-            .ok_or_else(|| ApiError::Unauthorized("Missing timestamp header".to_string()))?;
+    ) -> Result<String, ApiError> {
+        let secret = self.webhook_secret.as_deref().ok_or_else(|| {
+            ApiError::Internal("Webhook secret is not configured on this server".to_string())
+        })?;
 
-        // 1. Verify timestamp replay protection (within 300s)
-        if !verify_webhook_timestamp(ts_str, 300) {
-            return Err(ApiError::Unauthorized("Replay check failed: timestamp outside validity window".to_string()));
-        }
+        let webhook_handler = WebhookHandler::new(
+            secret.to_string(),
+            (*self.store).clone(),
+        );
 
-        // 2. Verify HMAC-SHA256 signature
-        if !verify_webhook_signature(payload, sig, webhook_secret) {
-            return Err(ApiError::Unauthorized("Signature check failed: invalid HMAC-SHA256 signature".to_string()));
-        }
-
-        // 3. Process webhook event
-        let event_json: serde_json::Value = serde_json::from_slice(payload)
-            .map_err(|e| ApiError::BadRequest(format!("Invalid webhook JSON payload: {e}")))?;
-
-        let event_id = event_json["event_id"]
-            .as_str()
-            .unwrap_or(&uuid::Uuid::new_v4().to_string())
-            .to_string();
-
-        let event_type = event_json["event_type"]
-            .as_str()
-            .unwrap_or("unknown")
-            .to_string();
-
-        let payload_str = std::str::from_utf8(payload).unwrap_or("{}");
-
-        self.store
-            .record_webhook_event(&event_id, &event_type, payload_str)
+        webhook_handler
+            .process_webhook(payload, signature_header, timestamp_header, webhook_id_header)
             .await
-            .map_err(|e| ApiError::Internal(format!("Webhook storage error: {e}")))?;
-
-        Ok(())
+            .map_err(|e| match e {
+                WebhookError::MissingSignature
+                | WebhookError::InvalidSignature
+                | WebhookError::ReplayDetected(_) => {
+                    ApiError::Unauthorized(e.to_string())
+                }
+                WebhookError::MalformedPayload(msg) => {
+                    ApiError::BadRequest(msg)
+                }
+                WebhookError::DatabaseError(msg) => {
+                    ApiError::Internal(msg)
+                }
+            })
     }
 
     /// GET /entitlements/check

@@ -7786,10 +7786,13 @@ dependencies = [
 name = "voxy-api-server"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "chrono",
+ "hmac 0.12.1",
  "parking_lot",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "thiserror 2.0.20",
  "tokio",
@@ -7847,6 +7850,7 @@ dependencies = [
 name = "voxy-billing"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "chrono",
  "hex",
  "hmac 0.12.1",

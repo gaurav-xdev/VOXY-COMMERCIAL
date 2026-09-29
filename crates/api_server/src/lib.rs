@@ -11,7 +11,8 @@ pub mod router;
 
 pub use error::{ApiError, ApiErrorBody, ApiResponseEnvelope};
 pub use handlers::{
-    ApiHandlers, ConsentRequest, EntitlementCheckRequest, EntitlementCheckResponse, HealthResponse,
+    ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
+    EntitlementCheckRequest, EntitlementCheckResponse, HealthResponse,
     LoginRequest, LoginResponse, RegisterRequest, RegisterResponse,
 };
 pub use middleware::{AuthContext, AuthMiddleware, RateLimitMiddleware};
@@ -41,7 +42,11 @@ mod tests {
 
         let auth_mw = Arc::new(AuthMiddleware::new(store.clone()));
         let rate_limiter = Arc::new(RateLimitMiddleware::new(100, Duration::from_secs(60)));
-        let handlers = Arc::new(ApiHandlers::new(store.clone(), None));
+        let handlers = Arc::new(ApiHandlers::new(
+            store.clone(),
+            None,
+            Some("test_webhook_secret_key".to_string()),
+        ));
 
         let router = ApiRouter::new(handlers, auth_mw, rate_limiter);
         (store, router)
@@ -81,7 +86,7 @@ mod tests {
         let (store, _) = setup_test_router().await;
         let strict_limiter = Arc::new(RateLimitMiddleware::new(5, Duration::from_secs(60)));
         let auth_mw = Arc::new(AuthMiddleware::new(store.clone()));
-        let handlers = Arc::new(ApiHandlers::new(store, None));
+        let handlers = Arc::new(ApiHandlers::new(store, None, None));
         let router = ApiRouter::new(handlers, auth_mw, strict_limiter);
 
         // Limit is 5 requests per 60s
@@ -170,5 +175,81 @@ mod tests {
             .with_json(&check_req);
         let resp_revoked = router.dispatch(req_revoked).await;
         assert_eq!(resp_revoked.status_code, 401);
+    }
+
+    #[tokio::test]
+    async fn test_api_webhook_and_checkout_dispatch() {
+        use hmac::{Hmac, Mac};
+        use sha2::Sha256;
+        use base64::Engine;
+
+        let (store, router) = setup_test_router().await;
+
+        // 1. Unauthenticated checkout creation returns 401
+        let checkout_req = CreateCheckoutRequest {
+            plan_id: "plan_pro_monthly".to_string(),
+            return_url: "https://voxy.ai/success".to_string(),
+        };
+        let req_unauth = ApiRequest::new("POST", "/checkout/create-session", "10.0.0.1")
+            .with_json(&checkout_req);
+        let resp_unauth = router.dispatch(req_unauth).await;
+        assert_eq!(resp_unauth.status_code, 401);
+
+        // 2. Webhook called with missing signature returns 401
+        let test_user = store
+            .create_user("webhook_user@voxy.ai", "dummy_hash")
+            .await
+            .unwrap();
+
+        let dummy_payload = serde_json::json!({
+            "event_id": "evt_test_123",
+            "event_type": "subscription.active",
+            "data": {
+                "user_id": test_user.id,
+                "subscription_id": "sub_999",
+                "customer_id": "cus_999",
+                "product_id": "plan_pro_monthly"
+            }
+        });
+        let req_no_sig = ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1")
+            .with_json(&dummy_payload);
+        let resp_no_sig = router.dispatch(req_no_sig).await;
+        assert_eq!(resp_no_sig.status_code, 401);
+
+        // 3. Webhook called with forged signature returns 401
+        let req_bad_sig = ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1")
+            .with_header("webhook-signature", "v1,ZmFrZXNpZ25hdHVyZQ==")
+            .with_header("webhook-id", "msg_test_123")
+            .with_header("webhook-timestamp", &chrono::Utc::now().timestamp().to_string())
+            .with_json(&dummy_payload);
+        let resp_bad_sig = router.dispatch(req_bad_sig).await;
+        assert_eq!(resp_bad_sig.status_code, 401);
+
+        // 4. Webhook called with legitimate Standard Webhooks signature returns 200
+        let secret = "test_webhook_secret_key";
+        let body_str = serde_json::to_string(&dummy_payload).unwrap();
+        let msg_id = "msg_valid_test_001";
+        let ts = chrono::Utc::now().timestamp().to_string();
+        let to_sign = format!("{}.{}.{}", msg_id, ts, body_str);
+
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(to_sign.as_bytes());
+        let sig_bytes = mac.finalize().into_bytes();
+        let sig_b64 = base64::engine::general_purpose::STANDARD.encode(sig_bytes);
+        let sig_header_val = format!("v1,{sig_b64}");
+
+        let req_valid = ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1")
+            .with_header("webhook-signature", &sig_header_val)
+            .with_header("webhook-id", msg_id)
+            .with_header("webhook-timestamp", &ts)
+            .with_json(&dummy_payload);
+
+        let resp_valid = router.dispatch(req_valid).await;
+        assert_eq!(resp_valid.status_code, 200, "Valid webhook should return 200");
+
+        // Verify webhook event was recorded in DB
+        let processed = store.is_webhook_processed("evt_test_123").await.unwrap();
+        assert!(processed, "Webhook event must be marked processed in database");
     }
 }

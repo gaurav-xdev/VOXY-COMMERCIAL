@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use crate::error::{ApiError, ApiResponseEnvelope};
 use crate::handlers::{
-    ApiHandlers, ConsentRequest, EntitlementCheckRequest, LoginRequest, RegisterRequest,
+    ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
+    EntitlementCheckRequest, LoginRequest, RegisterRequest,
 };
 use crate::middleware::{AuthMiddleware, RateLimitMiddleware};
 
@@ -195,6 +196,63 @@ impl ApiRouter {
                 };
                 match self.handlers.record_consent(&auth_ctx, consent_req).await {
                     Ok(()) => ApiResponse::json(200, &ApiResponseEnvelope::ok("Consent recorded")),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Create Checkout Session (authenticated)
+            ("POST", "/checkout/create-session") => {
+                let auth_header = req.headers.get("authorization").map(|s| s.as_str());
+                let auth_ctx = match self.auth_middleware.authenticate(auth_header).await {
+                    Ok(ctx) => ctx,
+                    Err(e) => return ApiResponse::error(e, &req.request_id),
+                };
+                let checkout_req: CreateCheckoutRequest = match serde_json::from_slice(&req.body) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        return ApiResponse::error(
+                            ApiError::BadRequest(format!("Malformed JSON: {e}")),
+                            &req.request_id,
+                        );
+                    }
+                };
+                match self
+                    .handlers
+                    .create_checkout_session(&auth_ctx, &checkout_req.plan_id, &checkout_req.return_url)
+                    .await
+                {
+                    Ok(url) => ApiResponse::json(
+                        200,
+                        &ApiResponseEnvelope::ok(CreateCheckoutResponse { checkout_url: url }),
+                    ),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Dodo Payments Webhook Endpoint (signed & verified)
+            ("POST", "/webhooks/dodo") => {
+                let sig_header = req
+                    .headers
+                    .get("webhook-signature")
+                    .or_else(|| req.headers.get("x-dodo-signature"))
+                    .map(|s| s.as_str());
+                let ts_header = req
+                    .headers
+                    .get("webhook-timestamp")
+                    .or_else(|| req.headers.get("x-dodo-timestamp"))
+                    .map(|s| s.as_str());
+                let id_header = req
+                    .headers
+                    .get("webhook-id")
+                    .or_else(|| req.headers.get("x-dodo-event-id"))
+                    .map(|s| s.as_str());
+
+                match self
+                    .handlers
+                    .handle_webhook(sig_header, ts_header, id_header, &req.body)
+                    .await
+                {
+                    Ok(msg) => ApiResponse::json(200, &ApiResponseEnvelope::ok(msg)),
                     Err(e) => ApiResponse::error(e, &req.request_id),
                 }
             }

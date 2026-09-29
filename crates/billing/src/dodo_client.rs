@@ -45,12 +45,53 @@ pub enum BillingInterval {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateCheckoutSessionRequest {
+pub struct ProductCartItem {
     pub product_id: String,
-    pub customer_email: String,
-    pub customer_name: Option<String>,
+    pub quantity: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomerPayload {
+    pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub customer_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCheckoutSessionRequest {
+    pub product_cart: Vec<ProductCartItem>,
+    pub customer: CustomerPayload,
     pub return_url: String,
     pub metadata: std::collections::HashMap<String, String>,
+}
+
+impl CreateCheckoutSessionRequest {
+    pub fn single_product(
+        product_id: String,
+        customer_email: String,
+        customer_name: Option<String>,
+        return_url: String,
+        user_id: String,
+    ) -> Self {
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("user_id".to_string(), user_id);
+
+        Self {
+            product_cart: vec![ProductCartItem {
+                product_id,
+                quantity: 1,
+            }],
+            customer: CustomerPayload {
+                email: customer_email,
+                name: customer_name,
+                customer_id: None,
+            },
+            return_url,
+            metadata,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +109,9 @@ pub struct DodoSubscriptionResponse {
     pub status: String,
     pub next_billing_date: Option<String>,
     pub current_period_end: Option<String>,
+    pub current_period_start: Option<String>,
+    pub cancel_at_period_end: Option<bool>,
+    pub metadata: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Clone)]
@@ -109,7 +153,7 @@ impl DodoPaymentsClient {
         &self,
         req: &CreateCheckoutSessionRequest,
     ) -> Result<CheckoutSessionResponse, DodoError> {
-        let url = format!("{}/checkout", self.environment.base_url());
+        let url = format!("{}/checkouts", self.environment.base_url());
         let res = self.client.post(&url).json(req).send().await?;
 
         if !res.status().is_success() {

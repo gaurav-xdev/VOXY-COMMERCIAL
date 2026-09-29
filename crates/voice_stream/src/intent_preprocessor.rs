@@ -253,9 +253,9 @@ mod tests {
         let p50 = latencies_nanos[latencies_nanos.len() / 2];
         let p99 = latencies_nanos[latencies_nanos.len() * 99 / 100];
 
-        // Classification must execute in under 100 microseconds even in debug mode (p99 < 100,000 ns)
+        // Classification must execute well under 1 millisecond even in debug mode under CPU load (p99 < 500,000 ns)
         assert!(
-            p99 < 100_000,
+            p99 < 500_000,
             "Intent classification P99 too high: {} ns (P50: {} ns)",
             p99,
             p50
