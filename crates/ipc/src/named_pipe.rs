@@ -19,8 +19,8 @@ use tokio::sync::{broadcast, mpsc, watch, RwLock};
 use tracing::{debug, error, info, warn};
 
 use crate::voxy_protocol::{
-    decode_ipc_payload, encode_ipc_frame, ClientCommand, DaemonMessage, IpcEnvelope,
-    VoiceState, MAX_IPC_FRAME_SIZE, VOXY_PIPE_NAME,
+    decode_ipc_payload, encode_ipc_frame, ClientCommand, DaemonMessage, IpcEnvelope, VoiceState,
+    MAX_IPC_FRAME_SIZE, VOXY_PIPE_NAME,
 };
 
 // ==============================================================================
@@ -97,7 +97,10 @@ where
 }
 
 /// Write a single length-delimited frame to an async writer.
-pub async fn write_framed_message<W, T>(writer: &mut W, message: &IpcEnvelope<T>) -> Result<(), String>
+pub async fn write_framed_message<W, T>(
+    writer: &mut W,
+    message: &IpcEnvelope<T>,
+) -> Result<(), String>
 where
     W: AsyncWrite + Unpin,
     T: serde::Serialize,
@@ -121,6 +124,7 @@ where
 /// High-level IPC server hosted inside VOXY Daemon.
 pub struct VoxyIpcServer {
     pipe_name: String,
+    auth_secret: Option<String>,
     snapshot: Arc<RwLock<DaemonStateSnapshot>>,
     broadcast_tx: broadcast::Sender<IpcEnvelope<DaemonMessage>>,
     command_tx: mpsc::Sender<ClientCommand>,
@@ -136,17 +140,32 @@ impl VoxyIpcServer {
 
     /// Create with a custom pipe name (useful for isolated tests).
     pub fn with_pipe_name(pipe_name: impl Into<String>) -> Self {
+        let auth_secret = std::env::var("VOXY_IPC_AUTH_TOKEN").ok();
+        Self::with_pipe_name_and_auth(pipe_name, auth_secret)
+    }
+
+    /// Create with custom pipe name and explicit authentication secret.
+    pub fn with_pipe_name_and_auth(
+        pipe_name: impl Into<String>,
+        auth_secret: Option<String>,
+    ) -> Self {
         let (broadcast_tx, _) = broadcast::channel(256);
         let (command_tx, command_rx) = mpsc::channel(64);
 
         Self {
             pipe_name: pipe_name.into(),
+            auth_secret,
             snapshot: Arc::new(RwLock::new(DaemonStateSnapshot::default())),
             broadcast_tx,
             command_tx,
             command_rx: Arc::new(tokio::sync::Mutex::new(command_rx)),
             is_running: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Set or update the expected authentication secret.
+    pub fn set_auth_secret(&mut self, secret: Option<String>) {
+        self.auth_secret = secret;
     }
 
     /// Update the current voice state, updating the snapshot and broadcasting to all clients.
@@ -172,7 +191,14 @@ impl VoxyIpcServer {
     }
 
     /// Broadcast a tool execution step event to all connected clients.
-    pub fn broadcast_tool_step(&self, id: u64, tool: String, title: String, detail: String, status: crate::voxy_protocol::ToolStepStatus) {
+    pub fn broadcast_tool_step(
+        &self,
+        id: u64,
+        tool: String,
+        title: String,
+        detail: String,
+        status: crate::voxy_protocol::ToolStepStatus,
+    ) {
         self.broadcast(DaemonMessage::ToolStep {
             id,
             tool,
@@ -252,6 +278,7 @@ impl VoxyIpcServer {
         }
 
         let pipe_name = self.pipe_name.clone();
+        let auth_secret = self.auth_secret.clone();
         let snapshot = Arc::clone(&self.snapshot);
         let broadcast_tx = self.broadcast_tx.clone();
         let command_tx = self.command_tx.clone();
@@ -299,9 +326,10 @@ impl VoxyIpcServer {
                     let snap = snapshot.read().await.clone();
                     let client_rx = broadcast_tx.subscribe();
                     let cmd_tx = command_tx.clone();
+                    let auth_sec = auth_secret.clone();
 
                     tokio::spawn(async move {
-                        handle_client_connection(server, snap, client_rx, cmd_tx).await;
+                        handle_client_connection(server, snap, client_rx, cmd_tx, auth_sec).await;
                     });
                 }
             }
@@ -309,7 +337,9 @@ impl VoxyIpcServer {
             #[cfg(not(windows))]
             {
                 // Cross-platform mock for Unix testing
-                warn!("Named Pipes only natively supported on Windows; stub running on this platform");
+                warn!(
+                    "Named Pipes only natively supported on Windows; stub running on this platform"
+                );
             }
         });
     }
@@ -327,12 +357,25 @@ impl Default for VoxyIpcServer {
     }
 }
 
+/// Constant-time byte slice comparison to mitigate timing attacks.
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut res = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        res |= x ^ y;
+    }
+    res == 0
+}
+
 #[cfg(windows)]
 async fn handle_client_connection(
     pipe: tokio::net::windows::named_pipe::NamedPipeServer,
     initial_snapshot: DaemonStateSnapshot,
     mut broadcast_rx: broadcast::Receiver<IpcEnvelope<DaemonMessage>>,
     command_tx: mpsc::Sender<ClientCommand>,
+    auth_secret: Option<String>,
 ) {
     let (mut reader, mut writer) = tokio::io::split(pipe);
 
@@ -354,7 +397,10 @@ async fn handle_client_connection(
                     }
                 }
                 Err(broadcast::error::RecvError::Lagged(n)) => {
-                    warn!(missed = n, "Overlay client lagged behind broadcast stream; skipped {n} messages");
+                    warn!(
+                        missed = n,
+                        "Overlay client lagged behind broadcast stream; skipped {n} messages"
+                    );
                 }
                 Err(broadcast::error::RecvError::Closed) => {
                     debug!("Broadcast channel closed, terminating writer task");
@@ -367,18 +413,75 @@ async fn handle_client_connection(
     // 3. Reader task: reads incoming client commands
     let reader_task = tokio::spawn(async move {
         let mut handshaken = false;
+        let mut authenticated = false;
         loop {
             match read_framed_message::<_, ClientCommand>(&mut reader).await {
                 Ok(envelope) => {
                     match &envelope.payload {
-                        ClientCommand::ClientHandshake { client_name, client_version } => {
-                            info!(client = %client_name, version = %client_version, "Client handshake accepted");
+                        ClientCommand::ClientHandshake {
+                            client_name,
+                            client_version,
+                            auth_token,
+                            nonce,
+                            timestamp_ms,
+                        } => {
+                            let is_auth_valid = match (&auth_secret, auth_token) {
+                                (None, _) => true, // No secret configured on server, permit connection
+                                (Some(expected), Some(token)) => {
+                                    // Case 1: direct constant-time equality
+                                    if constant_time_eq(token.as_bytes(), expected.as_bytes()) {
+                                        true
+                                    } else if let (Some(n), Some(ts)) = (nonce, timestamp_ms) {
+                                        // Case 2: HMAC / salted SHA-256 with replay window (within 300 seconds)
+                                        let now_ms = match std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                        {
+                                            Ok(d) => d.as_millis() as u64,
+                                            Err(_) => 0,
+                                        };
+                                        let diff_secs = (now_ms as i64 - *ts as i64).abs() / 1000;
+                                        if diff_secs <= 300 {
+                                            use sha2::{Digest, Sha256};
+                                            let mut hasher = Sha256::new();
+                                            hasher.update(
+                                                format!("{}:{}:{}", expected, n, ts).as_bytes(),
+                                            );
+                                            let expected_hex = format!("{:x}", hasher.finalize());
+                                            constant_time_eq(
+                                                token.as_bytes(),
+                                                expected_hex.as_bytes(),
+                                            )
+                                        } else {
+                                            warn!(client = %client_name, "Client handshake rejected: timestamp drift exceeds 300s replay window");
+                                            false
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                }
+                                (Some(_), None) => false, // Secret required, but no token provided
+                            };
+
+                            if is_auth_valid {
+                                info!(client = %client_name, version = %client_version, "Client handshake and cryptographic authentication accepted");
+                                authenticated = true;
+                            } else {
+                                warn!(client = %client_name, "Client handshake rejected: invalid or missing authentication token");
+                                authenticated = false;
+                            }
                             handshaken = true;
                         }
                         _ => {
                             if !handshaken {
                                 warn!("Unauthenticated command received from client before handshake; aborting connection");
                                 break;
+                            }
+                            if envelope.payload.is_privileged() && !authenticated {
+                                warn!(
+                                    cmd = ?envelope.payload,
+                                    "Privileged command rejected: client is not cryptographically authenticated"
+                                );
+                                continue;
                             }
                         }
                     }
@@ -408,6 +511,7 @@ async fn handle_client_connection(
 /// High-level IPC client used inside VOXY Overlay / UI.
 pub struct VoxyIpcClient {
     pipe_name: String,
+    auth_token: Option<String>,
     is_connected: Arc<watch::Sender<bool>>,
     event_tx: broadcast::Sender<DaemonMessage>,
     out_cmd_tx: mpsc::Sender<ClientCommand>,
@@ -418,23 +522,39 @@ pub struct VoxyIpcClient {
 impl VoxyIpcClient {
     /// Create a new IPC client targeting the standard named pipe.
     pub fn new() -> Self {
-        Self::with_pipe_name(VOXY_PIPE_NAME)
+        let auth_token = std::env::var("VOXY_IPC_AUTH_TOKEN").ok();
+        Self::with_pipe_name_and_auth(VOXY_PIPE_NAME, auth_token)
     }
 
     /// Create with custom pipe name.
     pub fn with_pipe_name(pipe_name: impl Into<String>) -> Self {
+        let auth_token = std::env::var("VOXY_IPC_AUTH_TOKEN").ok();
+        Self::with_pipe_name_and_auth(pipe_name, auth_token)
+    }
+
+    /// Create with custom pipe name and authentication token / secret.
+    pub fn with_pipe_name_and_auth(
+        pipe_name: impl Into<String>,
+        auth_token: Option<String>,
+    ) -> Self {
         let (is_connected, _) = watch::channel(false);
         let (event_tx, _) = broadcast::channel(256);
         let (out_cmd_tx, out_cmd_rx) = mpsc::channel(64);
 
         Self {
             pipe_name: pipe_name.into(),
+            auth_token,
             is_connected: Arc::new(is_connected),
             event_tx,
             out_cmd_tx,
             out_cmd_rx: Arc::new(tokio::sync::Mutex::new(out_cmd_rx)),
             running: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Update client authentication token.
+    pub fn set_auth_token(&mut self, token: Option<String>) {
+        self.auth_token = token;
     }
 
     /// Subscribe to daemon events.
@@ -462,6 +582,7 @@ impl VoxyIpcClient {
         }
 
         let pipe_name = self.pipe_name.clone();
+        let auth_token = self.auth_token.clone();
         let is_connected = Arc::clone(&self.is_connected);
         let event_tx = self.event_tx.clone();
         let out_cmd_rx = Arc::clone(&self.out_cmd_rx);
@@ -483,10 +604,31 @@ impl VoxyIpcClient {
 
                             let (mut reader, mut writer) = tokio::io::split(client);
 
-                            // Send handshake
+                            // Send cryptographic handshake if token configured
+                            let (nonce, ts, token) = if let Some(ref secret) = auth_token {
+                                let now_ms = match std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                {
+                                    Ok(d) => d.as_millis() as u64,
+                                    Err(_) => 0,
+                                };
+                                let nonce = uuid::Uuid::new_v4().to_string();
+                                use sha2::{Digest, Sha256};
+                                let mut hasher = Sha256::new();
+                                hasher
+                                    .update(format!("{}:{}:{}", secret, nonce, now_ms).as_bytes());
+                                let digest = format!("{:x}", hasher.finalize());
+                                (Some(nonce), Some(now_ms), Some(digest))
+                            } else {
+                                (None, None, None)
+                            };
+
                             let handshake = IpcEnvelope::new(ClientCommand::ClientHandshake {
                                 client_name: "voxy-overlay".to_string(),
                                 client_version: env!("CARGO_PKG_VERSION").to_string(),
+                                auth_token: token,
+                                nonce,
+                                timestamp_ms: ts,
                             });
                             let _ = write_framed_message(&mut writer, &handshake).await;
 
@@ -495,7 +637,8 @@ impl VoxyIpcClient {
                             // Read loop
                             let reader_handle = tokio::spawn(async move {
                                 loop {
-                                    match read_framed_message::<_, DaemonMessage>(&mut reader).await {
+                                    match read_framed_message::<_, DaemonMessage>(&mut reader).await
+                                    {
                                         Ok(env) => {
                                             let _ = event_tx_clone.send(env.payload);
                                         }
@@ -518,7 +661,9 @@ impl VoxyIpcClient {
                                     match cmd_opt {
                                         Some(cmd) => {
                                             let env = IpcEnvelope::new(cmd);
-                                            if let Err(e) = write_framed_message(&mut writer, &env).await {
+                                            if let Err(e) =
+                                                write_framed_message(&mut writer, &env).await
+                                            {
                                                 debug!(error = %e, "Overlay pipe write stream ended");
                                                 break;
                                             }

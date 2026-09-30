@@ -148,9 +148,7 @@ impl STTProvider for GoogleSTTProvider {
                 enable_automatic_punctuation: true,
                 model: &self.model,
             },
-            audio: GoogleSTTAudio {
-                content: b64_audio,
-            },
+            audio: GoogleSTTAudio { content: b64_audio },
         };
 
         let url = format!("{}?key={}", GOOGLE_STT_ENDPOINT, self.api_key);
@@ -202,7 +200,10 @@ impl STTProvider for GoogleSTTProvider {
         }
 
         let resp: GoogleSTTResponse = response.json().await.map_err(|e| {
-            ProviderError::TranscriptionFailed(format!("Failed to parse Google STT response: {}", e))
+            ProviderError::TranscriptionFailed(format!(
+                "Failed to parse Google STT response: {}",
+                e
+            ))
         })?;
 
         let alt = resp

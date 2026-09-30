@@ -35,6 +35,12 @@ pub struct ModelLifecycleManager {
     models: RwLock<HashMap<String, ManagedModel>>,
 }
 
+impl Default for ModelLifecycleManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModelLifecycleManager {
     /// Creates a new model lifecycle manager with a default 10-minute idle eviction timeout.
     pub fn new() -> Self {
@@ -53,15 +59,17 @@ impl ModelLifecycleManager {
 
     pub fn mark_loading(&self, model_id: &str) {
         let mut models = self.models.write().unwrap();
-        let entry = models.entry(model_id.to_string()).or_insert_with(|| ManagedModel {
-            model_id: model_id.to_string(),
-            state: ModelLifecycleState::Unloaded,
-            load_start: None,
-            loaded_at: None,
-            last_invoked: None,
-            load_duration_ms: None,
-            total_invocations: 0,
-        });
+        let entry = models
+            .entry(model_id.to_string())
+            .or_insert_with(|| ManagedModel {
+                model_id: model_id.to_string(),
+                state: ModelLifecycleState::Unloaded,
+                load_start: None,
+                loaded_at: None,
+                last_invoked: None,
+                load_duration_ms: None,
+                total_invocations: 0,
+            });
         entry.state = ModelLifecycleState::Loading;
         entry.load_start = Some(Instant::now());
     }

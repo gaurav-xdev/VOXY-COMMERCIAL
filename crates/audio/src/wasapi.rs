@@ -536,7 +536,8 @@ impl CpalOutputStream {
         let ring = Arc::new(SpscRingBuffer::new(262144));
 
         // Try negotiated config first, fall back to device default if it fails
-        let (stream, sample_rate, channels) = match Self::try_build(&device, &stream_config, &ring) {
+        let (stream, sample_rate, channels) = match Self::try_build(&device, &stream_config, &ring)
+        {
             Ok(s) => (s, stream_config.sample_rate, stream_config.channels as u8),
             Err(e) => {
                 warn!(
@@ -582,7 +583,7 @@ impl CpalOutputStream {
         let ring_cb = ring.clone();
         cpal_helpers::build_output_stream(
             device,
-            config.clone(),
+            *config,
             move |output: &mut [f32], _: &cpal::OutputCallbackInfo| {
                 let read = ring_cb.read(output);
                 if read < output.len() {

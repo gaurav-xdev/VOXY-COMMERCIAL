@@ -1,8 +1,8 @@
-﻿use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use tokio::sync::mpsc;
 use crate::frames::{Frame, FrameDirection, StartFrame};
 use crate::processor::Pipeline;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 pub trait Transport: Send + Sync {
     fn input(&self) -> mpsc::Receiver<Frame>;
@@ -76,7 +76,8 @@ impl PipelineRunner {
             let mut next_frames = Vec::new();
             for f in current_frames {
                 let (tx, mut rx) = mpsc::channel(32);
-                proc.process_frame(f, FrameDirection::Downstream, &tx).await?;
+                proc.process_frame(f, FrameDirection::Downstream, &tx)
+                    .await?;
                 drop(tx);
                 while let Some(out_f) = rx.recv().await {
                     next_frames.push(out_f);

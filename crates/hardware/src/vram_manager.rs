@@ -41,8 +41,13 @@ pub struct VramBudgetStatus {
 
 #[derive(Debug, thiserror::Error)]
 pub enum VramAllocationError {
-    #[error("Insufficient VRAM: requested {requested_gb:.2} GB, only {available_gb:.2} GB available")]
-    InsufficientMemory { requested_gb: f64, available_gb: f64 },
+    #[error(
+        "Insufficient VRAM: requested {requested_gb:.2} GB, only {available_gb:.2} GB available"
+    )]
+    InsufficientMemory {
+        requested_gb: f64,
+        available_gb: f64,
+    },
     #[error("Engine slot {0:?} is already active with model '{1}'")]
     SlotBusy(EngineRole, String),
 }
@@ -96,7 +101,8 @@ impl VramManager {
 
     /// Free AI VRAM available for allocation.
     pub fn free_ai_vram(&self) -> u64 {
-        self.usable_ai_vram().saturating_sub(self.currently_allocated())
+        self.usable_ai_vram()
+            .saturating_sub(self.currently_allocated())
     }
 
     /// Requests memory for an engine role.
@@ -117,7 +123,8 @@ impl VramManager {
         if projected > usable {
             return Err(VramAllocationError::InsufficientMemory {
                 requested_gb: required_bytes as f64 / (1024.0 * 1024.0 * 1024.0),
-                available_gb: (usable.saturating_sub(total_allocated.saturating_sub(current_for_role)))
+                available_gb: (usable
+                    .saturating_sub(total_allocated.saturating_sub(current_for_role)))
                     as f64
                     / (1024.0 * 1024.0 * 1024.0),
             });
@@ -182,14 +189,18 @@ mod tests {
     fn test_vram_manager_budgeting() {
         let mgr = VramManager::with_os_reserve(
             8 * 1024 * 1024 * 1024, // 8 GB VRAM
-            1 * 1024 * 1024 * 1024, // 1 GB OS reserve -> 7 GB usable
+            1024 * 1024 * 1024,     // 1 GB OS reserve -> 7 GB usable
         );
 
         assert_eq!(mgr.usable_ai_vram(), 7 * 1024 * 1024 * 1024);
         assert_eq!(mgr.free_ai_vram(), 7 * 1024 * 1024 * 1024);
 
         // Allocate 1 GB for STT (Whisper)
-        let stt_res = mgr.request_slot(EngineRole::SpeechToText, "whisper-small", 1024 * 1024 * 1024);
+        let stt_res = mgr.request_slot(
+            EngineRole::SpeechToText,
+            "whisper-small",
+            1024 * 1024 * 1024,
+        );
         assert!(stt_res.is_ok());
         assert_eq!(mgr.free_ai_vram(), 6 * 1024 * 1024 * 1024);
 
@@ -206,7 +217,8 @@ mod tests {
         assert!(tts_res.is_ok());
 
         // Try to allocate another 3 GB (which would exceed 7 GB usable)
-        let overcommit = mgr.request_slot(EngineRole::Vision, "vision-model", 3 * 1024 * 1024 * 1024);
+        let overcommit =
+            mgr.request_slot(EngineRole::Vision, "vision-model", 3 * 1024 * 1024 * 1024);
         assert!(overcommit.is_err());
 
         // Release STT

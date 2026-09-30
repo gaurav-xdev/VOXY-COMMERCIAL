@@ -20,16 +20,17 @@ pub mod auth;
 pub mod auth_middleware;
 pub mod cancellation;
 pub mod error;
+pub mod named_pipe;
 pub mod protocol;
 pub mod replay;
 pub mod transport;
 pub mod voxy_protocol;
-pub mod named_pipe;
 
 pub use auth::{AuthMethod, AuthRequest, AuthResponse, CapabilityClaim, CapabilityToken};
 pub use auth_middleware::{AuthError, AuthMiddleware};
 pub use cancellation::{CancellationHandle, CancellationToken};
 pub use error::{IpcError, Result};
+pub use named_pipe::{DaemonStateSnapshot, VoxyIpcClient, VoxyIpcServer};
 pub use protocol::{
     CancelRequest, EventMessage, Frame, FrameFlags, Heartbeat, MessageType, MethodCall,
     MethodError, MethodResponse, StreamClose, StreamData, StreamOpen, StreamOpenAck, StreamType,
@@ -43,11 +44,10 @@ pub use transport::{
     JsonCodec, Transport, TransportAddr, TransportConnection, TransportListener, WireCodec,
 };
 pub use voxy_protocol::{
-    encode_ipc_frame, decode_ipc_payload, ClientCommand, DaemonMessage, IpcEnvelope,
+    decode_ipc_payload, encode_ipc_frame, ClientCommand, DaemonMessage, IpcEnvelope,
     ToolStepStatus, VoiceState, VoxyCursorState, VoxyCursorTelemetry, MAX_IPC_FRAME_SIZE,
     VOXY_IPC_VERSION, VOXY_PIPE_NAME,
 };
-pub use named_pipe::{DaemonStateSnapshot, VoxyIpcClient, VoxyIpcServer};
 
 #[cfg(test)]
 mod tests {

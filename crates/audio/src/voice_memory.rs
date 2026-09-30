@@ -133,9 +133,7 @@ impl VoiceMemory {
 
         // Update profile
         let mut profiles = self.profiles.write();
-        let profile = profiles
-            .entry(user_id.to_string())
-            .or_insert_with(VoiceProfile::default);
+        let profile = profiles.entry(user_id.to_string()).or_default();
 
         profile.conversation_count += 1;
 

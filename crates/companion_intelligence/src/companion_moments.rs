@@ -132,7 +132,8 @@ impl MomentEngine {
                 self.last_night_message = Some(Utc::now());
                 return Some(CompanionMoment {
                     moment_type: MomentType::GoodNight,
-                    message: "Looks like you're winding down. I'll be here when you need me.".to_string(),
+                    message: "Looks like you're winding down. I'll be here when you need me."
+                        .to_string(),
                     priority: 0.7,
                     timestamp: Utc::now(),
                     context: HashMap::new(),
@@ -191,7 +192,10 @@ impl MomentEngine {
             if percent < 20.0 && !ctx.is_charging.unwrap_or(false) {
                 return Some(CompanionMoment {
                     moment_type: MomentType::BatteryLow,
-                    message: format!("Battery is low at {:.0}%. You might want to plug in.", percent),
+                    message: format!(
+                        "Battery is low at {:.0}%. You might want to plug in.",
+                        percent
+                    ),
                     priority: 0.85,
                     timestamp: Utc::now(),
                     context: {
@@ -273,10 +277,7 @@ impl MomentEngine {
                     timestamp: Utc::now(),
                     context: {
                         let mut m = HashMap::new();
-                        m.insert(
-                            "tasks".to_string(),
-                            ctx.tasks_completed_today.to_string(),
-                        );
+                        m.insert("tasks".to_string(), ctx.tasks_completed_today.to_string());
                         m
                     },
                 });
@@ -371,7 +372,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        assert!(moments.iter().any(|m| m.moment_type == MomentType::BatteryLow));
+        assert!(moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::BatteryLow));
     }
 
     #[test]
@@ -383,7 +386,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        assert!(!moments.iter().any(|m| m.moment_type == MomentType::BatteryLow));
+        assert!(!moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::BatteryLow));
     }
 
     #[test]
@@ -394,7 +399,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        assert!(moments.iter().any(|m| m.moment_type == MomentType::MeetingIn10Minutes));
+        assert!(moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::MeetingIn10Minutes));
     }
 
     #[test]
@@ -406,7 +413,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        assert!(moments.iter().any(|m| m.moment_type == MomentType::WelcomeBack));
+        assert!(moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::WelcomeBack));
     }
 
     #[test]
@@ -418,7 +427,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        assert!(moments.iter().any(|m| m.moment_type == MomentType::FocusedWork));
+        assert!(moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::FocusedWork));
     }
 
     #[test]
@@ -429,7 +440,9 @@ mod tests {
             ..Default::default()
         };
         let moments = engine.check_moments(&ctx);
-        let has_debrief = moments.iter().any(|m| m.moment_type == MomentType::DailyDebrief);
+        let has_debrief = moments
+            .iter()
+            .any(|m| m.moment_type == MomentType::DailyDebrief);
         let now = Local::now();
         if now.hour() >= 18 && now.hour() <= 20 {
             assert!(has_debrief);
@@ -452,7 +465,9 @@ mod tests {
         let moments = engine.check_moments(&ctx);
         if is_night {
             assert!(
-                moments.iter().any(|m| m.moment_type == MomentType::GoodNight),
+                moments
+                    .iter()
+                    .any(|m| m.moment_type == MomentType::GoodNight),
                 "GoodNight should fire at night with 35min idle"
             );
         }
@@ -468,7 +483,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            !moments.iter().any(|m| m.moment_type == MomentType::GoodNight),
+            !moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::GoodNight),
             "GoodNight should NOT fire with only 5min idle"
         );
     }
@@ -483,7 +500,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            moments.iter().any(|m| m.moment_type == MomentType::WelcomeBack),
+            moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::WelcomeBack),
             "WelcomeBack should fire with 3h absence"
         );
     }
@@ -498,7 +517,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            !moments.iter().any(|m| m.moment_type == MomentType::WelcomeBack),
+            !moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::WelcomeBack),
             "WelcomeBack should NOT fire with only 30min absence"
         );
     }
@@ -513,7 +534,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            !moments.iter().any(|m| m.moment_type == MomentType::FocusedWork),
+            !moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::FocusedWork),
             "FocusedWork should NOT fire when already thanked"
         );
     }
@@ -528,7 +551,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            !moments.iter().any(|m| m.moment_type == MomentType::FocusedWork),
+            !moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::FocusedWork),
             "FocusedWork should NOT fire below 45min threshold"
         );
     }
@@ -543,7 +568,9 @@ mod tests {
         };
         let moments = engine.check_moments(&ctx);
         assert!(
-            moments.iter().any(|m| m.moment_type == MomentType::LongAbsence),
+            moments
+                .iter()
+                .any(|m| m.moment_type == MomentType::LongAbsence),
             "LongAbsence should fire with 25h absence"
         );
     }
@@ -559,7 +586,9 @@ mod tests {
         let now = Local::now();
         if now.hour() >= 18 && now.hour() <= 20 {
             assert!(
-                !moments.iter().any(|m| m.moment_type == MomentType::DailyDebrief),
+                !moments
+                    .iter()
+                    .any(|m| m.moment_type == MomentType::DailyDebrief),
                 "DailyDebrief should NOT fire with 0 tasks"
             );
         }
@@ -575,7 +604,9 @@ mod tests {
             ..Default::default()
         };
         let moments1 = engine.check_moments(&ctx1);
-        assert!(moments1.iter().any(|m| m.moment_type == MomentType::WelcomeBack));
+        assert!(moments1
+            .iter()
+            .any(|m| m.moment_type == MomentType::WelcomeBack));
 
         // Second call immediately: should NOT fire again (state updated)
         let ctx2 = MomentContext {
@@ -583,7 +614,7 @@ mod tests {
             absence_duration: Duration::hours(3),
             ..Default::default()
         };
-        let moments2 = engine.check_moments(&ctx2);
+        let _moments2 = engine.check_moments(&ctx2);
         // WelcomeBack doesn't track last firing, so it fires again
         // (this is expected behavior - the daemon deduplicates via ExperienceInput)
     }

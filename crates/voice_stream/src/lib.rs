@@ -13,5 +13,7 @@ pub use intent_preprocessor::{
     DesktopCommand, FastIntentAction, FastIntentResult, IntentPreprocessor, SystemQueryType,
 };
 pub use preroll::PreRollBuffer;
-pub use speculative::{speculation_reuse_chars, speculative_prefix_matches, PrefillDecision, SpeculativePrefill};
+pub use speculative::{
+    speculation_reuse_chars, speculative_prefix_matches, PrefillDecision, SpeculativePrefill,
+};
 pub use transcript::{join_carry, longest_common_prefix, TranscriptStabilizer};

@@ -5,17 +5,16 @@ use crate::bridge::AppBridge;
 #[component]
 pub fn DownloadsView() -> Element {
     let bridge = use_context::<AppBridge>();
-    let downloads = use_signal(|| Vec::<String>::new());
+    let downloads = use_signal(Vec::<String>::new);
     let mut url_input = use_signal(String::new);
     let mut file_input = use_signal(String::new);
     let download_status = use_signal(|| None::<String>);
 
     let refresh = {
         let dl = bridge.downloads.clone();
-        let downloads = downloads.clone();
         move |_: Event<MouseData>| {
             let d = dl.clone();
-            let mut dl_list = downloads.clone();
+            let mut dl_list = downloads;
             spawn(async move {
                 let items = d.all_downloads();
                 let formatted: Vec<String> = items
@@ -40,10 +39,10 @@ pub fn DownloadsView() -> Element {
 
     let start_download = {
         let dl = bridge.downloads.clone();
-        let url = url_input.clone();
-        let file = file_input.clone();
-        let mut status = download_status.clone();
-        let dl_list = downloads.clone();
+        let url = url_input;
+        let file = file_input;
+        let mut status = download_status;
+        let dl_list = downloads;
         move |_: Event<MouseData>| {
             let u = url.read().trim().to_string();
             let f = file.read().trim().to_string();
@@ -52,8 +51,8 @@ pub fn DownloadsView() -> Element {
                 return;
             }
             let d = dl.clone();
-            let mut st = status.clone();
-            let mut dl_list = dl_list.clone();
+            let mut st = status;
+            let mut dl_list = dl_list;
             spawn(async move {
                 match d.download(&u, &f).await {
                     Ok(id) => {

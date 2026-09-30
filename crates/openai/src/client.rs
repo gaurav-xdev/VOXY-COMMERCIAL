@@ -552,7 +552,8 @@ mod tests {
 
     #[test]
     fn parse_stream_frame_ignores_role_only_chunks() {
-        let frame = r#"{"choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}"#;
+        let frame =
+            r#"{"choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}"#;
         let result = parse_stream_frame(frame);
         assert_eq!(result, Ok(None));
     }

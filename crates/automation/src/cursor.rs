@@ -153,7 +153,10 @@ impl VoxyCursorController {
     }
 
     /// Evaluate an action for destructive / high-risk operations and register confirmation if needed.
-    pub fn prepare_action(&self, mut action: AutomationAction) -> (RiskEvaluation, VoxyCursorTelemetry) {
+    pub fn prepare_action(
+        &self,
+        mut action: AutomationAction,
+    ) -> (RiskEvaluation, VoxyCursorTelemetry) {
         if self.is_emergency_stopped() {
             let telem = self.current_telemetry.read().clone();
             return (
@@ -206,12 +209,19 @@ impl VoxyCursorController {
     }
 
     /// Process user decision for a pending high-risk action confirmation.
-    pub fn confirm_action(&self, action_id: u64, approved: bool) -> Result<ConfirmationStatus, String> {
+    pub fn confirm_action(
+        &self,
+        action_id: u64,
+        approved: bool,
+    ) -> Result<ConfirmationStatus, String> {
         let mut pending = self.pending_confirmations.write();
         match pending.get_mut(&action_id) {
             Some(status) => {
                 if *status != ConfirmationStatus::Pending {
-                    return Err(format!("Action {action_id} was already resolved as {:?}", status));
+                    return Err(format!(
+                        "Action {action_id} was already resolved as {:?}",
+                        status
+                    ));
                 }
                 *status = if approved {
                     ConfirmationStatus::Approved
@@ -222,16 +232,20 @@ impl VoxyCursorController {
                 let mut telem = self.current_telemetry.write();
                 if approved {
                     telem.state = VoxyCursorState::ExecutingAction;
-                    telem.action_description = format!("Action {action_id} confirmed by user. Executing...");
+                    telem.action_description =
+                        format!("Action {action_id} confirmed by user. Executing...");
                 } else {
                     telem.state = VoxyCursorState::Idle;
-                    telem.action_description = format!("Action {action_id} rejected by user. Cancelled.");
+                    telem.action_description =
+                        format!("Action {action_id} rejected by user. Cancelled.");
                 }
                 telem.requires_confirmation = false;
 
                 Ok(*status)
             }
-            None => Err(format!("No pending confirmation found for action ID {action_id}")),
+            None => Err(format!(
+                "No pending confirmation found for action ID {action_id}"
+            )),
         }
     }
 
@@ -295,7 +309,8 @@ impl DestructiveActionGuard {
             return RiskEvaluation {
                 risk_level: RiskLevel::HighRisk,
                 requires_confirmation: true,
-                reason: "Operation triggers irreversible financial or external communication.".to_string(),
+                reason: "Operation triggers irreversible financial or external communication."
+                    .to_string(),
             };
         }
 
@@ -374,7 +389,7 @@ mod tests {
             y: 300,
         };
         let (eval_safe, telem_safe) = controller.prepare_action(safe_action);
-        assert_eq!(eval_safe.requires_confirmation, false);
+        assert!(!eval_safe.requires_confirmation);
         assert_eq!(telem_safe.state, VoxyCursorState::ExecutingAction);
 
         // Destructive action: deleting files
@@ -388,16 +403,19 @@ mod tests {
             y: 500,
         };
         let (eval_destruct, telem_destruct) = controller.prepare_action(destructive_action);
-        assert_eq!(eval_destruct.requires_confirmation, true);
+        assert!(eval_destruct.requires_confirmation);
         assert_eq!(eval_destruct.risk_level, RiskLevel::CriticalDestructive);
         assert_eq!(telem_destruct.state, VoxyCursorState::WaitingConfirmation);
-        assert_eq!(telem_destruct.requires_confirmation, true);
+        assert!(telem_destruct.requires_confirmation);
         assert_eq!(telem_destruct.action_id, Some(2));
 
         // Attempting execution without confirmation fails; confirmation approval works
         let res_approve = controller.confirm_action(2, true).unwrap();
         assert_eq!(res_approve, ConfirmationStatus::Approved);
-        assert_eq!(controller.get_telemetry().state, VoxyCursorState::ExecutingAction);
+        assert_eq!(
+            controller.get_telemetry().state,
+            VoxyCursorState::ExecutingAction
+        );
 
         // Another destructive action rejected
         let action_reject = AutomationAction {

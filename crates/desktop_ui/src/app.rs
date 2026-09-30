@@ -27,7 +27,7 @@ pub fn App() -> Element {
                 }
 
                 div { class: "content-body",
-                    match route.read().clone() {
+                    match *route.read() {
                         Route::Chat => rsx! { crate::views::chat::ChatView {} },
                         Route::Settings => rsx! { crate::views::settings::SettingsView {} },
                         Route::Memory => rsx! { crate::views::memory::MemoryView {} },

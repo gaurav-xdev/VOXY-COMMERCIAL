@@ -5,14 +5,14 @@ use crate::bridge::AppBridge;
 #[component]
 pub fn NotificationsView() -> Element {
     let bridge = use_context::<AppBridge>();
-    let notifications = use_signal(|| Vec::<String>::new());
+    let notifications = use_signal(Vec::<String>::new);
 
     let refresh = {
         let nm = bridge.notifications.clone();
-        let notifs = notifications.clone();
+        let notifs = notifications;
         move |_: Event<MouseData>| {
             let n = nm.clone();
-            let mut list = notifs.clone();
+            let mut list = notifs;
             spawn(async move {
                 let history = n.history();
                 let formatted: Vec<String> = history
@@ -34,10 +34,10 @@ pub fn NotificationsView() -> Element {
 
     let send_test = {
         let nm = bridge.notifications.clone();
-        let notifs = notifications.clone();
+        let notifs = notifications;
         move |_: Event<MouseData>| {
             let n = nm.clone();
-            let mut list = notifs.clone();
+            let mut list = notifs;
             spawn(async move {
                 n.send(voxy_desktop_runtime::notifications::Notification::info(
                     "Test Notification",
@@ -63,10 +63,10 @@ pub fn NotificationsView() -> Element {
 
     let clear_all = {
         let nm = bridge.notifications.clone();
-        let notifs = notifications.clone();
+        let notifs = notifications;
         move |_: Event<MouseData>| {
             let n = nm.clone();
-            let mut list = notifs.clone();
+            let mut list = notifs;
             spawn(async move {
                 n.clear_history();
                 list.set(Vec::new());

@@ -17,7 +17,9 @@ use voxy_voice_stream::{
 fn partial_transcript_soak_converges() {
     let mut rng_state: u64 = 0x9E3779B97F4A7C15;
     let mut next = || {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        rng_state = rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         rng_state
     };
 
@@ -72,14 +74,34 @@ fn endpointing_decision_stress() {
     let ep = TieredEndpointing::default();
     let mut rng_state: u64 = 0xDEADBEEFCAFEBABE;
     let mut next = || {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        rng_state = rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         rng_state
     };
     let pool = [
-        "", "hello", "hello.", "what time is it", "what time is it?",
-        "um", "uh yeah", "so", "hmm.", "yes", "the quick brown fox",
-        "नमस्ते", "क्या समय हुआ", "kya time hua?", "please stop", "wait!",
-        "no no no", "okay okay okay.", "tell me more", "..", "...", ".",
+        "",
+        "hello",
+        "hello.",
+        "what time is it",
+        "what time is it?",
+        "um",
+        "uh yeah",
+        "so",
+        "hmm.",
+        "yes",
+        "the quick brown fox",
+        "नमस्ते",
+        "क्या समय हुआ",
+        "kya time hua?",
+        "please stop",
+        "wait!",
+        "no no no",
+        "okay okay okay.",
+        "tell me more",
+        "..",
+        "...",
+        ".",
     ];
 
     for _ in 0..10_000 {
@@ -100,7 +122,9 @@ fn sentence_chunker_stress_bounded() {
     let mut total = 0usize;
     let mut rng_state: u64 = 0x0123456789ABCDEF;
     let mut next = || {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        rng_state = rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         rng_state
     };
 
@@ -131,7 +155,9 @@ fn speculative_prefill_stress_invariants() {
     let mut spec = SpeculativePrefill::default();
     let mut rng_state: u64 = 0xFEEDFACE12345678;
     let mut next = || {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        rng_state = rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         rng_state
     };
 
@@ -155,13 +181,32 @@ fn speculative_prefill_stress_invariants() {
 #[test]
 fn filler_detection_stress() {
     let pool = [
-        "um", "uh", "hmm", "mm", "yeah", "so", "um um", "uh huh",
-        "hello", "", "   ", "what is this", "नमस्ते", "um actually",
-        "well", "like", "so like", "hmm.", "mm hm", "a b c d e f",
+        "um",
+        "uh",
+        "hmm",
+        "mm",
+        "yeah",
+        "so",
+        "um um",
+        "uh huh",
+        "hello",
+        "",
+        "   ",
+        "what is this",
+        "नमस्ते",
+        "um actually",
+        "well",
+        "like",
+        "so like",
+        "hmm.",
+        "mm hm",
+        "a b c d e f",
     ];
     let mut rng_state: u64 = 0x00FF00FF00FF00FF;
     let mut next = || {
-        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        rng_state = rng_state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         rng_state
     };
     for _ in 0..5000 {

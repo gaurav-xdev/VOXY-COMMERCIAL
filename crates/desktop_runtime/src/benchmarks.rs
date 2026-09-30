@@ -3,6 +3,7 @@
 //! Run with: cargo test -p voxy-desktop-runtime --lib -- --nocapture benchmarks
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod benchmarks {
     use crate::settings::SettingsManager;
     use crate::{DesktopEventBridge, DesktopRuntime, PushToTalk, RuntimeConfig};

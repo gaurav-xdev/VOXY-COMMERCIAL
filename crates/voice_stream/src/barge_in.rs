@@ -72,7 +72,12 @@ impl BargeInCoordinator {
     }
 
     /// Reconfigure thresholds at runtime without resetting cooldown state.
-    pub fn configure(&mut self, enabled: bool, min_tts_playback_ms: u64, interrupt_cooldown_ms: u64) {
+    pub fn configure(
+        &mut self,
+        enabled: bool,
+        min_tts_playback_ms: u64,
+        interrupt_cooldown_ms: u64,
+    ) {
         self.enabled = enabled;
         self.min_tts_playback_ms = min_tts_playback_ms;
         self.interrupt_cooldown_ms = interrupt_cooldown_ms;

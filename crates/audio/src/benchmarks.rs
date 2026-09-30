@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod benchmark_tests {
-    use std::time::{Duration, Instant};
+    use std::time::Instant;
 
-    use crate::calibration::{CalibrationProfile, SelfCalibrator};
+    use crate::calibration::SelfCalibrator;
     use crate::gpu_dsp::{AdaptiveNoiseSuppressor, SpectralEchoCanceller};
     use crate::metrics::MetricsCollector;
     use crate::mixer::{AudioMixer, MixerChannel};
-    use crate::scheduler::{AiAudioScheduler, QualityMode, SystemSnapshot};
+    use crate::scheduler::{AiAudioScheduler, SystemSnapshot};
     use crate::voice_memory::VoiceMemory;
     use crate::watchdog::HealthWatchdog;
 
@@ -50,7 +50,7 @@ mod benchmark_tests {
     #[test]
     fn benchmark_vad_latency() {
         use crate::dsp::SilenceDetector;
-        let mut detector = SilenceDetector::new(0.01, 3);
+        let detector = SilenceDetector::new(0.01, 3);
         let frame = sine_wave(440.0, 16000, 30, 0.5);
         let mut latencies = Vec::new();
 
@@ -96,7 +96,11 @@ mod benchmark_tests {
         }
 
         let avg = latencies.iter().sum::<f64>() / latencies.len() as f64;
-        let threshold = if cfg!(debug_assertions) { 25000.0 } else { 5000.0 };
+        let threshold = if cfg!(debug_assertions) {
+            25000.0
+        } else {
+            5000.0
+        };
         assert!(
             avg < threshold,
             "Echo cancellation avg too high: {:.2}us (threshold: {:.2}us)",

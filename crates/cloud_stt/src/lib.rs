@@ -63,9 +63,7 @@ impl CloudSttEngine {
 
     fn f32_to_wav(data: &[f32], sample_rate: u32) -> Result<Vec<u8>, CloudSttError> {
         if data.is_empty() {
-            return Err(CloudSttError::AudioConversion(
-                "empty audio data".into(),
-            ));
+            return Err(CloudSttError::AudioConversion("empty audio data".into()));
         }
 
         let byte_rate = sample_rate * 2;
@@ -114,20 +112,25 @@ impl SttEngine for CloudSttEngine {
         }
 
         if self.config.api_key.is_empty() {
-            return Err(voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
-                CloudSttError::NoApiKey.to_string(),
-            ));
+            return Err(
+                voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+                    CloudSttError::NoApiKey.to_string(),
+                ),
+            );
         }
 
-        let wav_bytes = Self::f32_to_wav(&audio.data, audio.sample_rate)
-            .map_err(|e| voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(e.to_string()))?;
+        let wav_bytes = Self::f32_to_wav(&audio.data, audio.sample_rate).map_err(|e| {
+            voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(e.to_string())
+        })?;
 
         let url = format!("{}/v1/audio/transcriptions", self.config.base_url);
 
         let part = reqwest::multipart::Part::bytes(wav_bytes)
             .file_name("audio.wav")
             .mime_str("audio/wav")
-            .map_err(|e| voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(e.to_string()))?;
+            .map_err(|e| {
+                voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(e.to_string())
+            })?;
 
         let form = reqwest::multipart::Form::new()
             .part("file", part)
@@ -143,29 +146,32 @@ impl SttEngine for CloudSttEngine {
             .multipart(form)
             .send()
             .await
-            .map_err(|e| voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
-                CloudSttError::HttpRequest(e.to_string()).to_string(),
-            ))?;
+            .map_err(|e| {
+                voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+                    CloudSttError::HttpRequest(e.to_string()).to_string(),
+                )
+            })?;
 
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();
             warn!("Cloud STT API error {}: {}", status, body);
-            return Err(voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
-                CloudSttError::ApiError {
-                    status: status.as_u16(),
-                    body,
-                }
-                .to_string(),
-            ));
+            return Err(
+                voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+                    CloudSttError::ApiError {
+                        status: status.as_u16(),
+                        body,
+                    }
+                    .to_string(),
+                ),
+            );
         }
 
-        let text = response
-            .text()
-            .await
-            .map_err(|e| voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+        let text = response.text().await.map_err(|e| {
+            voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
                 CloudSttError::HttpRequest(e.to_string()).to_string(),
-            ))?;
+            )
+        })?;
 
         debug!("Cloud STT result: {:?}", text);
         Ok(text.trim().to_string())
@@ -272,7 +278,7 @@ mod tests {
         let pcm0 = i16::from_le_bytes([wav[data_offset], wav[data_offset + 1]]);
         let pcm1 = i16::from_le_bytes([wav[data_offset + 2], wav[data_offset + 3]]);
         assert_eq!(pcm0, (1.0 * i16::MAX as f32) as i16);
-        assert_eq!(pcm1, (-1.0 * i16::MAX as f32) as i16);
+        assert_eq!(pcm1, -(i16::MAX as f32) as i16);
     }
 
     #[tokio::test]

@@ -428,6 +428,497 @@ impl StorageProvider for SqliteDatabase {
     }
 }
 
+// ============================================================================
+// SQLite-backed ConversationStore + AuditLogStore
+// ============================================================================
+
+use crate::conversation::{
+    Conversation, ConversationStats, ConversationStore, Message, MessageRole,
+};
+use crate::persistent_audit::{AuditLogEntry, AuditLogStore};
+use std::sync::Arc;
+
+type StdResult<T, E> = std::result::Result<T, E>;
+
+fn parse_dt(s: &str) -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::parse_from_rfc3339(s)
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .unwrap_or_else(|_| chrono::Utc::now())
+}
+
+fn role_to_str(role: &MessageRole) -> &'static str {
+    match role {
+        MessageRole::User => "user",
+        MessageRole::Assistant => "assistant",
+        MessageRole::System => "system",
+    }
+}
+
+const CONV_COLUMNS: &str = "id, user_id, title, created_at, updated_at, is_active, metadata";
+const MSG_COLUMNS: &str = "id, conversation_id, role, content, timestamp, token_count, metadata";
+const AUDIT_COLUMNS: &str = "id, timestamp, subject, action, resource, result, reason, risk_level, trust_level, previous_hash, hash, audit_level, metadata";
+
+fn row_to_conversation(row: &rusqlite::Row) -> rusqlite::Result<Conversation> {
+    Ok(Conversation {
+        id: row.get(0)?,
+        user_id: row.get(1)?,
+        title: row.get(2)?,
+        created_at: parse_dt(&row.get::<_, String>(3)?),
+        updated_at: parse_dt(&row.get::<_, String>(4)?),
+        is_active: row.get::<_, i64>(5)? != 0,
+        metadata: row.get(6)?,
+    })
+}
+
+fn row_to_message(row: &rusqlite::Row) -> rusqlite::Result<Message> {
+    let role_str: String = row.get(2)?;
+    Ok(Message {
+        id: row.get(0)?,
+        conversation_id: row.get(1)?,
+        role: role_str.parse().unwrap_or(MessageRole::User),
+        content: row.get(3)?,
+        timestamp: parse_dt(&row.get::<_, String>(4)?),
+        token_count: row.get(5)?,
+        metadata: row.get(6)?,
+    })
+}
+
+fn row_to_audit_entry(row: &rusqlite::Row) -> rusqlite::Result<AuditLogEntry> {
+    Ok(AuditLogEntry {
+        id: row.get(0)?,
+        timestamp: parse_dt(&row.get::<_, String>(1)?),
+        subject: row.get(2)?,
+        action: row.get(3)?,
+        resource: row.get(4)?,
+        result: row.get(5)?,
+        reason: row.get(6)?,
+        risk_level: row.get(7)?,
+        trust_level: row.get(8)?,
+        previous_hash: row.get(9)?,
+        hash: row.get(10)?,
+        audit_level: row.get(11)?,
+        metadata: row.get(12)?,
+    })
+}
+
+// ============================================================================
+// SqliteConversationStore
+// ============================================================================
+
+pub struct SqliteConversationStore {
+    conn: Arc<Mutex<rusqlite::Connection>>,
+}
+
+impl SqliteConversationStore {
+    pub fn new(path: &str) -> StdResult<Self, String> {
+        let conn =
+            rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
+        conn.busy_timeout(std::time::Duration::from_millis(5000))
+            .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                metadata TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
+            CREATE INDEX IF NOT EXISTS idx_conv_updated ON conversations(updated_at);
+
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                conversation_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                token_count INTEGER,
+                metadata TEXT,
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
+            CREATE INDEX IF NOT EXISTS idx_msg_ts ON messages(timestamp);
+
+            PRAGMA journal_mode=WAL;
+            PRAGMA foreign_keys=ON;",
+        )
+        .map_err(|e| format!("Failed to create tables: {e}"))?;
+        Ok(Self {
+            conn: Arc::new(Mutex::new(conn)),
+        })
+    }
+
+    pub fn new_in_memory() -> StdResult<Self, String> {
+        Self::new(":memory:")
+    }
+}
+
+#[async_trait::async_trait]
+impl ConversationStore for SqliteConversationStore {
+    async fn create_conversation(
+        &self,
+        user_id: &str,
+        title: Option<&str>,
+    ) -> StdResult<Conversation, String> {
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "INSERT INTO conversations (id, user_id, title, created_at, updated_at, is_active) VALUES (?1, ?2, ?3, ?4, ?5, 1)",
+            rusqlite::params![id, user_id, title, now, now],
+        ).map_err(|e| format!("Insert conversation: {e}"))?;
+        Ok(Conversation {
+            id,
+            user_id: user_id.to_string(),
+            title: title.map(|t| t.to_string()),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            is_active: true,
+            metadata: None,
+        })
+    }
+
+    async fn get_conversation(
+        &self,
+        conversation_id: &str,
+    ) -> StdResult<Option<Conversation>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE id = ?1");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let mut rows = stmt
+            .query_map(rusqlite::params![conversation_id], row_to_conversation)
+            .map_err(|e| format!("Query: {e}"))?;
+        match rows.next() {
+            Some(Ok(c)) => Ok(Some(c)),
+            Some(Err(e)) => Err(format!("Row: {e}")),
+            None => Ok(None),
+        }
+    }
+
+    async fn list_conversations(
+        &self,
+        user_id: &str,
+        limit: usize,
+        offset: usize,
+    ) -> StdResult<Vec<Conversation>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE user_id = ?1 ORDER BY updated_at DESC LIMIT ?2 OFFSET ?3");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(
+                rusqlite::params![user_id, limit as i64, offset as i64],
+                row_to_conversation,
+            )
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn delete_conversation(&self, conversation_id: &str) -> StdResult<(), String> {
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "DELETE FROM messages WHERE conversation_id = ?1",
+            rusqlite::params![conversation_id],
+        )
+        .map_err(|e| format!("Delete messages: {e}"))?;
+        conn.execute(
+            "DELETE FROM conversations WHERE id = ?1",
+            rusqlite::params![conversation_id],
+        )
+        .map_err(|e| format!("Delete conversation: {e}"))?;
+        Ok(())
+    }
+
+    async fn update_conversation_title(
+        &self,
+        conversation_id: &str,
+        title: &str,
+    ) -> StdResult<(), String> {
+        let conn = self.conn.lock().await;
+        let now = chrono::Utc::now().to_rfc3339();
+        let affected = conn
+            .execute(
+                "UPDATE conversations SET title = ?1, updated_at = ?2 WHERE id = ?3",
+                rusqlite::params![title, now, conversation_id],
+            )
+            .map_err(|e| format!("Update: {e}"))?;
+        if affected == 0 {
+            Err("Conversation not found".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn add_message(
+        &self,
+        conversation_id: &str,
+        role: MessageRole,
+        content: &str,
+        token_count: Option<i64>,
+        metadata: Option<&str>,
+    ) -> StdResult<Message, String> {
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "INSERT INTO messages (id, conversation_id, role, content, timestamp, token_count, metadata) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![id, conversation_id, role_to_str(&role), content, now, token_count, metadata],
+        ).map_err(|e| format!("Insert message: {e}"))?;
+        conn.execute(
+            "UPDATE conversations SET updated_at = ?1 WHERE id = ?2",
+            rusqlite::params![now, conversation_id],
+        )
+        .map_err(|e| format!("Update conv timestamp: {e}"))?;
+        Ok(Message {
+            id,
+            conversation_id: conversation_id.to_string(),
+            role,
+            content: content.to_string(),
+            timestamp: chrono::Utc::now(),
+            token_count,
+            metadata: metadata.map(|m| m.to_string()),
+        })
+    }
+
+    async fn get_messages(
+        &self,
+        conversation_id: &str,
+        limit: usize,
+        offset: usize,
+    ) -> StdResult<Vec<Message>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {MSG_COLUMNS} FROM messages WHERE conversation_id = ?1 ORDER BY timestamp ASC LIMIT ?2 OFFSET ?3");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(
+                rusqlite::params![conversation_id, limit as i64, offset as i64],
+                row_to_message,
+            )
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn get_message_count(&self, conversation_id: &str) -> StdResult<usize, String> {
+        let conn = self.conn.lock().await;
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM messages WHERE conversation_id = ?1",
+                rusqlite::params![conversation_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Count: {e}"))?;
+        Ok(count as usize)
+    }
+
+    async fn delete_message(&self, message_id: &str) -> StdResult<(), String> {
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "DELETE FROM messages WHERE id = ?1",
+            rusqlite::params![message_id],
+        )
+        .map_err(|e| format!("Delete: {e}"))?;
+        Ok(())
+    }
+
+    async fn stats(&self, user_id: &str) -> StdResult<ConversationStats, String> {
+        let conn = self.conn.lock().await;
+        let total_conversations: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1",
+                rusqlite::params![user_id],
+                |r| r.get(0),
+            )
+            .map_err(|e| format!("Stats conv: {e}"))?;
+        let active_conversations: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1 AND is_active = 1",
+                rusqlite::params![user_id],
+                |r| r.get(0),
+            )
+            .map_err(|e| format!("Stats active: {e}"))?;
+        let total_messages: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM messages m JOIN conversations c ON m.conversation_id = c.id WHERE c.user_id = ?1",
+            rusqlite::params![user_id], |r| r.get(0),
+        ).map_err(|e| format!("Stats msg: {e}"))?;
+        Ok(ConversationStats {
+            total_conversations: total_conversations as usize,
+            total_messages: total_messages as usize,
+            active_conversations: active_conversations as usize,
+        })
+    }
+}
+
+// ============================================================================
+// SqliteAuditLogStore
+// ============================================================================
+
+pub struct SqliteAuditLogStore {
+    conn: Arc<Mutex<rusqlite::Connection>>,
+}
+
+impl SqliteAuditLogStore {
+    pub fn new(path: &str) -> StdResult<Self, String> {
+        let conn =
+            rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
+        conn.busy_timeout(std::time::Duration::from_millis(5000))
+            .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS audit_log (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                action TEXT NOT NULL,
+                resource TEXT,
+                result TEXT NOT NULL,
+                reason TEXT,
+                risk_level TEXT NOT NULL,
+                trust_level TEXT NOT NULL,
+                previous_hash TEXT NOT NULL,
+                hash TEXT NOT NULL,
+                audit_level TEXT NOT NULL,
+                metadata TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_audit_subject ON audit_log(subject);
+            CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+            CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp);
+            PRAGMA journal_mode=WAL;",
+        )
+        .map_err(|e| format!("Failed to create audit_log table: {e}"))?;
+        Ok(Self {
+            conn: Arc::new(Mutex::new(conn)),
+        })
+    }
+
+    pub fn new_in_memory() -> StdResult<Self, String> {
+        Self::new(":memory:")
+    }
+}
+
+#[async_trait::async_trait]
+impl AuditLogStore for SqliteAuditLogStore {
+    async fn record_entry(&self, entry: &AuditLogEntry) -> StdResult<(), String> {
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "INSERT INTO audit_log (id, timestamp, subject, action, resource, result, reason, risk_level, trust_level, previous_hash, hash, audit_level, metadata)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            rusqlite::params![
+                entry.id, entry.timestamp.to_rfc3339(), entry.subject, entry.action,
+                entry.resource, entry.result, entry.reason, entry.risk_level,
+                entry.trust_level, entry.previous_hash, entry.hash, entry.audit_level,
+                entry.metadata,
+            ],
+        ).map_err(|e| format!("Insert audit entry: {e}"))?;
+        Ok(())
+    }
+
+    async fn get_entries(
+        &self,
+        limit: usize,
+        offset: usize,
+    ) -> StdResult<Vec<AuditLogEntry>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!(
+            "SELECT {AUDIT_COLUMNS} FROM audit_log ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2"
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(
+                rusqlite::params![limit as i64, offset as i64],
+                row_to_audit_entry,
+            )
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn get_entries_by_subject(
+        &self,
+        subject: &str,
+        limit: usize,
+    ) -> StdResult<Vec<AuditLogEntry>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE subject = ?1 ORDER BY timestamp DESC LIMIT ?2");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(rusqlite::params![subject, limit as i64], row_to_audit_entry)
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn get_entries_by_action(
+        &self,
+        action: &str,
+        limit: usize,
+    ) -> StdResult<Vec<AuditLogEntry>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE action = ?1 ORDER BY timestamp DESC LIMIT ?2");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(rusqlite::params![action, limit as i64], row_to_audit_entry)
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn get_entries_in_range(
+        &self,
+        from: chrono::DateTime<chrono::Utc>,
+        to: chrono::DateTime<chrono::Utc>,
+    ) -> StdResult<Vec<AuditLogEntry>, String> {
+        let conn = self.conn.lock().await;
+        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE timestamp >= ?1 AND timestamp <= ?2 ORDER BY timestamp DESC");
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map(
+                rusqlite::params![from.to_rfc3339(), to.to_rfc3339()],
+                row_to_audit_entry,
+            )
+            .map_err(|e| format!("Query: {e}"))?;
+        rows.collect::<StdResult<Vec<_>, _>>()
+            .map_err(|e| format!("Row: {e}"))
+    }
+
+    async fn verify_chain(&self) -> StdResult<bool, String> {
+        let conn = self.conn.lock().await;
+        let mut stmt = conn
+            .prepare("SELECT previous_hash, hash FROM audit_log ORDER BY timestamp ASC")
+            .map_err(|e| format!("Prepare: {e}"))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(|e| format!("Query: {e}"))?;
+        let mut prev_hash = String::new();
+        for row in rows {
+            let (entry_prev_hash, entry_hash) = row.map_err(|e| format!("Row: {e}"))?;
+            if entry_prev_hash != prev_hash {
+                return Ok(false);
+            }
+            prev_hash = entry_hash;
+        }
+        Ok(true)
+    }
+
+    async fn count(&self) -> StdResult<usize, String> {
+        let conn = self.conn.lock().await;
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM audit_log", [], |r| r.get(0))
+            .map_err(|e| format!("Count: {e}"))?;
+        Ok(count as usize)
+    }
+
+    async fn clear(&self) -> StdResult<(), String> {
+        let conn = self.conn.lock().await;
+        conn.execute("DELETE FROM audit_log", [])
+            .map_err(|e| format!("Clear: {e}"))?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -945,496 +1436,5 @@ mod tests {
         let retrieved = db.get("large").await.unwrap().unwrap();
         assert_eq!(retrieved.len(), 10_000);
         assert_eq!(retrieved, large_val);
-    }
-}
-
-// ============================================================================
-// SQLite-backed ConversationStore + AuditLogStore
-// ============================================================================
-
-use crate::conversation::{
-    Conversation, ConversationStats, ConversationStore, Message, MessageRole,
-};
-use crate::persistent_audit::{AuditLogEntry, AuditLogStore};
-use std::sync::Arc;
-
-type StdResult<T, E> = std::result::Result<T, E>;
-
-fn parse_dt(s: &str) -> chrono::DateTime<chrono::Utc> {
-    chrono::DateTime::parse_from_rfc3339(s)
-        .map(|dt| dt.with_timezone(&chrono::Utc))
-        .unwrap_or_else(|_| chrono::Utc::now())
-}
-
-fn role_to_str(role: &MessageRole) -> &'static str {
-    match role {
-        MessageRole::User => "user",
-        MessageRole::Assistant => "assistant",
-        MessageRole::System => "system",
-    }
-}
-
-const CONV_COLUMNS: &str = "id, user_id, title, created_at, updated_at, is_active, metadata";
-const MSG_COLUMNS: &str = "id, conversation_id, role, content, timestamp, token_count, metadata";
-const AUDIT_COLUMNS: &str = "id, timestamp, subject, action, resource, result, reason, risk_level, trust_level, previous_hash, hash, audit_level, metadata";
-
-fn row_to_conversation(row: &rusqlite::Row) -> rusqlite::Result<Conversation> {
-    Ok(Conversation {
-        id: row.get(0)?,
-        user_id: row.get(1)?,
-        title: row.get(2)?,
-        created_at: parse_dt(&row.get::<_, String>(3)?),
-        updated_at: parse_dt(&row.get::<_, String>(4)?),
-        is_active: row.get::<_, i64>(5)? != 0,
-        metadata: row.get(6)?,
-    })
-}
-
-fn row_to_message(row: &rusqlite::Row) -> rusqlite::Result<Message> {
-    let role_str: String = row.get(2)?;
-    Ok(Message {
-        id: row.get(0)?,
-        conversation_id: row.get(1)?,
-        role: role_str.parse().unwrap_or(MessageRole::User),
-        content: row.get(3)?,
-        timestamp: parse_dt(&row.get::<_, String>(4)?),
-        token_count: row.get(5)?,
-        metadata: row.get(6)?,
-    })
-}
-
-fn row_to_audit_entry(row: &rusqlite::Row) -> rusqlite::Result<AuditLogEntry> {
-    Ok(AuditLogEntry {
-        id: row.get(0)?,
-        timestamp: parse_dt(&row.get::<_, String>(1)?),
-        subject: row.get(2)?,
-        action: row.get(3)?,
-        resource: row.get(4)?,
-        result: row.get(5)?,
-        reason: row.get(6)?,
-        risk_level: row.get(7)?,
-        trust_level: row.get(8)?,
-        previous_hash: row.get(9)?,
-        hash: row.get(10)?,
-        audit_level: row.get(11)?,
-        metadata: row.get(12)?,
-    })
-}
-
-// ============================================================================
-// SqliteConversationStore
-// ============================================================================
-
-pub struct SqliteConversationStore {
-    conn: Arc<Mutex<rusqlite::Connection>>,
-}
-
-impl SqliteConversationStore {
-    pub fn new(path: &str) -> StdResult<Self, String> {
-        let conn =
-            rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
-        conn.busy_timeout(std::time::Duration::from_millis(5000))
-            .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS conversations (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
-                title TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                is_active INTEGER NOT NULL DEFAULT 1,
-                metadata TEXT
-            );
-            CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
-            CREATE INDEX IF NOT EXISTS idx_conv_updated ON conversations(updated_at);
-
-            CREATE TABLE IF NOT EXISTS messages (
-                id TEXT PRIMARY KEY,
-                conversation_id TEXT NOT NULL,
-                role TEXT NOT NULL,
-                content TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                token_count INTEGER,
-                metadata TEXT,
-                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
-            );
-            CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
-            CREATE INDEX IF NOT EXISTS idx_msg_ts ON messages(timestamp);
-
-            PRAGMA journal_mode=WAL;
-            PRAGMA foreign_keys=ON;",
-        )
-        .map_err(|e| format!("Failed to create tables: {e}"))?;
-        Ok(Self {
-            conn: Arc::new(Mutex::new(conn)),
-        })
-    }
-
-    pub fn new_in_memory() -> StdResult<Self, String> {
-        Self::new(":memory:")
-    }
-}
-
-#[async_trait::async_trait]
-impl ConversationStore for SqliteConversationStore {
-    async fn create_conversation(
-        &self,
-        user_id: &str,
-        title: Option<&str>,
-    ) -> StdResult<Conversation, String> {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().to_rfc3339();
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "INSERT INTO conversations (id, user_id, title, created_at, updated_at, is_active) VALUES (?1, ?2, ?3, ?4, ?5, 1)",
-            rusqlite::params![id, user_id, title, now, now],
-        ).map_err(|e| format!("Insert conversation: {e}"))?;
-        Ok(Conversation {
-            id,
-            user_id: user_id.to_string(),
-            title: title.map(|t| t.to_string()),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-            is_active: true,
-            metadata: None,
-        })
-    }
-
-    async fn get_conversation(
-        &self,
-        conversation_id: &str,
-    ) -> StdResult<Option<Conversation>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE id = ?1");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let mut rows = stmt
-            .query_map(rusqlite::params![conversation_id], row_to_conversation)
-            .map_err(|e| format!("Query: {e}"))?;
-        match rows.next() {
-            Some(Ok(c)) => Ok(Some(c)),
-            Some(Err(e)) => Err(format!("Row: {e}")),
-            None => Ok(None),
-        }
-    }
-
-    async fn list_conversations(
-        &self,
-        user_id: &str,
-        limit: usize,
-        offset: usize,
-    ) -> StdResult<Vec<Conversation>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE user_id = ?1 ORDER BY updated_at DESC LIMIT ?2 OFFSET ?3");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![user_id, limit as i64, offset as i64],
-                row_to_conversation,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn delete_conversation(&self, conversation_id: &str) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "DELETE FROM messages WHERE conversation_id = ?1",
-            rusqlite::params![conversation_id],
-        )
-        .map_err(|e| format!("Delete messages: {e}"))?;
-        conn.execute(
-            "DELETE FROM conversations WHERE id = ?1",
-            rusqlite::params![conversation_id],
-        )
-        .map_err(|e| format!("Delete conversation: {e}"))?;
-        Ok(())
-    }
-
-    async fn update_conversation_title(
-        &self,
-        conversation_id: &str,
-        title: &str,
-    ) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
-        let now = chrono::Utc::now().to_rfc3339();
-        let affected = conn
-            .execute(
-                "UPDATE conversations SET title = ?1, updated_at = ?2 WHERE id = ?3",
-                rusqlite::params![title, now, conversation_id],
-            )
-            .map_err(|e| format!("Update: {e}"))?;
-        if affected == 0 {
-            Err("Conversation not found".to_string())
-        } else {
-            Ok(())
-        }
-    }
-
-    async fn add_message(
-        &self,
-        conversation_id: &str,
-        role: MessageRole,
-        content: &str,
-        token_count: Option<i64>,
-        metadata: Option<&str>,
-    ) -> StdResult<Message, String> {
-        let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().to_rfc3339();
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "INSERT INTO messages (id, conversation_id, role, content, timestamp, token_count, metadata) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            rusqlite::params![id, conversation_id, role_to_str(&role), content, now, token_count, metadata],
-        ).map_err(|e| format!("Insert message: {e}"))?;
-        conn.execute(
-            "UPDATE conversations SET updated_at = ?1 WHERE id = ?2",
-            rusqlite::params![now, conversation_id],
-        )
-        .map_err(|e| format!("Update conv timestamp: {e}"))?;
-        Ok(Message {
-            id,
-            conversation_id: conversation_id.to_string(),
-            role,
-            content: content.to_string(),
-            timestamp: chrono::Utc::now(),
-            token_count,
-            metadata: metadata.map(|m| m.to_string()),
-        })
-    }
-
-    async fn get_messages(
-        &self,
-        conversation_id: &str,
-        limit: usize,
-        offset: usize,
-    ) -> StdResult<Vec<Message>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {MSG_COLUMNS} FROM messages WHERE conversation_id = ?1 ORDER BY timestamp ASC LIMIT ?2 OFFSET ?3");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![conversation_id, limit as i64, offset as i64],
-                row_to_message,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn get_message_count(&self, conversation_id: &str) -> StdResult<usize, String> {
-        let conn = self.conn.lock().await;
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM messages WHERE conversation_id = ?1",
-                rusqlite::params![conversation_id],
-                |row| row.get(0),
-            )
-            .map_err(|e| format!("Count: {e}"))?;
-        Ok(count as usize)
-    }
-
-    async fn delete_message(&self, message_id: &str) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "DELETE FROM messages WHERE id = ?1",
-            rusqlite::params![message_id],
-        )
-        .map_err(|e| format!("Delete: {e}"))?;
-        Ok(())
-    }
-
-    async fn stats(&self, user_id: &str) -> StdResult<ConversationStats, String> {
-        let conn = self.conn.lock().await;
-        let total_conversations: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1",
-                rusqlite::params![user_id],
-                |r| r.get(0),
-            )
-            .map_err(|e| format!("Stats conv: {e}"))?;
-        let active_conversations: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1 AND is_active = 1",
-                rusqlite::params![user_id],
-                |r| r.get(0),
-            )
-            .map_err(|e| format!("Stats active: {e}"))?;
-        let total_messages: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM messages m JOIN conversations c ON m.conversation_id = c.id WHERE c.user_id = ?1",
-            rusqlite::params![user_id], |r| r.get(0),
-        ).map_err(|e| format!("Stats msg: {e}"))?;
-        Ok(ConversationStats {
-            total_conversations: total_conversations as usize,
-            total_messages: total_messages as usize,
-            active_conversations: active_conversations as usize,
-        })
-    }
-}
-
-// ============================================================================
-// SqliteAuditLogStore
-// ============================================================================
-
-pub struct SqliteAuditLogStore {
-    conn: Arc<Mutex<rusqlite::Connection>>,
-}
-
-impl SqliteAuditLogStore {
-    pub fn new(path: &str) -> StdResult<Self, String> {
-        let conn =
-            rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
-        conn.busy_timeout(std::time::Duration::from_millis(5000))
-            .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS audit_log (
-                id TEXT PRIMARY KEY,
-                timestamp TEXT NOT NULL,
-                subject TEXT NOT NULL,
-                action TEXT NOT NULL,
-                resource TEXT,
-                result TEXT NOT NULL,
-                reason TEXT,
-                risk_level TEXT NOT NULL,
-                trust_level TEXT NOT NULL,
-                previous_hash TEXT NOT NULL,
-                hash TEXT NOT NULL,
-                audit_level TEXT NOT NULL,
-                metadata TEXT
-            );
-            CREATE INDEX IF NOT EXISTS idx_audit_subject ON audit_log(subject);
-            CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
-            CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp);
-            PRAGMA journal_mode=WAL;",
-        )
-        .map_err(|e| format!("Failed to create audit_log table: {e}"))?;
-        Ok(Self {
-            conn: Arc::new(Mutex::new(conn)),
-        })
-    }
-
-    pub fn new_in_memory() -> StdResult<Self, String> {
-        Self::new(":memory:")
-    }
-}
-
-#[async_trait::async_trait]
-impl AuditLogStore for SqliteAuditLogStore {
-    async fn record_entry(&self, entry: &AuditLogEntry) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "INSERT INTO audit_log (id, timestamp, subject, action, resource, result, reason, risk_level, trust_level, previous_hash, hash, audit_level, metadata)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
-            rusqlite::params![
-                entry.id, entry.timestamp.to_rfc3339(), entry.subject, entry.action,
-                entry.resource, entry.result, entry.reason, entry.risk_level,
-                entry.trust_level, entry.previous_hash, entry.hash, entry.audit_level,
-                entry.metadata,
-            ],
-        ).map_err(|e| format!("Insert audit entry: {e}"))?;
-        Ok(())
-    }
-
-    async fn get_entries(
-        &self,
-        limit: usize,
-        offset: usize,
-    ) -> StdResult<Vec<AuditLogEntry>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!(
-            "SELECT {AUDIT_COLUMNS} FROM audit_log ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2"
-        );
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![limit as i64, offset as i64],
-                row_to_audit_entry,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn get_entries_by_subject(
-        &self,
-        subject: &str,
-        limit: usize,
-    ) -> StdResult<Vec<AuditLogEntry>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE subject = ?1 ORDER BY timestamp DESC LIMIT ?2");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(rusqlite::params![subject, limit as i64], row_to_audit_entry)
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn get_entries_by_action(
-        &self,
-        action: &str,
-        limit: usize,
-    ) -> StdResult<Vec<AuditLogEntry>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE action = ?1 ORDER BY timestamp DESC LIMIT ?2");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(rusqlite::params![action, limit as i64], row_to_audit_entry)
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn get_entries_in_range(
-        &self,
-        from: chrono::DateTime<chrono::Utc>,
-        to: chrono::DateTime<chrono::Utc>,
-    ) -> StdResult<Vec<AuditLogEntry>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {AUDIT_COLUMNS} FROM audit_log WHERE timestamp >= ?1 AND timestamp <= ?2 ORDER BY timestamp DESC");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![from.to_rfc3339(), to.to_rfc3339()],
-                row_to_audit_entry,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
-    }
-
-    async fn verify_chain(&self) -> StdResult<bool, String> {
-        let conn = self.conn.lock().await;
-        let mut stmt = conn
-            .prepare("SELECT previous_hash, hash FROM audit_log ORDER BY timestamp ASC")
-            .map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .map_err(|e| format!("Query: {e}"))?;
-        let mut prev_hash = String::new();
-        for row in rows {
-            let (entry_prev_hash, entry_hash) = row.map_err(|e| format!("Row: {e}"))?;
-            if entry_prev_hash != prev_hash {
-                return Ok(false);
-            }
-            prev_hash = entry_hash;
-        }
-        Ok(true)
-    }
-
-    async fn count(&self) -> StdResult<usize, String> {
-        let conn = self.conn.lock().await;
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM audit_log", [], |r| r.get(0))
-            .map_err(|e| format!("Count: {e}"))?;
-        Ok(count as usize)
-    }
-
-    async fn clear(&self) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
-        conn.execute("DELETE FROM audit_log", [])
-            .map_err(|e| format!("Clear: {e}"))?;
-        Ok(())
     }
 }

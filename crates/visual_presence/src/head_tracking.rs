@@ -113,7 +113,7 @@ mod tests {
             ..Default::default()
         };
         let mut tracker = HeadTracker::new(config);
-        tracker.start();
+        let _ = tracker.start();
         tracker.update([1.0, 2.0, 3.0], [0.1, 0.2, 0.3], 0.8);
         assert!(tracker.confidence() > 0.0);
         assert!(tracker.head_position()[0] > 0.0);

@@ -1,4 +1,4 @@
-﻿#[derive(Clone)]
+#[derive(Clone)]
 pub struct VoiceOrchestratorConfig {
     pub enabled: bool,
     pub wake_word_enabled: bool,
@@ -60,4 +60,3 @@ mod tests {
         assert_eq!(config.voice_activity_timeout_ms, 5000);
     }
 }
-

@@ -76,10 +76,10 @@ mod tests {
         ];
         for state in &states {
             match state {
-                DependencyState::Pending => assert!(true),
-                DependencyState::Resolved => assert!(true),
-                DependencyState::Running => assert!(true),
-                DependencyState::Completed => assert!(true),
+                DependencyState::Pending
+                | DependencyState::Resolved
+                | DependencyState::Running
+                | DependencyState::Completed => {}
                 DependencyState::Failed(_) => unreachable!(),
             }
         }

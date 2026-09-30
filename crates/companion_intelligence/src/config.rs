@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct IntelligenceConfig {
     pub emotional: EmotionalConfig,
     pub conversation: ConversationConfig,
@@ -77,20 +77,6 @@ pub struct PresenceConfig {
     pub emergency_timeout_secs: u64,
     pub focus_mode_min_duration_secs: u64,
     pub celebration_duration_ms: u64,
-}
-
-impl Default for IntelligenceConfig {
-    fn default() -> Self {
-        Self {
-            emotional: EmotionalConfig::default(),
-            conversation: ConversationConfig::default(),
-            memory: MemoryConfig::default(),
-            proactive: ProactiveConfig::default(),
-            decision: DecisionConfig::default(),
-            personality: PersonalityConfig::default(),
-            presence: PresenceConfig::default(),
-        }
-    }
 }
 
 impl Default for EmotionalConfig {

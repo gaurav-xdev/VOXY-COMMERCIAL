@@ -5,18 +5,17 @@ use crate::bridge::AppBridge;
 #[component]
 pub fn HealthView() -> Element {
     let bridge = use_context::<AppBridge>();
-    let checks = use_signal(|| Vec::<(String, String, String)>::new());
-    let sys_info = use_signal(|| Vec::<(String, String)>::new());
+    let checks = use_signal(Vec::<(String, String, String)>::new);
+    let sys_info = use_signal(Vec::<(String, String)>::new);
 
     let refresh = {
         let hm = bridge.health.clone();
-        let checks = checks.clone();
-        let sys = sys_info.clone();
+        let sys = sys_info;
         let event_bus = bridge.event_bus.clone();
         move |_: Event<MouseData>| {
             let h = hm.clone();
-            let mut c = checks.clone();
-            let mut s = sys.clone();
+            let mut c = checks;
+            let mut s = sys;
             let bus = event_bus.clone();
             spawn(async move {
                 let results = h.check_all().await;

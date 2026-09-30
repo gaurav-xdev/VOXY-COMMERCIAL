@@ -291,11 +291,7 @@ impl LlmProvider for OllamaProvider {
         self.chat_completion(prompt).await
     }
 
-    async fn complete_streaming(
-        &self,
-        prompt: &str,
-        tx: mpsc::Sender<LlmChunk>,
-    ) -> Result<()> {
+    async fn complete_streaming(&self, prompt: &str, tx: mpsc::Sender<LlmChunk>) -> Result<()> {
         self.chat_completion_streaming(prompt, tx).await
     }
 
@@ -304,7 +300,9 @@ impl LlmProvider for OllamaProvider {
     }
 
     async fn health(&self) -> Result<bool> {
-        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
+        self.health()
+            .await
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {

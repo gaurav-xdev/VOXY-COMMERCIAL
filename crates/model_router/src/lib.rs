@@ -425,9 +425,7 @@ impl ModelRouter {
 
     pub async fn route_complete(&self, prompt: &str) -> Result<String> {
         let provider_info = self.select_provider(&ProviderCapability::Llm).await?;
-        let maybe_inst = {
-            self.llm_providers.read().get(&provider_info.id).cloned()
-        };
+        let maybe_inst = { self.llm_providers.read().get(&provider_info.id).cloned() };
         if let Some(inst) = maybe_inst {
             match self.complete(inst.as_ref(), prompt).await {
                 Ok(res) => {
@@ -437,11 +435,16 @@ impl ModelRouter {
                 Err(e) => {
                     self.record_failure(&provider_info.id);
                     // Automatic fallback: try another healthy provider
-                    let all = self.registry.find_by_capability(ProviderCapability::Llm).await.unwrap_or_default();
+                    let all = self
+                        .registry
+                        .find_by_capability(ProviderCapability::Llm)
+                        .await
+                        .unwrap_or_default();
                     let healthy = self.filter_healthy(all);
                     for fallback_info in healthy {
                         if fallback_info.id != provider_info.id {
-                            if let Some(fb_inst) = self.llm_providers.read().get(&fallback_info.id).cloned() {
+                            let fb_inst = self.llm_providers.read().get(&fallback_info.id).cloned();
+                            if let Some(fb_inst) = fb_inst {
                                 if let Ok(res) = self.complete(fb_inst.as_ref(), prompt).await {
                                     self.record_success(&fallback_info.id);
                                     return Ok(res);
@@ -453,7 +456,10 @@ impl ModelRouter {
                 }
             }
         } else {
-            Err(RouterError::ProviderError(format!("Provider '{}' registered in registry but no implementation loaded in router", provider_info.id)))
+            Err(RouterError::ProviderError(format!(
+                "Provider '{}' registered in registry but no implementation loaded in router",
+                provider_info.id
+            )))
         }
     }
 
@@ -463,9 +469,7 @@ impl ModelRouter {
             let config = self.config.read();
             Duration::from_secs(config.provider_timeout_secs)
         };
-        let maybe_inst = {
-            self.stt_providers.read().get(&provider_info.id).cloned()
-        };
+        let maybe_inst = { self.stt_providers.read().get(&provider_info.id).cloned() };
         if let Some(inst) = maybe_inst {
             let res = tokio::time::timeout(timeout, inst.transcribe(audio)).await;
             match res {
@@ -476,12 +480,19 @@ impl ModelRouter {
                 Ok(Err(e)) => {
                     self.record_failure(&provider_info.id);
                     // Failover to local/healthy STT
-                    let all = self.registry.find_by_capability(ProviderCapability::Stt).await.unwrap_or_default();
+                    let all = self
+                        .registry
+                        .find_by_capability(ProviderCapability::Stt)
+                        .await
+                        .unwrap_or_default();
                     let healthy = self.filter_healthy(all);
                     for fallback in healthy {
                         if fallback.id != provider_info.id {
-                            if let Some(fb_inst) = self.stt_providers.read().get(&fallback.id).cloned() {
-                                if let Ok(Ok(text)) = tokio::time::timeout(timeout, fb_inst.transcribe(audio)).await {
+                            let fb_inst = self.stt_providers.read().get(&fallback.id).cloned();
+                            if let Some(fb_inst) = fb_inst {
+                                if let Ok(Ok(text)) =
+                                    tokio::time::timeout(timeout, fb_inst.transcribe(audio)).await
+                                {
                                     self.record_success(&fallback.id);
                                     return Ok(text);
                                 }
@@ -496,7 +507,10 @@ impl ModelRouter {
                 }
             }
         } else {
-            Err(RouterError::ProviderError(format!("STT provider '{}' not loaded", provider_info.id)))
+            Err(RouterError::ProviderError(format!(
+                "STT provider '{}' not loaded",
+                provider_info.id
+            )))
         }
     }
 
@@ -506,9 +520,7 @@ impl ModelRouter {
             let config = self.config.read();
             Duration::from_secs(config.provider_timeout_secs)
         };
-        let maybe_inst = {
-            self.tts_providers.read().get(&provider_info.id).cloned()
-        };
+        let maybe_inst = { self.tts_providers.read().get(&provider_info.id).cloned() };
         if let Some(inst) = maybe_inst {
             let res = tokio::time::timeout(timeout, inst.synthesize(text)).await;
             match res {
@@ -519,12 +531,19 @@ impl ModelRouter {
                 Ok(Err(e)) => {
                     self.record_failure(&provider_info.id);
                     // Failover to local/healthy TTS
-                    let all = self.registry.find_by_capability(ProviderCapability::Tts).await.unwrap_or_default();
+                    let all = self
+                        .registry
+                        .find_by_capability(ProviderCapability::Tts)
+                        .await
+                        .unwrap_or_default();
                     let healthy = self.filter_healthy(all);
                     for fallback in healthy {
                         if fallback.id != provider_info.id {
-                            if let Some(fb_inst) = self.tts_providers.read().get(&fallback.id).cloned() {
-                                if let Ok(Ok(bytes)) = tokio::time::timeout(timeout, fb_inst.synthesize(text)).await {
+                            let fb_inst = self.tts_providers.read().get(&fallback.id).cloned();
+                            if let Some(fb_inst) = fb_inst {
+                                if let Ok(Ok(bytes)) =
+                                    tokio::time::timeout(timeout, fb_inst.synthesize(text)).await
+                                {
                                     self.record_success(&fallback.id);
                                     return Ok(bytes);
                                 }
@@ -539,7 +558,10 @@ impl ModelRouter {
                 }
             }
         } else {
-            Err(RouterError::ProviderError(format!("TTS provider '{}' not loaded", provider_info.id)))
+            Err(RouterError::ProviderError(format!(
+                "TTS provider '{}' not loaded",
+                provider_info.id
+            )))
         }
     }
 }
@@ -738,7 +760,9 @@ mod tests {
     impl LlmProvider for MockLlm {
         async fn complete(&self, prompt: &str) -> voxy_provider_core::Result<String> {
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
-                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated API failure".into()))
+                Err(voxy_provider_core::ProviderError::RequestFailed(
+                    "Simulated API failure".into(),
+                ))
             } else {
                 Ok(format!("Mock response from {} to: {}", self.name, prompt))
             }
@@ -759,7 +783,9 @@ mod tests {
     impl SttProvider for MockStt {
         async fn transcribe(&self, _audio: &[u8]) -> voxy_provider_core::Result<String> {
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
-                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated STT failure".into()))
+                Err(voxy_provider_core::ProviderError::RequestFailed(
+                    "Simulated STT failure".into(),
+                ))
             } else {
                 Ok(format!("Transcribed by {}", self.name))
             }
@@ -780,7 +806,9 @@ mod tests {
     impl TtsProvider for MockTts {
         async fn synthesize(&self, text: &str) -> voxy_provider_core::Result<Vec<u8>> {
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
-                Err(voxy_provider_core::ProviderError::RequestFailed("Simulated TTS failure".into()))
+                Err(voxy_provider_core::ProviderError::RequestFailed(
+                    "Simulated TTS failure".into(),
+                ))
             } else {
                 Ok(format!("Audio from {}: {}", self.name, text).into_bytes())
             }
@@ -829,7 +857,10 @@ mod tests {
         router.register_llm("local-llm", fallback_inst);
 
         let response = router.route_complete("hello").await.unwrap();
-        assert!(response.contains("Local LLM"), "Expected fallback response but got: {response}");
+        assert!(
+            response.contains("Local LLM"),
+            "Expected fallback response but got: {response}"
+        );
     }
 
     #[tokio::test]
@@ -868,7 +899,10 @@ mod tests {
         router.register_stt("local-stt", fallback_inst);
 
         let transcript = router.route_transcribe(b"test audio").await.unwrap();
-        assert!(transcript.contains("Local STT"), "Expected fallback STT but got: {transcript}");
+        assert!(
+            transcript.contains("Local STT"),
+            "Expected fallback STT but got: {transcript}"
+        );
     }
 
     #[tokio::test]
@@ -908,6 +942,9 @@ mod tests {
 
         let audio = router.route_synthesize("Hello world").await.unwrap();
         let audio_str = String::from_utf8_lossy(&audio);
-        assert!(audio_str.contains("Local TTS"), "Expected fallback TTS but got: {audio_str}");
+        assert!(
+            audio_str.contains("Local TTS"),
+            "Expected fallback TTS but got: {audio_str}"
+        );
     }
 }

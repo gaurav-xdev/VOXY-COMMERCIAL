@@ -218,7 +218,10 @@ mod tests {
         let mut chunker = SentenceChunker::new(5);
         let chunks = chunker.feed("the quick brown fox jumps over the lazy dog");
         assert_eq!(chunks, vec!["the quick brown fox jumps"]);
-        assert!(!chunks[0].ends_with('.'), "partial chunk must not get terminal");
+        assert!(
+            !chunks[0].ends_with('.'),
+            "partial chunk must not get terminal"
+        );
         assert_eq!(chunker.finish(), vec!["over the lazy dog."]);
     }
 

@@ -8,8 +8,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    TTSStream, VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, TTSStream, VoiceLanguage,
 };
 
 const OPENAI_TTS_ENDPOINT: &str = "https://api.openai.com/v1/audio/speech";
@@ -25,11 +24,7 @@ pub struct OpenAITTSProvider {
 }
 
 impl OpenAITTSProvider {
-    pub fn new(
-        api_key: impl Into<String>,
-        model: Option<String>,
-        voice: Option<String>,
-    ) -> Self {
+    pub fn new(api_key: impl Into<String>, model: Option<String>, voice: Option<String>) -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(25))
             .build()
@@ -104,7 +99,11 @@ impl TTSProvider for OpenAITTSProvider {
             "response_format": "pcm"
         });
 
-        debug!(provider = self.id(), voice = self.voice, "Calling OpenAI TTS");
+        debug!(
+            provider = self.id(),
+            voice = self.voice,
+            "Calling OpenAI TTS"
+        );
 
         let response = self
             .client
@@ -152,10 +151,9 @@ impl TTSProvider for OpenAITTSProvider {
             )));
         }
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e)))?;
+        let bytes = response.bytes().await.map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e))
+        })?;
 
         Ok(AudioData::new(bytes.to_vec(), 24000, 1))
     }

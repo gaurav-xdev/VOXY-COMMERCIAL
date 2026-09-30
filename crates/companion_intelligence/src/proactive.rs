@@ -375,8 +375,10 @@ mod tests {
 
     #[test]
     fn test_annoyance_threshold() {
-        let mut engine = ProactiveEngine::default();
-        engine.annoyance_score = 0.8;
+        let mut engine = ProactiveEngine {
+            annoyance_score: 0.8,
+            ..Default::default()
+        };
         let context = create_test_context();
         let suggestions = engine.generate_suggestions(&context);
         assert!(suggestions.is_empty());
@@ -395,8 +397,10 @@ mod tests {
 
     #[test]
     fn test_accepted_decreases_annoyance() {
-        let mut engine = ProactiveEngine::default();
-        engine.annoyance_score = 0.5;
+        let mut engine = ProactiveEngine {
+            annoyance_score: 0.5,
+            ..Default::default()
+        };
         let context = create_test_context();
         let suggestions = engine.generate_suggestions(&context);
         if let Some(s) = suggestions.first() {

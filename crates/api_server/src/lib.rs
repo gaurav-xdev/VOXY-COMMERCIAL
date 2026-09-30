@@ -12,8 +12,8 @@ pub mod router;
 pub use error::{ApiError, ApiErrorBody, ApiResponseEnvelope};
 pub use handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
-    EntitlementCheckRequest, EntitlementCheckResponse, HealthResponse,
-    LoginRequest, LoginResponse, RegisterRequest, RegisterResponse,
+    EntitlementCheckRequest, EntitlementCheckResponse, HealthResponse, LoginRequest, LoginResponse,
+    RegisterRequest, RegisterResponse,
 };
 pub use middleware::{AuthContext, AuthMiddleware, RateLimitMiddleware};
 pub use router::{ApiRequest, ApiResponse, ApiRouter};
@@ -62,7 +62,7 @@ mod tests {
 
         assert_eq!(resp.status_code, 404);
         let envelope: ApiResponseEnvelope<()> = serde_json::from_slice(&resp.body).unwrap();
-        assert_eq!(envelope.success, false);
+        assert!(!envelope.success);
         assert!(envelope.data.is_none());
 
         let err = envelope.error.unwrap();
@@ -102,7 +102,7 @@ mod tests {
         assert_eq!(resp6.status_code, 429);
 
         let env: ApiResponseEnvelope<()> = serde_json::from_slice(&resp6.body).unwrap();
-        assert_eq!(env.success, false);
+        assert!(!env.success);
         let err = env.error.unwrap();
         assert_eq!(err.code, "RATE_LIMIT_EXCEEDED");
         assert!(err.message.contains("Too many requests"));
@@ -121,12 +121,13 @@ mod tests {
         let check_req = EntitlementCheckRequest {
             feature: "coding_harness".to_string(),
         };
-        let req_no_auth = ApiRequest::new("POST", "/entitlements/check", "10.0.0.1")
-            .with_json(&check_req);
+        let req_no_auth =
+            ApiRequest::new("POST", "/entitlements/check", "10.0.0.1").with_json(&check_req);
 
         let resp_unauth = router.dispatch(req_no_auth).await;
         assert_eq!(resp_unauth.status_code, 401);
-        let env_unauth: ApiResponseEnvelope<()> = serde_json::from_slice(&resp_unauth.body).unwrap();
+        let env_unauth: ApiResponseEnvelope<()> =
+            serde_json::from_slice(&resp_unauth.body).unwrap();
         assert_eq!(env_unauth.error.unwrap().code, "UNAUTHORIZED");
 
         // 2. Register user via /auth/register
@@ -135,8 +136,7 @@ mod tests {
             password: "SuperSecurePassword123!".to_string(),
             name: Some("Alice Architect".to_string()),
         };
-        let reg_api_req = ApiRequest::new("POST", "/auth/register", "10.0.0.1")
-            .with_json(&reg_req);
+        let reg_api_req = ApiRequest::new("POST", "/auth/register", "10.0.0.1").with_json(&reg_req);
         let reg_resp = router.dispatch(reg_api_req).await;
         assert_eq!(reg_resp.status_code, 201);
 
@@ -145,8 +145,8 @@ mod tests {
             email: "alice@example.com".to_string(),
             password: "SuperSecurePassword123!".to_string(),
         };
-        let login_api_req = ApiRequest::new("POST", "/auth/login", "10.0.0.1")
-            .with_json(&login_req);
+        let login_api_req =
+            ApiRequest::new("POST", "/auth/login", "10.0.0.1").with_json(&login_req);
         let login_resp = router.dispatch(login_api_req).await;
         assert_eq!(login_resp.status_code, 200);
 
@@ -179,9 +179,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_webhook_and_checkout_dispatch() {
+        use base64::Engine;
         use hmac::{Hmac, Mac};
         use sha2::Sha256;
-        use base64::Engine;
 
         let (store, router) = setup_test_router().await;
 
@@ -211,8 +211,8 @@ mod tests {
                 "product_id": "plan_pro_monthly"
             }
         });
-        let req_no_sig = ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1")
-            .with_json(&dummy_payload);
+        let req_no_sig =
+            ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1").with_json(&dummy_payload);
         let resp_no_sig = router.dispatch(req_no_sig).await;
         assert_eq!(resp_no_sig.status_code, 401);
 
@@ -220,7 +220,10 @@ mod tests {
         let req_bad_sig = ApiRequest::new("POST", "/webhooks/dodo", "10.0.0.1")
             .with_header("webhook-signature", "v1,ZmFrZXNpZ25hdHVyZQ==")
             .with_header("webhook-id", "msg_test_123")
-            .with_header("webhook-timestamp", &chrono::Utc::now().timestamp().to_string())
+            .with_header(
+                "webhook-timestamp",
+                &chrono::Utc::now().timestamp().to_string(),
+            )
             .with_json(&dummy_payload);
         let resp_bad_sig = router.dispatch(req_bad_sig).await;
         assert_eq!(resp_bad_sig.status_code, 401);
@@ -246,10 +249,16 @@ mod tests {
             .with_json(&dummy_payload);
 
         let resp_valid = router.dispatch(req_valid).await;
-        assert_eq!(resp_valid.status_code, 200, "Valid webhook should return 200");
+        assert_eq!(
+            resp_valid.status_code, 200,
+            "Valid webhook should return 200"
+        );
 
         // Verify webhook event was recorded in DB
         let processed = store.is_webhook_processed("evt_test_123").await.unwrap();
-        assert!(processed, "Webhook event must be marked processed in database");
+        assert!(
+            processed,
+            "Webhook event must be marked processed in database"
+        );
     }
 }

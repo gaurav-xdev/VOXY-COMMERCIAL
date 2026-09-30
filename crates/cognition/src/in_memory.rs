@@ -895,11 +895,11 @@ impl ActionValidator for InMemoryActionValidator {
         }
 
         // Check step type risk
-        if status == ValidationStatus::Approved {
-            if step_type.contains("WriteFile") || step_type.contains("ModifySystem") {
-                risk_level = "high".to_string();
-                conditions.push(format!("High-risk step type: {}", step_type));
-            }
+        if status == ValidationStatus::Approved
+            && (step_type.contains("WriteFile") || step_type.contains("ModifySystem"))
+        {
+            risk_level = "high".to_string();
+            conditions.push(format!("High-risk step type: {}", step_type));
         }
 
         // Validate required capabilities

@@ -167,7 +167,10 @@ mod tests {
     #[test]
     fn ingest_revision_beyond_committed_emits_replacement() {
         let mut stab = TranscriptStabilizer::new();
-        assert_eq!(stab.ingest("hello world foo"), Some("hello world foo".to_string()));
+        assert_eq!(
+            stab.ingest("hello world foo"),
+            Some("hello world foo".to_string())
+        );
         assert_eq!(stab.ingest("hello world bar"), Some("bar".to_string()));
     }
 }

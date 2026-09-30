@@ -66,7 +66,9 @@ impl STTRouter {
             HealthStatus::Healthy => 100.0,
             HealthStatus::Degraded(_) => 50.0,
             HealthStatus::Exhausted | HealthStatus::Cooldown => 0.0,
-            HealthStatus::CoolingDown { .. } | HealthStatus::InvalidCredentials(_) | HealthStatus::Unavailable(_) => 0.0,
+            HealthStatus::CoolingDown { .. }
+            | HealthStatus::InvalidCredentials(_)
+            | HealthStatus::Unavailable(_) => 0.0,
         };
 
         // 2. Latency Score (weight 0.25)
@@ -84,10 +86,8 @@ impl STTRouter {
         let est = provider.estimate_cost(audio_duration_secs);
         let cost_pts = (1.0 / (est.amount_usd + 0.0001) * 0.01).clamp(0.0, 100.0);
 
-        let mut total = (health_pts * 0.35)
-            + (latency_pts * 0.25)
-            + (headroom_pts * 0.25)
-            + (cost_pts * 0.15);
+        let mut total =
+            (health_pts * 0.35) + (latency_pts * 0.25) + (headroom_pts * 0.25) + (cost_pts * 0.15);
 
         // Language matching bonus
         if let Some(ref lang) = language_hint {
@@ -109,7 +109,10 @@ impl STTRouter {
         if self.mode.is_local_only() {
             if let Some(ref fallback) = self.emergency_fallback {
                 let pid = fallback.id();
-                debug!(fallback = pid, "Local-only voice mode: using local offline STT directly");
+                debug!(
+                    fallback = pid,
+                    "Local-only voice mode: using local offline STT directly"
+                );
                 let start = Instant::now();
                 let res = fallback.transcribe(audio, language_hint).await;
                 if res.is_ok() {
@@ -159,10 +162,17 @@ impl STTRouter {
                     continue;
                 }
 
-                debug!(provider = pid, score = score, "Attempting STT transcription");
+                debug!(
+                    provider = pid,
+                    score = score,
+                    "Attempting STT transcription"
+                );
 
                 let start = Instant::now();
-                match provider.transcribe(audio.clone(), language_hint.clone()).await {
+                match provider
+                    .transcribe(audio.clone(), language_hint.clone())
+                    .await
+                {
                     Ok(transcript) => {
                         let elapsed = start.elapsed();
                         let est_cost = provider.estimate_cost(audio_dur);
@@ -212,7 +222,10 @@ impl STTRouter {
         if self.mode.allows_local() {
             if let Some(ref fallback) = self.emergency_fallback {
                 let pid = fallback.id();
-                warn!(fallback = pid, "Cloud STT exhausted or failed: using emergency local offline fallback");
+                warn!(
+                    fallback = pid,
+                    "Cloud STT exhausted or failed: using emergency local offline fallback"
+                );
                 let start = Instant::now();
                 match fallback.transcribe(audio, language_hint).await {
                     Ok(transcript) => {

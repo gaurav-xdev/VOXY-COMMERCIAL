@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use crate::audit::{AuditStatus, OfficeAuditEvent, OfficeAuditTrail};
 use crate::error::{OfficeError, Result};
 use crate::scope::{OfficeScope, ScopeSet};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// In-memory tabular representation of spreadsheet data.
 #[derive(Debug, Clone)]

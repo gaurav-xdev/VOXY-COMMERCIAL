@@ -2,6 +2,7 @@
 name = "voxy-daemon"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 description = "VOXY background service daemon"
 
 [[bin]]

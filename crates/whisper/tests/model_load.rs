@@ -14,7 +14,9 @@ fn test_whisper_model_load_direct() {
     )
     .expect("whisper-rs failed to load model");
 
-    let _state = ctx.create_state().expect("whisper-rs failed to create state");
+    let _state = ctx
+        .create_state()
+        .expect("whisper-rs failed to create state");
     eprintln!("Model loaded and state created successfully");
 }
 
@@ -43,7 +45,9 @@ fn test_whisper_model_load_in_multithread_runtime() {
             )
             .expect("whisper-rs failed to load model");
 
-            let _state = ctx.create_state().expect("whisper-rs failed to create state");
+            let _state = ctx
+                .create_state()
+                .expect("whisper-rs failed to create state");
             eprintln!("spawn_blocking: model loaded OK");
         })
         .await
@@ -76,7 +80,9 @@ fn test_whisper_model_load_sync_on_async_thread() {
         )
         .expect("whisper-rs failed to load model");
 
-        let _state = ctx.create_state().expect("whisper-rs failed to create state");
+        let _state = ctx
+            .create_state()
+            .expect("whisper-rs failed to create state");
         eprintln!("Model loaded OK synchronously on async worker thread");
     });
     eprintln!("Sync in multi-thread runtime test passed!");

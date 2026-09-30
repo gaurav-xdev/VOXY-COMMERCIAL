@@ -53,6 +53,7 @@ impl SpectralDenoiser {
         self
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn process(&mut self, input: &[f32], output: &mut Vec<f32>) {
         output.clear();
         output.reserve(input.len());
@@ -83,6 +84,7 @@ impl SpectralDenoiser {
         }
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn process_frame(&mut self) -> Vec<f32> {
         let n = self.fft_size;
         let num_bins = n / 2 + 1;

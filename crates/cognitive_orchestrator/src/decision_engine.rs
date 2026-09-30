@@ -15,6 +15,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DecisionId(pub String);
 
+impl Default for DecisionId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DecisionId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
@@ -56,19 +62,14 @@ pub struct ResourceCost {
     pub disk_bytes: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum SecurityLevel {
+    #[default]
     None = 0,
     Low = 1,
     Medium = 2,
     High = 3,
     Critical = 4,
-}
-
-impl Default for SecurityLevel {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 /// Evaluation of a single action option.
@@ -105,18 +106,13 @@ pub struct DecisionContext {
     pub preferred_action_type: Option<ActionType>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum Urgency {
     Low = 0,
+    #[default]
     Medium = 1,
     High = 2,
     Critical = 3,
-}
-
-impl Default for Urgency {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 /// The result of a decision.

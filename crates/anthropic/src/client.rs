@@ -88,9 +88,7 @@ impl AnthropicClient {
 
     fn handle_error_status(status: reqwest::StatusCode, text: String) -> ProviderError {
         match status.as_u16() {
-            401 | 403 => {
-                ProviderError::AuthenticationFailed(format!("HTTP {}: {}", status, text))
-            }
+            401 | 403 => ProviderError::AuthenticationFailed(format!("HTTP {}: {}", status, text)),
             429 => ProviderError::RateLimited,
             _ => ProviderError::RequestFailed(format!("HTTP {}: {}", status, text)),
         }
@@ -142,9 +140,8 @@ impl AnthropicClient {
         let mut current_event_type = String::new();
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result.map_err(|e| {
-                ProviderError::RequestFailed(format!("Stream read error: {}", e))
-            })?;
+            let chunk = chunk_result
+                .map_err(|e| ProviderError::RequestFailed(format!("Stream read error: {}", e)))?;
 
             buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -152,10 +149,10 @@ impl AnthropicClient {
                 let line = buffer[..newline_pos].trim_end_matches('\r').to_string();
                 buffer = buffer[newline_pos + 1..].to_string();
 
-                if line.starts_with("event: ") {
-                    current_event_type = line[7..].trim().to_string();
-                } else if line.starts_with("data: ") {
-                    let data_str = line[6..].trim().to_string();
+                if let Some(event_str) = line.strip_prefix("event: ") {
+                    current_event_type = event_str.trim().to_string();
+                } else if let Some(data_str) = line.strip_prefix("data: ") {
+                    let data_str = data_str.trim().to_string();
                     self.process_sse_event(&current_event_type, &data_str, &tx)
                         .await?;
                     current_event_type.clear();
@@ -163,10 +160,12 @@ impl AnthropicClient {
             }
         }
 
-        let _ = tx.send(LlmChunk {
-            text: String::new(),
-            done: true,
-        }).await;
+        let _ = tx
+            .send(LlmChunk {
+                text: String::new(),
+                done: true,
+            })
+            .await;
 
         Ok(())
     }
@@ -240,7 +239,9 @@ mod tests {
         assert!(!is_healthy_status(reqwest::StatusCode::UNAUTHORIZED));
         assert!(!is_healthy_status(reqwest::StatusCode::FORBIDDEN));
         assert!(!is_healthy_status(reqwest::StatusCode::TOO_MANY_REQUESTS));
-        assert!(!is_healthy_status(reqwest::StatusCode::INTERNAL_SERVER_ERROR));
+        assert!(!is_healthy_status(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR
+        ));
         assert!(!is_healthy_status(reqwest::StatusCode::SERVICE_UNAVAILABLE));
     }
 }

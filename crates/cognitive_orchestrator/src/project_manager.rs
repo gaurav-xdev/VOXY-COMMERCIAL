@@ -18,6 +18,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ProjectId(pub String);
 
+impl Default for ProjectId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProjectId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
@@ -26,6 +32,12 @@ impl ProjectId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MilestoneId(pub String);
+
+impl Default for MilestoneId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl MilestoneId {
     pub fn new() -> Self {
@@ -47,18 +59,13 @@ pub enum ProjectStatus {
 }
 
 /// Risk level.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum RiskLevel {
+    #[default]
     Low = 0,
     Medium = 1,
     High = 2,
     Critical = 3,
-}
-
-impl Default for RiskLevel {
-    fn default() -> Self {
-        Self::Low
-    }
 }
 
 /// A project milestone.
@@ -435,7 +442,7 @@ mod tests {
         let id = mgr
             .create_project("Test".to_string(), "".to_string())
             .unwrap();
-        let ms_id = mgr
+        let _ms_id = mgr
             .add_milestone(&id, "M1".to_string(), "First".to_string(), None)
             .unwrap();
         assert!(mgr.get(&id).unwrap().milestones.len() == 1);

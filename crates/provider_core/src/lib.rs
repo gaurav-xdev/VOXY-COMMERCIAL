@@ -31,7 +31,12 @@ pub trait LlmProvider: Send + Sync {
         tx: tokio::sync::mpsc::Sender<LlmChunk>,
     ) -> Result<()> {
         let full = self.complete(prompt).await?;
-        let _ = tx.send(LlmChunk { text: full, done: true }).await;
+        let _ = tx
+            .send(LlmChunk {
+                text: full,
+                done: true,
+            })
+            .await;
         Ok(())
     }
 

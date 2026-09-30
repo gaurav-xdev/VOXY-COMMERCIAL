@@ -114,10 +114,10 @@ async fn stress_telemetry_1k_subsystems() {
             error_count: i % 100,
             warning_count: i % 50,
             cpu_percent: (i as f32) % 100.0,
-            memory_mb: (i as u64) * 10,
+            memory_mb: i * 10,
             queue_size: (i % 200) as u32,
             events_per_sec: i as f64 * 0.5,
-            uptime_seconds: i as u64,
+            uptime_seconds: i,
             last_error: None,
             timestamp: chrono::Utc::now(),
         });

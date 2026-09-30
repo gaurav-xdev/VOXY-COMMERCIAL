@@ -13,19 +13,15 @@
 //!   - Authoritative expiration: entitlements denied after `expires_at` passes
 //!   - Client entitlement forgery: server-side check always wins
 
-use std::sync::Arc;
 use chrono::Utc;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use voxy_billing::{
-    WebhookHandler, WebhookError,
-    verify_webhook_signature, verify_webhook_timestamp,
-};
-use voxy_database::{
-    CommercialStore, SqliteDatabase, SubscriptionRecord,
-    config::DatabaseConfig,
+    verify_webhook_signature, verify_webhook_timestamp, WebhookError, WebhookHandler,
 };
 use voxy_database::storage::StorageProvider;
+use voxy_database::{config::DatabaseConfig, CommercialStore, SqliteDatabase, SubscriptionRecord};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,9 +52,9 @@ fn sign_standard_webhooks(
     body: &str,
     secret_bytes: &[u8],
 ) -> String {
+    use base64::Engine;
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
-    use base64::Engine;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -143,7 +139,13 @@ fn test_verify_webhook_signature_forged_body_rejected() {
 
     let raw_secret = std::str::from_utf8(secret).unwrap();
     assert!(
-        !verify_webhook_signature(forged_body.as_bytes(), &sig, raw_secret, Some(wh_id), Some(&ts)),
+        !verify_webhook_signature(
+            forged_body.as_bytes(),
+            &sig,
+            raw_secret,
+            Some(wh_id),
+            Some(&ts)
+        ),
         "Signature over different body must be rejected"
     );
 }
@@ -160,7 +162,13 @@ fn test_verify_webhook_signature_tampered_prefix_rejected() {
 
     let raw_secret = std::str::from_utf8(secret).unwrap();
     assert!(
-        !verify_webhook_signature(body.as_bytes(), &tampered, raw_secret, Some(wh_id), Some(&ts)),
+        !verify_webhook_signature(
+            body.as_bytes(),
+            &tampered,
+            raw_secret,
+            Some(wh_id),
+            Some(&ts)
+        ),
         "Tampered signature prefix must be rejected"
     );
 }
@@ -196,18 +204,26 @@ fn test_verify_webhook_signature_whsec_prefix() {
 #[test]
 fn test_timestamp_current_accepted() {
     let ts = now_epoch();
-    assert!(verify_webhook_timestamp(&ts, 300), "Current epoch timestamp must be accepted");
+    assert!(
+        verify_webhook_timestamp(&ts, 300),
+        "Current epoch timestamp must be accepted"
+    );
 }
 
 #[test]
 fn test_timestamp_rfc3339_current_accepted() {
     let ts = Utc::now().to_rfc3339();
-    assert!(verify_webhook_timestamp(&ts, 300), "RFC3339 current timestamp must be accepted");
+    assert!(
+        verify_webhook_timestamp(&ts, 300),
+        "RFC3339 current timestamp must be accepted"
+    );
 }
 
 #[test]
 fn test_timestamp_too_old_rejected() {
-    let old_ts = (Utc::now() - chrono::Duration::seconds(600)).timestamp().to_string();
+    let old_ts = (Utc::now() - chrono::Duration::seconds(600))
+        .timestamp()
+        .to_string();
     assert!(
         !verify_webhook_timestamp(&old_ts, 300),
         "Timestamp older than max_age must be rejected (replay attack)"
@@ -217,7 +233,9 @@ fn test_timestamp_too_old_rejected() {
 #[test]
 fn test_timestamp_future_within_drift_accepted() {
     // 20 seconds in the future — within the 30s clock drift allowance
-    let slight_future = (Utc::now() + chrono::Duration::seconds(20)).timestamp().to_string();
+    let slight_future = (Utc::now() + chrono::Duration::seconds(20))
+        .timestamp()
+        .to_string();
     assert!(
         verify_webhook_timestamp(&slight_future, 300),
         "Timestamp up to 30s in future should be accepted (clock drift)"
@@ -226,7 +244,9 @@ fn test_timestamp_future_within_drift_accepted() {
 
 #[test]
 fn test_timestamp_far_future_rejected() {
-    let far_future = (Utc::now() + chrono::Duration::seconds(120)).timestamp().to_string();
+    let far_future = (Utc::now() + chrono::Duration::seconds(120))
+        .timestamp()
+        .to_string();
     assert!(
         !verify_webhook_timestamp(&far_future, 300),
         "Timestamp more than 30s in future must be rejected"
@@ -250,7 +270,10 @@ async fn test_subscription_active_grants_entitlements() {
 
     // Create user — the returned record contains the real DB-assigned UUID
     let user = store
-        .create_user(&format!("sub_active_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("sub_active_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -263,21 +286,52 @@ async fn test_subscription_active_grants_entitlements() {
     let body = active_payload(&user_id, &sub_id, &period_end);
     let sig = sign_standard_webhooks(&wh_id, &ts, &body, secret.as_bytes());
 
-    let result = handler.process_webhook(
-        body.as_bytes(),
-        Some(&sig),
-        Some(&ts),
-        Some(&wh_id),
-    ).await;
+    let result = handler
+        .process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id))
+        .await;
 
-    assert!(result.is_ok(), "subscription.active webhook must succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "subscription.active webhook must succeed: {:?}",
+        result.err()
+    );
 
     // Verify entitlements were granted
-    assert!(store.check_entitlement(&user_id, "coding_harness").await.unwrap(), "coding_harness must be granted");
-    assert!(store.check_entitlement(&user_id, "cloud_voice").await.unwrap(), "cloud_voice must be granted");
-    assert!(store.check_entitlement(&user_id, "unlimited_models").await.unwrap(), "unlimited_models must be granted");
-    assert!(store.check_entitlement(&user_id, "computer_control").await.unwrap(), "computer_control must be granted");
-    assert!(store.check_entitlement(&user_id, "office_automation").await.unwrap(), "office_automation must be granted");
+    assert!(
+        store
+            .check_entitlement(&user_id, "coding_harness")
+            .await
+            .unwrap(),
+        "coding_harness must be granted"
+    );
+    assert!(
+        store
+            .check_entitlement(&user_id, "cloud_voice")
+            .await
+            .unwrap(),
+        "cloud_voice must be granted"
+    );
+    assert!(
+        store
+            .check_entitlement(&user_id, "unlimited_models")
+            .await
+            .unwrap(),
+        "unlimited_models must be granted"
+    );
+    assert!(
+        store
+            .check_entitlement(&user_id, "computer_control")
+            .await
+            .unwrap(),
+        "computer_control must be granted"
+    );
+    assert!(
+        store
+            .check_entitlement(&user_id, "office_automation")
+            .await
+            .unwrap(),
+        "office_automation must be granted"
+    );
 }
 
 #[tokio::test]
@@ -294,15 +348,15 @@ async fn test_webhook_signature_verification_fails_correctly() {
     // Use wrong secret to produce forged signature
     let forged_sig = sign_standard_webhooks(&wh_id, &ts, &body, b"wrong_key_32bytes_xxxxxxxxxxx00");
 
-    let result = handler.process_webhook(
-        body.as_bytes(),
-        Some(&forged_sig),
-        Some(&ts),
-        Some(&wh_id),
-    ).await;
+    let result = handler
+        .process_webhook(body.as_bytes(), Some(&forged_sig), Some(&ts), Some(&wh_id))
+        .await;
 
-    assert!(matches!(result, Err(WebhookError::InvalidSignature)),
-        "Forged signature must be rejected with InvalidSignature, got: {:?}", result);
+    assert!(
+        matches!(result, Err(WebhookError::InvalidSignature)),
+        "Forged signature must be rejected with InvalidSignature, got: {:?}",
+        result
+    );
 }
 
 #[tokio::test]
@@ -312,15 +366,20 @@ async fn test_webhook_missing_signature_rejected() {
 
     let body = r#"{"event_id":"evt_test","event_type":"subscription.active","data":{}}"#;
 
-    let result = handler.process_webhook(
-        body.as_bytes(),
-        None, // no signature header
-        Some(&now_epoch()),
-        Some("whev_test"),
-    ).await;
+    let result = handler
+        .process_webhook(
+            body.as_bytes(),
+            None, // no signature header
+            Some(&now_epoch()),
+            Some("whev_test"),
+        )
+        .await;
 
-    assert!(matches!(result, Err(WebhookError::MissingSignature)),
-        "Missing signature header must return MissingSignature, got: {:?}", result);
+    assert!(
+        matches!(result, Err(WebhookError::MissingSignature)),
+        "Missing signature header must return MissingSignature, got: {:?}",
+        result
+    );
 }
 
 #[tokio::test]
@@ -329,20 +388,22 @@ async fn test_webhook_replay_attack_rejected() {
     let (handler, _store) = setup_handler(secret).await;
 
     // Old timestamp (1 hour ago — beyond the 300s window)
-    let old_ts = (Utc::now() - chrono::Duration::seconds(600)).timestamp().to_string();
+    let old_ts = (Utc::now() - chrono::Duration::seconds(600))
+        .timestamp()
+        .to_string();
     let wh_id = format!("whev_{}", Uuid::new_v4().simple());
     let body = r#"{"event_id":"evt_old","event_type":"subscription.active","data":{}}"#;
     let sig = sign_standard_webhooks(&wh_id, &old_ts, body, secret.as_bytes());
 
-    let result = handler.process_webhook(
-        body.as_bytes(),
-        Some(&sig),
-        Some(&old_ts),
-        Some(&wh_id),
-    ).await;
+    let result = handler
+        .process_webhook(body.as_bytes(), Some(&sig), Some(&old_ts), Some(&wh_id))
+        .await;
 
-    assert!(matches!(result, Err(WebhookError::ReplayDetected(_))),
-        "Stale timestamp must be rejected as replay attack, got: {:?}", result);
+    assert!(
+        matches!(result, Err(WebhookError::ReplayDetected(_))),
+        "Stale timestamp must be rejected as replay attack, got: {:?}",
+        result
+    );
 }
 
 #[tokio::test]
@@ -351,7 +412,10 @@ async fn test_webhook_idempotency_duplicate_event() {
     let (handler, store) = setup_handler(secret).await;
 
     let user = store
-        .create_user(&format!("idem_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("idem_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -364,13 +428,25 @@ async fn test_webhook_idempotency_duplicate_event() {
     let sig = sign_standard_webhooks(&wh_id, &ts, &body, secret.as_bytes());
 
     // First delivery
-    let r1 = handler.process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id)).await;
+    let r1 = handler
+        .process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id))
+        .await;
     assert!(r1.is_ok(), "First delivery must succeed: {:?}", r1.err());
 
     // Duplicate delivery — same body so same event_id, must be deduplicated
-    let r2 = handler.process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id)).await;
-    assert!(r2.is_ok(), "Duplicate delivery must be silently accepted (idempotent): {:?}", r2.err());
-    assert_eq!(r2.unwrap(), "Already processed", "Duplicate must return 'Already processed'");
+    let r2 = handler
+        .process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id))
+        .await;
+    assert!(
+        r2.is_ok(),
+        "Duplicate delivery must be silently accepted (idempotent): {:?}",
+        r2.err()
+    );
+    assert_eq!(
+        r2.unwrap(),
+        "Already processed",
+        "Duplicate must return 'Already processed'"
+    );
 }
 
 #[tokio::test]
@@ -379,7 +455,10 @@ async fn test_subscription_cancelled_at_period_end() {
     let (handler, store) = setup_handler(secret).await;
 
     let user = store
-        .create_user(&format!("cancel_sched_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("cancel_sched_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -391,7 +470,10 @@ async fn test_subscription_cancelled_at_period_end() {
     let wh_id1 = format!("whev_{}", Uuid::new_v4().simple());
     let ts = now_epoch();
     let sig1 = sign_standard_webhooks(&wh_id1, &ts, &body, secret.as_bytes());
-    handler.process_webhook(body.as_bytes(), Some(&sig1), Some(&ts), Some(&wh_id1)).await.unwrap();
+    handler
+        .process_webhook(body.as_bytes(), Some(&sig1), Some(&ts), Some(&wh_id1))
+        .await
+        .unwrap();
 
     // Then: cancel at period end (scheduled cancellation)
     let cancel_body = serde_json::json!({
@@ -401,17 +483,32 @@ async fn test_subscription_cancelled_at_period_end() {
             "subscription_id": sub_id,
             "cancel_at_period_end": true
         }
-    }).to_string();
+    })
+    .to_string();
 
     let wh_id2 = format!("whev_{}", Uuid::new_v4().simple());
     let ts2 = now_epoch();
     let sig2 = sign_standard_webhooks(&wh_id2, &ts2, &cancel_body, secret.as_bytes());
-    let result = handler.process_webhook(cancel_body.as_bytes(), Some(&sig2), Some(&ts2), Some(&wh_id2)).await;
-    assert!(result.is_ok(), "cancel_at_period_end webhook must succeed: {:?}", result.err());
+    let result = handler
+        .process_webhook(
+            cancel_body.as_bytes(),
+            Some(&sig2),
+            Some(&ts2),
+            Some(&wh_id2),
+        )
+        .await;
+    assert!(
+        result.is_ok(),
+        "cancel_at_period_end webhook must succeed: {:?}",
+        result.err()
+    );
 
     // Entitlements remain active until period end
     assert!(
-        store.check_entitlement(&user_id, "coding_harness").await.unwrap(),
+        store
+            .check_entitlement(&user_id, "coding_harness")
+            .await
+            .unwrap(),
         "Entitlements must remain granted when cancel_at_period_end=true"
     );
 }
@@ -422,7 +519,10 @@ async fn test_subscription_immediate_cancellation_revokes_entitlements() {
     let (handler, store) = setup_handler(secret).await;
 
     let user = store
-        .create_user(&format!("cancel_imm_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("cancel_imm_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -434,10 +534,16 @@ async fn test_subscription_immediate_cancellation_revokes_entitlements() {
     let wh_id1 = format!("whev_{}", Uuid::new_v4().simple());
     let ts = now_epoch();
     let sig1 = sign_standard_webhooks(&wh_id1, &ts, &body, secret.as_bytes());
-    handler.process_webhook(body.as_bytes(), Some(&sig1), Some(&ts), Some(&wh_id1)).await.unwrap();
+    handler
+        .process_webhook(body.as_bytes(), Some(&sig1), Some(&ts), Some(&wh_id1))
+        .await
+        .unwrap();
 
     assert!(
-        store.check_entitlement(&user_id, "coding_harness").await.unwrap(),
+        store
+            .check_entitlement(&user_id, "coding_harness")
+            .await
+            .unwrap(),
         "Entitlements must be active post-activation"
     );
 
@@ -449,20 +555,35 @@ async fn test_subscription_immediate_cancellation_revokes_entitlements() {
             "subscription_id": sub_id,
             "cancel_at_period_end": false
         }
-    }).to_string();
+    })
+    .to_string();
 
     let wh_id2 = format!("whev_{}", Uuid::new_v4().simple());
     let ts2 = now_epoch();
     let sig2 = sign_standard_webhooks(&wh_id2, &ts2, &cancel_body, secret.as_bytes());
-    handler.process_webhook(cancel_body.as_bytes(), Some(&sig2), Some(&ts2), Some(&wh_id2)).await.unwrap();
+    handler
+        .process_webhook(
+            cancel_body.as_bytes(),
+            Some(&sig2),
+            Some(&ts2),
+            Some(&wh_id2),
+        )
+        .await
+        .unwrap();
 
     // Entitlements must be revoked immediately
     assert!(
-        !store.check_entitlement(&user_id, "coding_harness").await.unwrap(),
+        !store
+            .check_entitlement(&user_id, "coding_harness")
+            .await
+            .unwrap(),
         "coding_harness must be revoked on immediate cancellation"
     );
     assert!(
-        !store.check_entitlement(&user_id, "cloud_voice").await.unwrap(),
+        !store
+            .check_entitlement(&user_id, "cloud_voice")
+            .await
+            .unwrap(),
         "cloud_voice must be revoked on immediate cancellation"
     );
 }
@@ -472,18 +593,26 @@ async fn test_authoritative_expiration_denies_access() {
     let store = setup_store().await;
 
     let user = store
-        .create_user(&format!("exp_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("exp_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
 
     // Grant entitlement with a past expiration (expired 1 hour ago)
     let expired_at = past_timestamp();
-    store.set_entitlement(&user_id, "coding_harness", true, None, Some(&expired_at))
-        .await.unwrap();
+    store
+        .set_entitlement(&user_id, "coding_harness", true, None, Some(&expired_at))
+        .await
+        .unwrap();
 
     // Server must deny access due to authoritative expiration
-    let has_access = store.check_entitlement(&user_id, "coding_harness").await.unwrap();
+    let has_access = store
+        .check_entitlement(&user_id, "coding_harness")
+        .await
+        .unwrap();
     assert!(
         !has_access,
         "Expired entitlement must be denied by server-side authoritative check"
@@ -497,14 +626,20 @@ async fn test_client_entitlement_forgery_rejected() {
     let store = setup_store().await;
 
     let user = store
-        .create_user(&format!("forgery_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("forgery_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
 
     // User has NO subscription, NO entitlement. Client claims they have "unlimited_models".
     // Server check must return false.
-    let server_verdict = store.check_entitlement(&user_id, "unlimited_models").await.unwrap();
+    let server_verdict = store
+        .check_entitlement(&user_id, "unlimited_models")
+        .await
+        .unwrap();
     assert!(
         !server_verdict,
         "Server must reject entitlement forgery — user has no active subscription or grant"
@@ -517,7 +652,10 @@ async fn test_subscription_renewal_updates_period_end() {
     let (handler, store) = setup_handler(secret).await;
 
     let user = store
-        .create_user(&format!("renewal_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("renewal_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -529,7 +667,10 @@ async fn test_subscription_renewal_updates_period_end() {
     let wh_id1 = format!("whev_{}", Uuid::new_v4().simple());
     let ts1 = now_epoch();
     let sig1 = sign_standard_webhooks(&wh_id1, &ts1, &body1, secret.as_bytes());
-    handler.process_webhook(body1.as_bytes(), Some(&sig1), Some(&ts1), Some(&wh_id1)).await.unwrap();
+    handler
+        .process_webhook(body1.as_bytes(), Some(&sig1), Some(&ts1), Some(&wh_id1))
+        .await
+        .unwrap();
 
     // Renewal with new period end 60 days out
     let period_end_2 = (Utc::now() + chrono::Duration::days(60)).to_rfc3339();
@@ -544,17 +685,35 @@ async fn test_subscription_renewal_updates_period_end() {
             "current_period_start": Utc::now().to_rfc3339(),
             "current_period_end": period_end_2
         }
-    }).to_string();
+    })
+    .to_string();
 
     let wh_id2 = format!("whev_{}", Uuid::new_v4().simple());
     let ts2 = now_epoch();
     let sig2 = sign_standard_webhooks(&wh_id2, &ts2, &renewal_body, secret.as_bytes());
-    let result = handler.process_webhook(renewal_body.as_bytes(), Some(&sig2), Some(&ts2), Some(&wh_id2)).await;
-    assert!(result.is_ok(), "Renewal webhook must succeed: {:?}", result.err());
+    let result = handler
+        .process_webhook(
+            renewal_body.as_bytes(),
+            Some(&sig2),
+            Some(&ts2),
+            Some(&wh_id2),
+        )
+        .await;
+    assert!(
+        result.is_ok(),
+        "Renewal webhook must succeed: {:?}",
+        result.err()
+    );
 
     // Verify subscription period was updated
-    let active_sub = store.get_active_subscription_by_user_id(&user_id).await.unwrap();
-    assert!(active_sub.is_some(), "Active subscription must exist after renewal");
+    let active_sub = store
+        .get_active_subscription_by_user_id(&user_id)
+        .await
+        .unwrap();
+    assert!(
+        active_sub.is_some(),
+        "Active subscription must exist after renewal"
+    );
     assert_eq!(
         active_sub.unwrap().current_period_end,
         period_end_2,
@@ -563,7 +722,10 @@ async fn test_subscription_renewal_updates_period_end() {
 
     // Entitlements must still be active
     assert!(
-        store.check_entitlement(&user_id, "coding_harness").await.unwrap(),
+        store
+            .check_entitlement(&user_id, "coding_harness")
+            .await
+            .unwrap(),
         "Entitlements must be active after renewal"
     );
 }
@@ -575,11 +737,17 @@ async fn test_multiple_users_isolated_entitlements() {
     let (handler, store) = setup_handler(secret).await;
 
     let user_a = store
-        .create_user(&format!("isol_a_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_a")
+        .create_user(
+            &format!("isol_a_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_a",
+        )
         .await
         .expect("create user_a");
     let user_b = store
-        .create_user(&format!("isol_b_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_b")
+        .create_user(
+            &format!("isol_b_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_b",
+        )
         .await
         .expect("create user_b");
 
@@ -590,14 +758,23 @@ async fn test_multiple_users_isolated_entitlements() {
     let wh_id = format!("whev_{}", Uuid::new_v4().simple());
     let ts = now_epoch();
     let sig = sign_standard_webhooks(&wh_id, &ts, &body, secret.as_bytes());
-    handler.process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id)).await.unwrap();
+    handler
+        .process_webhook(body.as_bytes(), Some(&sig), Some(&ts), Some(&wh_id))
+        .await
+        .unwrap();
 
     assert!(
-        store.check_entitlement(&user_a.id, "coding_harness").await.unwrap(),
+        store
+            .check_entitlement(&user_a.id, "coding_harness")
+            .await
+            .unwrap(),
         "user_a must have coding_harness"
     );
     assert!(
-        !store.check_entitlement(&user_b.id, "coding_harness").await.unwrap(),
+        !store
+            .check_entitlement(&user_b.id, "coding_harness")
+            .await
+            .unwrap(),
         "user_b must NOT have coding_harness — no entitlement bleed"
     );
 }
@@ -612,7 +789,10 @@ async fn test_expired_subscription_denied_via_subscription_lookup() {
     let store = setup_store().await;
 
     let user = store
-        .create_user(&format!("sub_exp_{}@test.voxy.ai", Uuid::new_v4().simple()), "hash_placeholder")
+        .create_user(
+            &format!("sub_exp_{}@test.voxy.ai", Uuid::new_v4().simple()),
+            "hash_placeholder",
+        )
         .await
         .expect("create user");
     let user_id = user.id.clone();
@@ -631,7 +811,10 @@ async fn test_expired_subscription_denied_via_subscription_lookup() {
         created_at: (Utc::now() - chrono::Duration::days(60)).to_rfc3339(),
         updated_at: Utc::now().to_rfc3339(),
     };
-    store.upsert_subscription(&sub).await.expect("upsert subscription with expired period");
+    store
+        .upsert_subscription(&sub)
+        .await
+        .expect("upsert subscription with expired period");
 
     // EntitlementEngine must deny access because period_end is in the past
     let authorized = EntitlementEngine::is_authorized(&store, &user_id, FeatureFlag::CodingHarness)
@@ -643,4 +826,3 @@ async fn test_expired_subscription_denied_via_subscription_lookup() {
         "Expired subscription (period_end in past) must deny access via authoritative check"
     );
 }
-

@@ -1,26 +1,26 @@
 pub mod frames;
-pub mod processor;
-pub mod runner;
-pub mod turn;
-pub mod stt;
-pub mod tts;
 pub mod interruptions;
 pub mod llm;
+pub mod processor;
 pub mod provider;
+pub mod runner;
+pub mod stt;
+pub mod tts;
+pub mod turn;
 
 pub use frames::*;
-pub use processor::{Pipeline, Processor};
-pub use runner::PipelineRunner;
-pub use turn::{TurnProcessor, TurnProcessorConfig};
-pub use stt::{CloudOpenAiSttService, EchoSttService, STTProcessor, VoxraySttService};
-pub use tts::{CloudOpenAiTtsService, TTSProcessor, ToneTtsService, VoxrayTtsService};
 pub use interruptions::InterruptionController;
 pub use llm::{LLMProcessor, StreamingLlmFn};
+pub use processor::{Pipeline, Processor};
 pub use provider::{
-    AudioData, CloudSTTService, CloudTTSService, EstimatedCost, HealthStatus,
-    ProviderError, ProviderQuotaManager, STTProvider, STTRouter, TTSProvider,
-    TTSRouter, VoiceLanguage, VoiceSystem,
+    AudioData, CloudSTTService, CloudTTSService, EstimatedCost, HealthStatus, ProviderError,
+    ProviderQuotaManager, STTProvider, STTRouter, TTSProvider, TTSRouter, VoiceLanguage,
+    VoiceSystem,
 };
+pub use runner::PipelineRunner;
+pub use stt::{CloudOpenAiSttService, EchoSttService, STTProcessor, VoxraySttService};
+pub use tts::{CloudOpenAiTtsService, TTSProcessor, ToneTtsService, VoxrayTtsService};
+pub use turn::{TurnProcessor, TurnProcessorConfig};
 
 #[cfg(test)]
 mod tests {
@@ -120,9 +120,15 @@ mod tests {
         });
 
         // Bot begins speaking
-        let _ = in_tx.send(Frame::BotStartedSpeaking(BotStartedSpeakingFrame::default())).await;
+        let _ = in_tx
+            .send(Frame::BotStartedSpeaking(BotStartedSpeakingFrame::default()))
+            .await;
         // User speaks while bot is speaking -> should trigger barge-in InterruptionFrame
-        let _ = in_tx.send(Frame::UserStartedSpeaking(UserStartedSpeakingFrame::default())).await;
+        let _ = in_tx
+            .send(Frame::UserStartedSpeaking(
+                UserStartedSpeakingFrame::default(),
+            ))
+            .await;
 
         drop(in_tx);
         let _ = runner_handle.await;

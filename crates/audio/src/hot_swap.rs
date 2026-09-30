@@ -257,9 +257,12 @@ impl HotSwapManager {
                 }
                 Ok(Err(e)) => {
                     tracing::error!("Recovery failed: {}", e);
-                    let mut attempts = self.recovery_attempts.write();
-                    *attempts += 1;
-                    if *attempts >= config.max_recovery_attempts {
+                    let should_sleep = {
+                        let mut attempts = self.recovery_attempts.write();
+                        *attempts += 1;
+                        *attempts >= config.max_recovery_attempts
+                    };
+                    if should_sleep {
                         let old = *self.state.read();
                         *self.state.write() = PipelineState::Sleeping;
                         handler.on_state_change(old, PipelineState::Sleeping).await;

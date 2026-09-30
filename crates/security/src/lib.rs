@@ -24,8 +24,8 @@ pub mod threat;
 pub mod token;
 pub mod trust;
 
+pub use audit::{AuditEntry, AuditEventType, AuditLog};
 pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};
-pub use audit::{AuditEntry, AuditLog, AuditEventType};
 pub use capability::{Capability, CapabilityCategory, CapabilityRegistry, RiskLevel};
 pub use consent::{ConsentManager, ConsentRequest};
 pub use defense::{AutoDefense, DefenseAction, RiskProfile};

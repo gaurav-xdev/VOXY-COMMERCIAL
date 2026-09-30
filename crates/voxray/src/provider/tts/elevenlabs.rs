@@ -8,8 +8,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    TTSStream, VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, TTSStream, VoiceLanguage,
 };
 
 const ELEVENLABS_TTS_BASE_URL: &str = "https://api.elevenlabs.io/v1/text-to-speech";
@@ -121,7 +120,11 @@ impl TTSProvider for ElevenLabsTTSProvider {
             }
         });
 
-        debug!(provider = self.id(), text_len = text.len(), "Calling ElevenLabs TTS");
+        debug!(
+            provider = self.id(),
+            text_len = text.len(),
+            "Calling ElevenLabs TTS"
+        );
 
         let response = self
             .client
@@ -169,10 +172,9 @@ impl TTSProvider for ElevenLabsTTSProvider {
             )));
         }
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e)))?;
+        let bytes = response.bytes().await.map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e))
+        })?;
 
         Ok(Self::raw_pcm16_to_audiodata(&bytes, 16000))
     }

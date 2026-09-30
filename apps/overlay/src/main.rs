@@ -1,21 +1,21 @@
-mod types;
-mod styles;
 mod client_js;
 mod components;
+mod styles;
+mod types;
 
 use dioxus::prelude::*;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tracing_subscriber::EnvFilter;
 
-use types::{ChatMessage, DesktopMode, StepStatus, SystemTelemetry, ToolStep, VisualState};
-use styles::GLOBAL_STYLES;
 use client_js::CLIENT_JS;
-use components::core_entity::CoreEntity;
-use components::context_layer::{ContextBottomBar, ContextTopBar};
 use components::computer_control::{ComputerControlBanner, VoxyCursorBeacon};
+use components::context_layer::{ContextBottomBar, ContextTopBar};
+use components::core_entity::CoreEntity;
 use components::depth_drawer::{DepthDrawer, DrawerTab};
 use components::mode_views::{CompactModeView, EdgeDockView, MinimalView};
+use styles::GLOBAL_STYLES;
+use types::{ChatMessage, DesktopMode, StepStatus, SystemTelemetry, ToolStep, VisualState};
 
 struct GlobalAppState {
     visual_state: parking_lot::RwLock<VisualState>,
@@ -65,7 +65,9 @@ impl GlobalAppState {
 static APP_STATE: OnceLock<Arc<GlobalAppState>> = OnceLock::new();
 
 fn get_app_state() -> Arc<GlobalAppState> {
-    APP_STATE.get_or_init(|| Arc::new(GlobalAppState::new())).clone()
+    APP_STATE
+        .get_or_init(|| Arc::new(GlobalAppState::new()))
+        .clone()
 }
 
 static IPC_CLIENT: OnceLock<Arc<voxy_ipc::VoxyIpcClient>> = OnceLock::new();
@@ -98,14 +100,14 @@ fn App() -> Element {
 
     // Listen to VOXY Daemon via native Windows Named Pipe IPC
     use_effect(move || {
-        let vs = visual_state.clone();
-        let ts = transcript.clone();
-        let tc = turn_count.clone();
-        let msgs = messages.clone();
-        let t_steps = tool_steps.clone();
-        let mut telem = telemetry.clone();
+        let vs = visual_state;
+        let ts = transcript;
+        let tc = turn_count;
+        let msgs = messages;
+        let t_steps = tool_steps;
+        let mut telem = telemetry;
         let gs = global_state.clone();
-        let mut ct_mut = cursor_telem.clone();
+        let mut ct_mut = cursor_telem;
 
         spawn(async move {
             let client = get_ipc_client();
@@ -114,8 +116,8 @@ fn App() -> Element {
 
             // Background task watching connection state
             {
-                let mut vs_conn = vs.clone();
-                let mut ts_conn = ts.clone();
+                let mut vs_conn = vs;
+                let mut ts_conn = ts;
                 let mut conn_rx = conn_watch.clone();
                 spawn(async move {
                     while conn_rx.changed().await.is_ok() {
@@ -156,10 +158,10 @@ fn App() -> Element {
                             state
                         };
                         *gs.visual_state.write() = state;
-                        let mut vs_mut = vs.clone();
+                        let mut vs_mut = vs;
                         vs_mut.set(state);
                         *gs.transcript.write() = snap_t.clone();
-                        let mut ts_mut = ts.clone();
+                        let mut ts_mut = ts;
                         ts_mut.set(snap_t);
                     }
                     voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
@@ -173,7 +175,7 @@ fn App() -> Element {
                             }
                         };
                         *gs.visual_state.write() = v_state;
-                        let mut vs_mut = vs.clone();
+                        let mut vs_mut = vs;
                         vs_mut.set(v_state);
                         let _ = document::eval(&format!(
                             "if (window.voxySetVisualState) window.voxySetVisualState('{}');",
@@ -182,7 +184,7 @@ fn App() -> Element {
                     }
                     voxy_ipc::DaemonMessage::TranscriptUpdate { text, .. } => {
                         *gs.transcript.write() = text.clone();
-                        let mut ts_mut = ts.clone();
+                        let mut ts_mut = ts;
                         ts_mut.set(text.clone());
                         let json_text = serde_json::to_string(&text).unwrap_or_default();
                         let _ = document::eval(&format!(
@@ -219,7 +221,7 @@ fn App() -> Element {
                             detail,
                             status: step_status,
                         };
-                        let mut steps = t_steps.clone();
+                        let mut steps = t_steps;
                         let mut found = false;
                         for s in steps.write().iter_mut() {
                             if s.id == new_step.id {
@@ -232,7 +234,7 @@ fn App() -> Element {
                             steps.write().push(new_step);
                         }
                         if status == voxy_ipc::ToolStepStatus::Running {
-                            let mut vs_mut = vs.clone();
+                            let mut vs_mut = vs;
                             vs_mut.set(VisualState::Executing);
                         }
                     }
@@ -250,28 +252,29 @@ fn App() -> Element {
                             timestamp,
                             is_user,
                         };
-                        let mut m_mut = msgs.clone();
+                        let mut m_mut = msgs;
                         m_mut.write().push(chat_msg.clone());
                         gs.messages.write().push(chat_msg);
                         let count = *tc.read() + 1;
-                        let mut tc_mut = tc.clone();
+                        let mut tc_mut = tc;
                         tc_mut.set(count);
                     }
                     voxy_ipc::DaemonMessage::Interrupted { .. } => {
-                        let mut vs_mut = vs.clone();
+                        let mut vs_mut = vs;
                         vs_mut.set(VisualState::Error);
-                        let mut ts_mut = ts.clone();
+                        let mut ts_mut = ts;
                         ts_mut.set("Interrupted by user speech...".to_string());
                         tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
                         vs_mut.set(VisualState::Listening);
                     }
                     voxy_ipc::DaemonMessage::EmergencyStopChanged { is_stopped } => {
                         if is_stopped {
-                            let mut vs_mut = vs.clone();
+                            let mut vs_mut = vs;
                             vs_mut.set(VisualState::Error);
-                            let mut ts_mut = ts.clone();
+                            let mut ts_mut = ts;
                             ts_mut.set(
-                                "EMERGENCY STOP ACTIVATED: All computer control halted.".to_string(),
+                                "EMERGENCY STOP ACTIVATED: All computer control halted."
+                                    .to_string(),
                             );
                         }
                     }
@@ -320,7 +323,7 @@ fn App() -> Element {
                             telem_data.x, telem_data.y, state_json, elem_json, desc_json, telem_data.confidence, telem_data.requires_confirmation, telem_data.action_id.unwrap_or(0)
                         ));
                         if is_active && telem_data.requires_confirmation {
-                            let mut vs_mut = vs.clone();
+                            let mut vs_mut = vs;
                             vs_mut.set(VisualState::Thinking);
                         }
                     }
@@ -342,24 +345,28 @@ fn App() -> Element {
     let collapsed = *is_collapsed.read();
     let drawer_is_open = *drawer_open.read();
 
-    let root_class = if collapsed { "voxy-app-root collapsed" } else { "voxy-app-root" };
+    let root_class = if collapsed {
+        "voxy-app-root collapsed"
+    } else {
+        "voxy-app-root"
+    };
 
     let toggle_spatial = move |_| {
-        let mut ic = is_collapsed.clone();
+        let mut ic = is_collapsed;
         let nxt = !*ic.read();
         *get_app_state().is_collapsed.write() = nxt;
         ic.set(nxt);
     };
 
     let toggle_drawer = move |_| {
-        let mut dr = drawer_open.clone();
+        let mut dr = drawer_open;
         let nxt = !*dr.read();
         *get_app_state().drawer_open.write() = nxt;
         dr.set(nxt);
     };
 
     let switch_to_full = move |_| {
-        let mut dm = desktop_mode.clone();
+        let mut dm = desktop_mode;
         *get_app_state().desktop_mode.write() = DesktopMode::FullExperience;
         dm.set(DesktopMode::FullExperience);
     };
@@ -473,7 +480,10 @@ fn main() {
         )
         .init();
 
-    tracing::info!("Starting VOXY AI Operating Companion Overlay v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!(
+        "Starting VOXY AI Operating Companion Overlay v{}",
+        env!("CARGO_PKG_VERSION")
+    );
 
     let _state = APP_STATE.get_or_init(|| Arc::new(GlobalAppState::new()));
 
@@ -487,7 +497,7 @@ fn main() {
                 .with_decorations(false)
                 .with_always_on_top(true)
                 .with_maximized(true)
-                .with_title("VOXY AI Operating Companion")
+                .with_title("VOXY AI Operating Companion"),
         );
 
     dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(App);

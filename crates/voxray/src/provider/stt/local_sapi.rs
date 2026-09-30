@@ -22,10 +22,7 @@ impl LocalSapiSTTProvider {
             capabilities: STTCapabilities {
                 streaming: false,
                 word_timestamps: false,
-                supported_languages: vec![
-                    VoiceLanguage::English,
-                    VoiceLanguage::AutoDetect,
-                ],
+                supported_languages: vec![VoiceLanguage::English, VoiceLanguage::AutoDetect],
                 multilingual: false,
                 custom_vocab: false,
                 max_audio_duration_secs: 60,
@@ -90,7 +87,10 @@ impl STTProvider for LocalSapiSTTProvider {
 
         let b64_path = base64::engine::general_purpose::STANDARD.encode(wav_path_str.as_bytes());
 
-        debug!(provider = self.id(), "Transcribing speech via Windows SAPI local fallback");
+        debug!(
+            provider = self.id(),
+            "Transcribing speech via Windows SAPI local fallback"
+        );
         let start = std::time::Instant::now();
 
         let script = format!(
@@ -116,11 +116,19 @@ impl STTProvider for LocalSapiSTTProvider {
         // Cleanup temporary WAV file regardless of success or failure
         let _ = std::fs::remove_file(&wav_path);
 
-        let output = output_res.map_err(|e| {
-            ProviderError::TranscriptionFailed(format!("Failed to spawn PowerShell task: {}", e))
-        })?.map_err(|e| {
-            ProviderError::TranscriptionFailed(format!("Failed to execute Windows SAPI STT: {}", e))
-        })?;
+        let output = output_res
+            .map_err(|e| {
+                ProviderError::TranscriptionFailed(format!(
+                    "Failed to spawn PowerShell task: {}",
+                    e
+                ))
+            })?
+            .map_err(|e| {
+                ProviderError::TranscriptionFailed(format!(
+                    "Failed to execute Windows SAPI STT: {}",
+                    e
+                ))
+            })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

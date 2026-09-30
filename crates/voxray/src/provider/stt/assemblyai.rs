@@ -32,10 +32,7 @@ impl AssemblyAISTTProvider {
         let capabilities = STTCapabilities {
             streaming: false,
             word_timestamps: true,
-            supported_languages: vec![
-                VoiceLanguage::English,
-                VoiceLanguage::Hindi,
-            ],
+            supported_languages: vec![VoiceLanguage::English, VoiceLanguage::Hindi],
             multilingual: true,
             custom_vocab: true,
             max_audio_duration_secs: 1800,
@@ -126,9 +123,9 @@ impl STTProvider for AssemblyAISTTProvider {
             ProviderError::TranscriptionFailed(format!("Failed to parse upload JSON: {}", e))
         })?;
 
-        let upload_url = upload_body["upload_url"]
-            .as_str()
-            .ok_or_else(|| ProviderError::TranscriptionFailed("Missing upload_url in response".into()))?;
+        let upload_url = upload_body["upload_url"].as_str().ok_or_else(|| {
+            ProviderError::TranscriptionFailed("Missing upload_url in response".into())
+        })?;
 
         // 2. Submit transcription job
         let mut job_body = json!({
@@ -159,9 +156,9 @@ impl STTProvider for AssemblyAISTTProvider {
             ProviderError::TranscriptionFailed(format!("Failed to parse submit JSON: {}", e))
         })?;
 
-        let transcript_id = submit_body["id"]
-            .as_str()
-            .ok_or_else(|| ProviderError::TranscriptionFailed("Missing id in submit response".into()))?;
+        let transcript_id = submit_body["id"].as_str().ok_or_else(|| {
+            ProviderError::TranscriptionFailed("Missing id in submit response".into())
+        })?;
 
         // 3. Poll for completion (up to 10 iterations of 300ms)
         let poll_url = format!("{}/{}", ASSEMBLYAI_TRANSCRIPT_ENDPOINT, transcript_id);
@@ -184,7 +181,9 @@ impl STTProvider for AssemblyAISTTProvider {
                         text = body["text"].as_str().unwrap_or("").trim().to_string();
                         break;
                     } else if status_str == "error" {
-                        let err_msg = body["error"].as_str().unwrap_or("Unknown transcription error");
+                        let err_msg = body["error"]
+                            .as_str()
+                            .unwrap_or("Unknown transcription error");
                         return Err(ProviderError::TranscriptionFailed(err_msg.to_string()));
                     }
                 }

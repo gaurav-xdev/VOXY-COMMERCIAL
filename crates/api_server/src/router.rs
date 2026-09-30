@@ -1,12 +1,12 @@
-use serde::Serialize;
-use std::collections::HashMap;
-use std::sync::Arc;
 use crate::error::{ApiError, ApiResponseEnvelope};
 use crate::handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
     EntitlementCheckRequest, LoginRequest, RegisterRequest,
 };
 use crate::middleware::{AuthMiddleware, RateLimitMiddleware};
+use serde::Serialize;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Abstract HTTP-like request structure for API dispatch.
 #[derive(Debug, Clone)]
@@ -38,7 +38,8 @@ impl ApiRequest {
 
     pub fn with_json<T: Serialize>(mut self, body: &T) -> Self {
         self.body = serde_json::to_vec(body).unwrap_or_default();
-        self.headers.insert("content-type".to_string(), "application/json".to_string());
+        self.headers
+            .insert("content-type".to_string(), "application/json".to_string());
         self
     }
 }
@@ -172,7 +173,11 @@ impl ApiRouter {
                         );
                     }
                 };
-                match self.handlers.check_entitlement(&auth_ctx, &check_req.feature).await {
+                match self
+                    .handlers
+                    .check_entitlement(&auth_ctx, &check_req.feature)
+                    .await
+                {
                     Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
                     Err(e) => ApiResponse::error(e, &req.request_id),
                 }
@@ -218,7 +223,11 @@ impl ApiRouter {
                 };
                 match self
                     .handlers
-                    .create_checkout_session(&auth_ctx, &checkout_req.plan_id, &checkout_req.return_url)
+                    .create_checkout_session(
+                        &auth_ctx,
+                        &checkout_req.plan_id,
+                        &checkout_req.return_url,
+                    )
                     .await
                 {
                     Ok(url) => ApiResponse::json(

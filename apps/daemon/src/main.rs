@@ -8,10 +8,12 @@ use std::time::{Duration, Instant};
 
 mod background;
 mod dev_text_input;
-mod shutdown;
 mod loopback_test;
+mod shutdown;
 mod tools;
 
+use chrono::Timelike;
+use voxy_anthropic::AnthropicProvider;
 use voxy_automation::WindowsUiaBackend;
 use voxy_cognition::{CognitionConfig, CognitiveEngine, InMemoryCognitiveEngine, IntentInput};
 use voxy_cognitive_orchestrator::bridge::CognitiveBridge;
@@ -20,10 +22,9 @@ use voxy_companion_intelligence::{
     ExperienceBridge, ExperienceInput, IntelligenceConfig, MomentContext, MomentEngine,
 };
 use voxy_desktop_runtime::{DesktopRuntime, RuntimeConfig};
+use voxy_gemini::GeminiProvider;
 use voxy_ollama::OllamaProvider;
 use voxy_openai::{OpenAIConfig, OpenAIProvider};
-use voxy_anthropic::AnthropicProvider;
-use voxy_gemini::GeminiProvider;
 use voxy_orchestrator::automation::AutomationBackend;
 use voxy_provider_core::LlmProvider;
 use voxy_runtime_guard::{GuardConfig, RuntimeGuard};
@@ -33,7 +34,6 @@ use voxy_security::{
     SystemPromptBuilder,
 };
 use voxy_voice::VoicePipeline;
-use chrono::Timelike;
 use voxy_world_model::{DesktopEventBridge, WorldModelConfig};
 
 /// A completed speculative LLM reply generated for a partial transcript.
@@ -55,10 +55,8 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
 
     match provider.as_str() {
         "openai" => {
-            let api_key = std::env::var("VOXY_API_KEYS_OPENAI")
-                .unwrap_or_default();
-            let model = std::env::var("VOXY_OPENAI_MODEL")
-                .unwrap_or_else(|_| "gpt-4o-mini".into());
+            let api_key = std::env::var("VOXY_API_KEYS_OPENAI").unwrap_or_default();
+            let model = std::env::var("VOXY_OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o-mini".into());
             if api_key.is_empty() {
                 tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set, falling back to Ollama");
                 return create_ollama_provider();
@@ -68,22 +66,22 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             Arc::new(OpenAIProvider::new(config).with_model(&model))
         }
         "anthropic" => {
-            let api_key = std::env::var("VOXY_API_KEYS_ANTHROPIC")
-                .unwrap_or_default();
+            let api_key = std::env::var("VOXY_API_KEYS_ANTHROPIC").unwrap_or_default();
             let model = std::env::var("VOXY_ANTHROPIC_MODEL")
                 .unwrap_or_else(|_| "claude-sonnet-4-20250514".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_ANTHROPIC not set, falling back to Ollama");
+                tracing::warn!(
+                    "[PROVIDER] VOXY_API_KEYS_ANTHROPIC not set, falling back to Ollama"
+                );
                 return create_ollama_provider();
             }
             tracing::info!("[PROVIDER] Using Anthropic: model={}", model);
             Arc::new(AnthropicProvider::new(api_key).with_model(&model))
         }
         "gemini" => {
-            let api_key = std::env::var("VOXY_API_KEYS_GEMINI")
-                .unwrap_or_default();
-            let model = std::env::var("VOXY_GEMINI_MODEL")
-                .unwrap_or_else(|_| "gemini-2.0-flash".into());
+            let api_key = std::env::var("VOXY_API_KEYS_GEMINI").unwrap_or_default();
+            let model =
+                std::env::var("VOXY_GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.0-flash".into());
             if api_key.is_empty() {
                 tracing::warn!("[PROVIDER] VOXY_API_KEYS_GEMINI not set, falling back to Ollama");
                 return create_ollama_provider();
@@ -92,12 +90,13 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             Arc::new(GeminiProvider::new(api_key).with_model(&model))
         }
         "groq" => {
-            let api_key = std::env::var("VOXY_API_KEYS_OPENAI")
-                .unwrap_or_default();
-            let model = std::env::var("VOXY_GROQ_MODEL")
-                .unwrap_or_else(|_| "openai/gpt-oss-20b".into());
+            let api_key = std::env::var("VOXY_API_KEYS_OPENAI").unwrap_or_default();
+            let model =
+                std::env::var("VOXY_GROQ_MODEL").unwrap_or_else(|_| "openai/gpt-oss-20b".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set for Groq, falling back to Ollama");
+                tracing::warn!(
+                    "[PROVIDER] VOXY_API_KEYS_OPENAI not set for Groq, falling back to Ollama"
+                );
                 return create_ollama_provider();
             }
             let config = OpenAIConfig::groq(api_key);
@@ -105,8 +104,7 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             Arc::new(OpenAIProvider::new(config).with_model(&model))
         }
         "openrouter" => {
-            let api_key = std::env::var("VOXY_API_KEYS_OPENAI")
-                .unwrap_or_default();
+            let api_key = std::env::var("VOXY_API_KEYS_OPENAI").unwrap_or_default();
             let model = std::env::var("VOXY_OPENROUTER_MODEL")
                 .unwrap_or_else(|_| "anthropic/claude-3.5-sonnet".into());
             if api_key.is_empty() {
@@ -122,10 +120,8 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
 }
 
 fn create_ollama_provider() -> Arc<dyn LlmProvider> {
-    let url = std::env::var("VOXY_OLLAMA_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:11434".into());
-    let model = std::env::var("VOXY_OLLAMA_MODEL")
-        .unwrap_or_else(|_| "gpt-oss:120b-cloud".into());
+    let url = std::env::var("VOXY_OLLAMA_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".into());
+    let model = std::env::var("VOXY_OLLAMA_MODEL").unwrap_or_else(|_| "gpt-oss:120b-cloud".into());
     tracing::info!("[PROVIDER] Using Ollama Cloud: model={} @ {}", model, url);
     Arc::new(
         OllamaProvider::new(&url, &model)
@@ -179,7 +175,9 @@ impl ConversationMemory {
                 if let Err(e) = conn.busy_timeout(std::time::Duration::from_millis(5000)) {
                     tracing::warn!("[MEMORY] Failed to set busy timeout: {e}");
                 }
-                if let Err(e) = conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;") {
+                if let Err(e) =
+                    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")
+                {
                     tracing::warn!("[MEMORY] Failed to set WAL mode: {e}");
                 }
                 if let Err(e) = conn.execute_batch(
@@ -194,7 +192,10 @@ impl ConversationMemory {
                     tracing::warn!("[MEMORY] Failed to create tables: {e}");
                     return None;
                 }
-                tracing::info!("[MEMORY] SQLite conversation memory opened at {}", db_path.display());
+                tracing::info!(
+                    "[MEMORY] SQLite conversation memory opened at {}",
+                    db_path.display()
+                );
                 Some(conn)
             }
             Err(e) => {
@@ -206,15 +207,14 @@ impl ConversationMemory {
 
     fn load_recent_turns(&mut self) {
         if let Some(ref conn) = self.db {
-            match conn.prepare(
-                "SELECT role, content FROM conversation_turns ORDER BY id DESC LIMIT 20",
-            ) {
+            match conn
+                .prepare("SELECT role, content FROM conversation_turns ORDER BY id DESC LIMIT 20")
+            {
                 Ok(mut stmt) => {
                     if let Ok(mapped) = stmt.query_map([], |row| {
                         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
                     }) {
-                        let rows: Vec<(String, String)> =
-                            mapped.filter_map(|r| r.ok()).collect();
+                        let rows: Vec<(String, String)> = mapped.filter_map(|r| r.ok()).collect();
                         // Rows come newest-first, reverse for chronological order
                         for (role, content) in rows.into_iter().rev() {
                             self.turns.push_back((role, content));
@@ -270,8 +270,7 @@ impl ConversationMemory {
             kept.push(turn);
         }
         kept.reverse();
-        kept
-            .iter()
+        kept.iter()
             .map(|(role, text)| format!("{}: {}", role, text))
             .collect::<Vec<_>>()
             .join("\n")
@@ -554,7 +553,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         let voice_system = Arc::new(voxy_voxray::provider::VoiceSystem::build_from_env());
 
         let voxray_stt = voxy_voice::VoxraySttEngine::new(
-            voice_system.stt_service.clone() as Arc<dyn voxy_voxray::stt::VoxraySttService>,
+            voice_system.stt_service.clone() as Arc<dyn voxy_voxray::stt::VoxraySttService>
         );
         pipeline.set_stt_engine(Box::new(voxray_stt)).await?;
 
@@ -569,10 +568,22 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             .ok()
             .and_then(|p| p.parse().ok())
             .unwrap_or(8088);
-        if let Err(e) = voxy_voxray::provider::admin::start_admin_server(admin_port, Arc::clone(&voice_system.admin_api)).await {
-            tracing::warn!("[VOICE:ADMIN] Voice admin server could not bind to port {}: {}", admin_port, e);
+        if let Err(e) = voxy_voxray::provider::admin::start_admin_server(
+            admin_port,
+            Arc::clone(&voice_system.admin_api),
+        )
+        .await
+        {
+            tracing::warn!(
+                "[VOICE:ADMIN] Voice admin server could not bind to port {}: {}",
+                admin_port,
+                e
+            );
         } else {
-            tracing::info!("[VOICE:ADMIN] Voice Admin & Observability API running on http://127.0.0.1:{}", admin_port);
+            tracing::info!(
+                "[VOICE:ADMIN] Voice Admin & Observability API running on http://127.0.0.1:{}",
+                admin_port
+            );
         }
 
         pipeline.start_capture().await?;
@@ -580,73 +591,87 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         // ── VOXY COM Native IPC Server (Windows Named Pipe) ──
         let ipc_server = Arc::new(voxy_ipc::VoxyIpcServer::new());
         ipc_server.start();
-        tracing::info!("[IPC] VOXY COM Named Pipe IPC server active on {}", voxy_ipc::VOXY_PIPE_NAME);
+        tracing::info!(
+            "[IPC] VOXY COM Named Pipe IPC server active on {}",
+            voxy_ipc::VOXY_PIPE_NAME
+        );
 
         // Hook pipeline events -> IPC server broadcasts
         {
             let ipc_srv = ipc_server.clone();
-            let _ = pipeline.on_event(Box::new(move |event| {
-                let srv = ipc_srv.clone();
-                match event {
-                    voxy_voice::VoiceEvent::WakeWordDetected { .. } | voxy_voice::VoiceEvent::VoiceActivityStarted => {
-                        tokio::spawn(async move {
-                            srv.set_voice_state(voxy_ipc::VoiceState::Listening, None).await;
-                        });
+            let _ = pipeline
+                .on_event(Box::new(move |event| {
+                    let srv = ipc_srv.clone();
+                    match event {
+                        voxy_voice::VoiceEvent::WakeWordDetected { .. }
+                        | voxy_voice::VoiceEvent::VoiceActivityStarted => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Listening, None)
+                                    .await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::VoiceActivityEnded { .. } => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Thinking, None)
+                                    .await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::TranscriptionResult {
+                            text,
+                            is_final,
+                            confidence,
+                        } => {
+                            tokio::spawn(async move {
+                                srv.set_transcript(text, is_final, confidence).await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::SynthesisStarted { .. } => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Speaking, None)
+                                    .await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::SynthesisCompleted { .. } => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Idle, None).await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::SynthesisError { .. }
+                        | voxy_voice::VoiceEvent::TranscriptionError { .. } => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Error, None).await;
+                            });
+                        }
+                        voxy_voice::VoiceEvent::PipelineStateChanged { state } => {
+                            let st = match state.to_lowercase().as_str() {
+                                "idle" => voxy_ipc::VoiceState::Idle,
+                                "listening" => voxy_ipc::VoiceState::Listening,
+                                "thinking" | "processing" => voxy_ipc::VoiceState::Thinking,
+                                "speaking" => voxy_ipc::VoiceState::Speaking,
+                                "interrupted" => voxy_ipc::VoiceState::Interrupted,
+                                _ => voxy_ipc::VoiceState::Idle,
+                            };
+                            tokio::spawn(async move {
+                                srv.set_voice_state(st, None).await;
+                            });
+                        }
                     }
-                    voxy_voice::VoiceEvent::VoiceActivityEnded { .. } => {
-                        tokio::spawn(async move {
-                            srv.set_voice_state(voxy_ipc::VoiceState::Thinking, None).await;
-                        });
-                    }
-                    voxy_voice::VoiceEvent::TranscriptionResult { text, is_final, confidence } => {
-                        tokio::spawn(async move {
-                            srv.set_transcript(text, is_final, confidence).await;
-                        });
-                    }
-                    voxy_voice::VoiceEvent::SynthesisStarted { .. } => {
-                        tokio::spawn(async move {
-                            srv.set_voice_state(voxy_ipc::VoiceState::Speaking, None).await;
-                        });
-                    }
-                    voxy_voice::VoiceEvent::SynthesisCompleted { .. } => {
-                        tokio::spawn(async move {
-                            srv.set_voice_state(voxy_ipc::VoiceState::Idle, None).await;
-                        });
-                    }
-                    voxy_voice::VoiceEvent::SynthesisError { .. } | voxy_voice::VoiceEvent::TranscriptionError { .. } => {
-                        tokio::spawn(async move {
-                            srv.set_voice_state(voxy_ipc::VoiceState::Error, None).await;
-                        });
-                    }
-                    voxy_voice::VoiceEvent::PipelineStateChanged { state } => {
-                        let st = match state.to_lowercase().as_str() {
-                            "idle" => voxy_ipc::VoiceState::Idle,
-                            "listening" => voxy_ipc::VoiceState::Listening,
-                            "thinking" | "processing" => voxy_ipc::VoiceState::Thinking,
-                            "speaking" => voxy_ipc::VoiceState::Speaking,
-                            "interrupted" => voxy_ipc::VoiceState::Interrupted,
-                            _ => voxy_ipc::VoiceState::Idle,
-                        };
-                        tokio::spawn(async move {
-                            srv.set_voice_state(st, None).await;
-                        });
-                    }
-                }
-            })).await;
+                }))
+                .await;
         }
 
         // ── Voice Engine V2: initialize watchdog, calibrator, metrics ──
         pipeline.initialize_v2().await?;
-        if let Some(ref _watchdog) = pipeline.watchdog() {
+        if let Some(_watchdog) = pipeline.watchdog() {
             tracing::info!("V2 watchdog registered for 5 stages");
         }
-        if let Some(ref _calibrator) = pipeline.calibrator() {
+        if let Some(_calibrator) = pipeline.calibrator() {
             tracing::info!("V2 self-calibrator ready (will calibrate during first use)");
         }
-        if let Some(ref _mc) = pipeline.metrics_collector() {
+        if let Some(_mc) = pipeline.metrics_collector() {
             tracing::info!("V2 metrics collector initialized");
         }
-        if let Some(ref _vm) = pipeline.voice_memory() {
+        if let Some(_vm) = pipeline.voice_memory() {
             tracing::info!("V2 voice memory initialized");
         }
         tracing::info!("Voice Engine V2 fully integrated");
@@ -797,8 +822,14 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         let llm = create_llm_provider();
         match llm.health().await {
             Ok(true) => tracing::info!("[PROVIDER] {} connected", llm.name()),
-            Ok(false) => tracing::warn!("[PROVIDER] {} health check failed, will retry on first request", llm.name()),
-            Err(e) => tracing::warn!("[PROVIDER] {} not reachable: {e} — LLM responses will be fallbacks", llm.name()),
+            Ok(false) => tracing::warn!(
+                "[PROVIDER] {} health check failed, will retry on first request",
+                llm.name()
+            ),
+            Err(e) => tracing::warn!(
+                "[PROVIDER] {} not reachable: {e} — LLM responses will be fallbacks",
+                llm.name()
+            ),
         }
 
         // ── Native Hardware & Capability Discovery ──
@@ -836,17 +867,12 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 move || {
                     let name = llm_name.clone();
                     async move {
-                        voxy_health::HealthReport::new(
-                            &name,
-                            voxy_shared::HealthStatus::Healthy,
-                        )
+                        voxy_health::HealthReport::new(&name, voxy_shared::HealthStatus::Healthy)
                     }
                 },
-                move || {
-                    async move {
-                        tokio::time::sleep(Duration::from_secs(2)).await;
-                        Ok(())
-                    }
+                move || async move {
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    Ok(())
                 },
             )
             .await;
@@ -1010,7 +1036,9 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             if let Some(ref tr) = tool_reg {
                                 tr.trigger_emergency_stop();
                                 ipc_srv.set_emergency_stop(true).await;
-                                tracing::warn!("[VOICE:EMERGENCY] Emergency Stop triggered via voice command");
+                                tracing::warn!(
+                                    "[VOICE:EMERGENCY] Emergency Stop triggered via voice command"
+                                );
                                 let response = "Emergency Stop activated. All computer control actions have been halted.".to_string();
                                 mem.add_turn("assistant", &response);
                                 ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
@@ -1030,8 +1058,12 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             if let Some(ref tr) = tool_reg {
                                 tr.reset_emergency_stop();
                                 ipc_srv.set_emergency_stop(false).await;
-                                tracing::info!("[VOICE:EMERGENCY] Emergency Stop reset via voice command");
-                                let response = "Emergency Stop reset. Computer control is re-enabled.".to_string();
+                                tracing::info!(
+                                    "[VOICE:EMERGENCY] Emergency Stop reset via voice command"
+                                );
+                                let response =
+                                    "Emergency Stop reset. Computer control is re-enabled."
+                                        .to_string();
                                 mem.add_turn("assistant", &response);
                                 ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
                                     id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
@@ -1045,19 +1077,21 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         }
 
                         // If Emergency Stop is engaged, block any automation commands
-                        if tool_reg.as_ref().map(|tr| tr.is_emergency_stopped()).unwrap_or(false) {
-                            if lower.contains("open")
+                        if tool_reg
+                            .as_ref()
+                            .map(|tr| tr.is_emergency_stopped())
+                            .unwrap_or(false)
+                            && (lower.contains("open")
                                 || lower.contains("launch")
                                 || lower.contains("start")
                                 || lower.contains("type")
                                 || lower.contains("click")
-                                || lower.contains("press")
-                            {
-                                tracing::warn!("[VOICE:EMERGENCY] Blocked automation action: Emergency Stop active");
-                                let response = "Action blocked. Emergency Stop is active. Say 'reset emergency stop' to resume.".to_string();
-                                mem.add_turn("assistant", &response);
-                                return response;
-                            }
+                                || lower.contains("press"))
+                        {
+                            tracing::warn!("[VOICE:EMERGENCY] Blocked automation action: Emergency Stop active");
+                            let response = "Action blocked. Emergency Stop is active. Say 'reset emergency stop' to resume.".to_string();
+                            mem.add_turn("assistant", &response);
+                            return response;
                         }
 
                         // ── 3. Handle automation commands directly ──────────
@@ -1090,76 +1124,109 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             };
 
                             if let Some(app) = app {
-
-                            // ── GUARDIAN CHECK: automation requires authorization ──
-                            let decision = {
-                                let r = recovery_mode.lock().await;
-                                guardian.evaluate(
-                                    "voice-user",
-                                    "automation:write",
-                                    Some(app),
-                                    "launch_application",
-                                    std::collections::HashMap::new(),
-                                    &r,
-                                )
-                            };
-
-                            // Record typed audit event for guardian decision
-                            {
-                                let mut log = audit_log.lock().await;
-                                let event_type = if decision.allowed {
-                                    AuditEventType::Authorization {
-                                        decision: "allowed".to_string(),
-                                    }
-                                } else {
-                                    AuditEventType::Authorization {
-                                        decision: "denied".to_string(),
-                                    }
+                                // ── GUARDIAN CHECK: automation requires authorization ──
+                                let decision = {
+                                    let r = recovery_mode.lock().await;
+                                    guardian.evaluate(
+                                        "voice-user",
+                                        "automation:write",
+                                        Some(app),
+                                        "launch_application",
+                                        std::collections::HashMap::new(),
+                                        &r,
+                                    )
                                 };
-                                log.record_typed(
-                                    "voice-user",
-                                    "automation:write",
-                                    Some(app),
-                                    if decision.allowed { "allowed" } else { "denied" },
-                                    Some(&decision.reason),
-                                    "high",
-                                    "trusted",
-                                    voxy_security::policy::AuditLevel::Detailed,
-                                    event_type,
-                                );
-                            }
 
-                            if !decision.allowed {
-                                // Activate recovery mode on critical-risk denials
-                                if decision.requires_mfa {
-                                    let mut recovery = recovery_mode.lock().await;
-                                    if recovery.state() == voxy_security::recovery::RecoveryState::Normal {
-                                        let auth = voxy_security::recovery::RecoveryAuth {
-                                            subject: "system".to_string(),
-                                            reason: format!(
-                                                "Critical risk action denied: {}",
-                                                decision.reason
-                                            ),
-                                            auth_method: "automatic_guardian".to_string(),
-                                        };
-                                        if let Err(e) = recovery.enter(auth) {
-                                            tracing::error!(
-                                                error = %e,
-                                                "Failed to activate recovery mode"
-                                            );
-                                        } else {
-                                            tracing::warn!(
-                                                reason = %decision.reason,
-                                                "Recovery mode activated due to critical threat"
-                                            );
+                                // Record typed audit event for guardian decision
+                                {
+                                    let mut log = audit_log.lock().await;
+                                    let event_type = if decision.allowed {
+                                        AuditEventType::Authorization {
+                                            decision: "allowed".to_string(),
                                         }
-                                    }
+                                    } else {
+                                        AuditEventType::Authorization {
+                                            decision: "denied".to_string(),
+                                        }
+                                    };
+                                    log.record_typed(
+                                        "voice-user",
+                                        "automation:write",
+                                        Some(app),
+                                        if decision.allowed {
+                                            "allowed"
+                                        } else {
+                                            "denied"
+                                        },
+                                        Some(&decision.reason),
+                                        "high",
+                                        "trusted",
+                                        voxy_security::policy::AuditLevel::Detailed,
+                                        event_type,
+                                    );
                                 }
 
-                                let response = format!(
-                                    "I need permission to open {}. {}",
-                                    app, decision.reason
-                                );
+                                if !decision.allowed {
+                                    // Activate recovery mode on critical-risk denials
+                                    if decision.requires_mfa {
+                                        let mut recovery = recovery_mode.lock().await;
+                                        if recovery.state()
+                                            == voxy_security::recovery::RecoveryState::Normal
+                                        {
+                                            let auth = voxy_security::recovery::RecoveryAuth {
+                                                subject: "system".to_string(),
+                                                reason: format!(
+                                                    "Critical risk action denied: {}",
+                                                    decision.reason
+                                                ),
+                                                auth_method: "automatic_guardian".to_string(),
+                                            };
+                                            if let Err(e) = recovery.enter(auth) {
+                                                tracing::error!(
+                                                    error = %e,
+                                                    "Failed to activate recovery mode"
+                                                );
+                                            } else {
+                                                tracing::warn!(
+                                                    reason = %decision.reason,
+                                                    "Recovery mode activated due to critical threat"
+                                                );
+                                            }
+                                        }
+                                    }
+
+                                    let response = format!(
+                                        "I need permission to open {}. {}",
+                                        app, decision.reason
+                                    );
+                                    mem.add_turn("assistant", &response);
+                                    drop(mem);
+                                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                                        text: response.clone(),
+                                        is_final: true,
+                                    });
+                                    return response;
+                                }
+
+                                mem.last_app = Some(app.to_string());
+                                let uia = WindowsUiaBackend::new();
+                                let response = if uia.is_available().await {
+                                    let auto_start = Instant::now();
+                                    match open_application(app).await {
+                                        Ok(_) => {
+                                            metrics.record_automation(auto_start.elapsed());
+                                            format!("Done — {app} is now open.")
+                                        }
+                                        Err(e) => {
+                                            metrics.record_automation(auto_start.elapsed());
+                                            format!("I couldn't open {app}. {e}")
+                                        }
+                                    }
+                                } else {
+                                    format!(
+                                        "I'd open {app} for you, but automation isn't available."
+                                    )
+                                };
                                 mem.add_turn("assistant", &response);
                                 drop(mem);
                                 let _ = exp_input.send(ExperienceInput::VoiceTranscript {
@@ -1167,32 +1234,6 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                     is_final: true,
                                 });
                                 return response;
-                            }
-
-                            mem.last_app = Some(app.to_string());
-                            let uia = WindowsUiaBackend::new();
-                            let response = if uia.is_available().await {
-                                let auto_start = Instant::now();
-                                match open_application(app).await {
-                                    Ok(_) => {
-                                        metrics.record_automation(auto_start.elapsed());
-                                        format!("Done — {app} is now open.")
-                                    }
-                                    Err(e) => {
-                                        metrics.record_automation(auto_start.elapsed());
-                                        format!("I couldn't open {app}. {e}")
-                                    }
-                                }
-                            } else {
-                                format!("I'd open {app} for you, but automation isn't available.")
-                            };
-                            mem.add_turn("assistant", &response);
-                            drop(mem);
-                            let _ = exp_input.send(ExperienceInput::VoiceTranscript {
-                                text: response.clone(),
-                                is_final: true,
-                            });
-                            return response;
                             }
                         }
 
@@ -1225,7 +1266,11 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                         "voice-user",
                                         "automation:write",
                                         Some(&app),
-                                        if decision.allowed { "allowed" } else { "denied" },
+                                        if decision.allowed {
+                                            "allowed"
+                                        } else {
+                                            "denied"
+                                        },
                                         Some(&decision.reason),
                                         "high",
                                         "trusted",
@@ -1285,7 +1330,10 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         );
 
                         // ── 5. Generate response via Ollama LLM ───────────
-                        tracing::info!("[VOICE:LLM] Calling Ollama (prompt={} chars)", system_prompt.len());
+                        tracing::info!(
+                            "[VOICE:LLM] Calling Ollama (prompt={} chars)",
+                            system_prompt.len()
+                        );
                         let response = match llm
                             .complete(&format!(
                                 "{system_prompt}\n\n{}",
@@ -1326,8 +1374,14 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
 
                         // ── 5b. Parse & execute structured tool call if present ───
                         let response = if let Some(ref tr) = tool_reg {
-                            if let Some((call, remaining)) = tools::ToolRegistry::parse_tool_call(&response) {
-                                tracing::info!("[VOICE:TOOL] Parsed tool call: {} {:?}", call.tool, call.params);
+                            if let Some((call, remaining)) =
+                                tools::ToolRegistry::parse_tool_call(&response)
+                            {
+                                tracing::info!(
+                                    "[VOICE:TOOL] Parsed tool call: {} {:?}",
+                                    call.tool,
+                                    call.params
+                                );
                                 let step_id = uuid::Uuid::new_v4().as_u128() as u64;
                                 ipc_srv.broadcast_tool_step(
                                     step_id,
@@ -1362,7 +1416,11 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         };
 
                         let elapsed_ms = response_start.elapsed().as_millis();
-                        tracing::info!("[VOICE:LLM] Response: {} chars in {}ms", response.len(), elapsed_ms);
+                        tracing::info!(
+                            "[VOICE:LLM] Response: {} chars in {}ms",
+                            response.len(),
+                            elapsed_ms
+                        );
                         tracing::info!(
                             input = %text,
                             response_len = response.len(),
@@ -1622,7 +1680,9 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 },
             );
 
-            pipeline.set_streaming_response_handler(streaming_handler).await;
+            pipeline
+                .set_streaming_response_handler(streaming_handler)
+                .await;
         }
 
         // ── SPECULATIVE LLM PREFILL ─────────────────────────────────────
@@ -1637,9 +1697,8 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let desktop_ctx_spec = desktop_context.clone();
             let cache_spec = spec_cache.clone();
 
-            let (partial_tx, mut partial_rx) = tokio::sync::mpsc::channel::<
-                voxy_voice_orchestrator::PartialTranscript,
-            >(16);
+            let (partial_tx, mut partial_rx) =
+                tokio::sync::mpsc::channel::<voxy_voice_orchestrator::PartialTranscript>(16);
             let _ = pipeline.set_partial_transcript_handler(partial_tx).await;
 
             tokio::spawn(async move {
@@ -1665,7 +1724,11 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                     let system_prompt_full = format!(
                         "{}\n\nCurrent desktop context: {}\n\nRecent conversation:\n{}",
                         sys_prompt_spec,
-                        if desktop.is_empty() { "unknown" } else { &desktop },
+                        if desktop.is_empty() {
+                            "unknown"
+                        } else {
+                            &desktop
+                        },
                         if history.is_empty() {
                             "No prior conversation.".to_string()
                         } else {
@@ -1709,7 +1772,14 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let dev_sys_prompt = system_prompt.clone();
             let dev_tool_reg = tool_registry.clone();
             tokio::spawn(async move {
-                dev_text_input::run(dev_llm, dev_pipeline, dev_memory, dev_sys_prompt, dev_tool_reg).await;
+                dev_text_input::run(
+                    dev_llm,
+                    dev_pipeline,
+                    dev_memory,
+                    dev_sys_prompt,
+                    dev_tool_reg,
+                )
+                .await;
             });
             tracing::info!("[DEV-TEXT] Dev text input active. Type messages at the VOXY > prompt.");
         }
@@ -1731,13 +1801,19 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             ipc_srv.set_emergency_stop(true).await;
                         }
                         Some(voxy_ipc::ClientCommand::ResetEmergencyStop) => {
-                            tracing::info!("[IPC] Reset emergency stop command received from client");
+                            tracing::info!(
+                                "[IPC] Reset emergency stop command received from client"
+                            );
                             if let Some(ref tr) = tr_opt {
                                 tr.reset_emergency_stop();
                             }
                             ipc_srv.set_emergency_stop(false).await;
                         }
-                        Some(voxy_ipc::ClientCommand::ClientHandshake { client_name, client_version }) => {
+                        Some(voxy_ipc::ClientCommand::ClientHandshake {
+                            client_name,
+                            client_version,
+                            ..
+                        }) => {
                             tracing::info!(client = %client_name, version = %client_version, "[IPC] Client connected and registered");
                         }
                         Some(voxy_ipc::ClientCommand::RequestSnapshot) => {
@@ -1769,8 +1845,15 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 hw.total_vram_gb(),
                             );
                         }
-                        Some(voxy_ipc::ClientCommand::ConfirmAction { action_id, approved }) => {
-                            tracing::info!(action_id, approved, "[IPC] Human confirmation decision received");
+                        Some(voxy_ipc::ClientCommand::ConfirmAction {
+                            action_id,
+                            approved,
+                        }) => {
+                            tracing::info!(
+                                action_id,
+                                approved,
+                                "[IPC] Human confirmation decision received"
+                            );
                         }
                         Some(voxy_ipc::ClientCommand::HeartbeatPong) => {}
                         None => {
@@ -1859,7 +1942,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         guard_clone.heartbeat("desktop_bridge");
 
                         // ── V2 watchdog heartbeats ──
-            if let Some(ref watchdog) = pipeline.watchdog() {
+            if let Some(watchdog) = pipeline.watchdog() {
                             watchdog.heartbeat("audio_input");
                         }
 
@@ -1977,11 +2060,8 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         };
                         let moments = moment_engine.check_moments(&moment_ctx);
                         for moment in moments {
-                            match moment.moment_type {
-                                voxy_companion_intelligence::MomentType::FocusedWork => {
-                                    has_thanked_focus = true;
-                                }
-                                _ => {}
+                            if moment.moment_type == voxy_companion_intelligence::MomentType::FocusedWork {
+                                has_thanked_focus = true;
                             }
                             let _ = exp_input_tx_clone.send(ExperienceInput::SystemEvent {
                                 event_type: format!("{:?}", moment.moment_type),
@@ -2095,12 +2175,17 @@ async fn main() {
         println!("  voxy-daemon                        Start the daemon");
         println!("  voxy-daemon --status               Show this status");
         println!("  voxy-daemon --dev-text             Run with developer interactive text input");
-        println!("  voxy-daemon --loopback [N]         Run N real acoustic loopback verification rounds");
+        println!(
+            "  voxy-daemon --loopback [N]         Run N real acoustic loopback verification rounds"
+        );
         return;
     }
 
     if let Some(idx) = args.iter().position(|a| a == "--loopback") {
-        let iters = args.get(idx + 1).and_then(|s| s.parse::<usize>().ok()).unwrap_or(10);
+        let iters = args
+            .get(idx + 1)
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(10);
         loopback_test::run_loopback_test(iters).await;
         return;
     }
@@ -2160,7 +2245,6 @@ mod tests {
     #[test]
     fn test_get_memory_usage_no_panic() {
         let (used, total) = get_memory_usage();
-        assert!(total > 0 || total == 0);
         assert!(used <= total || total == 0);
     }
 

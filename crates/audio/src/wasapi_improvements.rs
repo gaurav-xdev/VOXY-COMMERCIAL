@@ -76,7 +76,7 @@ impl Default for ClockDriftMetrics {
 }
 
 /// Buffer underrun detection metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct UnderrunMetrics {
     /// Total underrun events detected.
     pub underrun_count: u64,
@@ -86,17 +86,6 @@ pub struct UnderrunMetrics {
     pub severity: u32,
     /// Whether underruns are causing audible glitches.
     pub causing_glitches: bool,
-}
-
-impl Default for UnderrunMetrics {
-    fn default() -> Self {
-        Self {
-            underrun_count: 0,
-            last_underrun: None,
-            severity: 0,
-            causing_glitches: false,
-        }
-    }
 }
 
 /// Combined WASAPI health metrics.
@@ -167,7 +156,7 @@ impl ClockDriftDetector {
         ClockDriftMetrics {
             drift_us: drift,
             is_drifting,
-            compensation_factor: compensation.max(0.9).min(1.1),
+            compensation_factor: compensation.clamp(0.9, 1.1),
             correction_count: self.correction_count.load(Ordering::Relaxed),
         }
     }

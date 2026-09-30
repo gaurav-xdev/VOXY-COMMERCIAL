@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 
 use super::budget::RoutingMode;
 use super::rate_limiter::{RateLimitConfig, TokenBucket};
@@ -247,7 +247,10 @@ impl ProviderQuotaManager {
             // 2. Token Bucket Burst check
             if !stats.token_bucket.try_consume(1.0, now) {
                 let wait = stats.token_bucket.time_until_available(1.0, now);
-                return Err(QuotaViolation::BurstLimitExceeded(provider.to_string(), wait));
+                return Err(QuotaViolation::BurstLimitExceeded(
+                    provider.to_string(),
+                    wait,
+                ));
             }
 
             // 3. Sliding 60-second RPM window check
@@ -316,7 +319,9 @@ impl ProviderQuotaManager {
     ) -> Result<ConcurrencyPermit, QuotaViolation> {
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
 
         if stats.active_concurrency >= config.safe_concurrency() {
             return Err(QuotaViolation::ConcurrencyExceeded(provider.to_string()));
@@ -347,7 +352,9 @@ impl ProviderQuotaManager {
         let now = Utc::now();
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
 
         stats.total_requests += 1;
         stats.consecutive_failures = 0;
@@ -372,7 +379,9 @@ impl ProviderQuotaManager {
         let now = Utc::now();
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
         stats.total_failures += 1;
         stats.consecutive_failures += 1;
         stats.recent_errors.push(now);
@@ -392,7 +401,9 @@ impl ProviderQuotaManager {
         let now = Utc::now();
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
         stats.total_timeouts += 1;
         stats.total_failures += 1;
         stats.consecutive_failures += 1;
@@ -407,14 +418,14 @@ impl ProviderQuotaManager {
         let now = Utc::now();
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
         stats.total_rate_limits += 1;
         stats.consecutive_failures += 1;
         stats.recent_errors.push(now);
 
-        let ms = retry_after
-            .map(|d| d.as_millis() as i64)
-            .unwrap_or(30_000);
+        let ms = retry_after.map(|d| d.as_millis() as i64).unwrap_or(30_000);
         let until = now + ChronoDuration::milliseconds(ms.max(10));
         stats.cooldown_until = Some(until);
     }
@@ -422,7 +433,9 @@ impl ProviderQuotaManager {
     pub fn record_invalid_credentials(&self, provider: &str) {
         let mut stats_lock = self.stats.write();
         let config = self.get_config(provider);
-        let stats = stats_lock.entry(provider.to_string()).or_insert_with(|| ProviderInternalStats::new(&config));
+        let stats = stats_lock
+            .entry(provider.to_string())
+            .or_insert_with(|| ProviderInternalStats::new(&config));
         stats.invalid_credentials = true;
     }
 

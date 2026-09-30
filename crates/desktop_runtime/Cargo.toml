@@ -2,7 +2,8 @@
 name = "voxy-desktop-runtime"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+license.workspace = true
+rust-version.workspace = true
 description = "VOXY desktop runtime - system tray, auto-launch, hot reload, shortcuts, notifications, clipboard, window management, downloads, settings"
 
 [dependencies]

@@ -246,8 +246,10 @@ mod tests {
     #[test]
     fn calibrator_load_profile() {
         let cal = SelfCalibrator::new();
-        let mut profile = CalibrationProfile::default();
-        profile.noise_floor_db = -50.0;
+        let profile = CalibrationProfile {
+            noise_floor_db: -50.0,
+            ..Default::default()
+        };
         cal.load_profile(profile);
         assert!(cal.is_calibrated());
         assert_eq!(cal.get_profile().noise_floor_db, -50.0);

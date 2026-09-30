@@ -154,7 +154,9 @@ impl AuthMiddleware {
                         hasher.update(token_str.as_bytes());
                         let hash = hasher.finalize().to_vec();
                         if !trusted.contains(&hash) {
-                            return Err(AuthError::AuthenticationFailed("Invalid token hash".into()));
+                            return Err(AuthError::AuthenticationFailed(
+                                "Invalid token hash".into(),
+                            ));
                         }
                     }
                 }

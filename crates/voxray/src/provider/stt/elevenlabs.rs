@@ -125,7 +125,10 @@ impl STTProvider for ElevenLabsSTTProvider {
             }
         }
 
-        debug!(provider = self.id(), "Submitting audio to ElevenLabs Scribe STT");
+        debug!(
+            provider = self.id(),
+            "Submitting audio to ElevenLabs Scribe STT"
+        );
 
         let response = self
             .client
@@ -173,16 +176,17 @@ impl STTProvider for ElevenLabsSTTProvider {
         }
 
         let resp: ElevenLabsTranscriptionResponse = response.json().await.map_err(|e| {
-            ProviderError::TranscriptionFailed(format!("Failed to parse ElevenLabs response: {}", e))
+            ProviderError::TranscriptionFailed(format!(
+                "Failed to parse ElevenLabs response: {}",
+                e
+            ))
         })?;
 
-        let lang = resp
-            .language_code
-            .map(|l| match l.to_lowercase().as_str() {
-                "en" | "eng" => VoiceLanguage::English,
-                "hi" | "hin" => VoiceLanguage::Hindi,
-                other => VoiceLanguage::Other(other.to_string()),
-            });
+        let lang = resp.language_code.map(|l| match l.to_lowercase().as_str() {
+            "en" | "eng" => VoiceLanguage::English,
+            "hi" | "hin" => VoiceLanguage::Hindi,
+            other => VoiceLanguage::Other(other.to_string()),
+        });
 
         Ok(Transcript {
             text: resp.text.trim().to_string(),

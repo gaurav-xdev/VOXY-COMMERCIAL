@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Default)]
 pub struct UsageRecord {
@@ -27,12 +27,7 @@ pub struct ProviderState {
 
 #[async_trait]
 pub trait QuotaStorage: Send + Sync {
-    async fn record_usage(
-        &self,
-        provider: &str,
-        chars: usize,
-        audio_secs: f64,
-    );
+    async fn record_usage(&self, provider: &str, chars: usize, audio_secs: f64);
     async fn increment_concurrency(&self, provider: &str) -> u32;
     async fn decrement_concurrency(&self, provider: &str);
     async fn set_cooldown(&self, provider: &str, until: DateTime<Utc>);
@@ -58,12 +53,7 @@ impl InMemoryQuotaStorage {
 
 #[async_trait]
 impl QuotaStorage for InMemoryQuotaStorage {
-    async fn record_usage(
-        &self,
-        provider: &str,
-        chars: usize,
-        audio_secs: f64,
-    ) {
+    async fn record_usage(&self, provider: &str, chars: usize, audio_secs: f64) {
         let mut map = self.states.write();
         let state = map.entry(provider.to_string()).or_default();
         state.history.push(UsageRecord {
@@ -151,7 +141,9 @@ impl RedisQuotaStorage {
 impl QuotaStorage for RedisQuotaStorage {
     async fn record_usage(&self, provider: &str, chars: usize, audio_secs: f64) {
         // Atomic fallback to local in-memory
-        self.fallback.record_usage(provider, chars, audio_secs).await;
+        self.fallback
+            .record_usage(provider, chars, audio_secs)
+            .await;
     }
 
     async fn increment_concurrency(&self, provider: &str) -> u32 {
@@ -167,7 +159,9 @@ impl QuotaStorage for RedisQuotaStorage {
     }
 
     async fn record_error(&self, provider: &str, is_429: bool, is_timeout: bool, is_auth: bool) {
-        self.fallback.record_error(provider, is_429, is_timeout, is_auth).await;
+        self.fallback
+            .record_error(provider, is_429, is_timeout, is_auth)
+            .await;
     }
 
     async fn record_success(&self, provider: &str, latency_ms: u64) {

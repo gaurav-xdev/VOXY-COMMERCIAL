@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::types::VisualState;
+use dioxus::prelude::*;
 
 #[component]
 pub fn CoreEntity(

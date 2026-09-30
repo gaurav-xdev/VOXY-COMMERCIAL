@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn error_kind_ordering() {
         // ErrorKind implements Ord for use in sorted collections
-        let mut kinds = vec![ErrorKind::IO, ErrorKind::Config, ErrorKind::Timeout];
+        let mut kinds = [ErrorKind::IO, ErrorKind::Config, ErrorKind::Timeout];
         kinds.sort();
         assert_eq!(kinds[0], ErrorKind::Config);
     }

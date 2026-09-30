@@ -134,8 +134,9 @@ impl CartesiaTTSProvider {
 
     fn build_headers(&self) -> Result<HeaderMap, ProviderError> {
         let mut headers = HeaderMap::new();
-        let mut key_val = HeaderValue::from_str(&self.api_key)
-            .map_err(|_| ProviderError::InvalidCredentials("Invalid Cartesia API key format".into()))?;
+        let mut key_val = HeaderValue::from_str(&self.api_key).map_err(|_| {
+            ProviderError::InvalidCredentials("Invalid Cartesia API key format".into())
+        })?;
         key_val.set_sensitive(true);
 
         headers.insert("X-API-Key", key_val);
@@ -143,10 +144,7 @@ impl CartesiaTTSProvider {
             "Cartesia-Version",
             HeaderValue::from_static(DEFAULT_CARTESIA_VERSION),
         );
-        headers.insert(
-            "Content-Type",
-            HeaderValue::from_static("application/json"),
-        );
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
         Ok(headers)
     }
@@ -191,7 +189,9 @@ impl CartesiaTTSProvider {
         language: Option<VoiceLanguage>,
     ) -> Result<reqwest::Response, ProviderError> {
         if self.api_key.trim().is_empty() {
-            return Err(ProviderError::InvalidCredentials("Empty Cartesia API key".into()));
+            return Err(ProviderError::InvalidCredentials(
+                "Empty Cartesia API key".into(),
+            ));
         }
 
         let headers = self.build_headers()?;
@@ -237,7 +237,9 @@ impl CartesiaTTSProvider {
                     }
 
                     // Auth failure: 401 or 403
-                    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+                    if status == reqwest::StatusCode::UNAUTHORIZED
+                        || status == reqwest::StatusCode::FORBIDDEN
+                    {
                         return Err(ProviderError::InvalidCredentials(
                             "Cartesia TTS authentication failed: invalid or unauthorized API key (401/403)".into(),
                         ));
@@ -330,7 +332,9 @@ impl TTSProvider for CartesiaTTSProvider {
         let mapped_stream = byte_stream.map(|chunk_res| {
             chunk_res
                 .map(|chunk| Self::raw_pcm16_to_audiodata(&chunk, DEFAULT_SAMPLE_RATE))
-                .map_err(|e| ProviderError::SynthesisFailed(format!("Cartesia stream error: {}", e)))
+                .map_err(|e| {
+                    ProviderError::SynthesisFailed(format!("Cartesia stream error: {}", e))
+                })
         });
 
         Ok(Box::pin(mapped_stream))

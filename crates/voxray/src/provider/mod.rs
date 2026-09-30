@@ -26,7 +26,9 @@ pub use factory::VoiceSystem;
 pub use quota::ProviderQuotaManager;
 pub use router::{STTRouter, TTSRouter};
 pub use stt_service::CloudSTTService;
-pub use traits::{AudioData, EstimatedCost, HealthStatus, ProviderError, STTProvider, TTSProvider, VoiceLanguage};
+pub use traits::{
+    AudioData, EstimatedCost, HealthStatus, ProviderError, STTProvider, TTSProvider, VoiceLanguage,
+};
 pub use tts_service::CloudTTSService;
 
 #[cfg(test)]

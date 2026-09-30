@@ -20,9 +20,7 @@ type WakeAliases = Arc<RwLock<Vec<String>>>;
 /// Streaming response function: sends LLM chunks through a channel.
 /// The pipeline accumulates text and splits on sentence boundaries for TTS.
 type StreamingResponseFn = Arc<
-    dyn Fn(String, mpsc::Sender<String>) -> Pin<Box<dyn Future<Output = ()> + Send>>
-        + Send
-        + Sync,
+    dyn Fn(String, mpsc::Sender<String>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
 >;
 type StreamingResponseHandler = Arc<RwLock<Option<StreamingResponseFn>>>;
 
@@ -519,8 +517,7 @@ impl VoicePipeline {
         let partial_paused: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
         let llm_task_handle: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>> =
             Arc::new(RwLock::new(None));
-        let (utt_tx, mut utt_rx) =
-            mpsc::channel::<voxy_voice_orchestrator::AudioChunk>(16);
+        let (utt_tx, mut utt_rx) = mpsc::channel::<voxy_voice_orchestrator::AudioChunk>(16);
 
         if speculative_enabled {
             let stt_for_partial = stt_engine.clone();
@@ -704,7 +701,11 @@ impl VoicePipeline {
                 };
 
                 diagnostics.record_packet_captured(&packet).await;
-                tracing::debug!("[VOICE:MIC] Captured {} samples at {}Hz", packet.data.len(), packet.sample_rate);
+                tracing::debug!(
+                    "[VOICE:MIC] Captured {} samples at {}Hz",
+                    packet.data.len(),
+                    packet.sample_rate
+                );
                 if let Some(ref w) = watchdog {
                     w.heartbeat("audio_input");
                 }
@@ -861,8 +862,13 @@ impl VoicePipeline {
                 if !is_voice && is_awake && silence_frames_after_speech >= max_silence_frames {
                     if !speech_buffer.is_empty() {
                         let _t2 = Instant::now();
-                        let speech_duration_ms = speech_start_time.map(|t| t.elapsed().as_millis()).unwrap_or(0);
-                        tracing::info!("[VOICE:TIMING] T0â†’T2 speech duration: {}ms (utterance finalized)", speech_duration_ms);
+                        let speech_duration_ms = speech_start_time
+                            .map(|t| t.elapsed().as_millis())
+                            .unwrap_or(0);
+                        tracing::info!(
+                            "[VOICE:TIMING] T0â†’T2 speech duration: {}ms (utterance finalized)",
+                            speech_duration_ms
+                        );
 
                         // SPECULATIVE LLM OVERLAP (Phase 28): gated off by default.
                         // Measured whisper full-decode partials are too short/unstable
@@ -877,8 +883,10 @@ impl VoicePipeline {
                         let streaming_handler_opt = streaming_response_handler.read().await.clone();
                         let _fallback_handler = response_handler.read().await;
                         let spec_text = latest_partial.lock().unwrap().clone();
-                        let spec_words =
-                            spec_text.split_whitespace().filter(|w| !w.is_empty()).count();
+                        let spec_words = spec_text
+                            .split_whitespace()
+                            .filter(|w| !w.is_empty())
+                            .count();
                         tracing::info!(
                             "[VOICE:SPEC] commit snapshot: '{}' ({} chars, {} words)",
                             spec_text,
@@ -947,7 +955,11 @@ impl VoicePipeline {
                         };
 
                         let stt_latency = stt_start.elapsed().as_millis() as f64;
-                        tracing::info!("[VOICE:TIMING] T4 Whisper finished: '{}' ({}ms)", text, stt_latency);
+                        tracing::info!(
+                            "[VOICE:TIMING] T4 Whisper finished: '{}' ({}ms)",
+                            text,
+                            stt_latency
+                        );
                         tracing::info!("[VOICE:STT] '{}' ({}ms)", text, stt_latency);
                         {
                             let mut m = streaming_metrics.write().await;
@@ -1007,7 +1019,8 @@ impl VoicePipeline {
 
                             // â”€â”€ STREAMING LLM â†’ SENTENCE-CHUNKED TTS PIPELINE â”€â”€
                             // Check if a streaming handler is available.
-                            let streaming_handler_opt = streaming_response_handler.read().await.clone();
+                            let streaming_handler_opt =
+                                streaming_response_handler.read().await.clone();
                             let fallback_handler = response_handler.read().await;
 
                             if let Some(streaming_handler_fn) = streaming_handler_opt {
@@ -1068,136 +1081,139 @@ impl VoicePipeline {
                                     let speed = *voice_speed_clone.read().await;
 
                                     tokio::select! {
-                                        _ = tts_cancelled.notified() => {
-                                            tracing::info!("[VOICE:STREAMING] TTS interrupted");
-                                        }
-                                        _ = async {
-                                            // Collect LLM chunks from channel, accumulate text,
-                                            // and split on sentence boundaries for TTS.
-                                            let mut accumulated = String::new();
-                                            let tts_eng_guard = tts_engine_clone.read().await;
+                                                                            _ = tts_cancelled.notified() => {
+                                                                                tracing::info!("[VOICE:STREAMING] TTS interrupted");
+                                                                            }
+                                                                            _ = async {
+                                                                                // Collect LLM chunks from channel, accumulate text,
+                                                                                // and split on sentence boundaries for TTS.
+                                                                                let mut accumulated = String::new();
+                                                                                let tts_eng_guard = tts_engine_clone.read().await;
 
-                                            while let Some(sentence) = sentence_rx.recv().await {
-                                                if !is_speaking_clone.load(Ordering::Relaxed) { break; }
+                                                                                while let Some(sentence) = sentence_rx.recv().await {
+                                                                                    if !is_speaking_clone.load(Ordering::Relaxed) { break; }
 
-                                                if !first_sentence_received {
-                                                    let llm_first_token = tts_start.elapsed().as_millis();
-                                                    tracing::info!("[VOICE:TIMING] T6 First LLM sentence received ({}ms from T5)", llm_first_token);
-                                                    let mut m = metrics_clone.write().await;
-                                                    m.llm_first_token_ms = llm_first_token as f64;
-                                                    first_sentence_received = true;
-                                                }
+                                                                                    if !first_sentence_received {
+                                                                                        let llm_first_token = tts_start.elapsed().as_millis();
+                                                                                        tracing::info!("[VOICE:TIMING] T6 First LLM sentence received ({}ms from T5)", llm_first_token);
+                                                                                        let mut m = metrics_clone.write().await;
+                                                                                        m.llm_first_token_ms = llm_first_token as f64;
+                                                                                        first_sentence_received = true;
+                                                                                    }
 
-                                                accumulated.push_str(&sentence);
-                                                tracing::info!("[VOICE:STREAMING] Sentence chunk: '{}'", sentence);
+                                                                                    accumulated.push_str(&sentence);
+                                                                                    tracing::info!("[VOICE:STREAMING] Sentence chunk: '{}'", sentence);
 
-                                                if let Some(ref handler) = *event_handler_clone.read().await {
-                                                    handler(VoiceEvent::SynthesisStarted { text: sentence.clone() });
-                                                }
+                                                                                    if let Some(ref handler) = *event_handler_clone.read().await {
+                                                                                        handler(VoiceEvent::SynthesisStarted { text: sentence.clone() });
+                                                                                    }
 
-if let Some(ref tts) = *tts_eng_guard {
-                                                        if first_chunk {
-                                                            let tts_first = tts_start.elapsed().as_millis() as f64;
-                                                            let mut m = metrics_clone.write().await;
-                                                            m.tts_first_chunk_ms = tts_first;
-                                                            first_chunk = false;
-                                                            if let Some(ref w) = watchdog_tts { w.heartbeat("tts"); }
-                                                            if let Some(ref mc) = mc_tts { mc.record_tts_latency(tts_first); }
-                                                        }
+                                    if let Some(ref tts) = *tts_eng_guard {
+                                                                                            if first_chunk {
+                                                                                                let tts_first = tts_start.elapsed().as_millis() as f64;
+                                                                                                let mut m = metrics_clone.write().await;
+                                                                                                m.tts_first_chunk_ms = tts_first;
+                                                                                                first_chunk = false;
+                                                                                                if let Some(ref w) = watchdog_tts { w.heartbeat("tts"); }
+                                                                                                if let Some(ref mc) = mc_tts { mc.record_tts_latency(tts_first); }
+                                                                                            }
 
-                                                        let tts_chunk_start = Instant::now();
-                                                        if let Ok(mut stream) = tts.synthesize_stream(&sentence).await {
-                                                            let tts_first_chunk = tts_chunk_start.elapsed().as_millis();
-                                                            tracing::info!("[VOICE:TIMING] T7 First TTS chunk synthesized ({}ms from T5)", tts_first_chunk);
-                                                            while let Some(chunk) = stream.next_chunk().await {
-                                                            if !is_speaking_clone.load(Ordering::Relaxed) { break; }
-                                                            let mut faded_data = chunk.data;
+                                                                                            let tts_chunk_start = Instant::now();
+                                                                                            if let Ok(mut stream) = tts.synthesize_stream(&sentence).await {
+                                                                                                let tts_first_chunk = tts_chunk_start.elapsed().as_millis();
+                                                                                                tracing::info!("[VOICE:TIMING] T7 First TTS chunk synthesized ({}ms from T5)", tts_first_chunk);
+                                                                                                while let Some(chunk) = stream.next_chunk().await {
+                                                                                                if !is_speaking_clone.load(Ordering::Relaxed) { break; }
+                                                                                                let mut faded_data = chunk.data;
 
-                                                            // Apply fade-in on first chunk overall
-                                                            if fade_samples_remaining > 0 {
-                                                                let total_fade = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as f32;
-                                                                for sample in faded_data.iter_mut() {
-                                                                    if fade_samples_remaining == 0 { break; }
-                                                                    let progress = 1.0 - (fade_samples_remaining as f32 / total_fade);
-                                                                    *sample *= progress.max(0.0);
-                                                                    fade_samples_remaining = fade_samples_remaining.saturating_sub(1);
-                                                                }
-                                                            } else if !first_audio_written {
-                                                                fade_samples_remaining = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as usize;
-                                                                let total_fade = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as f32;
-                                                                for sample in faded_data.iter_mut() {
-                                                                    if fade_samples_remaining == 0 { break; }
-                                                                    let progress = 1.0 - (fade_samples_remaining as f32 / total_fade);
-                                                                    *sample *= progress.max(0.0);
-                                                                    fade_samples_remaining = fade_samples_remaining.saturating_sub(1);
-                                                                }
-                                                            }
+                                                                                                // Apply fade-in on first chunk overall
+                                                                                                if fade_samples_remaining > 0 {
+                                                                                                    let total_fade = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as f32;
+                                                                                                    for sample in faded_data.iter_mut() {
+                                                                                                        if fade_samples_remaining == 0 { break; }
+                                                                                                        let progress = 1.0 - (fade_samples_remaining as f32 / total_fade);
+                                                                                                        *sample *= progress.max(0.0);
+                                                                                                        fade_samples_remaining = fade_samples_remaining.saturating_sub(1);
+                                                                                                    }
+                                                                                                } else if !first_audio_written {
+                                                                                                    fade_samples_remaining = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as usize;
+                                                                                                    let total_fade = (chunk.sample_rate * TTS_FADE_IN_MS / 1000) as f32;
+                                                                                                    for sample in faded_data.iter_mut() {
+                                                                                                        if fade_samples_remaining == 0 { break; }
+                                                                                                        let progress = 1.0 - (fade_samples_remaining as f32 / total_fade);
+                                                                                                        *sample *= progress.max(0.0);
+                                                                                                        fade_samples_remaining = fade_samples_remaining.saturating_sub(1);
+                                                                                                    }
+                                                                                                }
 
-                                                            // Apply voice speed
-                                                            if (speed - 1.0).abs() > 0.01 {
-                                                                faded_data = VoicePipeline::resample_speed(&faded_data, speed);
-                                                            }
+                                                                                                // Apply voice speed
+                                                                                                if (speed - 1.0).abs() > 0.01 {
+                                                                                                    faded_data = VoicePipeline::resample_speed(&faded_data, speed);
+                                                                                                }
 
-                                                            let tts_sr = chunk.sample_rate;
-                                                            let out_sr = {
-                                                                let out_guard = audio_output_clone.read().await;
-                                                                out_guard.as_ref().map_or(config_clone.audio.output.sample_rate, |o| o.sample_rate())
-                                                            };
-                                                            if tts_sr != out_sr {
-                                                                faded_data = VoicePipeline::resample_rate(&faded_data, tts_sr, out_sr);
-                                                            }
+                                                                                                let tts_sr = chunk.sample_rate;
+                                                                                                let out_sr = {
+                                                                                                    let out_guard = audio_output_clone.read().await;
+                                                                                                    out_guard.as_ref().map_or(config_clone.audio.output.sample_rate, |o| o.sample_rate())
+                                                                                                };
+                                                                                                if tts_sr != out_sr {
+                                                                                                    faded_data = VoicePipeline::resample_rate(&faded_data, tts_sr, out_sr);
+                                                                                                }
 
-                                                            {
-                                                                let mut ref_buf = tts_ref_for_write.lock();
-                                                                let buf_len = ref_buf.len();
-                                                                for &s in &faded_data {
-                                                                    let pos = tts_ref_pos_write.load(Ordering::Relaxed);
-                                                                    ref_buf[pos % buf_len] = s;
-                                                                    tts_ref_pos_write.store((pos + 1) % buf_len, Ordering::Relaxed);
-                                                                }
-                                                                total_written += faded_data.len();
-                                                            }
+                                                                                                {
+                                                                                                    let mut ref_buf = tts_ref_for_write.lock();
+                                                                                                    let buf_len = ref_buf.len();
+                                                                                                    for &s in &faded_data {
+                                                                                                        let pos = tts_ref_pos_write.load(Ordering::Relaxed);
+                                                                                                        ref_buf[pos % buf_len] = s;
+                                                                                                        tts_ref_pos_write.store((pos + 1) % buf_len, Ordering::Relaxed);
+                                                                                                    }
+                                                                                                    total_written += faded_data.len();
+                                                                                                }
 
-                                                            let pkt = voxy_audio::AudioPacket::new(faded_data, out_sr, config_clone.audio.output.channels);
-                                                            if let Some(ref mut output) = *audio_output_clone.write().await {
-                                                                let _ = output.write(&pkt).await;
-                                                            }
-                                                            if !first_audio_written {
-                                                                let tts_first_audio = tts_start.elapsed().as_millis();
-                                                                tracing::info!("[VOICE:TIMING] T8 First audible output ({}ms from T5)", tts_first_audio);
-                                                                first_audio_written = true;
-                                                            }
-                                                            diagnostics_clone.record_packet_played(&pkt).await;
-                                                            if let Some(ref w) = watchdog_tts { w.heartbeat("audio_output"); }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                                                                                let pkt = voxy_audio::AudioPacket::new(faded_data, out_sr, config_clone.audio.output.channels);
+                                                                                                if let Some(ref mut output) = *audio_output_clone.write().await {
+                                                                                                    let _ = output.write(&pkt).await;
+                                                                                                }
+                                                                                                if !first_audio_written {
+                                                                                                    let tts_first_audio = tts_start.elapsed().as_millis();
+                                                                                                    tracing::info!("[VOICE:TIMING] T8 First audible output ({}ms from T5)", tts_first_audio);
+                                                                                                    first_audio_written = true;
+                                                                                                }
+                                                                                                diagnostics_clone.record_packet_played(&pkt).await;
+                                                                                                if let Some(ref w) = watchdog_tts { w.heartbeat("audio_output"); }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
 
-                                            drop(tts_eng_guard);
+                                                                                drop(tts_eng_guard);
 
-                                            // Store conversation
-                                            if let Some(ref mut sess) = *session_clone.write().await {
-                                                let _ = sess.generate_output(&accumulated).await;
-                                            }
+                                                                                // Store conversation
+                                                                                if let Some(ref mut sess) = *session_clone.write().await {
+                                                                                    let _ = sess.generate_output(&accumulated).await;
+                                                                                }
 
-                                            if let Some(ref handler) = *event_handler_clone.read().await {
-                                                handler(VoiceEvent::SynthesisCompleted { duration_ms: 0 });
-                                            }
-                                            let tts_total = tts_start.elapsed().as_millis();
-                                            tracing::info!("[VOICE:TIMING] T9 Streaming response finished (total: {}ms, {} chars)", tts_total, accumulated.len());
-                                        } => {}
-                                    }
+                                                                                if let Some(ref handler) = *event_handler_clone.read().await {
+                                                                                    handler(VoiceEvent::SynthesisCompleted { duration_ms: 0 });
+                                                                                }
+                                                                                let tts_total = tts_start.elapsed().as_millis();
+                                                                                tracing::info!("[VOICE:TIMING] T9 Streaming response finished (total: {}ms, {} chars)", tts_total, accumulated.len());
+                                                                            } => {}
+                                                                        }
                                     is_speaking_clone.store(false, Ordering::Relaxed);
                                 });
 
                                 *tts_handle.write().await = Some(tts_task);
-
                             } else if let Some(ref handler) = *fallback_handler {
                                 // FALLBACK PATH: non-streaming complete()
                                 let response = handler(text).await;
                                 let llm_latency = llm_start.elapsed().as_millis() as f64;
-                                tracing::info!("[VOICE:TIMING] T6 LLM response: {} chars ({}ms)", response.len(), llm_latency);
+                                tracing::info!(
+                                    "[VOICE:TIMING] T6 LLM response: {} chars ({}ms)",
+                                    response.len(),
+                                    llm_latency
+                                );
                                 drop(fallback_handler);
 
                                 if !response.is_empty() {
@@ -1705,7 +1721,9 @@ if let Some(ref tts) = *tts_eng_guard {
                 // Resample TTS output to match output device sample rate
                 let out_sr = {
                     let out_guard = self.audio_output.read().await;
-                    out_guard.as_ref().map_or(self.config.audio.output.sample_rate, |o| o.sample_rate())
+                    out_guard
+                        .as_ref()
+                        .map_or(self.config.audio.output.sample_rate, |o| o.sample_rate())
                 };
                 if last_sr != out_sr {
                     faded_data = Self::resample_rate(&faded_data, last_sr, out_sr);
@@ -1722,8 +1740,11 @@ if let Some(ref tts) = *tts_eng_guard {
                     }
                 }
 
-                let packet =
-                    voxy_audio::AudioPacket::new(faded_data, out_sr, self.config.audio.output.channels);
+                let packet = voxy_audio::AudioPacket::new(
+                    faded_data,
+                    out_sr,
+                    self.config.audio.output.channels,
+                );
 
                 if let Some(ref mut output) = *self.audio_output.write().await {
                     let _ = output.write(&packet).await;
@@ -2002,12 +2023,15 @@ if let Some(ref tts) = *tts_eng_guard {
         }
     }
 
-    pub fn tts_engine_handle(&self) -> &Arc<RwLock<Option<Box<dyn voxy_voice_orchestrator::TtsEngine>>>> {
+    pub fn tts_engine_handle(
+        &self,
+    ) -> &Arc<RwLock<Option<Box<dyn voxy_voice_orchestrator::TtsEngine>>>> {
         &self.tts_engine
     }
 
-    pub fn audio_output_handle(&self) -> &Arc<RwLock<Option<Box<dyn voxy_audio::AudioOutputStream>>>> {
+    pub fn audio_output_handle(
+        &self,
+    ) -> &Arc<RwLock<Option<Box<dyn voxy_audio::AudioOutputStream>>>> {
         &self.audio_output
     }
 }
-

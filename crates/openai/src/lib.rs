@@ -87,7 +87,9 @@ impl LlmProvider for OpenAIProvider {
     }
 
     async fn health(&self) -> Result<bool> {
-        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
+        self.health()
+            .await
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {
@@ -139,7 +141,10 @@ mod tests {
     fn test_openai_config_debug_redacts_api_key() {
         let config = OpenAIConfig::openai("sk-super-secret");
         let debug = format!("{:?}", config);
-        assert!(!debug.contains("sk-super-secret"), "Debug must not leak the API key");
+        assert!(
+            !debug.contains("sk-super-secret"),
+            "Debug must not leak the API key"
+        );
         assert!(debug.contains("[REDACTED]"));
     }
 

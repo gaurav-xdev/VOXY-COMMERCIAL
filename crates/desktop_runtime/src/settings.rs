@@ -296,7 +296,7 @@ impl SettingsManager {
     /// Create a new settings manager.
     pub fn new() -> Result<Self> {
         let path = dirs::config_dir()
-            .unwrap_or_else(|| std::env::temp_dir())
+            .unwrap_or_else(std::env::temp_dir)
             .join("voxy")
             .join("settings.toml");
 
@@ -637,7 +637,10 @@ mod tests {
 
         mgr.save_to_file(&path).unwrap();
         let loaded = SettingsManager::load_from_file(&path).unwrap();
-        assert_eq!(loaded.app_name, "VOXY", "old content must be fully replaced");
+        assert_eq!(
+            loaded.app_name, "VOXY",
+            "old content must be fully replaced"
+        );
 
         let leftovers: Vec<String> = std::fs::read_dir(dir.path())
             .unwrap()

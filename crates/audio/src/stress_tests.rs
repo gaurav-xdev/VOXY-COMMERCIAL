@@ -9,12 +9,8 @@ use crate::bluetooth::{
     BluetoothDeviceInfo, BluetoothManager, BluetoothProfile, BluetoothStrategyConfig,
     InMemoryBluetoothManager,
 };
-use crate::hot_swap::{
-    HotSwapConfig, HotSwapEvent, HotSwapManager, NoopHotSwapHandler, PipelineState,
-};
-use crate::streaming_stt::{
-    MockStreamingSttProvider, StreamingAudioChunk, StreamingSttClient, StreamingSttConfig,
-};
+use crate::hot_swap::{HotSwapConfig, HotSwapManager, NoopHotSwapHandler, PipelineState};
+use crate::streaming_stt::{MockStreamingSttProvider, StreamingSttClient, StreamingSttConfig};
 use crate::wasapi_improvements::WasapiHealthMonitor;
 use crate::wasapi_session::{
     AudioSessionInfo, AudioSessionManager, AudioSessionState, InMemorySessionManager,
@@ -67,9 +63,7 @@ fn audio_session(id: &str, name: &str, volume: f32, excluded: bool) -> AudioSess
 fn spawn_event_drainer<T: Send + 'static>(
     mut rx: tokio::sync::mpsc::Receiver<T>,
 ) -> tokio::task::JoinHandle<()> {
-    tokio::spawn(async move {
-        while let Some(_) = rx.recv().await {}
-    })
+    tokio::spawn(async move { while rx.recv().await.is_some() {} })
 }
 
 // ============================================================================
@@ -86,7 +80,7 @@ async fn stress_streaming_stt_rapid_connect_disconnect() {
 
     for i in 0..50 {
         let mock = MockStreamingSttProvider::new();
-        let mut client = StreamingSttClient::new(mock, config.clone());
+        let client = StreamingSttClient::new(mock, config.clone());
 
         let result = client.connect(16000).await;
         assert!(result.is_ok(), "Connect failed at iteration {}", i);
@@ -98,7 +92,7 @@ async fn stress_streaming_stt_rapid_connect_disconnect() {
 #[tokio::test]
 async fn stress_streaming_stt_rapid_events() {
     let mock = MockStreamingSttProvider::new();
-    let mut client = StreamingSttClient::new(mock, StreamingSttConfig::default());
+    let client = StreamingSttClient::new(mock, StreamingSttConfig::default());
     client.connect(16000).await.unwrap();
 
     for _ in 0..100 {
@@ -119,10 +113,7 @@ async fn stress_wasapi_ducking_rapid_toggle() {
 
     // Consume ducking events concurrently; otherwise the bounded channel
     // blocks the sender after 64 toggles.
-    let drainer = match mgr.take_events().await {
-        Some(rx) => Some(spawn_event_drainer(rx)),
-        None => None,
-    };
+    let drainer = mgr.take_events().await.map(spawn_event_drainer);
 
     mgr.add_session(audio_session("1", "Spotify", 1.0, false));
     mgr.add_session(audio_session("2", "Discord", 0.8, true));
@@ -156,7 +147,7 @@ async fn stress_wasapi_volume_flood() {
     }
 
     let vol = mgr.get_volume("1").await.unwrap();
-    assert!(vol >= 0.0 && vol <= 1.0);
+    assert!((0.0..=1.0).contains(&vol));
 }
 
 // ============================================================================
@@ -186,10 +177,7 @@ async fn stress_hot_swap_concurrent_process() {
 
     // Consume hot-swap events concurrently; otherwise the bounded channel
     // blocks the sender after 64 events.
-    let drainer = match manager.take_events() {
-        Some(rx) => Some(spawn_event_drainer(rx)),
-        None => None,
-    };
+    let drainer = manager.take_events().map(spawn_event_drainer);
 
     for i in 0..10 {
         for j in 0..50 {
@@ -216,10 +204,7 @@ async fn stress_hot_swap_device_churn() {
 
     // Consume hot-swap events concurrently; otherwise the bounded channel
     // blocks the sender after 64 events.
-    let drainer = match manager.take_events() {
-        Some(rx) => Some(spawn_event_drainer(rx)),
-        None => None,
-    };
+    let drainer = manager.take_events().map(spawn_event_drainer);
 
     for i in 0..100 {
         let event = crate::device_watcher::DeviceChangeEvent::DeviceConnected {
@@ -296,7 +281,7 @@ async fn stress_bluetooth_device_churn() {
             100,
         ));
         let devices = mgr.scan_devices().await.unwrap();
-        assert!(devices.len() >= 1);
+        assert!(!devices.is_empty());
     }
 }
 

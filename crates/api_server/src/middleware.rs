@@ -1,3 +1,4 @@
+use crate::error::ApiError;
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -6,7 +7,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use voxy_database::CommercialStore;
 use voxy_security::SessionTokenManager;
-use crate::error::ApiError;
 
 /// Authenticated context populated by `AuthMiddleware`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +42,9 @@ impl AuthMiddleware {
 
         let raw_token = header["Bearer ".len()..].trim();
         if raw_token.is_empty() {
-            return Err(ApiError::Unauthorized("Empty bearer token provided".to_string()));
+            return Err(ApiError::Unauthorized(
+                "Empty bearer token provided".to_string(),
+            ));
         }
 
         // Hash token to lookup in database (tokens stored as SHA-256 hashes)
@@ -53,16 +55,22 @@ impl AuthMiddleware {
             .get_session_by_token_hash(&token_hash)
             .await
             .map_err(|e| ApiError::Internal(format!("Database query failed: {e}")))?
-            .ok_or_else(|| ApiError::Unauthorized("Invalid or revoked session token".to_string()))?;
+            .ok_or_else(|| {
+                ApiError::Unauthorized("Invalid or revoked session token".to_string())
+            })?;
 
         if session.revoked_at.is_some() {
-            return Err(ApiError::Unauthorized("Session token has been revoked".to_string()));
+            return Err(ApiError::Unauthorized(
+                "Session token has been revoked".to_string(),
+            ));
         }
 
         // Parse expires_at
         if let Ok(exp_dt) = DateTime::parse_from_rfc3339(&session.expires_at) {
             if Utc::now() > exp_dt.with_timezone(&Utc) {
-                return Err(ApiError::Unauthorized("Session token has expired".to_string()));
+                return Err(ApiError::Unauthorized(
+                    "Session token has expired".to_string(),
+                ));
             }
         }
 
@@ -72,10 +80,14 @@ impl AuthMiddleware {
             .get_user_by_id(&session.user_id)
             .await
             .map_err(|e| ApiError::Internal(format!("Database query failed: {e}")))?
-            .ok_or_else(|| ApiError::Unauthorized("Associated user account not found".to_string()))?;
+            .ok_or_else(|| {
+                ApiError::Unauthorized("Associated user account not found".to_string())
+            })?;
 
         if user.status != "active" {
-            return Err(ApiError::Forbidden("User account is deactivated".to_string()));
+            return Err(ApiError::Forbidden(
+                "User account is deactivated".to_string(),
+            ));
         }
 
         Ok(AuthContext {

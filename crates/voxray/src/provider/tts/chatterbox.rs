@@ -7,8 +7,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, VoiceLanguage,
 };
 
 const DEFAULT_CHATTERBOX_ENDPOINT: &str = "http://127.0.0.1:8001/v1/audio/speech";
@@ -152,10 +151,9 @@ impl TTSProvider for ChatterboxTTSProvider {
             )));
         }
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e)))?;
+        let bytes = response.bytes().await.map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e))
+        })?;
 
         Ok(Self::decode_wav_or_raw_pcm(&bytes, 24000))
     }

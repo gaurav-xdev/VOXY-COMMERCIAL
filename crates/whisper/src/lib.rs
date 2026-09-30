@@ -1,4 +1,4 @@
-﻿use std::path::PathBuf;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -10,7 +10,10 @@ use tracing::warn;
 use voxy_voice_orchestrator::{AudioChunk, AudioStream, SttEngine};
 
 #[cfg(feature = "sherpa-engine")]
-use sherpa_onnx::{OnlineRecognizer, OnlineRecognizerConfig, OnlineStream, OnlineTransducerModelConfig, OnlineModelConfig};
+use sherpa_onnx::{
+    OnlineModelConfig, OnlineRecognizer, OnlineRecognizerConfig, OnlineStream,
+    OnlineTransducerModelConfig,
+};
 
 pub use voxy_provider_core as core_traits;
 
@@ -167,7 +170,10 @@ impl WhisperSttEngine {
             if !text.is_empty() {
                 tracing::debug!("Whisper warm-up produced text on silence: {text:?}");
             }
-            info!("Whisper warm-up inference complete in {:?}", start.elapsed());
+            info!(
+                "Whisper warm-up inference complete in {:?}",
+                start.elapsed()
+            );
         }
         Ok(())
     }
@@ -480,7 +486,7 @@ impl SherpaStreamingSttEngine {
         Ok(String::new())
     }
 
-#[cfg(feature = "whisper-engine")]
+    #[cfg(feature = "whisper-engine")]
     async fn decode_partial(&self, audio: Vec<f32>) -> Result<String, WhisperError> {
         let context = self.context.clone();
         let translate = self.translate;
@@ -526,7 +532,7 @@ impl SherpaStreamingSttEngine {
         .map_err(|e| WhisperError::TranscriptionFailed(format!("Task join error: {e}")))?
     }
 
-#[cfg(not(feature = "whisper-engine"))]
+    #[cfg(not(feature = "whisper-engine"))]
     async fn decode_partial(&self, _audio: Vec<f32>) -> Result<String, WhisperError> {
         Ok(String::new())
     }
@@ -555,8 +561,12 @@ impl SttEngine for WhisperSttEngine {
         {
             let mut buf = self.buffer.lock();
             let max_samples = self.max_buffer_samples();
-            let normalized =
-                normalize_to_engine(&audio.data, audio.sample_rate, audio.channels, self.sample_rate);
+            let normalized = normalize_to_engine(
+                &audio.data,
+                audio.sample_rate,
+                audio.channels,
+                self.sample_rate,
+            );
             let overflow = buf
                 .len()
                 .saturating_add(normalized.len())
@@ -644,8 +654,12 @@ impl SttEngine for WhisperSttEngine {
         if rms < 0.01 {
             return Ok(String::new());
         }
-        let normalized =
-            normalize_to_engine(&audio.data, audio.sample_rate, audio.channels, self.sample_rate);
+        let normalized = normalize_to_engine(
+            &audio.data,
+            audio.sample_rate,
+            audio.channels,
+            self.sample_rate,
+        );
         match self.decode_partial(normalized).await {
             Ok(text) => Ok(text),
             Err(e) => {
@@ -755,7 +769,13 @@ mod tests {
         std::env::remove_var("VOXY_WHISPER_THREADS");
         let d = whisper_threads();
         assert!((1..=16).contains(&d), "default threads out of range: {d}");
-        assert!(d <= 4 || (d as usize) <= std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
+        assert!(
+            d <= 4
+                || (d as usize)
+                    <= std::thread::available_parallelism()
+                        .map(|n| n.get())
+                        .unwrap_or(4)
+        );
     }
 
     #[test]
@@ -885,9 +905,7 @@ mod tests {
     #[tokio::test]
     async fn test_whisper_partial_does_not_consume_internal_buffer() {
         let engine = WhisperSttEngine::new();
-        let data: Vec<f32> = (0..4800)
-            .map(|i| (i as f32 / 4800.0 * 0.5).sin())
-            .collect();
+        let data: Vec<f32> = (0..4800).map(|i| (i as f32 / 4800.0 * 0.5).sin()).collect();
         let chunk = make_chunk(data, 16000, false);
         let _ = engine.transcribe_partial(&chunk).await.unwrap();
         assert!(engine.buffered_duration_ms() < 0.1);
@@ -922,7 +940,10 @@ mod tests {
 
     #[test]
     fn session_carry_returns_new_portion_only() {
-        assert_eq!(apply_session_carry("hello world", "hello world what is the weather"), "what is the weather");
+        assert_eq!(
+            apply_session_carry("hello world", "hello world what is the weather"),
+            "what is the weather"
+        );
     }
 
     #[test]
@@ -932,12 +953,18 @@ mod tests {
 
     #[test]
     fn session_carry_after_rotation_returns_new_speech() {
-        assert_eq!(apply_session_carry("hello world what time is it", "what time is it the clock"), "the clock");
+        assert_eq!(
+            apply_session_carry("hello world what time is it", "what time is it the clock"),
+            "the clock"
+        );
     }
 
     #[test]
     fn session_carry_disjoint_returns_full_text() {
-        assert_eq!(apply_session_carry("hello world", "totally different"), "totally different");
+        assert_eq!(
+            apply_session_carry("hello world", "totally different"),
+            "totally different"
+        );
     }
 
     #[test]

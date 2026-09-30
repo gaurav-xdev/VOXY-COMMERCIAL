@@ -71,7 +71,7 @@ impl AuditLogStore for InMemoryAuditLogStore {
     async fn get_entries(&self, limit: usize, offset: usize) -> Result<Vec<AuditLogEntry>, String> {
         let entries = self.entries.read();
         let mut sorted: Vec<_> = entries.iter().cloned().collect();
-        sorted.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        sorted.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
         Ok(sorted.into_iter().skip(offset).take(limit).collect())
     }
 
@@ -85,8 +85,8 @@ impl AuditLogStore for InMemoryAuditLogStore {
             .read()
             .iter()
             .filter(|e| e.subject == subject)
-            .cloned()
             .take(limit)
+            .cloned()
             .collect())
     }
 
@@ -100,8 +100,8 @@ impl AuditLogStore for InMemoryAuditLogStore {
             .read()
             .iter()
             .filter(|e| e.action == action)
-            .cloned()
             .take(limit)
+            .cloned()
             .collect())
     }
 

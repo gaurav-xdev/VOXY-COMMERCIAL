@@ -259,6 +259,7 @@ mod tests {
     use super::*;
     use crate::device::{AudioDeviceInfo, InMemoryDeviceManager};
 
+    #[allow(dead_code)]
     fn make_device(id: &str, name: &str) -> AudioDeviceInfo {
         AudioDeviceInfo {
             id: id.to_string(),

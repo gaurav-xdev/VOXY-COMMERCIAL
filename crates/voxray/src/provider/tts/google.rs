@@ -9,8 +9,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, VoiceLanguage,
 };
 
 const GOOGLE_TTS_ENDPOINT: &str = "https://texttospeech.googleapis.com/v1/text:synthesize";
@@ -166,7 +165,11 @@ impl TTSProvider for GoogleTTSProvider {
             },
         };
 
-        debug!(provider = self.id(), voice = voice_name, "Calling Google Cloud TTS");
+        debug!(
+            provider = self.id(),
+            voice = voice_name,
+            "Calling Google Cloud TTS"
+        );
 
         let response = self
             .client

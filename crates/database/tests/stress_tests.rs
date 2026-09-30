@@ -84,8 +84,10 @@ mod stress_tests {
         // With 256 buffer and 10,000 messages, we expect significant loss.
         // The key metric is that the system doesn't crash or hang.
         assert!(consumed > 0, "Should receive at least some messages");
-        println!("  NOTE: {} messages dropped (broadcast buffer overflow - expected)",
-            total_messages - consumed);
+        println!(
+            "  NOTE: {} messages dropped (broadcast buffer overflow - expected)",
+            total_messages - consumed
+        );
     }
 
     #[tokio::test]
@@ -165,8 +167,10 @@ mod stress_tests {
         println!("  Consumed: {count}");
 
         assert!(count > 0, "No messages received");
-        println!("  NOTE: {} messages dropped (broadcast buffer overflow - expected)",
-            10_000 - count);
+        println!(
+            "  NOTE: {} messages dropped (broadcast buffer overflow - expected)",
+            10_000 - count
+        );
     }
 
     #[tokio::test]
@@ -384,7 +388,10 @@ mod stress_tests {
         println!("  Total reads: {total_reads}, Errors: {total_errors}");
         println!("  Time: {elapsed:?}");
 
-        assert_eq!(total_errors, 0, "Got {total_errors} errors under contention");
+        assert_eq!(
+            total_errors, 0,
+            "Got {total_errors} errors under contention"
+        );
     }
 
     // ========================================================================
@@ -591,10 +598,7 @@ mod stress_tests {
 
                 for turn in 0..5 {
                     let _ = bus
-                        .publish(
-                            "voice.wake",
-                            Event::new("voice.wake", "detector", vec![1]),
-                        )
+                        .publish("voice.wake", Event::new("voice.wake", "detector", vec![1]))
                         .await;
 
                     let _ = bus
@@ -609,7 +613,13 @@ mod stress_tests {
                         .await;
 
                     store
-                        .add_message(&conv.id, MessageRole::User, &format!("Turn {turn}"), Some(15), None)
+                        .add_message(
+                            &conv.id,
+                            MessageRole::User,
+                            &format!("Turn {turn}"),
+                            Some(15),
+                            None,
+                        )
                         .await
                         .unwrap();
 
@@ -665,7 +675,10 @@ mod stress_tests {
             100.0 / elapsed.as_secs_f64()
         );
 
-        assert_eq!(total_msgs, 200, "Expected 200 messages (20 sessions x 5 turns x 2 msgs/turn)");
+        assert_eq!(
+            total_msgs, 200,
+            "Expected 200 messages (20 sessions x 5 turns x 2 msgs/turn)"
+        );
     }
 
     // ========================================================================
@@ -795,7 +808,10 @@ mod stress_tests {
         let result = store
             .list_conversations("'; DROP TABLE conversations; --", 100, 0)
             .await;
-        assert!(result.is_ok(), "SQL injection attempt should not cause error");
+        assert!(
+            result.is_ok(),
+            "SQL injection attempt should not cause error"
+        );
     }
 
     // ========================================================================

@@ -2,6 +2,7 @@
 //! Tests rate limiting, quota tracking, multi-factor scoring, failover, and zero secret leakage.
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use std::sync::Arc;
     use std::time::Duration;
@@ -19,8 +20,7 @@ mod tests {
     use crate::provider::router::{STTRouter, TTSRouter};
     use crate::provider::stt::{LocalSapiSTTProvider, MockSTTProvider};
     use crate::provider::traits::{
-        AudioData, HealthStatus, ProviderError, STTProvider, TTSProvider, VoiceLanguage,
-        VoiceMode,
+        AudioData, HealthStatus, ProviderError, STTProvider, TTSProvider, VoiceLanguage, VoiceMode,
     };
     use crate::provider::tts::{CartesiaTTSProvider, MockTTSProvider};
 
@@ -53,7 +53,10 @@ mod tests {
 
         // 4th request exceeds RPM (limit is 3)
         let violation = manager.check_preflight("mock-stt", 10, 1.0);
-        assert!(violation.is_err(), "Expected RPM limit to reject 4th request");
+        assert!(
+            violation.is_err(),
+            "Expected RPM limit to reject 4th request"
+        );
     }
 
     #[tokio::test]
@@ -114,7 +117,10 @@ mod tests {
         let audio = AudioData::new(vec![0u8; 3200], 16000, 1);
         let res = router.transcribe(audio, Some(VoiceLanguage::English)).await;
 
-        assert!(res.is_ok(), "Router should successfully fail over to secondary");
+        assert!(
+            res.is_ok(),
+            "Router should successfully fail over to secondary"
+        );
         let transcript = res.unwrap();
         assert_eq!(transcript.text, "From Secondary Failover");
         assert_eq!(transcript.provider, "secondary-mock");
@@ -126,10 +132,12 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Cloud provider that fails
-        let failing_cloud = MockTTSProvider::new("failing-cloud", "Failing Cloud TTS").with_failures(5);
+        let failing_cloud =
+            MockTTSProvider::new("failing-cloud", "Failing Cloud TTS").with_failures(5);
 
         // Emergency fallback provider that always succeeds
-        let emergency_fallback = MockTTSProvider::new("emergency-fallback", "Emergency Fallback TTS");
+        let emergency_fallback =
+            MockTTSProvider::new("emergency-fallback", "Emergency Fallback TTS");
 
         let providers: Vec<Box<dyn TTSProvider>> = vec![Box::new(failing_cloud)];
         let router = TTSRouter::new(
@@ -139,7 +147,10 @@ mod tests {
         );
 
         let audio_res = router.synthesize("Hello world", None).await;
-        assert!(audio_res.is_ok(), "Router should fall back to emergency fallback");
+        assert!(
+            audio_res.is_ok(),
+            "Router should fall back to emergency fallback"
+        );
         let audio = audio_res.unwrap();
         assert!(!audio.pcm_bytes.is_empty());
     }
@@ -168,8 +179,14 @@ mod tests {
         for json in &[&providers_json, &quota_json, &health_json] {
             assert!(!json.contains("gsk_"), "Secret key detected in admin JSON!");
             assert!(!json.contains("sk-"), "Secret key detected in admin JSON!");
-            assert!(!json.contains("api_key"), "api_key field leaked in admin JSON!");
-            assert!(!json.contains("password"), "password field leaked in admin JSON!");
+            assert!(
+                !json.contains("api_key"),
+                "api_key field leaked in admin JSON!"
+            );
+            assert!(
+                !json.contains("password"),
+                "password field leaked in admin JSON!"
+            );
         }
 
         assert!(providers_json.contains("groq-stt"));
@@ -253,7 +270,8 @@ mod tests {
             vec![("Content-Type", "application/octet-stream")],
             dummy_pcm,
             None,
-        ).await;
+        )
+        .await;
 
         let provider = CartesiaTTSProvider::with_endpoint(
             "test_api_key_cartesia",
@@ -268,8 +286,14 @@ mod tests {
         assert!(provider.capabilities().streaming);
 
         // Test synthesize
-        let res = provider.synthesize("Hello Cartesia Sonic!", Some(VoiceLanguage::English)).await;
-        assert!(res.is_ok(), "Expected successful synthesis: {:?}", res.err());
+        let res = provider
+            .synthesize("Hello Cartesia Sonic!", Some(VoiceLanguage::English))
+            .await;
+        assert!(
+            res.is_ok(),
+            "Expected successful synthesis: {:?}",
+            res.err()
+        );
         let audio = res.unwrap();
         assert_eq!(audio.sample_rate, 16000);
         assert_eq!(audio.channels, 1);
@@ -292,7 +316,8 @@ mod tests {
             vec![],
             vec![0u8; 100],
             Some(Duration::from_millis(300)),
-        ).await;
+        )
+        .await;
 
         let provider = CartesiaTTSProvider::with_endpoint(
             "test_api_key_cartesia",
@@ -318,7 +343,8 @@ mod tests {
             vec![("Retry-After", "7"), ("Content-Type", "application/json")],
             br#"{"error":"rate_limit_exceeded","message":"Rate limit exceeded"}"#.to_vec(),
             None,
-        ).await;
+        )
+        .await;
 
         let provider = CartesiaTTSProvider::with_endpoint(
             "test_api_key_cartesia",
@@ -331,7 +357,10 @@ mod tests {
         let res = provider.synthesize("Rate limit test", None).await;
         assert!(res.is_err());
         match res.unwrap_err() {
-            ProviderError::RateLimited { retry_after, reason } => {
+            ProviderError::RateLimited {
+                retry_after,
+                reason,
+            } => {
                 assert_eq!(retry_after, Some(Duration::from_secs(7)));
                 assert!(reason.contains("429"));
             }
@@ -347,7 +376,8 @@ mod tests {
             vec![("Content-Type", "application/json")],
             br#"{"error":"unauthorized","message":"Invalid API Key"}"#.to_vec(),
             None,
-        ).await;
+        )
+        .await;
 
         let provider = CartesiaTTSProvider::with_endpoint(
             "invalid_key",
@@ -375,7 +405,8 @@ mod tests {
             vec![("Retry-After", "2")],
             b"Rate limit".to_vec(),
             None,
-        ).await;
+        )
+        .await;
 
         let storage = Arc::new(InMemoryQuotaStorage::new());
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
@@ -396,8 +427,14 @@ mod tests {
         let providers: Vec<Box<dyn TTSProvider>> = vec![Box::new(cartesia), Box::new(secondary)];
         let router = TTSRouter::new(providers, None, Arc::clone(&manager));
 
-        let res = router.synthesize("Test fallback when Cartesia 429", None).await;
-        assert!(res.is_ok(), "Expected router to fail over to secondary: {:?}", res.err());
+        let res = router
+            .synthesize("Test fallback when Cartesia 429", None)
+            .await;
+        assert!(
+            res.is_ok(),
+            "Expected router to fail over to secondary: {:?}",
+            res.err()
+        );
         let audio = res.unwrap();
         assert!(!audio.pcm_bytes.is_empty());
 
@@ -411,11 +448,17 @@ mod tests {
         std::env::set_var("CARTESIA_API_KEY", "dummy_key_123");
 
         let provider = CartesiaTTSProvider::from_env();
-        assert!(provider.is_none(), "Expected CARTESIA_ENABLED=false to remove provider");
+        assert!(
+            provider.is_none(),
+            "Expected CARTESIA_ENABLED=false to remove provider"
+        );
 
         std::env::set_var("CARTESIA_ENABLED", "true");
         let provider_enabled = CartesiaTTSProvider::from_env();
-        assert!(provider_enabled.is_some(), "Expected CARTESIA_ENABLED=true to enable provider");
+        assert!(
+            provider_enabled.is_some(),
+            "Expected CARTESIA_ENABLED=true to enable provider"
+        );
 
         // Clean up
         std::env::remove_var("CARTESIA_ENABLED");
@@ -447,7 +490,11 @@ mod tests {
         // First 6 requests must succeed
         for i in 0..6 {
             let res = manager.check_preflight("mock-rpm-test", 10, 0.5);
-            assert!(res.is_ok(), "Request {} should succeed within safe RPM", i + 1);
+            assert!(
+                res.is_ok(),
+                "Request {} should succeed within safe RPM",
+                i + 1
+            );
             manager.record_success("mock-rpm-test", Duration::from_millis(10), 10, 0.5, 0.0001);
         }
 
@@ -501,7 +548,10 @@ mod tests {
 
         // Now permit acquisition succeeds
         let permit3_retry = manager.acquire_concurrency("mock-conc-test");
-        assert!(permit3_retry.is_ok(), "Permit acquisition must succeed after dropping previous permit");
+        assert!(
+            permit3_retry.is_ok(),
+            "Permit acquisition must succeed after dropping previous permit"
+        );
     }
 
     #[tokio::test]
@@ -527,7 +577,10 @@ mod tests {
 
         // Immediate subsequent request within milliseconds triggers burst protection wait or error
         let burst_res = manager.check_preflight("mock-burst-test", 10, 0.5);
-        assert!(burst_res.is_err(), "Rapid burst spike must be caught by token bucket");
+        assert!(
+            burst_res.is_err(),
+            "Rapid burst spike must be caught by token bucket"
+        );
         match burst_res.unwrap_err() {
             QuotaViolation::BurstLimitExceeded(provider, wait_time) => {
                 assert_eq!(provider, "mock-burst-test");
@@ -602,7 +655,9 @@ mod tests {
         let status = manager.get_status("mock-retry-after-test");
         assert!(status.is_cooldown);
         assert!(status.in_cooldown_until.is_some());
-        let remaining = (status.in_cooldown_until.unwrap() - chrono::Utc::now()).to_std().unwrap();
+        let remaining = (status.in_cooldown_until.unwrap() - chrono::Utc::now())
+            .to_std()
+            .unwrap();
         assert!(remaining.as_secs() >= 20 && remaining.as_secs() <= 25);
     }
 
@@ -612,15 +667,23 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Provider that fails once with transient network error, then succeeds
-        let provider = MockTTSProvider::new("retry-provider", "Transient Retry Mock")
-            .with_failures(1);
+        let provider =
+            MockTTSProvider::new("retry-provider", "Transient Retry Mock").with_failures(1);
 
         let providers: Vec<Box<dyn TTSProvider>> = vec![Box::new(provider.clone())];
         let router = TTSRouter::new(providers, None, Arc::clone(&manager));
 
         let res = router.synthesize("Testing backoff and retry", None).await;
-        assert!(res.is_ok(), "Router should retry and succeed on transient error: {:?}", res.err());
-        assert_eq!(provider.call_count(), 2, "Expected exactly 2 attempts (1 initial failure + 1 retry)");
+        assert!(
+            res.is_ok(),
+            "Router should retry and succeed on transient error: {:?}",
+            res.err()
+        );
+        assert_eq!(
+            provider.call_count(),
+            2,
+            "Expected exactly 2 attempts (1 initial failure + 1 retry)"
+        );
     }
 
     #[tokio::test]
@@ -661,19 +724,25 @@ mod tests {
         // Put primary in cooldown
         manager.record_rate_limit("primary-cooling", Some(Duration::from_secs(30)));
 
-        let providers: Vec<Box<dyn TTSProvider>> = vec![
-            Box::new(primary.clone()),
-            Box::new(secondary.clone()),
-        ];
+        let providers: Vec<Box<dyn TTSProvider>> =
+            vec![Box::new(primary.clone()), Box::new(secondary.clone())];
         let router = TTSRouter::new(providers, None, Arc::clone(&manager));
 
         let res = router.synthesize("Skip cooldown test", None).await;
         assert!(res.is_ok());
 
         // Primary should NOT have been invoked at all
-        assert_eq!(primary.call_count(), 0, "Primary in cooldown must be skipped without calling");
+        assert_eq!(
+            primary.call_count(),
+            0,
+            "Primary in cooldown must be skipped without calling"
+        );
         // Secondary should have fulfilled the request
-        assert_eq!(secondary.call_count(), 1, "Secondary should fulfill request");
+        assert_eq!(
+            secondary.call_count(),
+            1,
+            "Secondary should fulfill request"
+        );
     }
 
     #[tokio::test]
@@ -682,20 +751,26 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Primary fails all retries (5 failures)
-        let primary = MockTTSProvider::new("primary-faulty", "Primary Faulty Mock")
-            .with_failures(5);
+        let primary =
+            MockTTSProvider::new("primary-faulty", "Primary Faulty Mock").with_failures(5);
         let secondary = MockTTSProvider::new("secondary-backup", "Secondary Backup Mock");
 
-        let providers: Vec<Box<dyn TTSProvider>> = vec![
-            Box::new(primary.clone()),
-            Box::new(secondary.clone()),
-        ];
+        let providers: Vec<Box<dyn TTSProvider>> =
+            vec![Box::new(primary.clone()), Box::new(secondary.clone())];
         let router = TTSRouter::new(providers, None, Arc::clone(&manager));
 
         let res = router.synthesize("Automatic failover test", None).await;
-        assert!(res.is_ok(), "Router must automatically fail over to secondary: {:?}", res.err());
+        assert!(
+            res.is_ok(),
+            "Router must automatically fail over to secondary: {:?}",
+            res.err()
+        );
         assert!(primary.call_count() > 0, "Primary was attempted");
-        assert_eq!(secondary.call_count(), 1, "Secondary backup fulfilled request");
+        assert_eq!(
+            secondary.call_count(),
+            1,
+            "Secondary backup fulfilled request"
+        );
     }
 
     #[tokio::test]
@@ -716,21 +791,34 @@ mod tests {
         );
 
         // 1st request -> Cache miss, synthesizes via provider
-        let audio1 = router.synthesize("Exact duplicate voice prompt", Some(VoiceLanguage::English)).await.unwrap();
+        let audio1 = router
+            .synthesize("Exact duplicate voice prompt", Some(VoiceLanguage::English))
+            .await
+            .unwrap();
         assert_eq!(mock_provider.call_count(), 1);
         let stats1 = cache.stats();
         assert_eq!(stats1.0, 0); // hits
         assert_eq!(stats1.1, 1); // misses
 
         // 2nd request with exact same phrase -> Cache hit, provider call count remains 1!
-        let audio2 = router.synthesize("Exact duplicate voice prompt", Some(VoiceLanguage::English)).await.unwrap();
-        assert_eq!(mock_provider.call_count(), 1, "Provider must NOT be called on cache hit");
+        let audio2 = router
+            .synthesize("Exact duplicate voice prompt", Some(VoiceLanguage::English))
+            .await
+            .unwrap();
+        assert_eq!(
+            mock_provider.call_count(),
+            1,
+            "Provider must NOT be called on cache hit"
+        );
         let stats2 = cache.stats();
         assert_eq!(stats2.0, 1); // hits
         assert_eq!(audio1.pcm_bytes, audio2.pcm_bytes);
 
         // 3rd request with different text -> Cache miss, provider called
-        let _audio3 = router.synthesize("Different voice prompt text", Some(VoiceLanguage::English)).await.unwrap();
+        let _audio3 = router
+            .synthesize("Different voice prompt text", Some(VoiceLanguage::English))
+            .await
+            .unwrap();
         assert_eq!(mock_provider.call_count(), 2);
         let stats3 = cache.stats();
         assert_eq!(stats3.1, 2); // misses
@@ -791,7 +879,9 @@ mod tests {
 
         // Provider is now recovered and ready
         assert!(!manager.is_in_cooldown("mock-recovery-test"));
-        assert!(manager.check_preflight("mock-recovery-test", 10, 0.5).is_ok());
+        assert!(manager
+            .check_preflight("mock-recovery-test", 10, 0.5)
+            .is_ok());
     }
 
     #[tokio::test]
@@ -812,10 +902,22 @@ mod tests {
         let _formatted2 = format!("{}", _err2);
 
         // Verify that ProviderError Display sanitizes raw secrets from error strings
-        assert!(!_formatted1.contains(secret), "Formatted error must not leak OpenAI secret");
-        assert!(!_formatted2.contains(groq_secret), "Formatted error must not leak Groq secret");
-        assert!(_formatted1.contains("[REDACTED]"), "Formatted error must contain redaction notice");
-        assert!(_formatted2.contains("[REDACTED]"), "Formatted error must contain redaction notice");
+        assert!(
+            !_formatted1.contains(secret),
+            "Formatted error must not leak OpenAI secret"
+        );
+        assert!(
+            !_formatted2.contains(groq_secret),
+            "Formatted error must not leak Groq secret"
+        );
+        assert!(
+            _formatted1.contains("[REDACTED]"),
+            "Formatted error must contain redaction notice"
+        );
+        assert!(
+            _formatted2.contains("[REDACTED]"),
+            "Formatted error must contain redaction notice"
+        );
 
         let storage = Arc::new(InMemoryQuotaStorage::new());
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
@@ -826,9 +928,18 @@ mod tests {
         let health_json = admin_api.get_health().to_string();
 
         for json in &[&providers_json, &quota_json, &health_json] {
-            assert!(!json.contains("sk-"), "Detected secret pattern in admin telemetry");
-            assert!(!json.contains("gsk_"), "Detected secret pattern in admin telemetry");
-            assert!(!json.contains("secret"), "Detected word 'secret' in admin telemetry");
+            assert!(
+                !json.contains("sk-"),
+                "Detected secret pattern in admin telemetry"
+            );
+            assert!(
+                !json.contains("gsk_"),
+                "Detected secret pattern in admin telemetry"
+            );
+            assert!(
+                !json.contains("secret"),
+                "Detected word 'secret' in admin telemetry"
+            );
         }
 
         // Verify status string does not contain secrets
@@ -877,10 +988,14 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Cloud provider configured to return an error if called
-        let cloud_provider = Box::new(MockSTTProvider::new("cloud-mock", "Cloud Provider").with_failures(100));
+        let cloud_provider =
+            Box::new(MockSTTProvider::new("cloud-mock", "Cloud Provider").with_failures(100));
 
         // Local emergency fallback that succeeds
-        let local_fallback = Box::new(MockSTTProvider::new("local-fallback", "Local Fallback").with_transcript("local offline speech"));
+        let local_fallback = Box::new(
+            MockSTTProvider::new("local-fallback", "Local Fallback")
+                .with_transcript("local offline speech"),
+        );
 
         let router = STTRouter::with_fallback(
             vec![cloud_provider],
@@ -892,7 +1007,10 @@ mod tests {
         let audio = AudioData::new(vec![0; 3200], 16000, 1);
         let result = router.transcribe(audio, None).await;
 
-        assert!(result.is_ok(), "STTRouter in local mode should succeed via local fallback");
+        assert!(
+            result.is_ok(),
+            "STTRouter in local mode should succeed via local fallback"
+        );
         assert_eq!(result.unwrap().text, "local offline speech");
     }
 
@@ -902,10 +1020,14 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Failing cloud provider simulating disconnected internet / DNS failure
-        let cloud_provider = Box::new(MockSTTProvider::new("cloud-mock", "Cloud Provider").with_failures(100));
+        let cloud_provider =
+            Box::new(MockSTTProvider::new("cloud-mock", "Cloud Provider").with_failures(100));
 
         // Local offline fallback
-        let local_fallback = Box::new(MockSTTProvider::new("local-fallback", "Local Fallback").with_transcript("recovered via offline fallback"));
+        let local_fallback = Box::new(
+            MockSTTProvider::new("local-fallback", "Local Fallback")
+                .with_transcript("recovered via offline fallback"),
+        );
 
         let router = STTRouter::with_fallback(
             vec![cloud_provider],
@@ -917,7 +1039,10 @@ mod tests {
         let audio = AudioData::new(vec![0; 3200], 16000, 1);
         let result = router.transcribe(audio, None).await;
 
-        assert!(result.is_ok(), "STTRouter in auto mode should recover via local fallback");
+        assert!(
+            result.is_ok(),
+            "STTRouter in auto mode should recover via local fallback"
+        );
         assert_eq!(result.unwrap().text, "recovered via offline fallback");
     }
 
@@ -927,10 +1052,14 @@ mod tests {
         let manager = Arc::new(ProviderQuotaManager::new(storage, RoutingMode::Balanced));
 
         // Failing cloud provider
-        let cloud_provider = Box::new(MockTTSProvider::new("cloud-tts", "Cloud TTS").with_failures(100));
+        let cloud_provider =
+            Box::new(MockTTSProvider::new("cloud-tts", "Cloud TTS").with_failures(100));
 
         // Working local fallback
-        let local_fallback = Box::new(MockTTSProvider::new("local-sapi-tts", "Local SAPI Fallback"));
+        let local_fallback = Box::new(MockTTSProvider::new(
+            "local-sapi-tts",
+            "Local SAPI Fallback",
+        ));
 
         let router = TTSRouter::with_cache_and_mode(
             vec![cloud_provider],
@@ -942,7 +1071,9 @@ mod tests {
         );
 
         let result = router.synthesize("Hello offline world", None).await;
-        assert!(result.is_ok(), "TTSRouter in local mode should succeed directly via local fallback");
+        assert!(
+            result.is_ok(),
+            "TTSRouter in local mode should succeed directly via local fallback"
+        );
     }
 }
-

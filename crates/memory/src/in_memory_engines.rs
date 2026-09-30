@@ -472,8 +472,7 @@ impl HermesEngine for InMemoryHermesEngine {
         Ok(items
             .iter()
             .filter(|i| {
-                i.importance >= policy.min_importance
-                    && i.access_count as u64 >= policy.min_access_count
+                i.importance >= policy.min_importance && i.access_count >= policy.min_access_count
             })
             .map(|item| HermesClassification {
                 item_id: item.id.clone(),

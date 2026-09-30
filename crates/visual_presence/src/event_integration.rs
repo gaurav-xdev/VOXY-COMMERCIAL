@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_experience_output_variants() {
-        let outputs = vec![
+        let outputs = [
             ExperienceOutput::PresenceChanged("idle".to_string()),
             ExperienceOutput::MoodChanged("happy".to_string()),
             ExperienceOutput::VoiceParamsUpdated {

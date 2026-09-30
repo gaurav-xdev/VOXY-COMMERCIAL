@@ -115,7 +115,10 @@ impl STTProvider for AzureSTTProvider {
             .client
             .post(&url)
             .header("Ocp-Apim-Subscription-Key", &self.api_key)
-            .header("Content-Type", "audio/wav; codecs=audio/pcm; samplerate=16000")
+            .header(
+                "Content-Type",
+                "audio/wav; codecs=audio/pcm; samplerate=16000",
+            )
             .body(audio.to_wav())
             .send()
             .await

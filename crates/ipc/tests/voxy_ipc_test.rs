@@ -1,7 +1,7 @@
 use std::time::Duration;
 use voxy_ipc::{
-    ClientCommand, DaemonMessage, DaemonStateSnapshot, ToolStepStatus, VoiceState,
-    VoxyIpcClient, VoxyIpcServer,
+    ClientCommand, DaemonMessage, DaemonStateSnapshot, ToolStepStatus, VoiceState, VoxyIpcClient,
+    VoxyIpcServer,
 };
 
 #[test]
@@ -39,10 +39,12 @@ fn test_tool_step_status_serde() {
 
 #[test]
 fn test_state_snapshot_generation() {
-    let mut snap = DaemonStateSnapshot::default();
-    snap.voice_state = VoiceState::Speaking;
-    snap.transcript = "Test speech transcript".to_string();
-    snap.emergency_stopped = false;
+    let snap = DaemonStateSnapshot {
+        voice_state: VoiceState::Speaking,
+        transcript: "Test speech transcript".to_string(),
+        emergency_stopped: false,
+        ..Default::default()
+    };
 
     let msg = snap.to_snapshot_message();
     match msg {
@@ -138,10 +140,7 @@ async fn test_windows_named_pipe_e2e_communication() {
 
     match tool_msg {
         DaemonMessage::ToolStep {
-            id,
-            tool,
-            status,
-            ..
+            id, tool, status, ..
         } => {
             assert_eq!(id, 101);
             assert_eq!(tool, "open_app");
@@ -178,5 +177,95 @@ async fn test_windows_named_pipe_e2e_communication() {
 
     // 7. Clean stop
     client.stop();
+    server.stop();
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn test_windows_named_pipe_auth_enforcement_and_privileged_command_rejection() {
+    let pipe_name = format!(r"\\.\pipe\voxy-test-auth-{}", uuid::Uuid::new_v4());
+    let valid_secret = "commercial-production-shared-secret-12345";
+
+    // 1. Start server requiring the valid secret
+    let server = VoxyIpcServer::with_pipe_name_and_auth(&pipe_name, Some(valid_secret.to_string()));
+    server.start();
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    // 2. Client with INVALID token connects
+    let bad_client = VoxyIpcClient::with_pipe_name_and_auth(
+        &pipe_name,
+        Some("attacker-invalid-token".to_string()),
+    );
+    bad_client.start();
+
+    let mut bad_conn_watch = bad_client.watch_connected();
+    for _ in 0..20 {
+        if *bad_conn_watch.borrow() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let _ = bad_conn_watch.changed().await;
+    }
+
+    // Drain handshake attempt from bad client
+    let _ = tokio::time::timeout(Duration::from_secs(1), server.recv_command()).await;
+
+    // 3. Attacker sends privileged EmergencyStop command
+    bad_client
+        .send_command(ClientCommand::EmergencyStop)
+        .await
+        .unwrap();
+
+    // The privileged command MUST NOT be processed by the server
+    let bad_res = tokio::time::timeout(Duration::from_millis(400), server.recv_command()).await;
+    assert!(
+        bad_res.is_err(),
+        "Expected timeout: unauthenticated client's privileged command must be dropped by the server"
+    );
+    bad_client.stop();
+
+    // Give server moment to cycle pipe
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // 4. Authenticated client connects with CORRECT secret
+    let good_client =
+        VoxyIpcClient::with_pipe_name_and_auth(&pipe_name, Some(valid_secret.to_string()));
+    good_client.start();
+
+    let mut good_conn_watch = good_client.watch_connected();
+    for _ in 0..20 {
+        if *good_conn_watch.borrow() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let _ = good_conn_watch.changed().await;
+    }
+
+    // Handshake command received
+    let good_handshake = tokio::time::timeout(Duration::from_secs(2), server.recv_command())
+        .await
+        .expect("Timeout on good handshake")
+        .expect("Server closed");
+    match good_handshake {
+        ClientCommand::ClientHandshake { auth_token, .. } => {
+            assert!(auth_token.is_some(), "Expected cryptographic auth token");
+        }
+        other => panic!("Expected ClientHandshake, got: {:?}", other),
+    }
+
+    // 5. Authenticated client sends privileged EmergencyStop
+    good_client
+        .send_command(ClientCommand::EmergencyStop)
+        .await
+        .unwrap();
+
+    let good_cmd = tokio::time::timeout(Duration::from_secs(2), server.recv_command())
+        .await
+        .expect("Timeout on good privileged command")
+        .expect("Server closed");
+    assert_eq!(good_cmd, ClientCommand::EmergencyStop);
+
+    good_client.stop();
     server.stop();
 }

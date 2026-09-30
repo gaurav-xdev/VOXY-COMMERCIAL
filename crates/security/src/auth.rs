@@ -132,11 +132,13 @@ impl AuthRateLimiter {
     pub fn record_failure(&self, key: &str) -> Option<i64> {
         let now = Utc::now();
         let mut guard = self.entries.write();
-        let entry = guard.entry(key.to_string()).or_insert_with(|| RateLimitEntry {
-            failed_attempts: 0,
-            first_attempt_at: now,
-            locked_until: None,
-        });
+        let entry = guard
+            .entry(key.to_string())
+            .or_insert_with(|| RateLimitEntry {
+                failed_attempts: 0,
+                first_attempt_at: now,
+                locked_until: None,
+            });
 
         // Reset if window has elapsed
         if now - entry.first_attempt_at > self.window_duration {
@@ -182,7 +184,10 @@ mod tests {
     fn test_argon2id_wrong_password_fails() {
         let password = "CorrectPassword123";
         let hash = AuthPasswordHasher::hash_password(password).unwrap();
-        assert!(!AuthPasswordHasher::verify_password("WrongPassword456", &hash));
+        assert!(!AuthPasswordHasher::verify_password(
+            "WrongPassword456",
+            &hash
+        ));
     }
 
     #[test]

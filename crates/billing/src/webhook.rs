@@ -76,7 +76,8 @@ pub fn verify_webhook_signature(
             // Header can contain space-separated signatures: "v1,BASE64 v1,BASE64"
             for sig_part in signature_header.split_whitespace() {
                 if let Some(b64_sig) = sig_part.strip_prefix("v1,") {
-                    if let Ok(expected) = base64::engine::general_purpose::STANDARD.decode(b64_sig) {
+                    if let Ok(expected) = base64::engine::general_purpose::STANDARD.decode(b64_sig)
+                    {
                         let check_mac = mac.clone();
                         if check_mac.verify_slice(&expected).is_ok() {
                             return true;
@@ -241,13 +242,9 @@ impl WebhookHandler {
                     .or_else(|| sub_data["plan_id"].as_str())
                     .unwrap_or("plan_pro_monthly");
 
-                let sub_id = sub_data["subscription_id"]
-                    .as_str()
-                    .unwrap_or_default();
+                let sub_id = sub_data["subscription_id"].as_str().unwrap_or_default();
 
-                let cus_id = sub_data["customer_id"]
-                    .as_str()
-                    .unwrap_or_default();
+                let cus_id = sub_data["customer_id"].as_str().unwrap_or_default();
 
                 if sub_id.is_empty() {
                     return Err("Missing subscription_id in event payload".into());
@@ -255,7 +252,8 @@ impl WebhookHandler {
 
                 // If user_id is missing from payload, check if we already have it on record
                 let resolved_user_id = if user_id.is_empty() {
-                    if let Ok(Some(existing)) = self.store.get_subscription_by_dodo_id(sub_id).await {
+                    if let Ok(Some(existing)) = self.store.get_subscription_by_dodo_id(sub_id).await
+                    {
                         existing.user_id
                     } else {
                         return Err("Missing user_id in subscription event payload".into());
@@ -289,7 +287,10 @@ impl WebhookHandler {
                 // Check out-of-order transition
                 if let Ok(Some(existing)) = self.store.get_subscription_by_dodo_id(sub_id).await {
                     let curr_status = SubscriptionStatus::from_str_lossy(&existing.status);
-                    if !SubscriptionStateMachine::can_transition(curr_status, SubscriptionStatus::Active) {
+                    if !SubscriptionStateMachine::can_transition(
+                        curr_status,
+                        SubscriptionStatus::Active,
+                    ) {
                         tracing::warn!(
                             "[BILLING:WEBHOOK] Ignoring invalid transition from {:?} to Active for sub {}",
                             curr_status,
@@ -321,23 +322,53 @@ impl WebhookHandler {
 
                 // Grant entitlements with authoritative expiration timestamp
                 self.store
-                    .set_entitlement(&resolved_user_id, "coding_harness", true, None, Some(&period_end))
+                    .set_entitlement(
+                        &resolved_user_id,
+                        "coding_harness",
+                        true,
+                        None,
+                        Some(&period_end),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
                 self.store
-                    .set_entitlement(&resolved_user_id, "cloud_voice", true, None, Some(&period_end))
+                    .set_entitlement(
+                        &resolved_user_id,
+                        "cloud_voice",
+                        true,
+                        None,
+                        Some(&period_end),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
                 self.store
-                    .set_entitlement(&resolved_user_id, "unlimited_models", true, None, Some(&period_end))
+                    .set_entitlement(
+                        &resolved_user_id,
+                        "unlimited_models",
+                        true,
+                        None,
+                        Some(&period_end),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
                 self.store
-                    .set_entitlement(&resolved_user_id, "computer_control", true, None, Some(&period_end))
+                    .set_entitlement(
+                        &resolved_user_id,
+                        "computer_control",
+                        true,
+                        None,
+                        Some(&period_end),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
                 self.store
-                    .set_entitlement(&resolved_user_id, "office_automation", true, None, Some(&period_end))
+                    .set_entitlement(
+                        &resolved_user_id,
+                        "office_automation",
+                        true,
+                        None,
+                        Some(&period_end),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -359,9 +390,8 @@ impl WebhookHandler {
                     .map_err(|e| e.to_string())?
                     .ok_or_else(|| format!("Subscription {} not found for cancellation", sub_id))?;
 
-                let cancel_at_period_end = sub_data["cancel_at_period_end"]
-                    .as_bool()
-                    .unwrap_or(false);
+                let cancel_at_period_end =
+                    sub_data["cancel_at_period_end"].as_bool().unwrap_or(false);
 
                 let now = Utc::now().to_rfc3339();
 
@@ -502,7 +532,12 @@ mod tests {
         let webhook_ts = "1727618000";
         let payload = br#"{"event_id":"evt_100","event_type":"subscription.active"}"#;
 
-        let to_sign = format!("{}.{}.{}", webhook_id, webhook_ts, std::str::from_utf8(payload).unwrap());
+        let to_sign = format!(
+            "{}.{}.{}",
+            webhook_id,
+            webhook_ts,
+            std::str::from_utf8(payload).unwrap()
+        );
 
         // Derive expected signature
         let secret_bytes = base64::engine::general_purpose::STANDARD
@@ -545,10 +580,14 @@ mod tests {
         let now_epoch = Utc::now().timestamp().to_string();
         assert!(verify_webhook_timestamp(&now_epoch, 300));
 
-        let old_epoch = (Utc::now() - chrono::Duration::seconds(600)).timestamp().to_string();
+        let old_epoch = (Utc::now() - chrono::Duration::seconds(600))
+            .timestamp()
+            .to_string();
         assert!(!verify_webhook_timestamp(&old_epoch, 300));
 
-        let future_epoch = (Utc::now() + chrono::Duration::seconds(60)).timestamp().to_string();
+        let future_epoch = (Utc::now() + chrono::Duration::seconds(60))
+            .timestamp()
+            .to_string();
         assert!(!verify_webhook_timestamp(&future_epoch, 300));
     }
 
@@ -568,7 +607,10 @@ mod tests {
         store.initialize_schema().await.unwrap();
         store.seed_default_plans().await.unwrap();
 
-        let user = store.create_user("subscriber@voxy.ai", "hash123").await.unwrap();
+        let user = store
+            .create_user("subscriber@voxy.ai", "hash123")
+            .await
+            .unwrap();
 
         let secret = "whsec_test_secret_for_suite";
         let handler = WebhookHandler::new(secret.to_string(), store.clone());
@@ -597,7 +639,12 @@ mod tests {
         let payload_bytes = serde_json::to_vec(&payload_json).unwrap();
 
         // Sign according to spec
-        let to_sign = format!("{}.{}.{}", wh_id, wh_ts, std::str::from_utf8(&payload_bytes).unwrap());
+        let to_sign = format!(
+            "{}.{}.{}",
+            wh_id,
+            wh_ts,
+            std::str::from_utf8(&payload_bytes).unwrap()
+        );
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
         mac.update(to_sign.as_bytes());
         let sig = base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
@@ -610,13 +657,23 @@ mod tests {
         assert!(res.is_ok());
 
         // Verify authoritative period end recorded (365 days, NOT hardcoded 30)
-        let sub = store.get_subscription_by_dodo_id("sub_dodo_888").await.unwrap().unwrap();
+        let sub = store
+            .get_subscription_by_dodo_id("sub_dodo_888")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(sub.current_period_end, period_end);
         assert_eq!(sub.status, "active");
 
         // Verify entitlements granted
-        assert!(store.check_entitlement(&user.id, "coding_harness").await.unwrap());
-        assert!(store.check_entitlement(&user.id, "cloud_voice").await.unwrap());
+        assert!(store
+            .check_entitlement(&user.id, "coding_harness")
+            .await
+            .unwrap());
+        assert!(store
+            .check_entitlement(&user.id, "cloud_voice")
+            .await
+            .unwrap());
 
         // 2. Test Idempotency: replay identical event
         let replay = handler
@@ -635,10 +692,17 @@ mod tests {
             }
         });
         let cancel_bytes = serde_json::to_vec(&cancel_json).unwrap();
-        let to_sign_cancel = format!("msg_cancel.{}.{}", wh_ts, std::str::from_utf8(&cancel_bytes).unwrap());
+        let to_sign_cancel = format!(
+            "msg_cancel.{}.{}",
+            wh_ts,
+            std::str::from_utf8(&cancel_bytes).unwrap()
+        );
         let mut mac2 = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
         mac2.update(to_sign_cancel.as_bytes());
-        let sig2 = format!("v1,{}", base64::engine::general_purpose::STANDARD.encode(mac2.finalize().into_bytes()));
+        let sig2 = format!(
+            "v1,{}",
+            base64::engine::general_purpose::STANDARD.encode(mac2.finalize().into_bytes())
+        );
 
         let cancel_res = handler
             .process_webhook(&cancel_bytes, Some(&sig2), Some(&wh_ts), Some("msg_cancel"))
@@ -646,8 +710,15 @@ mod tests {
         assert!(cancel_res.is_ok());
 
         // Verify status cancelled and entitlements revoked
-        let cancelled_sub = store.get_subscription_by_dodo_id("sub_dodo_888").await.unwrap().unwrap();
+        let cancelled_sub = store
+            .get_subscription_by_dodo_id("sub_dodo_888")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(cancelled_sub.status, "cancelled");
-        assert!(!store.check_entitlement(&user.id, "coding_harness").await.unwrap());
+        assert!(!store
+            .check_entitlement(&user.id, "coding_harness")
+            .await
+            .unwrap());
     }
 }

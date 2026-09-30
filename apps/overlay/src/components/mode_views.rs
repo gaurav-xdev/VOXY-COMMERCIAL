@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::types::VisualState;
+use dioxus::prelude::*;
 
 #[component]
 pub fn CompactModeView(
@@ -60,10 +60,7 @@ pub fn EdgeDockView(
 }
 
 #[component]
-pub fn MinimalView(
-    visual_state: VisualState,
-    on_switch_full: EventHandler<MouseEvent>,
-) -> Element {
+pub fn MinimalView(visual_state: VisualState, on_switch_full: EventHandler<MouseEvent>) -> Element {
     let state_color = visual_state.color();
 
     rsx! {

@@ -1,14 +1,14 @@
+use crate::error::ApiError;
+use crate::middleware::AuthContext;
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use voxy_billing::{
-    CreateCheckoutSessionRequest, DodoPaymentsClient, EntitlementEngine, FeatureFlag,
-    WebhookError, WebhookHandler,
+    CreateCheckoutSessionRequest, DodoPaymentsClient, EntitlementEngine, FeatureFlag, WebhookError,
+    WebhookHandler,
 };
 use voxy_database::CommercialStore;
 use voxy_security::{AuthPasswordHasher, SessionTokenManager};
-use crate::error::ApiError;
-use crate::middleware::AuthContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterRequest {
@@ -163,7 +163,9 @@ impl ApiHandlers {
 
         let valid = AuthPasswordHasher::verify_password(&req.password, &user.password_hash);
         if !valid {
-            return Err(ApiError::Unauthorized("Invalid email or password".to_string()));
+            return Err(ApiError::Unauthorized(
+                "Invalid email or password".to_string(),
+            ));
         }
 
         // Generate 256-bit cryptographically secure token
@@ -239,26 +241,22 @@ impl ApiHandlers {
             ApiError::Internal("Webhook secret is not configured on this server".to_string())
         })?;
 
-        let webhook_handler = WebhookHandler::new(
-            secret.to_string(),
-            (*self.store).clone(),
-        );
+        let webhook_handler = WebhookHandler::new(secret.to_string(), (*self.store).clone());
 
         webhook_handler
-            .process_webhook(payload, signature_header, timestamp_header, webhook_id_header)
+            .process_webhook(
+                payload,
+                signature_header,
+                timestamp_header,
+                webhook_id_header,
+            )
             .await
             .map_err(|e| match e {
                 WebhookError::MissingSignature
                 | WebhookError::InvalidSignature
-                | WebhookError::ReplayDetected(_) => {
-                    ApiError::Unauthorized(e.to_string())
-                }
-                WebhookError::MalformedPayload(msg) => {
-                    ApiError::BadRequest(msg)
-                }
-                WebhookError::DatabaseError(msg) => {
-                    ApiError::Internal(msg)
-                }
+                | WebhookError::ReplayDetected(_) => ApiError::Unauthorized(e.to_string()),
+                WebhookError::MalformedPayload(msg) => ApiError::BadRequest(msg),
+                WebhookError::DatabaseError(msg) => ApiError::Internal(msg),
             })
     }
 
@@ -288,9 +286,7 @@ impl ApiHandlers {
             .await
             .unwrap_or(None);
 
-        let active_tier = sub
-            .map(|s| s.plan_id)
-            .unwrap_or_else(|| "free".to_string());
+        let active_tier = sub.map(|s| s.plan_id).unwrap_or_else(|| "free".to_string());
 
         Ok(EntitlementCheckResponse {
             feature: feature.to_string(),
@@ -306,7 +302,14 @@ impl ApiHandlers {
         req: ConsentRequest,
     ) -> Result<(), ApiError> {
         self.store
-            .record_consent(&auth.user_id, &req.policy_type, &req.policy_version, req.agreed, None, None)
+            .record_consent(
+                &auth.user_id,
+                &req.policy_type,
+                &req.policy_version,
+                req.agreed,
+                None,
+                None,
+            )
             .await
             .map_err(|e| ApiError::Internal(format!("Failed to record consent: {e}")))?;
 

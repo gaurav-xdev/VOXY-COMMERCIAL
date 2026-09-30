@@ -79,5 +79,4 @@ impl AppBridge {
             experience_input,
         }
     }
-
 }

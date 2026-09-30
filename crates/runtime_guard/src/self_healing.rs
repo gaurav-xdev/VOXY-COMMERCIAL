@@ -359,7 +359,10 @@ mod tests {
 
         assert!(healer.heal("flaky").await.is_ok());
         let state = healer.get_state("flaky").await.unwrap();
-        assert_eq!(state.attempt_count, 0, "success must reset the attempt budget");
+        assert_eq!(
+            state.attempt_count, 0,
+            "success must reset the attempt budget"
+        );
         assert!(healer.can_heal("flaky").await);
 
         // A later failure can still be retried within the budget.
@@ -376,7 +379,7 @@ mod tests {
         }));
         healer
             .register("slow", move || {
-                let mut release = release_rx.clone();
+                let release = release_rx.clone();
                 async move {
                     // Block until the first heal is released, simulating a slow restart.
                     loop {
@@ -396,7 +399,10 @@ mod tests {
         tokio::task::yield_now().await;
         let second = healer.heal("slow").await;
 
-        assert!(second.is_ok(), "a second heal while recovering must not error");
+        assert!(
+            second.is_ok(),
+            "a second heal while recovering must not error"
+        );
 
         let _ = release_tx.send(true);
         assert!(first.await.unwrap().is_ok());

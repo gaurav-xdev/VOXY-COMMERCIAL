@@ -14,6 +14,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InsightId(pub String);
 
+impl Default for InsightId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InsightId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())

@@ -35,15 +35,10 @@ impl ConfigBridge {
 
             tokio::spawn(async move {
                 let mut rx = settings.subscribe();
-                loop {
-                    match rx.changed().await {
-                        Ok(()) => {
-                            info!("Settings changed, propagating to ConfigManager");
-                            if let Err(e) = sync_settings_to_config(&cm, &settings).await {
-                                warn!("Failed to sync settings to config: {}", e);
-                            }
-                        }
-                        Err(_) => break,
+                while let Ok(()) = rx.changed().await {
+                    info!("Settings changed, propagating to ConfigManager");
+                    if let Err(e) = sync_settings_to_config(&cm, &settings).await {
+                        warn!("Failed to sync settings to config: {}", e);
                     }
                 }
             });

@@ -30,11 +30,7 @@ impl TieredEndpointing {
         }
     }
 
-    pub fn decision(
-        &self,
-        text: &str,
-        silence_since_vad_stop: Duration,
-    ) -> EndpointDecision {
+    pub fn decision(&self, text: &str, silence_since_vad_stop: Duration) -> EndpointDecision {
         let trimmed = text.trim();
         if trimmed.is_empty() {
             return EndpointDecision::Continue;
@@ -137,7 +133,10 @@ mod tests {
 
     #[test]
     fn real_sentence_ending_in_filler_word_is_not_dropped() {
-        assert_eq!(decide("what is the capital like", 800), EndpointDecision::Commit);
+        assert_eq!(
+            decide("what is the capital like", 800),
+            EndpointDecision::Commit
+        );
     }
 
     #[test]

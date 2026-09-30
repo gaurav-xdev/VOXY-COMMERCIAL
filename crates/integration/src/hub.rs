@@ -126,7 +126,7 @@ impl ServiceHub {
         let services = self.services.read();
         let instance = services
             .get(&name)
-            .ok_or_else(|| IntegrationError::ServiceNotFound(name))?;
+            .ok_or(IntegrationError::ServiceNotFound(name))?;
 
         instance
             .clone()

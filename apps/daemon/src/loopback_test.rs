@@ -34,16 +34,37 @@ struct TimingSample {
 
 impl TimingSample {
     fn new(name: &'static str) -> Self {
-        Self { name, values: Vec::new() }
+        Self {
+            name,
+            values: Vec::new(),
+        }
     }
-    fn record(&mut self, ms: f64) { self.values.push(ms); }
-    fn avg(&self) -> f64 { if self.values.is_empty() { 0.0 } else { self.values.iter().sum::<f64>() / self.values.len() as f64 } }
-    fn min(&self) -> f64 { self.values.iter().cloned().fold(f64::MAX, f64::min) }
-    fn max(&self) -> f64 { self.values.iter().cloned().fold(f64::MIN, f64::max) }
-    fn p50(&self) -> f64 { self.percentile(50.0) }
-    fn p95(&self) -> f64 { self.percentile(95.0) }
+    fn record(&mut self, ms: f64) {
+        self.values.push(ms);
+    }
+    fn avg(&self) -> f64 {
+        if self.values.is_empty() {
+            0.0
+        } else {
+            self.values.iter().sum::<f64>() / self.values.len() as f64
+        }
+    }
+    fn min(&self) -> f64 {
+        self.values.iter().cloned().fold(f64::MAX, f64::min)
+    }
+    fn max(&self) -> f64 {
+        self.values.iter().cloned().fold(f64::MIN, f64::max)
+    }
+    fn p50(&self) -> f64 {
+        self.percentile(50.0)
+    }
+    fn p95(&self) -> f64 {
+        self.percentile(95.0)
+    }
     fn percentile(&self, p: f64) -> f64 {
-        if self.values.is_empty() { return 0.0; }
+        if self.values.is_empty() {
+            return 0.0;
+        }
         let mut sorted = self.values.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let idx = ((p / 100.0) * (sorted.len() as f64 - 1.0)).round() as usize;
@@ -86,8 +107,8 @@ pub async fn run_loopback_test(iterations: usize) {
     // Load Whisper STT
     #[cfg(feature = "whisper-engine")]
     {
-        let whisper = voxy_whisper::WhisperSttEngine::new()
-            .with_model_path("models/ggml-base.en.bin".into());
+        let whisper =
+            voxy_whisper::WhisperSttEngine::new().with_model_path("models/ggml-base.en.bin".into());
         match whisper.load_model() {
             Ok(()) => {
                 info!("[LOOPBACK] Whisper model loaded");
@@ -143,7 +164,7 @@ pub async fn run_loopback_test(iterations: usize) {
         let streaming_handler = Arc::new(
             move |text: String,
                   tx: mpsc::Sender<String>|
-             -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
+                  -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
                 let llm = llm.clone();
                 let timings = timings.clone();
                 let iteration_done = iteration_done.clone();
@@ -256,7 +277,9 @@ pub async fn run_loopback_test(iterations: usize) {
             },
         );
 
-        pipeline.set_streaming_response_handler(streaming_handler).await;
+        pipeline
+            .set_streaming_response_handler(streaming_handler)
+            .await;
     }
 
     // Start listening
@@ -379,10 +402,21 @@ fn print_results(all_timings: &[IterationTimings]) {
     println!("  Iterations: {}", all_timings.len());
     println!();
 
-    println!("  {:>4} │ {:>8} │ {:>10} │ {:>12} │ {:>8} │ {:>8} │ {:>8} │ {:>6}",
-        "RUN", "STT", "LLM TTFT", "First Sent", "TTS 1st", "TTFA", "Total", "Recognized");
-    println!("  {:─>4}─┼─{:─>8}─┼─{:─>10}─┼─{:─>12}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>6}",
-        "────", "────────", "──────────", "────────────", "────────", "────────", "────────", "──────");
+    println!(
+        "  {:>4} │ {:>8} │ {:>10} │ {:>12} │ {:>8} │ {:>8} │ {:>8} │ {:>6}",
+        "RUN", "STT", "LLM TTFT", "First Sent", "TTS 1st", "TTFA", "Total", "Recognized"
+    );
+    println!(
+        "  {:─>4}─┼─{:─>8}─┼─{:─>10}─┼─{:─>12}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>6}",
+        "────",
+        "────────",
+        "──────────",
+        "────────────",
+        "────────",
+        "────────",
+        "────────",
+        "──────"
+    );
 
     for (i, t) in all_timings.iter().enumerate() {
         let stt_ms = match (t.t_stt_start, t.t_stt_done) {
@@ -417,7 +451,11 @@ fn print_results(all_timings: &[IterationTimings]) {
         ttfa_latencies.record(ttfa_ms);
         total_latencies.record(total_ms);
 
-        let stt_display = if t.stt_text.is_empty() { "?".to_string() } else { t.stt_text.chars().take(6).collect() };
+        let stt_display = if t.stt_text.is_empty() {
+            "?".to_string()
+        } else {
+            t.stt_text.chars().take(6).collect()
+        };
 
         println!("  {:>4} │ {:>7.1}ms │ {:>9.1}ms │ {:>11.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>6}",
             i + 1, stt_ms, llm_ttft_ms, first_sent_ms, tts_ms, ttfa_ms, total_ms, stt_display);
@@ -426,14 +464,32 @@ fn print_results(all_timings: &[IterationTimings]) {
     println!();
     println!("  ── Summary ─────────────────────────────────────────────────────────────────");
     println!();
-    println!("  {:>20} │ {:>8} │ {:>8} │ {:>8} │ {:>8} │ {:>8}",
-        "Metric", "Avg", "Min", "Max", "P50", "P95");
-    println!("  {:─>20}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}",
-        "────────────────────", "────────", "────────", "────────", "────────", "────────");
+    println!(
+        "  {:>20} │ {:>8} │ {:>8} │ {:>8} │ {:>8} │ {:>8}",
+        "Metric", "Avg", "Min", "Max", "P50", "P95"
+    );
+    println!(
+        "  {:─>20}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}─┼─{:─>8}",
+        "────────────────────", "────────", "────────", "────────", "────────", "────────"
+    );
 
-    for sample in &[&stt_latencies, &llm_ttfts, &first_sentence_latencies, &tts_latencies, &ttfa_latencies, &total_latencies] {
-        println!("  {:>20} │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms",
-            sample.name, sample.avg(), sample.min(), sample.max(), sample.p50(), sample.p95());
+    for sample in &[
+        &stt_latencies,
+        &llm_ttfts,
+        &first_sentence_latencies,
+        &tts_latencies,
+        &ttfa_latencies,
+        &total_latencies,
+    ] {
+        println!(
+            "  {:>20} │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms │ {:>7.1}ms",
+            sample.name,
+            sample.avg(),
+            sample.min(),
+            sample.max(),
+            sample.p50(),
+            sample.p95()
+        );
     }
 
     println!();
@@ -484,34 +540,41 @@ fn create_loopback_llm_provider() -> Arc<dyn LlmProvider> {
                 return create_loopback_ollama();
             }
             info!("[LOOPBACK] Using Groq: model={}", model);
-            Arc::new(voxy_openai::OpenAIProvider::new(
-                voxy_openai::OpenAIConfig::groq(api_key),
-            ).with_model(&model))
+            Arc::new(
+                voxy_openai::OpenAIProvider::new(voxy_openai::OpenAIConfig::groq(api_key))
+                    .with_model(&model),
+            )
         }
         "ollama" => create_loopback_ollama(),
         "openai" => {
             let api_key = std::env::var("VOXY_API_KEYS_OPENAI").unwrap_or_default();
-            let model = std::env::var("VOXY_OPENAI_MODEL")
-                .unwrap_or_else(|_| "gpt-4o-mini".into());
-            if api_key.is_empty() { return create_loopback_ollama(); }
+            let model = std::env::var("VOXY_OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o-mini".into());
+            if api_key.is_empty() {
+                return create_loopback_ollama();
+            }
             info!("[LOOPBACK] Using OpenAI: model={}", model);
-            Arc::new(voxy_openai::OpenAIProvider::new(
-                voxy_openai::OpenAIConfig::openai(api_key),
-            ).with_model(&model))
+            Arc::new(
+                voxy_openai::OpenAIProvider::new(voxy_openai::OpenAIConfig::openai(api_key))
+                    .with_model(&model),
+            )
         }
         "anthropic" => {
             let api_key = std::env::var("VOXY_API_KEYS_ANTHROPIC").unwrap_or_default();
             let model = std::env::var("VOXY_ANTHROPIC_MODEL")
                 .unwrap_or_else(|_| "claude-sonnet-4-20250514".into());
-            if api_key.is_empty() { return create_loopback_ollama(); }
+            if api_key.is_empty() {
+                return create_loopback_ollama();
+            }
             info!("[LOOPBACK] Using Anthropic: model={}", model);
             Arc::new(voxy_anthropic::AnthropicProvider::new(api_key).with_model(&model))
         }
         "gemini" => {
             let api_key = std::env::var("VOXY_API_KEYS_GEMINI").unwrap_or_default();
-            let model = std::env::var("VOXY_GEMINI_MODEL")
-                .unwrap_or_else(|_| "gemini-2.0-flash".into());
-            if api_key.is_empty() { return create_loopback_ollama(); }
+            let model =
+                std::env::var("VOXY_GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.0-flash".into());
+            if api_key.is_empty() {
+                return create_loopback_ollama();
+            }
             info!("[LOOPBACK] Using Gemini: model={}", model);
             Arc::new(voxy_gemini::GeminiProvider::new(api_key).with_model(&model))
         }
@@ -520,10 +583,8 @@ fn create_loopback_llm_provider() -> Arc<dyn LlmProvider> {
 }
 
 fn create_loopback_ollama() -> Arc<dyn LlmProvider> {
-    let url = std::env::var("VOXY_OLLAMA_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:11434".into());
-    let model = std::env::var("VOXY_OLLAMA_MODEL")
-        .unwrap_or_else(|_| "voxy-fast:latest".into());
+    let url = std::env::var("VOXY_OLLAMA_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".into());
+    let model = std::env::var("VOXY_OLLAMA_MODEL").unwrap_or_else(|_| "voxy-fast:latest".into());
     info!("[LOOPBACK] Using Ollama: model={} @ {}", model, url);
     Arc::new(
         voxy_ollama::OllamaProvider::new(&url, &model)

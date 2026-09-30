@@ -20,6 +20,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GoalV2Id(pub String);
 
+impl Default for GoalV2Id {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GoalV2Id {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
@@ -27,19 +33,16 @@ impl GoalV2Id {
 }
 
 /// Goal priority level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum GoalPriority {
     Critical = 0,
     High = 1,
+    #[default]
     Medium = 2,
     Low = 3,
     Backlog = 4,
-}
-
-impl Default for GoalPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 /// Goal state.
@@ -647,7 +650,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        let sub_id = engine.add_subgoal(&id, "Sub1".to_string()).unwrap();
+        let _sub_id = engine.add_subgoal(&id, "Sub1".to_string()).unwrap();
         assert_eq!(engine.get(&id).unwrap().sub_goals.len(), 1);
     }
 
@@ -771,7 +774,7 @@ mod tests {
         let id1 = engine
             .create_goal("A".to_string(), "".to_string(), GoalPriority::Medium, None)
             .unwrap();
-        let id2 = engine
+        let _id2 = engine
             .create_goal("B".to_string(), "".to_string(), GoalPriority::Medium, None)
             .unwrap();
         engine.start_goal(&id1).unwrap();

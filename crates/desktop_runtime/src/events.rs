@@ -144,6 +144,7 @@ impl DesktopEventBridge {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn publish_download_event(
         &self,
         topic: &str,

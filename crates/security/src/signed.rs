@@ -384,7 +384,7 @@ mod tests {
         };
         verifier.register_artifact(artifact);
 
-        assert!(verifier.revoked_hashes.len() == 0);
+        assert!(verifier.revoked_hashes.is_empty());
         assert!(verifier.revoke_artifact(&hash));
         assert!(verifier.revoked_hashes.contains(&hash));
     }

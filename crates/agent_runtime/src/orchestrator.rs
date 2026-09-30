@@ -16,6 +16,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AgentId(pub String);
 
+impl Default for AgentId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AgentId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
@@ -427,7 +433,7 @@ mod tests {
 
     #[test]
     fn find_agent_for_task() {
-        let mut orch = MultiAgentOrchestrator::with_default_agents();
+        let orch = MultiAgentOrchestrator::with_default_agents();
         let task = AgentTask {
             id: TaskAssignmentId(Uuid::new_v4().to_string()),
             task_type: "code".to_string(),

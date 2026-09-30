@@ -94,8 +94,7 @@ impl PolicyEngine {
         // policy engine doesn't deny actions that the Guardian should handle.
         engine.add_rule(PolicyRule {
             id: "default-allow-medium-plus".to_string(),
-            description: "Allow medium+ risk actions (Guardian enforces consent/MFA)"
-                .to_string(),
+            description: "Allow medium+ risk actions (Guardian enforces consent/MFA)".to_string(),
             effect: PolicyEffect::Allow,
             capabilities: vec!["*".to_string()],
             conditions: vec![PolicyCondition::RiskLevelAtMost("critical".to_string())],

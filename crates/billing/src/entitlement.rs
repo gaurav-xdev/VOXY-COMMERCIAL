@@ -115,9 +115,9 @@ impl EntitlementEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
     use tempfile::tempdir;
     use voxy_database::{DatabaseConfig, SqliteDatabase, StorageProvider};
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_server_side_entitlement_resolution() {
@@ -138,7 +138,11 @@ mod tests {
         let user = store.create_user("pro_user@voxy.ai", "hash").await.unwrap();
 
         // Initially no premium access
-        assert!(!EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness).await.unwrap());
+        assert!(
+            !EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness)
+                .await
+                .unwrap()
+        );
 
         // Grant active Pro subscription
         let sub = voxy_database::SubscriptionRecord {
@@ -158,11 +162,23 @@ mod tests {
         store.upsert_subscription(&sub).await.unwrap();
 
         // Now authorized for Pro features
-        assert!(EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness).await.unwrap());
-        assert!(EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::OfficeAutomation).await.unwrap());
+        assert!(
+            EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness)
+                .await
+                .unwrap()
+        );
+        assert!(
+            EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::OfficeAutomation)
+                .await
+                .unwrap()
+        );
 
         // Enterprise feature should still be false
-        assert!(!EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::MultiAgentTeams).await.unwrap());
+        assert!(
+            !EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::MultiAgentTeams)
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -180,11 +196,20 @@ mod tests {
         let store = CommercialStore::new(db.clone());
         store.initialize_schema().await.unwrap();
 
-        let free_user = store.create_user("free_user@voxy.ai", "hash").await.unwrap();
+        let free_user = store
+            .create_user("free_user@voxy.ai", "hash")
+            .await
+            .unwrap();
 
         // Client claiming they have Pro cannot access CodingHarness without DB record
-        let is_granted = EntitlementEngine::is_authorized(&store, &free_user.id, FeatureFlag::CodingHarness).await.unwrap();
-        assert!(!is_granted, "Client claims must be rejected without server database backing");
+        let is_granted =
+            EntitlementEngine::is_authorized(&store, &free_user.id, FeatureFlag::CodingHarness)
+                .await
+                .unwrap();
+        assert!(
+            !is_granted,
+            "Client claims must be rejected without server database backing"
+        );
     }
 
     #[tokio::test]
@@ -203,7 +228,10 @@ mod tests {
         store.initialize_schema().await.unwrap();
         store.seed_default_plans().await.unwrap();
 
-        let user = store.create_user("expired_user@voxy.ai", "hash").await.unwrap();
+        let user = store
+            .create_user("expired_user@voxy.ai", "hash")
+            .await
+            .unwrap();
 
         // Expired subscription (period end was yesterday)
         let expired_sub = voxy_database::SubscriptionRecord {
@@ -222,7 +250,13 @@ mod tests {
         };
         store.upsert_subscription(&expired_sub).await.unwrap();
 
-        let authorized = EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness).await.unwrap();
-        assert!(!authorized, "Expired subscription must not authorize premium features");
+        let authorized =
+            EntitlementEngine::is_authorized(&store, &user.id, FeatureFlag::CodingHarness)
+                .await
+                .unwrap();
+        assert!(
+            !authorized,
+            "Expired subscription must not authorize premium features"
+        );
     }
 }

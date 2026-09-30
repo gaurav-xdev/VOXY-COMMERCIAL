@@ -186,10 +186,7 @@ async fn do_download(url: &str, temp: &Path, dest: &Path, bytes: Arc<AtomicU64>)
     // partial temp file so nothing misleading is left behind.
     if let Err(e) = tokio::fs::rename(temp, dest).await {
         let _ = tokio::fs::remove_file(temp).await;
-        return Err(RuntimeError::Download(format!(
-            "Finalize error: {}",
-            e
-        )));
+        return Err(RuntimeError::Download(format!("Finalize error: {}", e)));
     }
     Ok(downloaded)
 }
@@ -231,8 +228,8 @@ fn sanitize_filename(filename: &str) -> Result<String> {
         .unwrap_or(trimmed)
         .to_ascii_uppercase();
     const RESERVED: &[&str] = &[
-        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
-        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     ];
     if RESERVED.contains(&stem.as_str()) {
         return Err(RuntimeError::Download(format!(
@@ -269,7 +266,10 @@ mod tests {
     fn sanitize_accepts_plain_filenames() {
         assert_eq!(sanitize_filename("model.bin").unwrap(), "model.bin");
         assert_eq!(sanitize_filename("readme.txt").unwrap(), "readme.txt");
-        assert_eq!(sanitize_filename("file with spaces.zip").unwrap(), "file with spaces.zip");
+        assert_eq!(
+            sanitize_filename("file with spaces.zip").unwrap(),
+            "file with spaces.zip"
+        );
     }
 
     #[test]

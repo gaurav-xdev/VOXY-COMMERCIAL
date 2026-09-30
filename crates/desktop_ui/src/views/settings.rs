@@ -24,11 +24,11 @@ pub fn SettingsView() -> Element {
 
     let save_settings = {
         let settings = bridge.settings.clone();
-        let status = save_status.clone();
+        let status = save_status;
         move |_: Event<MouseData>| {
             let s = settings.clone();
             let snap = s.get();
-            let mut st = status.clone();
+            let mut st = status;
             spawn(async move {
                 match s.update(snap) {
                     Ok(()) => st.set(Some("Settings saved".to_string())),

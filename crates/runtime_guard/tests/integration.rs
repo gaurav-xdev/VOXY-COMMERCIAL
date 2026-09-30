@@ -145,6 +145,6 @@ async fn snapshot_system_metrics() {
     guard.heartbeat("svc");
 
     let snap = guard.snapshot().await;
-    assert!(snap.ram_total_mb > 0 || snap.ram_total_mb == 0);
+    assert!(snap.ram_total_mb > 0);
     assert!(snap.thread_count > 0);
 }

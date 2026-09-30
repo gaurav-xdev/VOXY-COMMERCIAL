@@ -98,7 +98,11 @@ impl ModelScanner {
         Self::scan_directory_bounded(dir, 0, 5)
     }
 
-    fn scan_directory_bounded(dir: &Path, current_depth: usize, max_depth: usize) -> Vec<LocalModelMetadata> {
+    fn scan_directory_bounded(
+        dir: &Path,
+        current_depth: usize,
+        max_depth: usize,
+    ) -> Vec<LocalModelMetadata> {
         let mut models = Vec::new();
         if current_depth > max_depth || !dir.is_dir() {
             return models;
@@ -112,7 +116,11 @@ impl ModelScanner {
         for entry in walker.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                models.extend(Self::scan_directory_bounded(&path, current_depth + 1, max_depth));
+                models.extend(Self::scan_directory_bounded(
+                    &path,
+                    current_depth + 1,
+                    max_depth,
+                ));
             } else if path.is_file() {
                 if let Some(model) = Self::parse_model_file(&path) {
                     models.push(model);
@@ -196,11 +204,16 @@ impl ModelScanner {
         models
     }
 
-    fn scan_manifest_dir(dir: &Path, base_models_dir: &Path) -> Vec<LocalModelMetadata> {
-        Self::scan_manifest_dir_bounded(dir, base_models_dir, 0, 3)
+    fn scan_manifest_dir(dir: &Path, _base_models_dir: &Path) -> Vec<LocalModelMetadata> {
+        Self::scan_manifest_dir_bounded(dir, _base_models_dir, 0, 3)
     }
 
-    fn scan_manifest_dir_bounded(dir: &Path, base_models_dir: &Path, current_depth: usize, max_depth: usize) -> Vec<LocalModelMetadata> {
+    fn scan_manifest_dir_bounded(
+        dir: &Path,
+        _base_models_dir: &Path,
+        current_depth: usize,
+        max_depth: usize,
+    ) -> Vec<LocalModelMetadata> {
         let mut models = Vec::new();
         if current_depth > max_depth || !dir.is_dir() {
             return models;
@@ -210,9 +223,18 @@ impl ModelScanner {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    models.extend(Self::scan_manifest_dir_bounded(&path, base_models_dir, current_depth + 1, max_depth));
+                    models.extend(Self::scan_manifest_dir_bounded(
+                        &path,
+                        _base_models_dir,
+                        current_depth + 1,
+                        max_depth,
+                    ));
                 } else if path.is_file() {
-                    let model_tag = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                    let model_tag = path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
                     let file_size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
                     let tag_lower = model_tag.to_lowercase();
                     let family = if tag_lower.contains("llama") {
@@ -246,7 +268,9 @@ impl ModelScanner {
 
     fn extract_parameter_size(name: &str) -> Option<f32> {
         // Look for patterns like "1.5b", "3b", "7b", "8b", "14b", "32b", "70b"
-        let parts: Vec<&str> = name.split(|c: char| !c.is_alphanumeric() && c != '.').collect();
+        let parts: Vec<&str> = name
+            .split(|c: char| !c.is_alphanumeric() && c != '.')
+            .collect();
         for p in parts {
             if let Some(stripped) = p.strip_suffix('b') {
                 if let Ok(val) = stripped.parse::<f32>() {
@@ -298,16 +322,34 @@ mod tests {
 
     #[test]
     fn test_extract_parameter_size() {
-        assert_eq!(ModelScanner::extract_parameter_size("llama-3.2-3b-instruct"), Some(3.0));
-        assert_eq!(ModelScanner::extract_parameter_size("qwen2.5-7b-q4_k_m.gguf"), Some(7.0));
-        assert_eq!(ModelScanner::extract_parameter_size("deepseek-r1-14b"), Some(14.0));
+        assert_eq!(
+            ModelScanner::extract_parameter_size("llama-3.2-3b-instruct"),
+            Some(3.0)
+        );
+        assert_eq!(
+            ModelScanner::extract_parameter_size("qwen2.5-7b-q4_k_m.gguf"),
+            Some(7.0)
+        );
+        assert_eq!(
+            ModelScanner::extract_parameter_size("deepseek-r1-14b"),
+            Some(14.0)
+        );
         assert_eq!(ModelScanner::extract_parameter_size("no-param-size"), None);
     }
 
     #[test]
     fn test_extract_quantization() {
-        assert_eq!(ModelScanner::extract_quantization("model-q4_k_m.gguf"), Quantization::Q4_K_M);
-        assert_eq!(ModelScanner::extract_quantization("model-q8_0.gguf"), Quantization::Q8_0);
-        assert_eq!(ModelScanner::extract_quantization("model-fp16.safetensors"), Quantization::F16);
+        assert_eq!(
+            ModelScanner::extract_quantization("model-q4_k_m.gguf"),
+            Quantization::Q4_K_M
+        );
+        assert_eq!(
+            ModelScanner::extract_quantization("model-q8_0.gguf"),
+            Quantization::Q8_0
+        );
+        assert_eq!(
+            ModelScanner::extract_quantization("model-fp16.safetensors"),
+            Quantization::F16
+        );
     }
 }

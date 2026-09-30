@@ -69,11 +69,7 @@ impl LlmProvider for AnthropicProvider {
         self.client.send_message(prompt).await
     }
 
-    async fn complete_streaming(
-        &self,
-        prompt: &str,
-        tx: mpsc::Sender<LlmChunk>,
-    ) -> Result<()> {
+    async fn complete_streaming(&self, prompt: &str, tx: mpsc::Sender<LlmChunk>) -> Result<()> {
         self.client.chat_completion_streaming(prompt, tx).await
     }
 

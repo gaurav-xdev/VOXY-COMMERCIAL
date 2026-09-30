@@ -7,8 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    TTSStream, VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, TTSStream, VoiceLanguage,
 };
 
 #[derive(Clone)]

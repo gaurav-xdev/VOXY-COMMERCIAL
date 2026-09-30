@@ -115,7 +115,10 @@ mod tests {
             .has_valid_consent(&user_id, PolicyType::TermsOfService)
             .await
             .unwrap();
-        assert!(!terms_valid, "Old policy version must require updated consent");
+        assert!(
+            !terms_valid,
+            "Old policy version must require updated consent"
+        );
 
         // 4. Update to current Terms version
         manager
@@ -144,6 +147,9 @@ mod tests {
         // 6. GDPR Right to Erasure ("Forget Me")
         manager.erase_user_data(&user_id).await.unwrap();
         let erased_export = manager.export_user_data(&user_id).await;
-        assert!(erased_export.is_err(), "Erased user must not be retrievable");
+        assert!(
+            erased_export.is_err(),
+            "Erased user must not be retrievable"
+        );
     }
 }

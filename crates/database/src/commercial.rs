@@ -265,13 +265,18 @@ impl CommercialStore {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
         let sql = "INSERT INTO users (id, email, password_hash, status, created_at, updated_at) VALUES (?, ?, ?, 'active', ?, ?)";
-        self.db.execute(sql, &[
-            Value::String(id.clone()),
-            Value::String(email.to_string()),
-            Value::String(password_hash.to_string()),
-            Value::String(now.clone()),
-            Value::String(now.clone()),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id.clone()),
+                    Value::String(email.to_string()),
+                    Value::String(password_hash.to_string()),
+                    Value::String(now.clone()),
+                    Value::String(now.clone()),
+                ],
+            )
+            .await?;
 
         Ok(UserRecord {
             id,
@@ -285,7 +290,10 @@ impl CommercialStore {
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserRecord>> {
         let sql = "SELECT id, email, password_hash, status, created_at, updated_at FROM users WHERE email = ? LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(email.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(email.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(None);
         }
@@ -302,7 +310,10 @@ impl CommercialStore {
 
     pub async fn get_user_by_id(&self, user_id: &str) -> Result<Option<UserRecord>> {
         let sql = "SELECT id, email, password_hash, status, created_at, updated_at FROM users WHERE id = ? LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(user_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(user_id.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(None);
         }
@@ -332,15 +343,26 @@ impl CommercialStore {
         let exp = expires_at.to_rfc3339();
 
         let sql = "INSERT INTO sessions (id, user_id, session_token_hash, expires_at, created_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        self.db.execute(sql, &[
-            Value::String(id.clone()),
-            Value::String(user_id.to_string()),
-            Value::String(session_token_hash.to_string()),
-            Value::String(exp.clone()),
-            Value::String(now.clone()),
-            ip_address.as_ref().map(|s| Value::String(s.clone())).unwrap_or(Value::Null),
-            user_agent.as_ref().map(|s| Value::String(s.clone())).unwrap_or(Value::Null),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id.clone()),
+                    Value::String(user_id.to_string()),
+                    Value::String(session_token_hash.to_string()),
+                    Value::String(exp.clone()),
+                    Value::String(now.clone()),
+                    ip_address
+                        .as_ref()
+                        .map(|s| Value::String(s.clone()))
+                        .unwrap_or(Value::Null),
+                    user_agent
+                        .as_ref()
+                        .map(|s| Value::String(s.clone()))
+                        .unwrap_or(Value::Null),
+                ],
+            )
+            .await?;
 
         Ok(SessionRecord {
             id,
@@ -354,9 +376,15 @@ impl CommercialStore {
         })
     }
 
-    pub async fn get_session_by_token_hash(&self, token_hash: &str) -> Result<Option<SessionRecord>> {
+    pub async fn get_session_by_token_hash(
+        &self,
+        token_hash: &str,
+    ) -> Result<Option<SessionRecord>> {
         let sql = "SELECT id, user_id, session_token_hash, expires_at, revoked_at, created_at, ip_address, user_agent FROM sessions WHERE session_token_hash = ? AND revoked_at IS NULL LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(token_hash.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(token_hash.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(None);
         }
@@ -371,7 +399,10 @@ impl CommercialStore {
         Ok(Some(SessionRecord {
             id: r["id"].as_str().unwrap_or_default().to_string(),
             user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
-            session_token_hash: r["session_token_hash"].as_str().unwrap_or_default().to_string(),
+            session_token_hash: r["session_token_hash"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             expires_at: exp_str.to_string(),
             revoked_at: r["revoked_at"].as_str().map(|s| s.to_string()),
             created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
@@ -383,53 +414,92 @@ impl CommercialStore {
     pub async fn revoke_session(&self, token_hash: &str) -> Result<bool> {
         let now = Utc::now().to_rfc3339();
         let sql = "UPDATE sessions SET revoked_at = ? WHERE session_token_hash = ? AND revoked_at IS NULL";
-        let rows_affected = self.db.execute(sql, &[
-            Value::String(now),
-            Value::String(token_hash.to_string()),
-        ]).await?;
+        let rows_affected = self
+            .db
+            .execute(
+                sql,
+                &[Value::String(now), Value::String(token_hash.to_string())],
+            )
+            .await?;
         Ok(rows_affected > 0)
     }
 
     pub async fn revoke_all_user_sessions(&self, user_id: &str) -> Result<u64> {
         let now = Utc::now().to_rfc3339();
         let sql = "UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL";
-        self.db.execute(sql, &[
-            Value::String(now),
-            Value::String(user_id.to_string()),
-        ]).await
+        self.db
+            .execute(
+                sql,
+                &[Value::String(now), Value::String(user_id.to_string())],
+            )
+            .await
     }
 
     // ── Plans & Subscriptions ──
 
     pub async fn seed_default_plans(&self) -> Result<()> {
         let plans = [
-            ("plan_free", "prod_free", "VOXY Free", "free", "month", 0, "USD"),
-            ("plan_pro_monthly", "prod_pro_m", "VOXY Pro Monthly", "pro", "month", 2900, "USD"),
-            ("plan_pro_annual", "prod_pro_y", "VOXY Pro Annual", "pro", "year", 29000, "USD"),
-            ("plan_team", "prod_team", "VOXY Enterprise", "enterprise", "month", 9900, "USD"),
+            (
+                "plan_free",
+                "prod_free",
+                "VOXY Free",
+                "free",
+                "month",
+                0,
+                "USD",
+            ),
+            (
+                "plan_pro_monthly",
+                "prod_pro_m",
+                "VOXY Pro Monthly",
+                "pro",
+                "month",
+                2900,
+                "USD",
+            ),
+            (
+                "plan_pro_annual",
+                "prod_pro_y",
+                "VOXY Pro Annual",
+                "pro",
+                "year",
+                29000,
+                "USD",
+            ),
+            (
+                "plan_team",
+                "prod_team",
+                "VOXY Enterprise",
+                "enterprise",
+                "month",
+                9900,
+                "USD",
+            ),
         ];
 
         let now = Utc::now().to_rfc3339();
         for (id, prod, name, tier, interval, price, cur) in plans {
             let sql = "INSERT OR IGNORE INTO plans (id, product_id, name, tier, billing_interval, price_cents, currency, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)";
-            self.db.execute(sql, &[
-                Value::String(id.into()),
-                Value::String(prod.into()),
-                Value::String(name.into()),
-                Value::String(tier.into()),
-                Value::String(interval.into()),
-                Value::I64(price),
-                Value::String(cur.into()),
-                Value::String(now.clone()),
-            ]).await?;
+            self.db
+                .execute(
+                    sql,
+                    &[
+                        Value::String(id.into()),
+                        Value::String(prod.into()),
+                        Value::String(name.into()),
+                        Value::String(tier.into()),
+                        Value::String(interval.into()),
+                        Value::I64(price),
+                        Value::String(cur.into()),
+                        Value::String(now.clone()),
+                    ],
+                )
+                .await?;
         }
         Ok(())
     }
 
-    pub async fn upsert_subscription(
-        &self,
-        sub: &SubscriptionRecord,
-    ) -> Result<()> {
+    pub async fn upsert_subscription(&self, sub: &SubscriptionRecord) -> Result<()> {
         let sql = "
             INSERT INTO subscriptions (
                 id, user_id, plan_id, dodo_customer_id, dodo_subscription_id,
@@ -446,27 +516,41 @@ impl CommercialStore {
                 updated_at = excluded.updated_at
         ";
 
-        self.db.execute(sql, &[
-            Value::String(sub.id.clone()),
-            Value::String(sub.user_id.clone()),
-            Value::String(sub.plan_id.clone()),
-            Value::String(sub.dodo_customer_id.clone()),
-            Value::String(sub.dodo_subscription_id.clone()),
-            Value::String(sub.status.clone()),
-            Value::String(sub.current_period_start.clone()),
-            Value::String(sub.current_period_end.clone()),
-            Value::Bool(sub.cancel_at_period_end),
-            sub.cancelled_at.as_ref().map(|s| Value::String(s.clone())).unwrap_or(Value::Null),
-            Value::String(sub.created_at.clone()),
-            Value::String(sub.updated_at.clone()),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(sub.id.clone()),
+                    Value::String(sub.user_id.clone()),
+                    Value::String(sub.plan_id.clone()),
+                    Value::String(sub.dodo_customer_id.clone()),
+                    Value::String(sub.dodo_subscription_id.clone()),
+                    Value::String(sub.status.clone()),
+                    Value::String(sub.current_period_start.clone()),
+                    Value::String(sub.current_period_end.clone()),
+                    Value::Bool(sub.cancel_at_period_end),
+                    sub.cancelled_at
+                        .as_ref()
+                        .map(|s| Value::String(s.clone()))
+                        .unwrap_or(Value::Null),
+                    Value::String(sub.created_at.clone()),
+                    Value::String(sub.updated_at.clone()),
+                ],
+            )
+            .await?;
 
         Ok(())
     }
 
-    pub async fn get_active_subscription_by_user_id(&self, user_id: &str) -> Result<Option<SubscriptionRecord>> {
+    pub async fn get_active_subscription_by_user_id(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<SubscriptionRecord>> {
         let sql = "SELECT id, user_id, plan_id, dodo_customer_id, dodo_subscription_id, status, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, created_at, updated_at FROM subscriptions WHERE user_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(user_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(user_id.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(None);
         }
@@ -475,11 +559,23 @@ impl CommercialStore {
             id: r["id"].as_str().unwrap_or_default().to_string(),
             user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
             plan_id: r["plan_id"].as_str().unwrap_or_default().to_string(),
-            dodo_customer_id: r["dodo_customer_id"].as_str().unwrap_or_default().to_string(),
-            dodo_subscription_id: r["dodo_subscription_id"].as_str().unwrap_or_default().to_string(),
+            dodo_customer_id: r["dodo_customer_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            dodo_subscription_id: r["dodo_subscription_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             status: r["status"].as_str().unwrap_or_default().to_string(),
-            current_period_start: r["current_period_start"].as_str().unwrap_or_default().to_string(),
-            current_period_end: r["current_period_end"].as_str().unwrap_or_default().to_string(),
+            current_period_start: r["current_period_start"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            current_period_end: r["current_period_end"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             cancel_at_period_end: r["cancel_at_period_end"].as_i64().unwrap_or(0) == 1,
             cancelled_at: r["cancelled_at"].as_str().map(|s| s.to_string()),
             created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
@@ -487,9 +583,15 @@ impl CommercialStore {
         }))
     }
 
-    pub async fn get_subscription_by_dodo_id(&self, dodo_subscription_id: &str) -> Result<Option<SubscriptionRecord>> {
+    pub async fn get_subscription_by_dodo_id(
+        &self,
+        dodo_subscription_id: &str,
+    ) -> Result<Option<SubscriptionRecord>> {
         let sql = "SELECT id, user_id, plan_id, dodo_customer_id, dodo_subscription_id, status, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, created_at, updated_at FROM subscriptions WHERE dodo_subscription_id = ? LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(dodo_subscription_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(dodo_subscription_id.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(None);
         }
@@ -498,11 +600,23 @@ impl CommercialStore {
             id: r["id"].as_str().unwrap_or_default().to_string(),
             user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
             plan_id: r["plan_id"].as_str().unwrap_or_default().to_string(),
-            dodo_customer_id: r["dodo_customer_id"].as_str().unwrap_or_default().to_string(),
-            dodo_subscription_id: r["dodo_subscription_id"].as_str().unwrap_or_default().to_string(),
+            dodo_customer_id: r["dodo_customer_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            dodo_subscription_id: r["dodo_subscription_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             status: r["status"].as_str().unwrap_or_default().to_string(),
-            current_period_start: r["current_period_start"].as_str().unwrap_or_default().to_string(),
-            current_period_end: r["current_period_end"].as_str().unwrap_or_default().to_string(),
+            current_period_start: r["current_period_start"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            current_period_end: r["current_period_end"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             cancel_at_period_end: r["cancel_at_period_end"].as_i64().unwrap_or(0) == 1,
             cancelled_at: r["cancelled_at"].as_str().map(|s| s.to_string()),
             created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
@@ -519,13 +633,21 @@ impl CommercialStore {
     ) -> Result<bool> {
         let now = Utc::now().to_rfc3339();
         let sql = "UPDATE subscriptions SET status = ?, cancelled_at = COALESCE(?, cancelled_at), cancel_at_period_end = COALESCE(?, cancel_at_period_end), updated_at = ? WHERE dodo_subscription_id = ?";
-        let rows = self.db.execute(sql, &[
-            Value::String(status.to_string()),
-            cancelled_at.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
-            cancel_at_period_end.map(Value::Bool).unwrap_or(Value::Null),
-            Value::String(now),
-            Value::String(dodo_subscription_id.to_string()),
-        ]).await?;
+        let rows = self
+            .db
+            .execute(
+                sql,
+                &[
+                    Value::String(status.to_string()),
+                    cancelled_at
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
+                    cancel_at_period_end.map(Value::Bool).unwrap_or(Value::Null),
+                    Value::String(now),
+                    Value::String(dodo_subscription_id.to_string()),
+                ],
+            )
+            .await?;
         Ok(rows > 0)
     }
 
@@ -540,7 +662,8 @@ impl CommercialStore {
             "priority_cloud_routing",
         ];
         for feat in premium_features {
-            self.set_entitlement(user_id, feat, false, None, None).await?;
+            self.set_entitlement(user_id, feat, false, None, None)
+                .await?;
         }
         Ok(())
     }
@@ -567,25 +690,38 @@ impl CommercialStore {
                 updated_at = excluded.updated_at
         ";
 
-        self.db.execute(sql, &[
-            Value::String(id),
-            Value::String(user_id.to_string()),
-            Value::String(feature_key.to_string()),
-            Value::Bool(is_granted),
-            max_usage.map(Value::I64).unwrap_or(Value::Null),
-            expires_at.map(|e| Value::String(e.to_string())).unwrap_or(Value::Null),
-            Value::String(now),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id),
+                    Value::String(user_id.to_string()),
+                    Value::String(feature_key.to_string()),
+                    Value::Bool(is_granted),
+                    max_usage.map(Value::I64).unwrap_or(Value::Null),
+                    expires_at
+                        .map(|e| Value::String(e.to_string()))
+                        .unwrap_or(Value::Null),
+                    Value::String(now),
+                ],
+            )
+            .await?;
 
         Ok(())
     }
 
     pub async fn check_entitlement(&self, user_id: &str, feature_key: &str) -> Result<bool> {
         let sql = "SELECT is_granted, max_usage, current_usage, expires_at FROM entitlements WHERE user_id = ? AND feature_key = ? LIMIT 1";
-        let rows = self.db.query(sql, &[
-            Value::String(user_id.to_string()),
-            Value::String(feature_key.to_string()),
-        ]).await?;
+        let rows = self
+            .db
+            .query(
+                sql,
+                &[
+                    Value::String(user_id.to_string()),
+                    Value::String(feature_key.to_string()),
+                ],
+            )
+            .await?;
 
         if rows.is_empty() {
             return Ok(false);
@@ -617,7 +753,10 @@ impl CommercialStore {
 
     pub async fn is_webhook_processed(&self, event_id: &str) -> Result<bool> {
         let sql = "SELECT status FROM webhook_events WHERE event_id = ? LIMIT 1";
-        let rows = self.db.query(sql, &[Value::String(event_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(event_id.to_string())])
+            .await?;
         if rows.is_empty() {
             return Ok(false);
         }
@@ -638,27 +777,42 @@ impl CommercialStore {
             VALUES (?, ?, ?, ?, 'received', ?)
             ON CONFLICT(event_id) DO NOTHING
         ";
-        self.db.execute(sql, &[
-            Value::String(id.clone()),
-            Value::String(event_id.to_string()),
-            Value::String(event_type.to_string()),
-            Value::String(payload.to_string()),
-            Value::String(now),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id.clone()),
+                    Value::String(event_id.to_string()),
+                    Value::String(event_type.to_string()),
+                    Value::String(payload.to_string()),
+                    Value::String(now),
+                ],
+            )
+            .await?;
 
         Ok(id)
     }
 
-    pub async fn mark_webhook_processed(&self, event_id: &str, success: bool, error: Option<String>) -> Result<()> {
+    pub async fn mark_webhook_processed(
+        &self,
+        event_id: &str,
+        success: bool,
+        error: Option<String>,
+    ) -> Result<()> {
         let now = Utc::now().to_rfc3339();
         let status = if success { "processed" } else { "failed" };
         let sql = "UPDATE webhook_events SET status = ?, error_message = ?, processed_at = ? WHERE event_id = ?";
-        self.db.execute(sql, &[
-            Value::String(status.into()),
-            error.map(Value::String).unwrap_or(Value::Null),
-            Value::String(now),
-            Value::String(event_id.to_string()),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(status.into()),
+                    error.map(Value::String).unwrap_or(Value::Null),
+                    Value::String(now),
+                    Value::String(event_id.to_string()),
+                ],
+            )
+            .await?;
         Ok(())
     }
 
@@ -683,23 +837,31 @@ impl CommercialStore {
                 timestamp = excluded.timestamp
         ";
 
-        self.db.execute(sql, &[
-            Value::String(id),
-            Value::String(user_id.to_string()),
-            Value::String(consent_type.to_string()),
-            Value::String(version.to_string()),
-            Value::Bool(is_accepted),
-            ip.map(Value::String).unwrap_or(Value::Null),
-            user_agent.map(Value::String).unwrap_or(Value::Null),
-            Value::String(now),
-        ]).await?;
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id),
+                    Value::String(user_id.to_string()),
+                    Value::String(consent_type.to_string()),
+                    Value::String(version.to_string()),
+                    Value::Bool(is_accepted),
+                    ip.map(Value::String).unwrap_or(Value::Null),
+                    user_agent.map(Value::String).unwrap_or(Value::Null),
+                    Value::String(now),
+                ],
+            )
+            .await?;
 
         Ok(())
     }
 
     pub async fn get_consents_by_user_id(&self, user_id: &str) -> Result<Vec<ConsentRecord>> {
         let sql = "SELECT id, user_id, consent_type, version, is_accepted, ip_address, user_agent, timestamp FROM consents WHERE user_id = ?";
-        let rows = self.db.query(sql, &[Value::String(user_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(user_id.to_string())])
+            .await?;
         let mut list = Vec::new();
         for r in rows {
             list.push(ConsentRecord {
@@ -707,7 +869,8 @@ impl CommercialStore {
                 user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
                 consent_type: r["consent_type"].as_str().unwrap_or_default().to_string(),
                 version: r["version"].as_str().unwrap_or_default().to_string(),
-                is_accepted: r["is_accepted"].as_i64().unwrap_or(0) == 1 || r["is_accepted"].as_bool().unwrap_or(false),
+                is_accepted: r["is_accepted"].as_i64().unwrap_or(0) == 1
+                    || r["is_accepted"].as_bool().unwrap_or(false),
                 ip_address: r["ip_address"].as_str().map(|s| s.to_string()),
                 user_agent: r["user_agent"].as_str().map(|s| s.to_string()),
                 timestamp: r["timestamp"].as_str().unwrap_or_default().to_string(),
@@ -718,7 +881,10 @@ impl CommercialStore {
 
     pub async fn delete_user(&self, user_id: &str) -> Result<bool> {
         let sql = "DELETE FROM users WHERE id = ?";
-        let affected = self.db.execute(sql, &[Value::String(user_id.to_string())]).await?;
+        let affected = self
+            .db
+            .execute(sql, &[Value::String(user_id.to_string())])
+            .await?;
         Ok(affected > 0)
     }
 }
@@ -745,21 +911,31 @@ mod tests {
         store.initialize_schema().await.unwrap();
 
         // 1. User creation and retrieval
-        let user = store.create_user("founder@voxy.ai", "argon2id_hash_placeholder").await.unwrap();
+        let user = store
+            .create_user("founder@voxy.ai", "argon2id_hash_placeholder")
+            .await
+            .unwrap();
         assert_eq!(user.email, "founder@voxy.ai");
 
-        let fetched = store.get_user_by_email("founder@voxy.ai").await.unwrap().unwrap();
+        let fetched = store
+            .get_user_by_email("founder@voxy.ai")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(fetched.id, user.id);
 
         // 2. Session creation and token lookup
         let token_hash = "f3b2597b864a781079d2a6a8b7a4c7e6";
-        let session = store.create_session(
-            &user.id,
-            token_hash,
-            Utc::now() + chrono::Duration::hours(24),
-            Some("127.0.0.1".into()),
-            Some("VOXY-Client/1.0".into()),
-        ).await.unwrap();
+        let session = store
+            .create_session(
+                &user.id,
+                token_hash,
+                Utc::now() + chrono::Duration::hours(24),
+                Some("127.0.0.1".into()),
+                Some("VOXY-Client/1.0".into()),
+            )
+            .await
+            .unwrap();
         assert_eq!(session.user_id, user.id);
 
         let active_sess = store.get_session_by_token_hash(token_hash).await.unwrap();
@@ -790,30 +966,64 @@ mod tests {
         };
         store.upsert_subscription(&sub).await.unwrap();
 
-        let active_sub = store.get_active_subscription_by_user_id(&user.id).await.unwrap();
+        let active_sub = store
+            .get_active_subscription_by_user_id(&user.id)
+            .await
+            .unwrap();
         assert!(active_sub.is_some());
         assert_eq!(active_sub.unwrap().plan_id, "plan_pro_monthly");
 
         // Grant entitlement
-        store.set_entitlement(&user.id, "coding_harness", true, None, None).await.unwrap();
-        assert!(store.check_entitlement(&user.id, "coding_harness").await.unwrap());
-        assert!(!store.check_entitlement(&user.id, "unauthorized_feature").await.unwrap());
+        store
+            .set_entitlement(&user.id, "coding_harness", true, None, None)
+            .await
+            .unwrap();
+        assert!(store
+            .check_entitlement(&user.id, "coding_harness")
+            .await
+            .unwrap());
+        assert!(!store
+            .check_entitlement(&user.id, "unauthorized_feature")
+            .await
+            .unwrap());
 
         // Test expired entitlement
         let past = (Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
-        store.set_entitlement(&user.id, "temp_feature", true, None, Some(&past)).await.unwrap();
-        assert!(!store.check_entitlement(&user.id, "temp_feature").await.unwrap());
+        store
+            .set_entitlement(&user.id, "temp_feature", true, None, Some(&past))
+            .await
+            .unwrap();
+        assert!(!store
+            .check_entitlement(&user.id, "temp_feature")
+            .await
+            .unwrap());
 
         // 5. Webhook idempotency
         let event_id = "evt_dodo_9999";
         assert!(!store.is_webhook_processed(event_id).await.unwrap());
 
-        store.record_webhook_event(event_id, "subscription.active", "{}").await.unwrap();
-        store.mark_webhook_processed(event_id, true, None).await.unwrap();
+        store
+            .record_webhook_event(event_id, "subscription.active", "{}")
+            .await
+            .unwrap();
+        store
+            .mark_webhook_processed(event_id, true, None)
+            .await
+            .unwrap();
 
         assert!(store.is_webhook_processed(event_id).await.unwrap());
 
         // 6. Consents
-        store.record_consent(&user.id, "terms_of_service", "1.0", true, Some("127.0.0.1".into()), None).await.unwrap();
+        store
+            .record_consent(
+                &user.id,
+                "terms_of_service",
+                "1.0",
+                true,
+                Some("127.0.0.1".into()),
+                None,
+            )
+            .await
+            .unwrap();
     }
 }

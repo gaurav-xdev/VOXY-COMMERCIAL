@@ -1,5 +1,5 @@
-﻿use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -49,7 +49,7 @@ fn main() {
     println!("\n[3] Initializing WASAPI capture stream...");
     let init_start = Instant::now();
 
-    let stream_cfg: cpal::StreamConfig = default_cfg.clone().into();
+    let stream_cfg: cpal::StreamConfig = default_cfg.into();
     let frames_captured = Arc::new(AtomicU64::new(0));
     let frames_cb = frames_captured.clone();
     let peak_level = Arc::new(AtomicU32Bits::new(0.0f32));
@@ -90,7 +90,10 @@ fn main() {
 
     match stream_result {
         Ok(stream) => {
-            println!("    - Initialization Result: SUCCESS (took {:?})", init_duration);
+            println!(
+                "    - Initialization Result: SUCCESS (took {:?})",
+                init_duration
+            );
 
             if let Err(e) = stream.play() {
                 eprintln!("[FAIL] stream.play() failed: {}", e);
@@ -127,13 +130,19 @@ fn main() {
             println!("    - Total Duration:       {:.2?}", total_duration);
             println!("    - Total Frames Captured: {}", total_frames);
             println!("    - Expected Frames:       {}", sample_rate * 10);
-            println!("    - Frame Delivery Ratio:  {:.2}%", (total_frames as f64 / (sample_rate as f64 * 10.0)) * 100.0);
+            println!(
+                "    - Frame Delivery Ratio:  {:.2}%",
+                (total_frames as f64 / (sample_rate as f64 * 10.0)) * 100.0
+            );
             println!("    - Peak Level:            {:.4}", final_peak);
             println!("    - Stream Errors/Overruns: {}", total_errors);
             println!("    - Status: SUCCESS — REAL MICROPHONE HARDWARE VERIFIED");
         }
         Err(e) => {
-            println!("    - Initialization Result: FAILED (took {:?})", init_duration);
+            println!(
+                "    - Initialization Result: FAILED (took {:?})",
+                init_duration
+            );
             println!("\n============================================================");
             println!("                    HARDWARE FAILURE AUDIT                  ");
             println!("============================================================");

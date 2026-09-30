@@ -49,12 +49,7 @@ impl VoiceLogger {
         );
     }
 
-    pub fn log_tts_success(
-        provider: &str,
-        latency: Duration,
-        characters: usize,
-        cost_usd: f64,
-    ) {
+    pub fn log_tts_success(provider: &str, latency: Duration, characters: usize, cost_usd: f64) {
         info!(
             target: "voxy::voice::tts",
             provider = provider,

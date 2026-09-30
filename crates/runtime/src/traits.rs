@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_task_status_variants() {
-        let statuses = vec![
+        let statuses = [
             TaskStatus::Pending,
             TaskStatus::Running,
             TaskStatus::Completed,
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_schedule_spec_variants() {
-        let specs = vec![
+        let specs = [
             ScheduleSpec::Immediate,
             ScheduleSpec::Delay { seconds: 10 },
             ScheduleSpec::Cron {
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_runtime_state_transitions() {
-        let states = vec![
+        let states = [
             RuntimeState::Created,
             RuntimeState::Initializing,
             RuntimeState::Running,

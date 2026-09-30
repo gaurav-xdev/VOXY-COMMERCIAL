@@ -57,7 +57,11 @@ pub async fn run(
                 let prompt = format!(
                     "{}\n\nRecent conversation:\n{}\n\n{}",
                     system_prompt,
-                    if history.is_empty() { "No prior conversation.".to_string() } else { history },
+                    if history.is_empty() {
+                        "No prior conversation.".to_string()
+                    } else {
+                        history
+                    },
                     SystemPromptBuilder::format_user_message(&text)
                 );
 
@@ -67,7 +71,8 @@ pub async fn run(
                     let prompt_clone = prompt.clone();
 
                     tokio::spawn(async move {
-                        let (llm_tx, mut llm_rx) = mpsc::channel::<voxy_provider_core::LlmChunk>(16);
+                        let (llm_tx, mut llm_rx) =
+                            mpsc::channel::<voxy_provider_core::LlmChunk>(16);
                         let llm = llm_clone;
                         let prompt = prompt_clone;
                         tokio::spawn(async move {
@@ -153,7 +158,9 @@ pub async fn run(
                     };
 
                     let response = if let Some(ref tr) = tool_reg {
-                        if let Some((call, remaining)) = ToolRegistry::parse_tool_call(&raw_response) {
+                        if let Some((call, remaining)) =
+                            ToolRegistry::parse_tool_call(&raw_response)
+                        {
                             info!("[DEV-TEXT] Executing tool: {} {:?}", call.tool, call.params);
                             let result = tr.execute(&call).await;
                             if !remaining.is_empty() {

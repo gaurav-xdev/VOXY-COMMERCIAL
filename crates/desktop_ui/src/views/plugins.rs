@@ -5,17 +5,17 @@ use crate::bridge::AppBridge;
 #[component]
 pub fn PluginsView() -> Element {
     let bridge = use_context::<AppBridge>();
-    let plugin_list = use_signal(|| Vec::<String>::new());
-    let plugin_states = use_signal(|| std::collections::HashMap::<String, String>::new());
+    let plugin_list = use_signal(Vec::<String>::new);
+    let plugin_states = use_signal(std::collections::HashMap::<String, String>::new);
 
     let refresh = {
         let pm = bridge.plugins.clone();
-        let list = plugin_list.clone();
-        let states = plugin_states.clone();
+        let list = plugin_list;
+        let states = plugin_states;
         move |_: Event<MouseData>| {
             let p = pm.clone();
-            let mut l = list.clone();
-            let mut s = states.clone();
+            let mut l = list;
+            let mut s = states;
             spawn(async move {
                 let ids = p.list_plugins().await;
                 let mut state_map = std::collections::HashMap::new();
@@ -54,7 +54,7 @@ pub fn PluginsView() -> Element {
                 }
             } else {
                 for id in plugin_list.read().iter() {
-                    PluginCard { id: id.clone(), plugin_states: plugin_states.clone() }
+                    PluginCard { id: id.clone(), plugin_states: plugin_states }
                 }
             }
         }

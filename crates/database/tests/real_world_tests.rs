@@ -38,7 +38,11 @@ mod real_world {
             let conv = store
                 .create_conversation(
                     user_id,
-                    Some(&format!("Session {} - {}", session, chrono::Utc::now().format("%H:%M"))),
+                    Some(&format!(
+                        "Session {} - {}",
+                        session,
+                        chrono::Utc::now().format("%H:%M")
+                    )),
                 )
                 .await
                 .unwrap();
@@ -288,8 +292,15 @@ mod real_world {
         // Verify final state
         for user in &users {
             let stats = conv_store.stats(user).await.unwrap();
-            assert_eq!(stats.total_conversations, 20, "{user} should have 20 conversations");
-            assert_eq!(stats.total_messages, 20 * 8, "{user} should have 160 messages");
+            assert_eq!(
+                stats.total_conversations, 20,
+                "{user} should have 20 conversations"
+            );
+            assert_eq!(
+                stats.total_messages,
+                20 * 8,
+                "{user} should have 160 messages"
+            );
         }
 
         let total_convs: usize = results.iter().map(|(_, c, _, _)| *c).sum();
@@ -416,8 +427,15 @@ mod real_world {
         let elapsed = start.elapsed();
 
         // Verify all conversations survived device changes
-        let convs = store.list_conversations("device-test", 10, 0).await.unwrap();
-        assert_eq!(convs.len(), 4, "Should have 4 conversations across device changes");
+        let convs = store
+            .list_conversations("device-test", 10, 0)
+            .await
+            .unwrap();
+        assert_eq!(
+            convs.len(),
+            4,
+            "Should have 4 conversations across device changes"
+        );
 
         let total_msgs: usize = futures::future::join_all(convs.iter().map(|c| {
             let store = store.clone();
@@ -481,10 +499,7 @@ mod real_world {
                 {
                     use std::process::Command;
                     let output = Command::new("powershell")
-                        .args([
-                            "-Command",
-                            "(Get-Process -Id $pid).WorkingSet64 / 1MB",
-                        ])
+                        .args(["-Command", "(Get-Process -Id $pid).WorkingSet64 / 1MB"])
                         .output()
                         .ok()
                         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -674,7 +689,10 @@ mod real_world {
             .unwrap();
 
         let _ = bus
-            .publish("llm.response", Event::new("llm.response", "ollama", b"Hello!".to_vec()))
+            .publish(
+                "llm.response",
+                Event::new("llm.response", "ollama", b"Hello!".to_vec()),
+            )
             .await;
 
         store
@@ -688,7 +706,13 @@ mod real_world {
 
         // User still sends message, but LLM doesn't respond
         store
-            .add_message(&conv.id, MessageRole::User, "Query during outage", Some(10), None)
+            .add_message(
+                &conv.id,
+                MessageRole::User,
+                "Query during outage",
+                Some(10),
+                None,
+            )
             .await
             .unwrap();
 
@@ -727,7 +751,13 @@ mod real_world {
 
         // Phase 5: System continues without TTS
         store
-            .add_message(&conv.id, MessageRole::User, "Continue without voice", Some(10), None)
+            .add_message(
+                &conv.id,
+                MessageRole::User,
+                "Continue without voice",
+                Some(10),
+                None,
+            )
             .await
             .unwrap();
 
@@ -753,7 +783,10 @@ mod real_world {
 
         // Verify conversation survived all failures
         let msgs = store.get_messages(&conv.id, 100, 0).await.unwrap();
-        assert!(msgs.len() >= 6, "Conversation should have survived provider failures");
+        assert!(
+            msgs.len() >= 6,
+            "Conversation should have survived provider failures"
+        );
 
         println!("=== Provider Failure Recovery ===");
         println!("  Failures simulated: LLM timeout, TTS failure");
@@ -784,7 +817,13 @@ mod real_world {
                 .unwrap();
             for t in 0..5 {
                 store
-                    .add_message(&conv.id, MessageRole::User, &format!("Turn {t}"), Some(20), None)
+                    .add_message(
+                        &conv.id,
+                        MessageRole::User,
+                        &format!("Turn {t}"),
+                        Some(20),
+                        None,
+                    )
                     .await
                     .unwrap();
             }
@@ -802,7 +841,13 @@ mod real_world {
                 .unwrap();
             for t in 0..5 {
                 store
-                    .add_message(&conv.id, MessageRole::User, &format!("Turn {t}"), Some(20), None)
+                    .add_message(
+                        &conv.id,
+                        MessageRole::User,
+                        &format!("Turn {t}"),
+                        Some(20),
+                        None,
+                    )
                     .await
                     .unwrap();
             }
@@ -866,7 +911,11 @@ mod real_world {
 
                 // Verify isolation: user can only see their own conversations
                 let their_convs = store.list_conversations(&user, 100, 0).await.unwrap();
-                assert_eq!(their_convs.len(), 10, "{user} should only see their 10 conversations");
+                assert_eq!(
+                    their_convs.len(),
+                    10,
+                    "{user} should only see their 10 conversations"
+                );
 
                 // Verify all their conversations belong to them
                 for conv in &their_convs {
@@ -888,7 +937,10 @@ mod real_world {
         println!("=== Multi-User Isolation ===");
         println!("  Users: {}", users.len());
         println!("  Conversations/user: 10");
-        println!("  Total conversations: {}", results.iter().map(|(_, c)| c).sum::<usize>());
+        println!(
+            "  Total conversations: {}",
+            results.iter().map(|(_, c)| c).sum::<usize>()
+        );
         println!("  Time: {elapsed:?}");
 
         for (user, count) in &results {
@@ -919,11 +971,20 @@ mod real_world {
             handles.push(tokio::spawn(async move {
                 for i in 0..100 {
                     let conv = store
-                        .create_conversation(&format!("shutdown-worker-{w}"), Some(&format!("W{w}-C{i}")))
+                        .create_conversation(
+                            &format!("shutdown-worker-{w}"),
+                            Some(&format!("W{w}-C{i}")),
+                        )
                         .await
                         .unwrap();
                     store
-                        .add_message(&conv.id, MessageRole::User, &format!("W{w}-M{i}"), Some(10), None)
+                        .add_message(
+                            &conv.id,
+                            MessageRole::User,
+                            &format!("W{w}-M{i}"),
+                            Some(10),
+                            None,
+                        )
                         .await
                         .unwrap();
                 }
@@ -980,15 +1041,9 @@ mod real_world {
         let start = Instant::now();
 
         // Register health checks
-        monitor
-            .add_memory_check("memory")
-            .await;
-        monitor
-            .add_cpu_check("cpu")
-            .await;
-        monitor
-            .add_event_bus_check("event_bus", bus)
-            .await;
+        monitor.add_memory_check("memory").await;
+        monitor.add_cpu_check("cpu").await;
+        monitor.add_event_bus_check("event_bus", bus).await;
 
         // Run checks for 5 seconds (simulating extended runtime)
         let mut check_count = 0;
@@ -1001,7 +1056,7 @@ mod real_world {
             let results = monitor.check_all().await;
             check_count += 1;
 
-            for (_name, report) in &results {
+            for report in results.values() {
                 match report.status {
                     HealthStatus::Healthy => healthy_count += 1,
                     HealthStatus::Degraded(_) => degraded_count += 1,
@@ -1020,9 +1075,7 @@ mod real_world {
         println!("  Healthy reports: {healthy_count}");
         println!("  Degraded reports: {degraded_count}");
         println!("  Failed reports: {failed_count}");
-        println!(
-            "  Status: Health monitor stable over extended runtime"
-        );
+        println!("  Status: Health monitor stable over extended runtime");
 
         // Monitor should not crash
         assert!(check_count > 0, "Should complete at least one check cycle");
@@ -1085,6 +1138,9 @@ mod real_world {
             (created + deleted) as f64 / elapsed.as_secs_f64()
         );
 
-        assert_eq!(stats.total_conversations, 0, "All conversations should be deleted");
+        assert_eq!(
+            stats.total_conversations, 0,
+            "All conversations should be deleted"
+        );
     }
 }

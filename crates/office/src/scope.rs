@@ -1,6 +1,6 @@
+use crate::error::{OfficeError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use crate::error::{OfficeError, Result};
 
 /// Granular permission scopes for enterprise office automation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

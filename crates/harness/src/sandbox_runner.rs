@@ -191,7 +191,12 @@ mod tests {
         // Normal command succeeds
         #[cfg(target_os = "windows")]
         let res = runner
-            .run_command("cmd.exe", &["/c", "echo Hello Harness"], None, Duration::from_secs(5))
+            .run_command(
+                "cmd.exe",
+                &["/c", "echo Hello Harness"],
+                None,
+                Duration::from_secs(5),
+            )
             .await
             .unwrap();
 
@@ -209,7 +214,12 @@ mod tests {
 
         #[cfg(target_os = "windows")]
         let blocked = runner
-            .run_command("cmd.exe", &["/c", "echo after stop"], None, Duration::from_secs(5))
+            .run_command(
+                "cmd.exe",
+                &["/c", "echo after stop"],
+                None,
+                Duration::from_secs(5),
+            )
             .await;
 
         #[cfg(not(target_os = "windows"))]
@@ -224,7 +234,12 @@ mod tests {
 
         #[cfg(target_os = "windows")]
         let unblocked = runner
-            .run_command("cmd.exe", &["/c", "echo working again"], None, Duration::from_secs(5))
+            .run_command(
+                "cmd.exe",
+                &["/c", "echo working again"],
+                None,
+                Duration::from_secs(5),
+            )
             .await
             .unwrap();
 

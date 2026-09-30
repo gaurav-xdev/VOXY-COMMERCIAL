@@ -47,7 +47,8 @@ mod tests {
 
         // 2. Grant write scope -> must succeed
         read_only_scopes.grant(OfficeScope::FilesWrite);
-        let write_ok = fs_conn.write_file("test.txt", "content", &read_only_scopes, Some("user_123"));
+        let write_ok =
+            fs_conn.write_file("test.txt", "content", &read_only_scopes, Some("user_123"));
         assert!(write_ok.is_ok());
 
         // 3. Read back file -> must succeed
@@ -134,7 +135,13 @@ mod tests {
 
         // Query active engineering employees
         let query_res = ss_conn
-            .query_rows(&sheet, "Department", "Engineering", &scopes, Some("hr_user"))
+            .query_rows(
+                &sheet,
+                "Department",
+                "Engineering",
+                &scopes,
+                Some("hr_user"),
+            )
             .unwrap();
         assert_eq!(query_res.len(), 2);
 
@@ -143,7 +150,9 @@ mod tests {
         assert_eq!(total_salary, 435000.0);
 
         // Export
-        let exported = ss_conn.export_csv(&sheet, &scopes, Some("hr_user")).unwrap();
+        let exported = ss_conn
+            .export_csv(&sheet, &scopes, Some("hr_user"))
+            .unwrap();
         assert!(exported.contains("Alice,Engineering,120000,Active"));
     }
 
@@ -184,7 +193,10 @@ mod tests {
             &scopes,
             Some("user_2"),
         );
-        assert!(matches!(ev2.unwrap_err(), OfficeError::ConflictDetected { .. }));
+        assert!(matches!(
+            ev2.unwrap_err(),
+            OfficeError::ConflictDetected { .. }
+        ));
 
         // Event 3 after Event 1 (2:00 to 3:00) -> should succeed
         let start3 = end1;
@@ -203,7 +215,12 @@ mod tests {
 
         // Query events
         let found = cal
-            .get_events_between(start1 - Duration::minutes(10), end3 + Duration::minutes(10), &scopes, None)
+            .get_events_between(
+                start1 - Duration::minutes(10),
+                end3 + Duration::minutes(10),
+                &scopes,
+                None,
+            )
             .unwrap();
         assert_eq!(found.len(), 2);
     }

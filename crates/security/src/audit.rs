@@ -10,19 +10,53 @@ use uuid::Uuid;
 /// Replaces ad-hoc string-based action tracking with typed, queryable events.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditEventType {
-    Authentication { method: String, success: bool },
-    Authorization { decision: String },
-    Consent { capability: String, granted: bool },
-    SecretAccess { secret_id: String, operation: String },
-    PolicyChange { policy_id: String, change: String },
-    ConfigurationChange { config: String, old_value: String, new_value: String },
-    ComponentLoad { component: String, hash: String },
-    ComponentUnload { component: String },
-    IntegrityCheck { result: String },
-    ThreatDetected { threat_type: String, severity: String },
-    GuardianModeActivated { reason: String },
-    RecoveryModeActivated { reason: String },
-    Zeroization { reason: String },
+    Authentication {
+        method: String,
+        success: bool,
+    },
+    Authorization {
+        decision: String,
+    },
+    Consent {
+        capability: String,
+        granted: bool,
+    },
+    SecretAccess {
+        secret_id: String,
+        operation: String,
+    },
+    PolicyChange {
+        policy_id: String,
+        change: String,
+    },
+    ConfigurationChange {
+        config: String,
+        old_value: String,
+        new_value: String,
+    },
+    ComponentLoad {
+        component: String,
+        hash: String,
+    },
+    ComponentUnload {
+        component: String,
+    },
+    IntegrityCheck {
+        result: String,
+    },
+    ThreatDetected {
+        threat_type: String,
+        severity: String,
+    },
+    GuardianModeActivated {
+        reason: String,
+    },
+    RecoveryModeActivated {
+        reason: String,
+    },
+    Zeroization {
+        reason: String,
+    },
 }
 
 impl AuditEventType {

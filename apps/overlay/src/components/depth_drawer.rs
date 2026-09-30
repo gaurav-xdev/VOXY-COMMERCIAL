@@ -1,6 +1,6 @@
-use dioxus::prelude::*;
-use crate::types::{ChatMessage, DesktopMode, SystemTelemetry, ToolStep};
 use crate::components::computer_control::ToolExecutionTimeline;
+use crate::types::{ChatMessage, DesktopMode, SystemTelemetry, ToolStep};
+use dioxus::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DrawerTab {
@@ -20,7 +20,11 @@ pub fn DepthDrawer(
     current_mode: Signal<DesktopMode>,
     on_close: EventHandler<MouseEvent>,
 ) -> Element {
-    let drawer_class = if is_open { "depth-drawer open clickable" } else { "depth-drawer clickable" };
+    let drawer_class = if is_open {
+        "depth-drawer open clickable"
+    } else {
+        "depth-drawer clickable"
+    };
 
     rsx! {
         div { class: "{drawer_class}",

@@ -249,9 +249,7 @@ impl GuardianEngine {
                                 requires_consent: false,
                                 requires_mfa: false,
                                 audit_level: AuditLevel::Full,
-                                reason: format!(
-                                    "Integrity check failed for resource '{res}'"
-                                ),
+                                reason: format!("Integrity check failed for resource '{res}'"),
                                 policy_result: None,
                                 execution_id,
                             };
@@ -549,8 +547,7 @@ mod tests {
             priority: 50,
         });
 
-        GuardianEngine::new(registry, policy, GuardianConfig::default())
-            .with_trust_manager(trust)
+        GuardianEngine::new(registry, policy, GuardianConfig::default()).with_trust_manager(trust)
     }
 
     #[test]
@@ -761,12 +758,13 @@ mod tests {
     fn guardian_denies_critical_when_recovery_active() {
         let engine = make_engine();
         let mut recovery = RecoveryMode::new();
-        recovery.enter(crate::recovery::RecoveryAuth {
-            subject: "system".to_string(),
-            reason: "Compromise detected".to_string(),
-            auth_method: "automatic".to_string(),
-        })
-        .unwrap();
+        recovery
+            .enter(crate::recovery::RecoveryAuth {
+                subject: "system".to_string(),
+                reason: "Compromise detected".to_string(),
+                auth_method: "automatic".to_string(),
+            })
+            .unwrap();
 
         let decision = engine.evaluate(
             "user-1",
@@ -783,12 +781,13 @@ mod tests {
     #[test]
     fn guardian_denies_medium_when_recovery_active() {
         let mut recovery = RecoveryMode::new();
-        recovery.enter(crate::recovery::RecoveryAuth {
-            subject: "system".to_string(),
-            reason: "Compromise detected".to_string(),
-            auth_method: "automatic".to_string(),
-        })
-        .unwrap();
+        recovery
+            .enter(crate::recovery::RecoveryAuth {
+                subject: "system".to_string(),
+                reason: "Compromise detected".to_string(),
+                auth_method: "automatic".to_string(),
+            })
+            .unwrap();
 
         // Register a medium-risk capability
         let mut registry = CapabilityRegistry::new();
@@ -817,12 +816,13 @@ mod tests {
     fn guardian_allows_low_risk_during_recovery() {
         let engine = make_engine();
         let mut recovery = RecoveryMode::new();
-        recovery.enter(crate::recovery::RecoveryAuth {
-            subject: "system".to_string(),
-            reason: "Compromise detected".to_string(),
-            auth_method: "automatic".to_string(),
-        })
-        .unwrap();
+        recovery
+            .enter(crate::recovery::RecoveryAuth {
+                subject: "system".to_string(),
+                reason: "Compromise detected".to_string(),
+                auth_method: "automatic".to_string(),
+            })
+            .unwrap();
 
         let decision = engine.evaluate(
             "user-1",
@@ -832,6 +832,9 @@ mod tests {
             std::collections::HashMap::new(),
             &recovery,
         );
-        assert!(decision.allowed, "Low risk should be allowed during recovery");
+        assert!(
+            decision.allowed,
+            "Low risk should be allowed during recovery"
+        );
     }
 }

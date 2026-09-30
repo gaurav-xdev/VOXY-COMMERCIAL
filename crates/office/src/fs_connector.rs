@@ -1,9 +1,9 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use crate::audit::{AuditStatus, OfficeAuditEvent, OfficeAuditTrail};
 use crate::error::{OfficeError, Result};
 use crate::scope::{OfficeScope, ScopeSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// Sandboxed filesystem connector that guarantees all file operations
 /// stay strictly bounded within the authorized root workspace.
@@ -14,7 +14,10 @@ pub struct FilesystemConnector {
 }
 
 impl FilesystemConnector {
-    pub fn new<P: AsRef<Path>>(allowed_root: P, audit_trail: Arc<OfficeAuditTrail>) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(
+        allowed_root: P,
+        audit_trail: Arc<OfficeAuditTrail>,
+    ) -> Result<Self> {
         let root = allowed_root
             .as_ref()
             .canonicalize()

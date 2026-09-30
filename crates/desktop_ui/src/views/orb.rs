@@ -15,9 +15,9 @@ pub fn OrbView() -> Element {
 
     // Subscribe to ExperienceBridge output for live state
     {
-        let mut orb_state = orb_state.clone();
-        let mut mood_text = mood_text.clone();
-        let mut presence_text = presence_text.clone();
+        let mut orb_state = orb_state;
+        let mut mood_text = mood_text;
+        let mut presence_text = presence_text;
         let experience = bridge.experience.clone();
 
         spawn(async move {
@@ -55,22 +55,26 @@ pub fn OrbView() -> Element {
             let current = *is_listening.read();
             is_listening.set(!current);
             let v = voice.clone();
-            let mut state = orb_state.clone();
-            let listening = is_listening.clone();
+            let mut state = orb_state;
+            let listening = is_listening;
             let exp_input = experience_input.clone();
             spawn(async move {
                 if *listening.read() {
                     state.set(OrbState::Listening);
                     let _ = v.start_listening().await;
-                    let _ = exp_input.send(voxy_companion_intelligence::ExperienceInput::VoiceActivity {
-                        active: true,
-                    });
+                    let _ = exp_input.send(
+                        voxy_companion_intelligence::ExperienceInput::VoiceActivity {
+                            active: true,
+                        },
+                    );
                 } else {
                     v.stop_listening().await;
                     state.set(OrbState::Idle);
-                    let _ = exp_input.send(voxy_companion_intelligence::ExperienceInput::VoiceActivity {
-                        active: false,
-                    });
+                    let _ = exp_input.send(
+                        voxy_companion_intelligence::ExperienceInput::VoiceActivity {
+                            active: false,
+                        },
+                    );
                 }
             });
         }
@@ -81,8 +85,8 @@ pub fn OrbView() -> Element {
         let experience_input = bridge.experience_input.clone();
         move |_: Event<MouseData>| {
             let v = voice.clone();
-            let mut speaking = is_speaking.clone();
-            let mut state = orb_state.clone();
+            let mut speaking = is_speaking;
+            let mut state = orb_state;
             let exp_input = experience_input.clone();
             spawn(async move {
                 state.set(OrbState::Speaking);

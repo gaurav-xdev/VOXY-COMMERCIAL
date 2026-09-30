@@ -58,7 +58,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 groq.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "GROQ_STT", 60, 2000, 5, 50_000, 500_000, default_margin,
+                    "GROQ_STT",
+                    60,
+                    2000,
+                    5,
+                    50_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -77,7 +83,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 deepgram.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "DEEPGRAM_STT", 100, 3000, 5, 50_000, 500_000, default_margin,
+                    "DEEPGRAM_STT",
+                    100,
+                    3000,
+                    5,
+                    50_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -96,7 +108,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 google.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "GOOGLE_STT", 300, 5000, 10, 100_000, 1_000_000, default_margin,
+                    "GOOGLE_STT",
+                    300,
+                    5000,
+                    10,
+                    100_000,
+                    1_000_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -115,7 +133,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 azure.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "AZURE_STT", 100, 3000, 8, 50_000, 500_000, default_margin,
+                    "AZURE_STT",
+                    100,
+                    3000,
+                    8,
+                    50_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -134,7 +158,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 assembly.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "ASSEMBLYAI_STT", 60, 2000, 5, 50_000, 500_000, default_margin,
+                    "ASSEMBLYAI_STT",
+                    60,
+                    2000,
+                    5,
+                    50_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -153,7 +183,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 elevenlabs.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "ELEVENLABS_STT", 50, 1000, 3, 30_000, 250_000, default_margin,
+                    "ELEVENLABS_STT",
+                    50,
+                    1000,
+                    3,
+                    30_000,
+                    250_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -173,7 +209,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 cartesia.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "CARTESIA", 60, 2000, 4, 30_000, 500_000, default_margin,
+                    "CARTESIA",
+                    60,
+                    2000,
+                    4,
+                    30_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -192,7 +234,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 elevenlabs.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "ELEVENLABS", 50, 1000, 3, 30_000, 250_000, default_margin,
+                    "ELEVENLABS",
+                    50,
+                    1000,
+                    3,
+                    30_000,
+                    250_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -211,7 +259,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 azure.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "AZURE_TTS", 100, 3000, 8, 50_000, 1_000_000, default_margin,
+                    "AZURE_TTS",
+                    100,
+                    3000,
+                    8,
+                    50_000,
+                    1_000_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -230,7 +284,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 google.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "GOOGLE_TTS", 300, 5000, 10, 100_000, 2_000_000, default_margin,
+                    "GOOGLE_TTS",
+                    300,
+                    5000,
+                    10,
+                    100_000,
+                    2_000_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -249,7 +309,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 openai.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "OPENAI_TTS", 50, 1000, 3, 30_000, 250_000, default_margin,
+                    "OPENAI_TTS",
+                    50,
+                    1000,
+                    3,
+                    30_000,
+                    250_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -268,7 +334,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 deepgram.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "DEEPGRAM_TTS", 100, 2000, 5, 50_000, 500_000, default_margin,
+                    "DEEPGRAM_TTS",
+                    100,
+                    2000,
+                    5,
+                    50_000,
+                    500_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -287,7 +359,13 @@ impl VoiceSystem {
             quota_manager.register_provider(
                 chatterbox.id(),
                 RateLimitConfig::from_env_with_defaults(
-                    "CHATTERBOX", 60, 1000, 2, 20_000, 200_000, default_margin,
+                    "CHATTERBOX",
+                    60,
+                    1000,
+                    2,
+                    20_000,
+                    200_000,
+                    default_margin,
                 ),
             );
             descriptors.push(ProviderDescriptor {
@@ -302,7 +380,9 @@ impl VoiceSystem {
         }
 
         if stt_providers.is_empty() {
-            warn!("No cloud STT API keys configured. Using Mock STT provider for graceful operation.");
+            warn!(
+                "No cloud STT API keys configured. Using Mock STT provider for graceful operation."
+            );
             let mock_stt = MockSTTProvider::new("mock-stt", "Mock STT Provider (Fallback)");
             stt_providers.push(Box::new(mock_stt));
         }
@@ -312,7 +392,13 @@ impl VoiceSystem {
         quota_manager.register_provider(
             emergency_stt_fallback.id(),
             RateLimitConfig::from_env_with_defaults(
-                "LOCAL_SAPI_STT", 1000, 100_000, 1, 1_000_000, 10_000_000, 0.0,
+                "LOCAL_SAPI_STT",
+                1000,
+                100_000,
+                1,
+                1_000_000,
+                10_000_000,
+                0.0,
             ),
         );
         descriptors.push(ProviderDescriptor {
@@ -329,7 +415,13 @@ impl VoiceSystem {
         quota_manager.register_provider(
             emergency_fallback.id(),
             RateLimitConfig::from_env_with_defaults(
-                "LOCAL_SAPI", 1000, 100_000, 1, 1_000_000, 10_000_000, 0.0,
+                "LOCAL_SAPI",
+                1000,
+                100_000,
+                1,
+                1_000_000,
+                10_000_000,
+                0.0,
             ),
         );
         descriptors.push(ProviderDescriptor {

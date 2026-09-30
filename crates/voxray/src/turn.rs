@@ -1,8 +1,8 @@
-﻿use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use parking_lot::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
 use crate::frames::{
@@ -101,7 +101,11 @@ impl Processor for TurnProcessor {
                 let rms = Self::calculate_rms(&audio.audio);
                 let (thresh, silence_timeout, max_duration) = {
                     let cfg = self.config.lock();
-                    (cfg.energy_threshold, cfg.silence_timeout, cfg.max_turn_duration)
+                    (
+                        cfg.energy_threshold,
+                        cfg.silence_timeout,
+                        cfg.max_turn_duration,
+                    )
                 };
 
                 let now = Instant::now();
@@ -126,7 +130,11 @@ impl Processor for TurnProcessor {
                         }
 
                         // Broadcast that user started speaking immediately
-                        let _ = out_tx.send(Frame::UserStartedSpeaking(UserStartedSpeakingFrame::default())).await;
+                        let _ = out_tx
+                            .send(Frame::UserStartedSpeaking(
+                                UserStartedSpeakingFrame::default(),
+                            ))
+                            .await;
                     } else {
                         let mut buf = self.buffer.lock();
                         buf.extend_from_slice(&audio.audio);
@@ -142,8 +150,10 @@ impl Processor for TurnProcessor {
                         let last_sp = *self.last_speech_time.lock();
                         let sp_start = *self.speech_start.lock();
 
-                        let silence_elapsed = last_sp.map(|t| now.duration_since(t)).unwrap_or_default();
-                        let total_elapsed = sp_start.map(|t| now.duration_since(t)).unwrap_or_default();
+                        let silence_elapsed =
+                            last_sp.map(|t| now.duration_since(t)).unwrap_or_default();
+                        let total_elapsed =
+                            sp_start.map(|t| now.duration_since(t)).unwrap_or_default();
 
                         // Turn complete condition
                         if silence_elapsed >= silence_timeout || total_elapsed >= max_duration {
@@ -156,14 +166,15 @@ impl Processor for TurnProcessor {
 
                     if should_emit_turn {
                         // Emit UserStoppedSpeaking
-                        let _ = out_tx.send(Frame::UserStoppedSpeaking(UserStoppedSpeakingFrame::default())).await;
+                        let _ = out_tx
+                            .send(Frame::UserStoppedSpeaking(
+                                UserStoppedSpeakingFrame::default(),
+                            ))
+                            .await;
 
                         // Emit aggregated turn audio downstream for STT
-                        let turn_audio = AudioRawFrame::new(
-                            speech_data,
-                            audio.sample_rate,
-                            audio.num_channels,
-                        );
+                        let turn_audio =
+                            AudioRawFrame::new(speech_data, audio.sample_rate, audio.num_channels);
                         let _ = out_tx.send(Frame::AudioRaw(turn_audio)).await;
                     }
                 }

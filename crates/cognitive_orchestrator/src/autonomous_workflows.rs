@@ -34,6 +34,12 @@ impl Default for WorkflowId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct StepId(pub String);
 
+impl Default for StepId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StepId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())

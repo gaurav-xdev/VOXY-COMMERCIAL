@@ -147,7 +147,7 @@ mod tests {
         }
         // Energy dip should trigger backchannel
         // Feed a dip
-        let result = bc.process_frame(0.005, 30);
+        let _result = bc.process_frame(0.005, 30);
         // May or may not trigger depending on energy dip detection
         // Just verify no panic
     }

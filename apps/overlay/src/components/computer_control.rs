@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::types::{StepStatus, ToolStep};
+use dioxus::prelude::*;
 
 #[component]
 pub fn ComputerControlBanner(
@@ -7,7 +7,11 @@ pub fn ComputerControlBanner(
     current_action: String,
     is_visible: bool,
 ) -> Element {
-    let display_style = if is_visible { "display: flex;" } else { "display: none;" };
+    let display_style = if is_visible {
+        "display: flex;"
+    } else {
+        "display: none;"
+    };
 
     rsx! {
         div {

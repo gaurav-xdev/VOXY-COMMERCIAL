@@ -132,9 +132,7 @@ impl HardwareDetector {
         let mut detected = Vec::new();
 
         unsafe {
-            use windows::Win32::Graphics::Dxgi::{
-                CreateDXGIFactory1, IDXGIFactory1,
-            };
+            use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory1, IDXGIFactory1};
 
             if let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() {
                 let mut adapter_index = 0;

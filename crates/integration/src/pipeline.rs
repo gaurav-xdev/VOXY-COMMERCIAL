@@ -129,7 +129,7 @@ pub struct PipelineContext {
 
 /// Connects all processing stages into one continuous pipeline.
 pub struct UnifiedPipeline {
-    handlers: RwLock<Vec<Box<dyn StageHandler>>>,
+    handlers: RwLock<Vec<Arc<dyn StageHandler>>>,
     stage_order: Vec<PipelineStage>,
     event_bridge: Arc<EventBridge>,
     telemetry: Arc<CentralTelemetry>,
@@ -158,7 +158,7 @@ impl UnifiedPipeline {
     }
 
     /// Register a stage handler.
-    pub fn register_handler(&self, handler: Box<dyn StageHandler>) {
+    pub fn register_handler(&self, handler: Arc<dyn StageHandler>) {
         self.handlers.write().push(handler);
     }
 
@@ -172,54 +172,48 @@ impl UnifiedPipeline {
         for stage in &self.stage_order {
             let handler = {
                 let handlers = self.handlers.read();
-                handlers
-                    .iter()
-                    .find(|h| h.stage() == *stage)
-                    .map(|_| stage.clone())
+                handlers.iter().find(|h| h.stage() == *stage).cloned()
             };
 
-            if let Some(stage_clone) = handler {
-                let handlers = self.handlers.read();
-                if let Some(handler) = handlers.iter().find(|h| h.stage() == stage_clone) {
-                    let stage_start = std::time::Instant::now();
-                    let result = handler.process(&request, &mut context).await;
-                    let stage_latency = stage_start.elapsed().as_secs_f64() * 1000.0;
+            if let Some(handler) = handler {
+                let stage_start = std::time::Instant::now();
+                let result = handler.process(&request, &mut context).await;
+                let stage_latency = stage_start.elapsed().as_secs_f64() * 1000.0;
 
-                    // Report metrics
-                    self.telemetry.report(SubsystemMetrics {
-                        name: format!("pipeline_{}", stage),
-                        latency_ms: stage_latency,
-                        error_count: if result.is_err() { 1 } else { 0 },
-                        ..SubsystemMetrics::new(format!("pipeline_{}", stage))
-                    });
+                // Report metrics
+                self.telemetry.report(SubsystemMetrics {
+                    name: format!("pipeline_{}", stage),
+                    latency_ms: stage_latency,
+                    error_count: if result.is_err() { 1 } else { 0 },
+                    ..SubsystemMetrics::new(format!("pipeline_{}", stage))
+                });
 
-                    // Publish stage event
-                    let stage_event = StageMetrics {
-                        stage: stage.clone(),
-                        latency_ms: stage_latency,
-                        success: result.is_ok(),
-                        error: result.as_ref().err().cloned(),
-                        timestamp: Utc::now(),
-                    };
-                    let _ = self
-                        .event_bridge
-                        .publish(
-                            &format!(
-                                "pipeline.{}.{}",
-                                stage,
-                                if result.is_ok() { "done" } else { "failed" }
-                            ),
-                            "pipeline",
-                            &stage_event,
-                        )
-                        .await;
+                // Publish stage event
+                let stage_event = StageMetrics {
+                    stage: stage.clone(),
+                    latency_ms: stage_latency,
+                    success: result.is_ok(),
+                    error: result.as_ref().err().cloned(),
+                    timestamp: Utc::now(),
+                };
+                let _ = self
+                    .event_bridge
+                    .publish(
+                        &format!(
+                            "pipeline.{}.{}",
+                            stage,
+                            if result.is_ok() { "done" } else { "failed" }
+                        ),
+                        "pipeline",
+                        &stage_event,
+                    )
+                    .await;
 
-                    match result {
-                        Ok(()) => stages_completed.push(stage.clone()),
-                        Err(e) => {
-                            last_error = Some(format!("Stage {} failed: {}", stage, e));
-                            break;
-                        }
+                match result {
+                    Ok(()) => stages_completed.push(stage.clone()),
+                    Err(e) => {
+                        last_error = Some(format!("Stage {} failed: {}", stage, e));
+                        break;
                     }
                 }
             }
@@ -311,8 +305,8 @@ mod tests {
         let bridge = Arc::new(EventBridge::new(bus));
         let telemetry = Arc::new(CentralTelemetry::new());
         let pipeline = UnifiedPipeline::new(bridge, telemetry);
-        pipeline.register_handler(Box::new(MockInputHandler));
-        pipeline.register_handler(Box::new(MockSttHandler));
+        pipeline.register_handler(Arc::new(MockInputHandler));
+        pipeline.register_handler(Arc::new(MockSttHandler));
         pipeline
     }
 
@@ -339,8 +333,8 @@ mod tests {
         let bridge = Arc::new(EventBridge::new(bus));
         let telemetry = Arc::new(CentralTelemetry::new());
         let pipeline = UnifiedPipeline::new(bridge, telemetry);
-        pipeline.register_handler(Box::new(MockInputHandler));
-        pipeline.register_handler(Box::new(MockFailingHandler));
+        pipeline.register_handler(Arc::new(MockInputHandler));
+        pipeline.register_handler(Arc::new(MockFailingHandler));
 
         let request = PipelineRequest::from_text("test");
         let response = pipeline.execute(request).await;

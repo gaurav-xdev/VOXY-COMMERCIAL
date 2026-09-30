@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::sync::Arc;
 use std::sync::OnceLock;
 
@@ -196,7 +198,7 @@ fn init_bridge() -> AppBridge {
         let voice = Arc::new(VoicePipeline::new(voice_config));
 
         let download_dir = dirs::download_dir()
-            .or_else(|| dirs::data_local_dir())
+            .or_else(dirs::data_local_dir)
             .map(|p| p.join("voxy"))
             .unwrap_or_default();
         let downloads = Arc::new(
@@ -208,7 +210,7 @@ fn init_bridge() -> AppBridge {
             Arc::new(NotificationManager::new().expect("Failed to create NotificationManager"));
 
         let data_dir = dirs::config_dir()
-            .or_else(|| dirs::data_local_dir())
+            .or_else(dirs::data_local_dir)
             .map(|p| p.join("voxy"))
             .unwrap_or_else(|| std::path::PathBuf::from("."));
         std::fs::create_dir_all(&data_dir).ok();
@@ -245,8 +247,7 @@ fn init_bridge() -> AppBridge {
 
         // ── Experience Layer ──────────────────────────────────────────────
         let intelligence_config = IntelligenceConfig::default();
-        let (exp_bridge, exp_input_tx, _exp_output_rx) =
-            ExperienceBridge::new(intelligence_config);
+        let (exp_bridge, exp_input_tx, _exp_output_rx) = ExperienceBridge::new(intelligence_config);
         exp_bridge.start().await;
         let exp_bridge = Arc::new(exp_bridge);
         tracing::info!("Experience Layer started in Desktop UI");

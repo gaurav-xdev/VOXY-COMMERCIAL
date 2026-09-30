@@ -8,6 +8,12 @@ pub struct StableStubSttEngine {
     name: String,
 }
 
+impl Default for StableStubSttEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StableStubSttEngine {
     pub fn new() -> Self {
         Self {
@@ -52,6 +58,12 @@ impl SttEngine for StableStubSttEngine {
 
 pub struct StableStubTtsEngine {
     name: String,
+}
+
+impl Default for StableStubTtsEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl StableStubTtsEngine {

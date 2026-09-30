@@ -174,7 +174,11 @@ impl DodoPaymentsClient {
         &self,
         subscription_id: &str,
     ) -> Result<DodoSubscriptionResponse, DodoError> {
-        let url = format!("{}/subscriptions/{}", self.environment.base_url(), subscription_id);
+        let url = format!(
+            "{}/subscriptions/{}",
+            self.environment.base_url(),
+            subscription_id
+        );
         let res = self.client.get(&url).send().await?;
 
         if !res.status().is_success() {
@@ -192,7 +196,11 @@ impl DodoPaymentsClient {
 
     /// Cancels a subscription via Dodo Payments API.
     pub async fn cancel_subscription(&self, subscription_id: &str) -> Result<(), DodoError> {
-        let url = format!("{}/subscriptions/{}/cancel", self.environment.base_url(), subscription_id);
+        let url = format!(
+            "{}/subscriptions/{}/cancel",
+            self.environment.base_url(),
+            subscription_id
+        );
         let res = self.client.post(&url).send().await?;
 
         if !res.status().is_success() {
@@ -223,7 +231,13 @@ mod tests {
 
     #[test]
     fn test_dodo_environments() {
-        assert_eq!(DodoEnvironment::Live.base_url(), "https://api.dodopayments.com");
-        assert_eq!(DodoEnvironment::Test.base_url(), "https://test.dodopayments.com");
+        assert_eq!(
+            DodoEnvironment::Live.base_url(),
+            "https://api.dodopayments.com"
+        );
+        assert_eq!(
+            DodoEnvironment::Test.base_url(),
+            "https://test.dodopayments.com"
+        );
     }
 }

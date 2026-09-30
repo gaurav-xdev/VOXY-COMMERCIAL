@@ -2,7 +2,10 @@
 # Docs: https://embarkstudios.github.io/cargo-deny/
 
 [advisories]
-ignore = []
+unmaintained = "workspace"
+ignore = [
+    "RUSTSEC-2026-0257", # Unix BROWSER argument injection; not applicable on Windows (VOXY is a Windows desktop application that opens URLs via ShellExecute)
+]
 
 [licenses]
 allow = [
@@ -12,10 +15,12 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "Unicode-DFS-2016",
     "Zlib",
     "0BSD",
     "Unicode-3.0",
+    "CDLA-Permissive-2.0",
+    "MPL-2.0",
+    "CC0-1.0",
 ]
 
 [bans]

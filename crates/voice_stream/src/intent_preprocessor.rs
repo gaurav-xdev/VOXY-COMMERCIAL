@@ -15,9 +15,16 @@ pub enum DesktopCommand {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FastIntentAction {
     StopSpeech,
-    VolumeChange { delta: i32 },
-    VolumeMute { mute: bool },
-    OpenApplication { app_name: String, executable: String },
+    VolumeChange {
+        delta: i32,
+    },
+    VolumeMute {
+        mute: bool,
+    },
+    OpenApplication {
+        app_name: String,
+        executable: String,
+    },
     SystemQuery(SystemQueryType),
     DesktopAction(DesktopCommand),
 }
@@ -63,13 +70,20 @@ impl IntentPreprocessor {
                 immediate_verbal_response: Some("Unmuted.".into()),
             });
         }
-        if cleaned.contains("volume up") || cleaned.contains("increase volume") || cleaned.contains("louder") {
+        if cleaned.contains("volume up")
+            || cleaned.contains("increase volume")
+            || cleaned.contains("louder")
+        {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: 10 },
                 immediate_verbal_response: Some("Volume raised.".into()),
             });
         }
-        if cleaned.contains("volume down") || cleaned.contains("decrease volume") || cleaned.contains("quieter") || cleaned.contains("lower volume") {
+        if cleaned.contains("volume down")
+            || cleaned.contains("decrease volume")
+            || cleaned.contains("quieter")
+            || cleaned.contains("lower volume")
+        {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: -10 },
                 immediate_verbal_response: Some("Volume lowered.".into()),
@@ -101,13 +115,20 @@ impl IntentPreprocessor {
         }
 
         // 4. Desktop actions
-        if cleaned == "lock screen" || cleaned == "lock computer" || cleaned == "lock pc" || cleaned == "lock workstation" {
+        if cleaned == "lock screen"
+            || cleaned == "lock computer"
+            || cleaned == "lock pc"
+            || cleaned == "lock workstation"
+        {
             return Some(FastIntentResult {
                 action: FastIntentAction::DesktopAction(DesktopCommand::LockWorkstation),
                 immediate_verbal_response: Some("Locking workstation.".into()),
             });
         }
-        if cleaned == "show desktop" || cleaned == "minimize all" || cleaned == "minimize everything" {
+        if cleaned == "show desktop"
+            || cleaned == "minimize all"
+            || cleaned == "minimize everything"
+        {
             return Some(FastIntentResult {
                 action: FastIntentAction::DesktopAction(DesktopCommand::ShowDesktop),
                 immediate_verbal_response: Some("Showing desktop.".into()),

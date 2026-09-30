@@ -20,12 +20,14 @@ pub enum ShutdownPriority {
     Final = 3,
 }
 
+type AsyncFn = Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
 struct ShutdownStep {
     name: String,
     priority: ShutdownPriority,
     timeout: Duration,
-    flush_fn: Option<Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>>,
-    shutdown_fn: Box<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>,
+    flush_fn: Option<AsyncFn>,
+    shutdown_fn: AsyncFn,
 }
 
 pub struct GracefulShutdown {

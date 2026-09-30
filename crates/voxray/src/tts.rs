@@ -1,13 +1,12 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use async_trait::async_trait;
-use parking_lot::Mutex;
-use tokio::sync::mpsc;
 use crate::frames::{
-    BotStartedSpeakingFrame, BotStoppedSpeakingFrame, Frame, FrameDirection,
-    TTSAudioRawFrame,
+    BotStartedSpeakingFrame, BotStoppedSpeakingFrame, Frame, FrameDirection, TTSAudioRawFrame,
 };
 use crate::processor::Processor;
+use async_trait::async_trait;
+use parking_lot::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 #[async_trait]
 pub trait VoxrayTtsService: Send + Sync {
@@ -59,11 +58,10 @@ impl VoxrayTtsService for WindowsSapiTtsService {
         let target_sr = target_sample_rate;
 
         // SAPI COM must run on a dedicated thread (STA apartment)
-        let result = tokio::task::spawn_blocking(move || {
-            sapi_synthesize_blocking(&text, target_sr)
-        })
-        .await
-        .map_err(|e| format!("SAPI task join error: {e}"))?;
+        let result =
+            tokio::task::spawn_blocking(move || sapi_synthesize_blocking(&text, target_sr))
+                .await
+                .map_err(|e| format!("SAPI task join error: {e}"))?;
 
         result
     }
@@ -91,8 +89,8 @@ fn sapi_synthesize_blocking(text: &str, target_sample_rate: u32) -> Result<Vec<u
 
 #[cfg(target_os = "windows")]
 fn sapi_synthesize_inner(text: &str, target_sample_rate: u32) -> Result<Vec<u8>, String> {
-    use windows::Win32::Media::Speech::*;
     use windows::core::*;
+    use windows::Win32::Media::Speech::*;
 
     unsafe {
         // Create SAPI voice
@@ -104,8 +102,9 @@ fn sapi_synthesize_inner(text: &str, target_sample_rate: u32) -> Result<Vec<u8>,
         .map_err(|e| format!("Failed to create ISpVoice: {e}"))?;
 
         // Create in-memory IStream
-        let mem_stream = windows::Win32::System::Com::StructuredStorage::CreateStreamOnHGlobal(None, true)
-            .map_err(|e| format!("Failed to create in-memory IStream: {e}"))?;
+        let mem_stream =
+            windows::Win32::System::Com::StructuredStorage::CreateStreamOnHGlobal(None, true)
+                .map_err(|e| format!("Failed to create in-memory IStream: {e}"))?;
 
         // Create SpStream for SAPI
         let stream: ISpStream = windows::Win32::System::Com::CoCreateInstance(
@@ -128,9 +127,8 @@ fn sapi_synthesize_inner(text: &str, target_sample_rate: u32) -> Result<Vec<u8>,
         };
 
         // SPDFID_WaveFormatEx GUID
-        let spdfid_wave: windows::core::GUID = windows::core::GUID::from_u128(
-            0xC31ADBAE_527F_4ff5_A230_F62BB61FF70C,
-        );
+        let spdfid_wave: windows::core::GUID =
+            windows::core::GUID::from_u128(0xC31ADBAE_527F_4FF5_A230_F62BB61FF70C);
 
         stream
             .SetBaseStream(
@@ -322,11 +320,15 @@ impl TTSProcessor {
             Ok(audio_bytes) => {
                 if !audio_bytes.is_empty() {
                     if !self.bot_speaking.swap(true, Ordering::SeqCst) {
-                        let _ = out_tx.send(Frame::BotStartedSpeaking(BotStartedSpeakingFrame::default())).await;
+                        let _ = out_tx
+                            .send(Frame::BotStartedSpeaking(BotStartedSpeakingFrame::default()))
+                            .await;
                     }
                     let out_frame = TTSAudioRawFrame::new(audio_bytes, self.sample_rate, 1);
                     let _ = out_tx.send(Frame::TTSAudioRaw(out_frame)).await;
-                    let _ = out_tx.send(Frame::BotStoppedSpeaking(BotStoppedSpeakingFrame::default())).await;
+                    let _ = out_tx
+                        .send(Frame::BotStoppedSpeaking(BotStoppedSpeakingFrame::default()))
+                        .await;
                     self.bot_speaking.store(false, Ordering::SeqCst);
                 }
             }
@@ -366,7 +368,7 @@ impl Processor for TTSProcessor {
                     buf.push_str(&t.text);
 
                     // Check for sentence boundary: '.', '!', '?', '\n'
-                    if let Some(pos) = buf.find(|c| c == '.' || c == '!' || c == '?' || c == '\n') {
+                    if let Some(pos) = buf.find(['.', '!', '?', '\n']) {
                         let sentence: String = buf.drain(..=pos).collect();
                         Some(sentence)
                     } else {

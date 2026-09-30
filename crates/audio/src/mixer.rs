@@ -50,24 +50,19 @@ impl MixerChannel {
 }
 
 /// Priority level for ducking decisions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum DuckingPriority {
     /// Never duck (emergency sounds, TTS).
     Never = 0,
     /// Duck minimally (voice chat).
     Low = 1,
     /// Duck moderately (games).
+    #[default]
     Medium = 2,
     /// Duck significantly (music).
     High = 3,
     /// Duck maximally (background noise).
     Max = 4,
-}
-
-impl Default for DuckingPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 /// Per-channel state.

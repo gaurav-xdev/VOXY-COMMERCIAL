@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use crate::audit::{AuditStatus, OfficeAuditEvent, OfficeAuditTrail};
 use crate::error::Result;
 use crate::scope::{OfficeScope, ScopeSet};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Document and reporting connector for templated summaries and executive reports.
 #[derive(Debug, Clone)]
@@ -59,7 +59,10 @@ impl DocumentConnector {
         let mut report = String::new();
         report.push_str(&format!("# {}\n\n", title));
         report.push_str(&format!("**Author:** {}  \n", author));
-        report.push_str(&format!("**Date:** {}  \n\n", chrono::Utc::now().to_rfc3339()));
+        report.push_str(&format!(
+            "**Date:** {}  \n\n",
+            chrono::Utc::now().to_rfc3339()
+        ));
         report.push_str("## Executive Summary\n\n");
 
         for h in highlights {

@@ -371,7 +371,7 @@ mod tests {
             related_ids: vec![],
         };
         let result = SearchResult {
-            item: item,
+            item,
             score: 0.95,
             match_reasons: vec!["high importance".to_string()],
         };

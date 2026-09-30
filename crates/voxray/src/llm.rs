@@ -1,15 +1,13 @@
+use crate::frames::{Frame, FrameDirection, LLMTextFrame};
+use crate::processor::Processor;
+use async_trait::async_trait;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use async_trait::async_trait;
 use tokio::sync::mpsc;
-use crate::frames::{Frame, FrameDirection, LLMTextFrame};
-use crate::processor::Processor;
 
 pub type StreamingLlmFn = Arc<
-    dyn Fn(String, mpsc::Sender<String>) -> Pin<Box<dyn Future<Output = ()> + Send>>
-        + Send
-        + Sync,
+    dyn Fn(String, mpsc::Sender<String>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
 >;
 
 /// LLMProcessor receives TranscriptionFrame from STT and streams LLM output tokens as LLMTextFrame.

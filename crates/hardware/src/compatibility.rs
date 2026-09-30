@@ -72,12 +72,8 @@ impl CompatibilityEngine {
         };
 
         // KV cache = 2 * layers * kv_heads * head_dim * context_len * 2 bytes (FP16)
-        let kv_cache_bytes = 2u64
-            * layers as u64
-            * kv_heads as u64
-            * head_dim as u64
-            * context_length as u64
-            * 2;
+        let kv_cache_bytes =
+            2u64 * layers as u64 * kv_heads as u64 * head_dim as u64 * context_length as u64 * 2;
 
         // Runtime activation buffers & CUDA context overhead (typically ~512MB - 1GB)
         let runtime_overhead_bytes = 512 * 1024 * 1024;
@@ -123,7 +119,9 @@ impl CompatibilityEngine {
 
         if hardware.has_discrete_gpu() && estimate.total_required_memory_bytes <= usable_vram {
             CompatibilityTier::FullGpu
-        } else if hardware.has_discrete_gpu() && usable_vram > estimate.kv_cache_memory_bytes + (1024 * 1024 * 1024) {
+        } else if hardware.has_discrete_gpu()
+            && usable_vram > estimate.kv_cache_memory_bytes + (1024 * 1024 * 1024)
+        {
             // Can fit KV cache and a portion of the layers in VRAM
             let remaining_vram_for_weights = usable_vram
                 .saturating_sub(estimate.kv_cache_memory_bytes + estimate.runtime_overhead_bytes);
@@ -145,10 +143,8 @@ impl CompatibilityEngine {
                     ),
                 }
             }
-        } else if estimate.total_required_memory_bytes <= available_ram {
-            CompatibilityTier::CpuOnly
         } else if estimate.total_required_memory_bytes <= total_ram {
-            CompatibilityTier::CpuOnly // Can run if background apps free memory
+            CompatibilityTier::CpuOnly
         } else {
             CompatibilityTier::Incompatible {
                 reason: format!(
@@ -164,8 +160,8 @@ impl CompatibilityEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use crate::hardware_detector::GpuInfo;
+    use std::path::PathBuf;
 
     #[test]
     fn test_estimate_7b_q4_requirements() {

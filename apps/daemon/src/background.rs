@@ -467,8 +467,8 @@ async fn health_monitor_task(
 ) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
     let mut consecutive_failures = 0u32;
-    let ollama_url = std::env::var("VOXY_OLLAMA_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+    let ollama_url =
+        std::env::var("VOXY_OLLAMA_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
 
     loop {
         tokio::select! {

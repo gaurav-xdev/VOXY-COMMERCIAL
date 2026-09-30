@@ -1,4 +1,4 @@
-﻿use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -238,9 +238,11 @@ mod tests {
             if let Some(ref text) = self.ok_text {
                 Ok(text.clone())
             } else {
-                Err(voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
-                    self.err_msg.clone().unwrap_or_default(),
-                ))
+                Err(
+                    voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+                        self.err_msg.clone().unwrap_or_default(),
+                    ),
+                )
             }
         }
 
@@ -251,9 +253,11 @@ mod tests {
             if let Some(ref text) = self.ok_text {
                 Ok(text.clone())
             } else {
-                Err(voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
-                    self.err_msg.clone().unwrap_or_default(),
-                ))
+                Err(
+                    voxy_voice_orchestrator::VoiceOrchestratorError::TranscriptionFailed(
+                        self.err_msg.clone().unwrap_or_default(),
+                    ),
+                )
             }
         }
 

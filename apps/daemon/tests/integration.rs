@@ -1,6 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
 #[tokio::test]
 async fn test_bounded_channel_backpressure() {

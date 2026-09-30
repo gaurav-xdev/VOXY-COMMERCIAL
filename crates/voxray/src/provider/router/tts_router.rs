@@ -8,8 +8,7 @@ use tracing::{debug, error, info, warn};
 use crate::provider::cache::TTSCache;
 use crate::provider::quota::ProviderQuotaManager;
 use crate::provider::traits::{
-    AudioData, HealthStatus, ProviderError, TTSProvider, TTSStream,
-    VoiceLanguage, VoiceMode,
+    AudioData, HealthStatus, ProviderError, TTSProvider, TTSStream, VoiceLanguage, VoiceMode,
 };
 
 pub struct TTSRouter {
@@ -124,10 +123,8 @@ impl TTSRouter {
         let est = provider.estimate_cost(char_count);
         let cost_pts = (1.0 / (est.amount_usd + 0.0001) * 0.005).clamp(0.0, 100.0);
 
-        let mut total = (health_pts * 0.35)
-            + (latency_pts * 0.25)
-            + (headroom_pts * 0.25)
-            + (cost_pts * 0.15);
+        let mut total =
+            (health_pts * 0.35) + (latency_pts * 0.25) + (headroom_pts * 0.25) + (cost_pts * 0.15);
 
         // Language matching bonus (+20 pts)
         if let Some(ref lang) = language {
@@ -168,7 +165,10 @@ impl TTSRouter {
         if self.mode.is_local_only() {
             if let Some(ref fallback) = self.emergency_fallback {
                 let pid = fallback.id();
-                debug!(fallback = pid, "Local-only voice mode: using local offline TTS directly");
+                debug!(
+                    fallback = pid,
+                    "Local-only voice mode: using local offline TTS directly"
+                );
                 let start = Instant::now();
                 match fallback.synthesize(trimmed, language).await {
                     Ok(audio) => {
@@ -222,13 +222,18 @@ impl TTSRouter {
                 let pid = provider.id();
 
                 // Check preflight before pushing provider into its hard limit
-                if let Err(violation) = self.quota_manager.check_preflight(pid, char_count as u32, 0.0) {
+                if let Err(violation) =
+                    self.quota_manager
+                        .check_preflight(pid, char_count as u32, 0.0)
+                {
                     warn!(
                         provider = pid,
                         reason = ?violation,
                         "Preflight quota threshold reached; routing to next healthy provider"
                     );
-                    let wait = self.quota_manager.calculate_wait_time(pid, char_count as u32);
+                    let wait = self
+                        .quota_manager
+                        .calculate_wait_time(pid, char_count as u32);
                     if wait > Duration::ZERO {
                         shortest_wait = Some(shortest_wait.map_or(wait, |w| w.min(wait)));
                     }
@@ -330,7 +335,9 @@ impl TTSRouter {
                 if let Some(wait) = shortest_wait {
                     let now = Instant::now();
                     if now < queue_deadline && wait <= Duration::from_millis(1200) {
-                        let sleep_duration = wait.min(queue_deadline - now).max(Duration::from_millis(20));
+                        let sleep_duration = wait
+                            .min(queue_deadline - now)
+                            .max(Duration::from_millis(20));
                         info!(
                             wait_ms = sleep_duration.as_millis(),
                             "All TTS providers temporarily at safe threshold; queueing request"
@@ -345,7 +352,10 @@ impl TTSRouter {
             if self.mode.allows_local() {
                 if let Some(ref fallback) = self.emergency_fallback {
                     let pid = fallback.id();
-                    warn!(fallback = pid, "Cloud TTS exhausted: using emergency local fallback");
+                    warn!(
+                        fallback = pid,
+                        "Cloud TTS exhausted: using emergency local fallback"
+                    );
                     let start = Instant::now();
                     match fallback.synthesize(trimmed, language).await {
                         Ok(audio) => {
@@ -422,7 +432,11 @@ impl TTSRouter {
             let provider = &self.providers[idx];
             let pid = provider.id();
 
-            if self.quota_manager.check_preflight(pid, char_count as u32, 0.0).is_err() {
+            if self
+                .quota_manager
+                .check_preflight(pid, char_count as u32, 0.0)
+                .is_err()
+            {
                 continue;
             }
 

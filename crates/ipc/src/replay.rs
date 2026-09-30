@@ -111,6 +111,22 @@ pub trait EventStore: Send + Sync {
     async fn cleanup_expired(&self) -> crate::error::Result<u64>;
 }
 
+impl Default for ReplaySubscription {
+    fn default() -> Self {
+        Self {
+            subscription_id: Uuid::new_v4(),
+            topic: String::new(),
+            mode: ReplayMode::Live,
+            replay_from: None,
+            replay_to: None,
+            replay_rate: None,
+            checkpoint_id: None,
+            filter: serde_json::json!({}),
+            delivery: DeliveryGuarantee::AtLeastOnce,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,22 +234,6 @@ mod tests {
         match ReplayState::Failed("error".to_string()) {
             ReplayState::Failed(msg) => assert_eq!(msg, "error"),
             _ => panic!("Wrong variant"),
-        }
-    }
-}
-
-impl Default for ReplaySubscription {
-    fn default() -> Self {
-        Self {
-            subscription_id: Uuid::new_v4(),
-            topic: String::new(),
-            mode: ReplayMode::Live,
-            replay_from: None,
-            replay_to: None,
-            replay_rate: None,
-            checkpoint_id: None,
-            filter: serde_json::json!({}),
-            delivery: DeliveryGuarantee::AtLeastOnce,
         }
     }
 }

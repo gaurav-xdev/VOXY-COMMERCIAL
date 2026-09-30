@@ -8,8 +8,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    TTSStream, VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, TTSStream, VoiceLanguage,
 };
 
 const DEEPGRAM_TTS_ENDPOINT: &str = "https://api.deepgram.com/v1/speak";
@@ -92,7 +91,11 @@ impl TTSProvider for DeepgramTTSProvider {
 
         let body = json!({ "text": text });
 
-        debug!(provider = self.id(), model = self.model, "Calling Deepgram Aura TTS");
+        debug!(
+            provider = self.id(),
+            model = self.model,
+            "Calling Deepgram Aura TTS"
+        );
 
         let response = self
             .client
@@ -140,10 +143,9 @@ impl TTSProvider for DeepgramTTSProvider {
             )));
         }
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e)))?;
+        let bytes = response.bytes().await.map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e))
+        })?;
 
         Ok(AudioData::new(bytes.to_vec(), 16000, 1))
     }

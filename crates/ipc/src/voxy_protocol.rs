@@ -24,9 +24,10 @@ pub const VOXY_IPC_TEST_PORT: u16 = 18889;
 // ==============================================================================
 
 /// High-level runtime voice states published by the authoritative daemon.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum VoiceState {
     /// Idle, standby mode. Audio capture is passive or awaiting wake / PTT.
+    #[default]
     Idle,
     /// Active microphone listening / user speaking.
     Listening,
@@ -38,12 +39,6 @@ pub enum VoiceState {
     Interrupted,
     /// Error condition (network dropout, provider rate-limit, mic failure).
     Error,
-}
-
-impl Default for VoiceState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 impl fmt::Display for VoiceState {
@@ -113,16 +108,10 @@ pub enum DaemonMessage {
     },
 
     /// Audio energy levels for local UI visualizer / orb animation.
-    AudioEnergy {
-        mic_rms: f32,
-        output_rms: f32,
-    },
+    AudioEnergy { mic_rms: f32, output_rms: f32 },
 
     /// Acoustic double-talk / user interruption detected.
-    Interrupted {
-        latency_ms: u32,
-        reason: String,
-    },
+    Interrupted { latency_ms: u32, reason: String },
 
     /// Computer control / tool execution step progress.
     ToolStep {
@@ -143,15 +132,10 @@ pub enum DaemonMessage {
     },
 
     /// System or provider error notification.
-    ErrorNotification {
-        code: String,
-        message: String,
-    },
+    ErrorNotification { code: String, message: String },
 
     /// Emergency stop state changed.
-    EmergencyStopChanged {
-        is_stopped: bool,
-    },
+    EmergencyStopChanged { is_stopped: bool },
 
     /// Routing mode and active provider status update.
     RoutingStatusUpdate {
@@ -175,14 +159,13 @@ pub enum DaemonMessage {
     CursorUpdate(VoxyCursorTelemetry),
 
     /// Heartbeat ping from daemon (every 5-10s).
-    Heartbeat {
-        uptime_secs: u64,
-    },
+    Heartbeat { uptime_secs: u64 },
 }
 
 /// Visual interaction state of the dedicated VOXY computer control cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum VoxyCursorState {
+    #[default]
     Idle,
     Moving,
     Clicking,
@@ -190,12 +173,6 @@ pub enum VoxyCursorState {
     Dragging,
     ExecutingAction,
     WaitingConfirmation,
-}
-
-impl Default for VoxyCursorState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 /// Real-time visual cursor telemetry broadcast over IPC to ensure all automated control is visible.
@@ -223,6 +200,12 @@ pub enum ClientCommand {
     ClientHandshake {
         client_name: String,
         client_version: String,
+        #[serde(default)]
+        auth_token: Option<String>,
+        #[serde(default)]
+        nonce: Option<String>,
+        #[serde(default)]
+        timestamp_ms: Option<u64>,
     },
 
     /// Request a fresh state snapshot from the daemon.
@@ -235,29 +218,37 @@ pub enum ClientCommand {
     ResetEmergencyStop,
 
     /// User approval or rejection for a pending high-risk / destructive action.
-    ConfirmAction {
-        action_id: u64,
-        approved: bool,
-    },
+    ConfirmAction { action_id: u64, approved: bool },
 
     /// Interrupt ongoing speech synthesis immediately.
     InterruptSpeech,
 
     /// Send text input into conversational pipeline (dev/text mode alternative to voice).
-    SendTextInput {
-        text: String,
-    },
+    SendTextInput { text: String },
 
     /// Change the active AI routing mode ("Auto", "LocalOnly", "CloudOnly").
-    SetRoutingMode {
-        mode: String,
-    },
+    SetRoutingMode { mode: String },
 
     /// Request an updated hardware status report.
     RequestHardwareStatus,
 
     /// Client heartbeat pong response.
     HeartbeatPong,
+}
+
+impl ClientCommand {
+    /// Returns true if this command performs a privileged system action
+    /// (e.g. aborting tools, changing AI routing, approving actions, or sending user input).
+    pub fn is_privileged(&self) -> bool {
+        matches!(
+            self,
+            ClientCommand::EmergencyStop
+                | ClientCommand::ResetEmergencyStop
+                | ClientCommand::ConfirmAction { .. }
+                | ClientCommand::SendTextInput { .. }
+                | ClientCommand::SetRoutingMode { .. }
+        )
+    }
 }
 
 // ==============================================================================
@@ -274,7 +265,8 @@ pub struct IpcEnvelope<T> {
 
 impl<T> IpcEnvelope<T> {
     pub fn new(payload: T) -> Self {
-        let timestamp_ms = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+        let timestamp_ms = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+        {
             Ok(d) => d.as_millis() as u64,
             Err(_) => 0,
         };
@@ -292,8 +284,8 @@ impl<T> IpcEnvelope<T> {
 
 /// Encode an IPC envelope with a 4-byte big-endian length prefix.
 pub fn encode_ipc_frame<T: Serialize>(payload: &T) -> Result<Vec<u8>, String> {
-    let json_bytes = serde_json::to_vec(payload)
-        .map_err(|e| format!("IPC serialization failed: {e}"))?;
+    let json_bytes =
+        serde_json::to_vec(payload).map_err(|e| format!("IPC serialization failed: {e}"))?;
 
     if json_bytes.len() > MAX_IPC_FRAME_SIZE {
         return Err(format!(
@@ -319,8 +311,7 @@ pub fn decode_ipc_payload<T: for<'de> Deserialize<'de>>(bytes: &[u8]) -> Result<
             MAX_IPC_FRAME_SIZE
         ));
     }
-    serde_json::from_slice(bytes)
-        .map_err(|e| format!("IPC deserialization failed: {e}"))
+    serde_json::from_slice(bytes).map_err(|e| format!("IPC deserialization failed: {e}"))
 }
 
 #[cfg(test)]

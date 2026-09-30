@@ -51,19 +51,16 @@ impl Default for TaskGraphId {
 }
 
 /// Task priority level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum TaskPriority {
     Critical = 0,
     High = 1,
+    #[default]
     Medium = 2,
     Low = 3,
     Background = 4,
-}
-
-impl Default for TaskPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 /// Task execution state.
@@ -509,7 +506,7 @@ impl TaskGraph {
             .iter()
             .max_by_key(|(_, d)| **d)
             .map(|(id, _)| id.clone())
-            .ok_or_else(|| GraphError::EmptyGraph)?;
+            .ok_or(GraphError::EmptyGraph)?;
 
         // Reconstruct path
         let mut path = Vec::new();
@@ -729,7 +726,7 @@ impl TaskGraphExecutor {
 
         // Check if all nodes are terminal
         if graph.nodes.values().all(|n| n.is_terminal()) {
-            let has_failures = graph.failed_tasks().len() > 0;
+            let has_failures = !graph.failed_tasks().is_empty();
             graph.state = if has_failures {
                 GraphState::Failed
             } else {
@@ -1131,13 +1128,13 @@ mod tests {
     #[test]
     fn executor_next_batch() {
         let mut graph = TaskGraph::new("Test".to_string(), "Desc".to_string());
-        let n1 = graph.add_node(TaskNode::new(
+        let _n1 = graph.add_node(TaskNode::new(
             "A".to_string(),
             "".to_string(),
             TaskType::Code,
             TaskPriority::High,
         ));
-        let n2 = graph.add_node(TaskNode::new(
+        let _n2 = graph.add_node(TaskNode::new(
             "B".to_string(),
             "".to_string(),
             TaskType::Code,

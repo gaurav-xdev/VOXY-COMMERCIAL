@@ -270,7 +270,7 @@ impl DesktopWatcher {
 
         for event in events {
             debug!(event = %event, "Emitting desktop event");
-            let _ = event_tx.send(event);
+            let _ = event_tx.send(event).await;
         }
 
         Ok(())

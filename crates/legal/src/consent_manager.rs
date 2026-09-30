@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use voxy_database::CommercialStore;
 use crate::documents::{
     CURRENT_AI_DISCLOSURE_VERSION, CURRENT_PRIVACY_POLICY_VERSION, CURRENT_TERMS_OF_SERVICE_VERSION,
 };
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use voxy_database::CommercialStore;
 
 /// Type of legal consent being tracked.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

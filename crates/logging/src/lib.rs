@@ -104,7 +104,7 @@ pub fn filter_log_line(line: &str) -> String {
     let lower = line.to_lowercase();
     for pattern in SECRET_PATTERNS {
         if lower.contains(pattern) {
-            return format!("[REDACTED - sensitive data filtered]");
+            return "[REDACTED - sensitive data filtered]".to_string();
         }
     }
     line.to_string()
@@ -243,7 +243,8 @@ pub fn module_span(module: &str) -> tracing::Span {
 }
 
 /// Write a crash log with panic information.
-pub fn write_crash_log(panic_info: &std::panic::PanicHookInfo) {
+#[allow(deprecated)]
+pub fn write_crash_log(panic_info: &std::panic::PanicInfo) {
     let thread = std::thread::current();
     let thread_name = thread.name().unwrap_or("unnamed");
 

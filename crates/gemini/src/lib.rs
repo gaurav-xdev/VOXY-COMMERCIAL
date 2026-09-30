@@ -151,10 +151,7 @@ impl GeminiProvider {
                 if e.is_timeout() {
                     ProviderError::RequestFailed("Gemini streaming request timed out".into())
                 } else if e.is_connect() {
-                    ProviderError::ConnectionFailed(format!(
-                        "Cannot connect to Gemini API: {}",
-                        e
-                    ))
+                    ProviderError::ConnectionFailed(format!("Cannot connect to Gemini API: {}", e))
                 } else {
                     ProviderError::RequestFailed(e.to_string())
                 }
@@ -177,9 +174,8 @@ impl GeminiProvider {
         let mut buffer = Vec::new();
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result.map_err(|e| {
-                ProviderError::RequestFailed(format!("Stream read error: {}", e))
-            })?;
+            let chunk = chunk_result
+                .map_err(|e| ProviderError::RequestFailed(format!("Stream read error: {}", e)))?;
 
             buffer.extend_from_slice(&chunk);
 
@@ -262,11 +258,7 @@ impl LlmProvider for GeminiProvider {
         self.send_message(prompt).await
     }
 
-    async fn complete_streaming(
-        &self,
-        prompt: &str,
-        tx: mpsc::Sender<LlmChunk>,
-    ) -> Result<()> {
+    async fn complete_streaming(&self, prompt: &str, tx: mpsc::Sender<LlmChunk>) -> Result<()> {
         self.chat_completion_streaming(prompt, tx).await
     }
 
@@ -275,7 +267,9 @@ impl LlmProvider for GeminiProvider {
     }
 
     async fn health(&self) -> Result<bool> {
-        self.health().await.map_err(|e| ProviderError::RequestFailed(e.to_string()))
+        self.health()
+            .await
+            .map_err(|e| ProviderError::RequestFailed(e.to_string()))
     }
 
     fn available_models(&self) -> Vec<String> {

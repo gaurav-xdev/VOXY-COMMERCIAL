@@ -192,6 +192,7 @@ impl ProcessPlatform for WindowsPlatform {
 // ============================================================================
 
 #[cfg(windows)]
+#[allow(clippy::upper_case_acronyms)]
 mod win32 {
     use std::ffi::c_void;
     use std::mem;
@@ -206,6 +207,7 @@ mod win32 {
     const TRUE: BOOL = 1;
     const MDT_EFFECTIVE_DPI: u32 = 0;
 
+    #[allow(clippy::upper_case_acronyms)]
     #[repr(C)]
     #[derive(Clone, Copy, Default)]
     struct RECT {
@@ -215,6 +217,7 @@ mod win32 {
         bottom: i32,
     }
 
+    #[allow(clippy::upper_case_acronyms)]
     #[repr(C)]
     struct MONITORINFO {
         cb_size: u32,
@@ -267,6 +270,7 @@ mod win32 {
         extern "system" {
             fn RtlGetVersion(version: *mut RTL_OSVERSIONINFOW) -> i32;
         }
+        #[allow(clippy::upper_case_acronyms)]
         #[repr(C)]
         struct RTL_OSVERSIONINFOW {
             dw_os_version_info_size: u32,
@@ -530,7 +534,7 @@ mod tests {
     async fn windows_display_enumeration() {
         let platform = WindowsPlatform::new();
         let displays = platform.list_displays().await.unwrap();
-        assert!(displays.len() >= 1);
+        assert!(!displays.is_empty());
         if let Some(primary) = displays.iter().find(|d| d.is_primary) {
             assert!(primary.width > 0 && primary.height > 0);
         }

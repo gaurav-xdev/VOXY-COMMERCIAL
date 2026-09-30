@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod endurance_tests {
-    use std::sync::atomic::{AtomicU64, Ordering};
+
     use std::sync::Arc;
-    use std::time::{Duration, Instant};
+    use std::time::Instant;
 
     use crate::calibration::SelfCalibrator;
     use crate::gpu_dsp::{AdaptiveNoiseSuppressor, SpectralEchoCanceller};

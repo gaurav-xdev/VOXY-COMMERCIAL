@@ -105,6 +105,12 @@ pub struct VolumeSnapshot {
     timestamp: std::time::Instant,
 }
 
+impl Default for VolumeSnapshot {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VolumeSnapshot {
     pub fn new() -> Self {
         Self {
@@ -427,8 +433,8 @@ mod tests {
 
         assert!(mgr.is_excluded("Discord"));
         assert!(mgr.is_excluded("Zoom"));
-        assert!(mgr.is_excluded("Spotify") == false);
-        assert!(mgr.is_excluded("Notepad") == false);
+        assert!(!mgr.is_excluded("Spotify"));
+        assert!(!mgr.is_excluded("Notepad"));
     }
 
     #[tokio::test]

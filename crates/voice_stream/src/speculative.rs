@@ -129,7 +129,10 @@ mod tests {
         let mut spec = SpeculativePrefill::new(20, Duration::from_millis(1500));
         let t0 = now();
         spec.mark_started(10, t0);
-        assert_eq!(spec.should_run(100, t0 + Duration::from_secs(10)), PrefillDecision::Skip);
+        assert_eq!(
+            spec.should_run(100, t0 + Duration::from_secs(10)),
+            PrefillDecision::Skip
+        );
     }
 
     #[test]
@@ -138,7 +141,10 @@ mod tests {
         let t0 = now();
         spec.mark_started(10, t0);
         spec.mark_finished();
-        assert_eq!(spec.should_run(100, t0 + Duration::from_millis(100)), PrefillDecision::Skip);
+        assert_eq!(
+            spec.should_run(100, t0 + Duration::from_millis(100)),
+            PrefillDecision::Skip
+        );
     }
 
     #[test]
@@ -147,7 +153,10 @@ mod tests {
         let t0 = now();
         spec.mark_started(10, t0);
         spec.mark_finished();
-        assert_eq!(spec.should_run(100, t0 + Duration::from_secs(2)), PrefillDecision::Run);
+        assert_eq!(
+            spec.should_run(100, t0 + Duration::from_secs(2)),
+            PrefillDecision::Run
+        );
     }
 
     #[test]
@@ -174,29 +183,50 @@ mod tests {
     #[test]
     fn prefix_matches_early_truncation() {
         assert!(speculative_prefix_matches("open my", "open my browser"));
-        assert!(speculative_prefix_matches("what is the", "what is the weather"));
+        assert!(speculative_prefix_matches(
+            "what is the",
+            "what is the weather"
+        ));
     }
 
     #[test]
     fn prefix_matches_ignores_case_and_punctuation() {
-        assert!(speculative_prefix_matches("Open my browser.", "open my browser"));
-        assert!(speculative_prefix_matches("hello, voxy", "Hello Voxy, how can I help?"));
+        assert!(speculative_prefix_matches(
+            "Open my browser.",
+            "open my browser"
+        ));
+        assert!(speculative_prefix_matches(
+            "hello, voxy",
+            "Hello Voxy, how can I help?"
+        ));
     }
 
     #[test]
     fn prefix_rejects_divergence() {
-        assert!(!speculative_prefix_matches("open my eyes", "open my browser"));
-        assert!(!speculative_prefix_matches("what time", "what is the weather"));
+        assert!(!speculative_prefix_matches(
+            "open my eyes",
+            "open my browser"
+        ));
+        assert!(!speculative_prefix_matches(
+            "what time",
+            "what is the weather"
+        ));
     }
 
     #[test]
     fn prefix_rejects_when_spec_has_extra_words() {
-        assert!(!speculative_prefix_matches("open my browser now", "open my browser"));
+        assert!(!speculative_prefix_matches(
+            "open my browser now",
+            "open my browser"
+        ));
         assert!(!speculative_prefix_matches("", "anything"));
     }
 
     #[test]
     fn prefix_allows_interleaved_extra_final_words() {
-        assert!(speculative_prefix_matches("play some", "please play some relaxing music"));
+        assert!(speculative_prefix_matches(
+            "play some",
+            "please play some relaxing music"
+        ));
     }
 }

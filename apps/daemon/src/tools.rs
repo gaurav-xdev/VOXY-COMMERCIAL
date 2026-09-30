@@ -4,9 +4,9 @@
 //! The LLM returns tool calls as JSON, which are validated and executed
 //! through the automation backend. NO arbitrary shell commands.
 
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use voxy_automation::{HybridBackend, WindowsUiaBackend};
 use voxy_orchestrator::automation::AutomationBackend;
 
@@ -104,7 +104,9 @@ For conversation, questions, or information requests, just respond normally with
             tracing::warn!("[TOOL] Tool execution aborted: Emergency Stop active");
             return ToolResult {
                 success: false,
-                message: "Action aborted: Emergency Stop active. All computer control actions halted.".to_string(),
+                message:
+                    "Action aborted: Emergency Stop active. All computer control actions halted."
+                        .to_string(),
             };
         }
 
@@ -679,7 +681,10 @@ mod tests {
         assert!(registry.is_emergency_stopped());
 
         let result = registry.execute(&call).await;
-        assert!(!result.success, "Tool execution must fail when emergency stop is active");
+        assert!(
+            !result.success,
+            "Tool execution must fail when emergency stop is active"
+        );
         assert!(
             result.message.contains("Emergency Stop active"),
             "Expected emergency stop message, got: {}",

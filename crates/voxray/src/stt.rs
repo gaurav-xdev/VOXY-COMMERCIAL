@@ -1,12 +1,17 @@
-use std::sync::Arc;
-use async_trait::async_trait;
-use tokio::sync::mpsc;
 use crate::frames::{Frame, FrameDirection, TranscriptionFrame};
 use crate::processor::Processor;
+use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 #[async_trait]
 pub trait VoxraySttService: Send + Sync {
-    async fn transcribe(&self, audio_pcm: &[u8], sample_rate: u32, channels: u16) -> Result<String, String>;
+    async fn transcribe(
+        &self,
+        audio_pcm: &[u8],
+        sample_rate: u32,
+        channels: u16,
+    ) -> Result<String, String>;
 }
 
 /// Mock / Default STT service for test and offline environments.
@@ -14,7 +19,12 @@ pub struct EchoSttService;
 
 #[async_trait]
 impl VoxraySttService for EchoSttService {
-    async fn transcribe(&self, audio_pcm: &[u8], _sample_rate: u32, _channels: u16) -> Result<String, String> {
+    async fn transcribe(
+        &self,
+        audio_pcm: &[u8],
+        _sample_rate: u32,
+        _channels: u16,
+    ) -> Result<String, String> {
         if audio_pcm.is_empty() {
             return Ok(String::new());
         }
@@ -31,7 +41,11 @@ pub struct CloudOpenAiSttService {
 }
 
 impl CloudOpenAiSttService {
-    pub fn new(api_key: impl Into<String>, base_url: impl Into<String>, model: impl Into<String>) -> Self {
+    pub fn new(
+        api_key: impl Into<String>,
+        base_url: impl Into<String>,
+        model: impl Into<String>,
+    ) -> Self {
         Self {
             client: reqwest::Client::new(),
             api_key: api_key.into(),
@@ -67,7 +81,12 @@ impl CloudOpenAiSttService {
 
 #[async_trait]
 impl VoxraySttService for CloudOpenAiSttService {
-    async fn transcribe(&self, audio_pcm: &[u8], sample_rate: u32, channels: u16) -> Result<String, String> {
+    async fn transcribe(
+        &self,
+        audio_pcm: &[u8],
+        sample_rate: u32,
+        channels: u16,
+    ) -> Result<String, String> {
         if audio_pcm.is_empty() {
             return Ok(String::new());
         }
@@ -77,7 +96,10 @@ impl VoxraySttService for CloudOpenAiSttService {
         }
 
         let wav_data = Self::pcm_to_wav(audio_pcm, sample_rate, channels);
-        let url = format!("{}/v1/audio/transcriptions", self.base_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/v1/audio/transcriptions",
+            self.base_url.trim_end_matches('/')
+        );
 
         let part = reqwest::multipart::Part::bytes(wav_data)
             .file_name("audio.wav")
@@ -147,7 +169,11 @@ impl Processor for STTProcessor {
                     return Ok(());
                 }
 
-                match self.service.transcribe(&audio.audio, audio.sample_rate, audio.num_channels).await {
+                match self
+                    .service
+                    .transcribe(&audio.audio, audio.sample_rate, audio.num_channels)
+                    .await
+                {
                     Ok(text) => {
                         let trimmed = text.trim();
                         if !trimmed.is_empty() {

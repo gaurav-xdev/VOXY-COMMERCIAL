@@ -294,6 +294,12 @@ impl TopicTracker {
     }
 }
 
+impl Default for ReferenceResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReferenceResolver {
     pub fn new() -> Self {
         let mut pronouns = HashMap::new();
@@ -401,28 +407,22 @@ impl ReferenceResolver {
         }
 
         match entity.entity_type {
-            EntityType::Project => {
-                if !context.mentioned_projects.contains(&entity.name) {
-                    context.mentioned_projects.push(entity.name.clone());
-                    if context.mentioned_projects.len() > 50 {
-                        context.mentioned_projects.remove(0);
-                    }
+            EntityType::Project if !context.mentioned_projects.contains(&entity.name) => {
+                context.mentioned_projects.push(entity.name.clone());
+                if context.mentioned_projects.len() > 50 {
+                    context.mentioned_projects.remove(0);
                 }
             }
-            EntityType::File => {
-                if !context.mentioned_files.contains(&entity.name) {
-                    context.mentioned_files.push(entity.name.clone());
-                    if context.mentioned_files.len() > 50 {
-                        context.mentioned_files.remove(0);
-                    }
+            EntityType::File if !context.mentioned_files.contains(&entity.name) => {
+                context.mentioned_files.push(entity.name.clone());
+                if context.mentioned_files.len() > 50 {
+                    context.mentioned_files.remove(0);
                 }
             }
-            EntityType::Application => {
-                if !context.mentioned_apps.contains(&entity.name) {
-                    context.mentioned_apps.push(entity.name.clone());
-                    if context.mentioned_apps.len() > 50 {
-                        context.mentioned_apps.remove(0);
-                    }
+            EntityType::Application if !context.mentioned_apps.contains(&entity.name) => {
+                context.mentioned_apps.push(entity.name.clone());
+                if context.mentioned_apps.len() > 50 {
+                    context.mentioned_apps.remove(0);
                 }
             }
             _ => {}

@@ -1,7 +1,7 @@
-use std::fmt;
-use std::time::Duration;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::time::Duration;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum VoiceLanguage {
@@ -33,9 +33,10 @@ impl fmt::Display for VoiceLanguage {
 }
 
 /// Voice pipeline operation mode controlling cloud vs offline execution.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum VoiceMode {
     /// Cloud first, automatic local fallback on failure, timeout, or quota exhaustion.
+    #[default]
     Auto,
     /// Cloud providers only; errors out if cloud is unavailable.
     Cloud,
@@ -68,12 +69,6 @@ impl VoiceMode {
 
     pub fn allows_local(&self) -> bool {
         !matches!(self, Self::Cloud)
-    }
-}
-
-impl Default for VoiceMode {
-    fn default() -> Self {
-        Self::Auto
     }
 }
 
@@ -237,7 +232,9 @@ pub enum HealthStatus {
     #[default]
     Healthy,
     Degraded(String),
-    CoolingDown { retry_after_secs: u64 },
+    CoolingDown {
+        retry_after_secs: u64,
+    },
     InvalidCredentials(String),
     Unavailable(String),
     Exhausted,
@@ -281,11 +278,15 @@ impl TTSCapabilities {
 
 pub fn redact_sensitive_str(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
-    let words = input.split_inclusive(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';' || c == '}');
-    
+    let words = input.split_inclusive(|c: char| {
+        c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';' || c == '}'
+    });
+
     let mut prev_was_bearer = false;
     for word in words {
-        let (token, delimiter) = match word.find(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';' || c == '}') {
+        let (token, delimiter) = match word.find(|c: char| {
+            c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';' || c == '}'
+        }) {
             Some(idx) => (&word[..idx], &word[idx..]),
             None => (word, ""),
         };
@@ -336,7 +337,10 @@ pub enum ProviderError {
     },
     AuthError(String),
     InvalidCredentials(String),
-    ServerError { status: u16, message: String },
+    ServerError {
+        status: u16,
+        message: String,
+    },
     Timeout(Duration),
     NetworkError(String),
     Network(String),
@@ -351,7 +355,10 @@ pub enum ProviderError {
 impl std::fmt::Display for ProviderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ProviderError::RateLimited { retry_after: _, reason } => {
+            ProviderError::RateLimited {
+                retry_after: _,
+                reason,
+            } => {
                 write!(f, "Rate limited (429): {}", redact_sensitive_str(reason))
             }
             ProviderError::AuthError(s) => {
@@ -361,7 +368,12 @@ impl std::fmt::Display for ProviderError {
                 write!(f, "Invalid credentials: {}", redact_sensitive_str(s))
             }
             ProviderError::ServerError { status, message } => {
-                write!(f, "Server error ({}): {}", status, redact_sensitive_str(message))
+                write!(
+                    f,
+                    "Server error ({}): {}",
+                    status,
+                    redact_sensitive_str(message)
+                )
             }
             ProviderError::Timeout(d) => write!(f, "Request timed out after {:?}", d),
             ProviderError::NetworkError(s) => {
@@ -386,7 +398,11 @@ impl std::fmt::Display for ProviderError {
                 write!(f, "Audio conversion error: {}", redact_sensitive_str(s))
             }
             ProviderError::AllProvidersFailed(s) => {
-                write!(f, "All voice providers in fallback chain failed: {}", redact_sensitive_str(s))
+                write!(
+                    f,
+                    "All voice providers in fallback chain failed: {}",
+                    redact_sensitive_str(s)
+                )
             }
         }
     }
@@ -405,9 +421,8 @@ impl ProviderError {
     }
 }
 
-pub type TTSStream = std::pin::Pin<
-    Box<dyn futures::Stream<Item = Result<AudioData, ProviderError>> + Send>,
->;
+pub type TTSStream =
+    std::pin::Pin<Box<dyn futures::Stream<Item = Result<AudioData, ProviderError>> + Send>>;
 
 /// Unified provider-agnostic STT interface.
 #[async_trait]

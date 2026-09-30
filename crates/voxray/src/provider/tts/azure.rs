@@ -7,8 +7,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    TTSStream, VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, TTSStream, VoiceLanguage,
 };
 
 // Azure Neural TTS pricing ~$16 per 1M characters ($0.000016 per char)
@@ -137,7 +136,11 @@ impl TTSProvider for AzureTTSProvider {
         );
         let ssml = self.build_ssml(text, language);
 
-        debug!(provider = self.id(), text_len = text.len(), "Calling Azure Neural TTS");
+        debug!(
+            provider = self.id(),
+            text_len = text.len(),
+            "Calling Azure Neural TTS"
+        );
 
         let response = self
             .client
@@ -187,10 +190,9 @@ impl TTSProvider for AzureTTSProvider {
             )));
         }
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e)))?;
+        let bytes = response.bytes().await.map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to read audio bytes: {}", e))
+        })?;
 
         Ok(Self::raw_pcm16_to_audiodata(&bytes, 16000))
     }

@@ -51,7 +51,9 @@ impl ApiError {
         ApiErrorBody {
             code: self.error_code().to_string(),
             message: self.to_string(),
-            request_id: request_id.unwrap_or(&Uuid::new_v4().to_string()).to_string(),
+            request_id: request_id
+                .unwrap_or(&Uuid::new_v4().to_string())
+                .to_string(),
             timestamp: Utc::now().to_rfc3339(),
         }
     }

@@ -21,6 +21,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MemoryId(pub String);
 
+impl Default for MemoryId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MemoryId {
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())

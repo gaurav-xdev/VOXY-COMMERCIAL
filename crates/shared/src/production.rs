@@ -45,7 +45,7 @@ impl ErrorContext {
             error.message(),
             meta
         );
-        VoxyError::with_source(error.kind().clone(), message, error)
+        VoxyError::with_source(*error.kind(), message, error)
     }
 
     fn format_metadata(&self) -> String {

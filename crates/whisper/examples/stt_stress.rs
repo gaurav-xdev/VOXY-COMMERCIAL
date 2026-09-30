@@ -1,19 +1,21 @@
-﻿// STT Stress Test â€” Phase 26
+// STT Stress Test â€” Phase 26
 // Tests Whisper engine under various concurrency configurations
 // Run with: cargo run --example stt_stress --features whisper-engine -- <THREADS> <MODE>
 // MODE: partial-only | final-only | sequential | concurrent | rapid
 
+use chrono::Utc;
 use std::env;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::sync::Semaphore;
-use voxy_whisper::{WhisperSttEngine, WhisperError};
 use voxy_voice_orchestrator::{AudioChunk, SttEngine};
-use chrono::Utc;
+use voxy_whisper::WhisperSttEngine;
 
 // Simple deterministic pseudo-random to avoid extra deps
 fn pseudo_random(seed: &mut u64) -> f32 {
-    *seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    *seed = seed
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
     (*seed as f32) / (u64::MAX as f32)
 }
 
@@ -91,8 +93,14 @@ async fn test_final_only(engine: Arc<WhisperSttEngine>, iterations: usize) -> Ve
     latencies
 }
 
-async fn test_sequential(engine: Arc<WhisperSttEngine>, iterations: usize) -> (Vec<u128>, Vec<u128>) {
-    println!("Testing SEQUENTIAL (partialâ†’final, {} iterations)...", iterations);
+async fn test_sequential(
+    engine: Arc<WhisperSttEngine>,
+    iterations: usize,
+) -> (Vec<u128>, Vec<u128>) {
+    println!(
+        "Testing SEQUENTIAL (partialâ†’final, {} iterations)...",
+        iterations
+    );
     let mut partial_latencies = Vec::new();
     let mut final_latencies = Vec::new();
     let mut seed = 0x123456789ABCDEFu64;
@@ -123,7 +131,10 @@ async fn test_concurrent(
     iterations: usize,
     concurrent_partials: usize,
 ) -> (Vec<u128>, Vec<u128>) {
-    println!("Testing CONCURRENT (final + {} partials, {} iterations)...", concurrent_partials, iterations);
+    println!(
+        "Testing CONCURRENT (final + {} partials, {} iterations)...",
+        concurrent_partials, iterations
+    );
     let mut partial_latencies = Vec::new();
     let mut final_latencies = Vec::new();
     let semaphore = Arc::new(Semaphore::new(concurrent_partials));
@@ -170,14 +181,20 @@ async fn test_concurrent(
             eprintln!("Final decode error at iteration {}", i);
         }
         if i % 5 == 0 {
-            println!("  concurrent {}/{} (final: {}ms)", i, iterations, final_latency);
+            println!(
+                "  concurrent {}/{} (final: {}ms)",
+                i, iterations, final_latency
+            );
         }
     }
     (partial_latencies, final_latencies)
 }
 
 async fn test_rapid_utterances(engine: Arc<WhisperSttEngine>, iterations: usize) -> Vec<u128> {
-    println!("Testing RAPID utterances ({} iterations, no gap)...", iterations);
+    println!(
+        "Testing RAPID utterances ({} iterations, no gap)...",
+        iterations
+    );
     let mut latencies = Vec::new();
     let mut seed = 0x123456789ABCDEFu64;
     for i in 0..iterations {
@@ -216,14 +233,18 @@ fn print_stats(name: &str, latencies: &[u128]) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     let args: Vec<String> = env::args().collect();
-    let threads = args.get(1).and_then(|s| s.parse::<usize>().ok()).unwrap_or(8);
+    let threads = args
+        .get(1)
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(8);
     let mode = args.get(2).map(|s| s.as_str()).unwrap_or("concurrent");
-    let iterations = args.get(3).and_then(|s| s.parse::<usize>().ok()).unwrap_or(30);
+    let iterations = args
+        .get(3)
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(30);
 
     println!("=== STT Stress Test ===");
     println!("Threads: {}", threads);

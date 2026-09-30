@@ -303,7 +303,7 @@ mod tests {
         let memory = create_test_memory("important memory", 0.9, 0.8);
         let score = engine.score_memory(&memory);
         assert!(score.recall_probability > 0.5);
-        assert!(score.reasons.len() > 0);
+        assert!(!score.reasons.is_empty());
     }
 
     #[test]

@@ -49,7 +49,8 @@ impl RateLimitConfig {
     }
 
     pub fn safe_cpm(&self) -> usize {
-        let margin = (self.characters_per_minute as f64 * (1.0 - self.safety_margin)).floor() as usize;
+        let margin =
+            (self.characters_per_minute as f64 * (1.0 - self.safety_margin)).floor() as usize;
         margin.max(100)
     }
 

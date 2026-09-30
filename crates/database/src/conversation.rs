@@ -165,7 +165,7 @@ impl ConversationStore for InMemoryConversationStore {
             .filter(|c| c.user_id == user_id)
             .cloned()
             .collect();
-        convs.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        convs.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
         Ok(convs.into_iter().skip(offset).take(limit).collect())
     }
 

@@ -1,11 +1,11 @@
+use crate::audit::{AuditStatus, OfficeAuditEvent, OfficeAuditTrail};
+use crate::error::{OfficeError, Result};
+use crate::scope::{OfficeScope, ScopeSet};
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::audit::{AuditStatus, OfficeAuditEvent, OfficeAuditTrail};
-use crate::error::{OfficeError, Result};
-use crate::scope::{OfficeScope, ScopeSet};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CalendarEvent {
@@ -33,6 +33,7 @@ impl CalendarConnector {
     }
 
     /// Add an event to calendar after checking permissions and conflict detection.
+    #[allow(clippy::too_many_arguments)]
     pub fn add_event(
         &self,
         title: &str,

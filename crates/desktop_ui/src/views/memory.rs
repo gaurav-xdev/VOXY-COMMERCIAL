@@ -6,24 +6,24 @@ use crate::bridge::AppBridge;
 pub fn MemoryView() -> Element {
     let bridge = use_context::<AppBridge>();
     let mut search_query = use_signal(String::new);
-    let search_results = use_signal(|| Vec::<String>::new());
+    let search_results = use_signal(Vec::<String>::new);
     let stats = use_signal(|| None::<String>);
     let is_searching = use_signal(|| false);
     let mut store_text = use_signal(String::new);
     let store_status = use_signal(|| None::<String>);
 
     let do_search = {
-        let results = search_results.clone();
-        let mut searching = is_searching.clone();
+        let results = search_results;
+        let mut searching = is_searching;
         let memory = bridge.memory.clone();
-        let query = search_query.clone();
+        let query = search_query;
         move |_: Event<MouseData>| {
             let q = query.read().trim().to_string();
             if q.is_empty() {
                 return;
             }
             searching.set(true);
-            let mut res = results.clone();
+            let mut res = results;
             let mem = memory.clone();
             spawn(async move {
                 let memory_query = voxy_memory::MemoryQuery {
@@ -62,11 +62,10 @@ pub fn MemoryView() -> Element {
     };
 
     let load_stats = {
-        let stats = stats.clone();
         let memory = bridge.memory.clone();
         move |_: Event<MouseData>| {
             let mem = memory.clone();
-            let mut s = stats.clone();
+            let mut s = stats;
             spawn(async move {
                 match mem.stats().await {
                     Ok(st) => {
@@ -86,17 +85,17 @@ pub fn MemoryView() -> Element {
     };
 
     let do_store = {
-        let status = store_status.clone();
+        let status = store_status;
         let memory = bridge.memory.clone();
-        let text = store_text.clone();
+        let text = store_text;
         move |_: Event<MouseData>| {
             let t = text.read().trim().to_string();
             if t.is_empty() {
                 return;
             }
             let mem = memory.clone();
-            let mut st = status.clone();
-            let mut txt = text.clone();
+            let mut st = status;
+            let mut txt = text;
             spawn(async move {
                 let now = chrono::Utc::now();
                 let item = voxy_memory::MemoryItem {

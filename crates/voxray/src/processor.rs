@@ -1,12 +1,12 @@
-﻿use std::sync::Arc;
-use async_trait::async_trait;
-use tokio::sync::mpsc;
 use crate::frames::{Frame, FrameDirection};
+use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 #[async_trait]
 pub trait Processor: Send + Sync {
     fn name(&self) -> &str;
-    
+
     async fn setup(&self) -> Result<(), String> {
         Ok(())
     }
@@ -26,6 +26,12 @@ pub trait Processor: Send + Sync {
 /// Pipeline is a linear chain of processors through which frames flow.
 pub struct Pipeline {
     processors: Vec<Arc<dyn Processor>>,
+}
+
+impl Default for Pipeline {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Pipeline {

@@ -521,7 +521,7 @@ impl MemoryApi for SqliteMemoryEngine {
         let query_states = query.states.clone();
         let query_min_importance = query.min_importance;
         let query_source = query.source_filter.clone();
-        let query_time_range = query.time_range.clone();
+        let query_time_range = query.time_range;
         let query_tags = query.tags.clone();
         let query_include_embeddings = query.include_embeddings;
         let max_results = query.max_results;
@@ -692,7 +692,7 @@ impl MemoryApi for SqliteMemoryEngine {
                 params![threshold, cutoff],
             )?;
             info!(count = changed, "Consolidation: demoted active to dormant");
-            Ok(changed as usize)
+            Ok(changed)
         })
         .await
     }
@@ -723,7 +723,7 @@ impl MemoryApi for SqliteMemoryEngine {
 
             let total = compressed + archived + deleted;
             info!(compressed, archived, deleted, "Forgetting cycle complete");
-            Ok(total as usize)
+            Ok(total)
         })
         .await
     }

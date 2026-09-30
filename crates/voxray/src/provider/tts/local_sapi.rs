@@ -8,8 +8,7 @@ use std::process::Command;
 use tracing::{debug, warn};
 
 use crate::provider::traits::{
-    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider,
-    VoiceLanguage,
+    AudioData, EstimatedCost, ProviderError, TTSCapabilities, TTSProvider, VoiceLanguage,
 };
 
 pub struct LocalSapiTTSProvider {
@@ -76,14 +75,21 @@ impl TTSProvider for LocalSapiTTSProvider {
         _language: Option<VoiceLanguage>,
     ) -> Result<AudioData, ProviderError> {
         let temp_dir = std::env::temp_dir();
-        let file_name = format!("voxy_sapi_{}_{}.wav", std::process::id(), uuid::Uuid::new_v4());
+        let file_name = format!(
+            "voxy_sapi_{}_{}.wav",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        );
         let wav_path = temp_dir.join(file_name);
         let wav_path_str = wav_path.to_string_lossy().to_string();
 
         let b64_text = base64::engine::general_purpose::STANDARD.encode(text.as_bytes());
         let b64_path = base64::engine::general_purpose::STANDARD.encode(wav_path_str.as_bytes());
 
-        debug!(provider = self.id(), "Rendering speech via Windows SAPI fallback");
+        debug!(
+            provider = self.id(),
+            "Rendering speech via Windows SAPI fallback"
+        );
 
         let script = format!(
             "Add-Type -AssemblyName System.Speech; \
@@ -103,7 +109,9 @@ impl TTSProvider for LocalSapiTTSProvider {
         })
         .await
         .map_err(|e| ProviderError::SynthesisFailed(e.to_string()))?
-        .map_err(|e| ProviderError::SynthesisFailed(format!("Failed to execute powershell: {}", e)))?;
+        .map_err(|e| {
+            ProviderError::SynthesisFailed(format!("Failed to execute powershell: {}", e))
+        })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

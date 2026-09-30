@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::types::VisualState;
+use dioxus::prelude::*;
 
 #[component]
 pub fn ContextTopBar(
@@ -64,10 +64,7 @@ pub fn ContextTopBar(
 }
 
 #[component]
-pub fn ContextBottomBar(
-    visual_state: VisualState,
-    transcript: String,
-) -> Element {
+pub fn ContextBottomBar(visual_state: VisualState, transcript: String) -> Element {
     let tag_label = match visual_state {
         VisualState::Listening => "USER SPEECH //",
         VisualState::Speaking => "VOXY SPEECH //",

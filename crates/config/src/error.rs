@@ -111,7 +111,7 @@ mod tests {
         let file_not_found = ConfigError::FileNotFound("".into());
         let parse_error = ConfigError::ParseError("".into());
         let validation = ConfigError::ValidationFailed("".into());
-        let io_err = ConfigError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+        let io_err = ConfigError::Io(std::io::Error::other("test"));
         let codes = [
             file_not_found.code(),
             parse_error.code(),

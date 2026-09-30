@@ -12,7 +12,7 @@ struct Message {
 #[component]
 pub fn ChatView() -> Element {
     let bridge = use_context::<AppBridge>();
-    let messages = use_signal(|| Vec::<Message>::new());
+    let messages = use_signal(Vec::<Message>::new);
     let mut input_text = use_signal(String::new);
     let is_listening = use_signal(|| false);
     let is_speaking = use_signal(|| false);
@@ -32,11 +32,10 @@ pub fn ChatView() -> Element {
     };
 
     let process_message = {
-        let mut messages = messages.clone();
-        let mut input_text = input_text.clone();
-        let mut is_thinking = is_thinking.clone();
-        let is_speaking = is_speaking.clone();
-        let mut error_msg = error_msg.clone();
+        let mut messages = messages;
+        let mut input_text = input_text;
+        let mut is_thinking = is_thinking;
+        let mut error_msg = error_msg;
         let cognition = bridge.cognition.clone();
         let voice = bridge.voice.clone();
         move |text: String| {
@@ -52,10 +51,10 @@ pub fn ChatView() -> Element {
             error_msg.set(None);
             is_thinking.set(true);
 
-            let mut msgs = messages.clone();
-            let mut thinking = is_thinking.clone();
-            let mut speaking = is_speaking.clone();
-            let mut err = error_msg.clone();
+            let mut msgs = messages;
+            let mut thinking = is_thinking;
+            let mut speaking = is_speaking;
+            let mut err = error_msg;
             let cog = cognition.clone();
             let v = voice.clone();
 
@@ -105,7 +104,7 @@ pub fn ChatView() -> Element {
 
     let send_message = {
         let mut process = process_message.clone();
-        let input = input_text.clone();
+        let input = input_text;
         move |_: Event<MouseData>| {
             let text = input.read().trim().to_string();
             process(text);
@@ -113,7 +112,7 @@ pub fn ChatView() -> Element {
     };
 
     let toggle_listening = {
-        let mut is_listening = is_listening.clone();
+        let mut is_listening = is_listening;
         let voice = bridge.voice.clone();
         move |_: Event<MouseData>| {
             let current = *is_listening.read();
@@ -131,7 +130,7 @@ pub fn ChatView() -> Element {
 
     let on_keydown = {
         let mut process = process_message.clone();
-        let input = input_text.clone();
+        let input = input_text;
         move |e: Event<KeyboardData>| {
             if e.key() == Key::Enter {
                 let text = input.read().trim().to_string();
