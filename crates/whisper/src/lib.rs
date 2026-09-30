@@ -760,8 +760,11 @@ fn linear_resample(data: &[f32], from: u32, to: u32) -> Vec<f32> {
 mod tests {
     use super::*;
 
+    static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn whisper_threads_respects_env_override_and_upper_cap() {
+        let _lock = ENV_MUTEX.lock().unwrap();
         std::env::set_var("VOXY_WHISPER_THREADS", "8");
         let n = whisper_threads();
         assert!((1..=16).contains(&n), "threads out of range: {n}");
@@ -780,6 +783,7 @@ mod tests {
 
     #[test]
     fn whisper_threads_clamps_to_two_minimum() {
+        let _lock = ENV_MUTEX.lock().unwrap();
         std::env::set_var("VOXY_WHISPER_THREADS", "0");
         assert!(whisper_threads() >= 2);
         std::env::set_var("VOXY_WHISPER_THREADS", "1");

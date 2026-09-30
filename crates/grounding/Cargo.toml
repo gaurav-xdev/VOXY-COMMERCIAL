@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "voxy-grounding"
 description = "Abstract intention to concrete UI target translation"
 version.workspace = true

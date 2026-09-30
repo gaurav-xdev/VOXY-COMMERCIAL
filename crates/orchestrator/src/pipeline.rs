@@ -38,27 +38,15 @@ pub async fn execute_pipeline(
     )
     .await;
 
-    let success;
-    let response_text;
-    let error;
-
-    match result {
-        Ok(Ok(resp)) => {
-            success = true;
-            response_text = Some(resp);
-            error = None;
-        }
-        Ok(Err(e)) => {
-            success = false;
-            response_text = None;
-            error = Some(e);
-        }
-        Err(_elapsed) => {
-            success = false;
-            response_text = None;
-            error = Some("Pipeline execution timed out".to_string());
-        }
-    }
+    let (success, response_text, error) = match result {
+        Ok(Ok(resp)) => (true, Some(resp), None),
+        Ok(Err(e)) => (false, None, Some(e)),
+        Err(_elapsed) => (
+            false,
+            None,
+            Some("Pipeline execution timed out".to_string()),
+        ),
+    };
 
     let total_ms = ctx.total_duration_ms();
 

@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "voxy-planner"
 description = "Intent to plan transformation: goal decomposition, task sequencing"
 version.workspace = true
