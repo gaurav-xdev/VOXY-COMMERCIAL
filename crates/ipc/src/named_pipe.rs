@@ -271,10 +271,12 @@ impl VoxyIpcServer {
                         ServerOptions::new()
                             .first_pipe_instance(true)
                             .max_instances(16)
+                            .reject_remote_clients(true)
                             .create(&pipe_name)
                     } else {
                         ServerOptions::new()
                             .max_instances(16)
+                            .reject_remote_clients(true)
                             .create(&pipe_name)
                     };
 
@@ -343,19 +345,43 @@ async fn handle_client_connection(
 
     // 2. Writer task: streams broadcast events from daemon to client
     let writer_task = tokio::spawn(async move {
-        while let Ok(msg) = broadcast_rx.recv().await {
-            if let Err(e) = write_framed_message(&mut writer, &msg).await {
-                debug!(error = %e, "Client pipe write failed, closing writer loop");
-                break;
+        loop {
+            match broadcast_rx.recv().await {
+                Ok(msg) => {
+                    if let Err(e) = write_framed_message(&mut writer, &msg).await {
+                        debug!(error = %e, "Client pipe write failed, closing writer loop");
+                        break;
+                    }
+                }
+                Err(broadcast::error::RecvError::Lagged(n)) => {
+                    warn!(missed = n, "Overlay client lagged behind broadcast stream; skipped {n} messages");
+                }
+                Err(broadcast::error::RecvError::Closed) => {
+                    debug!("Broadcast channel closed, terminating writer task");
+                    break;
+                }
             }
         }
     });
 
     // 3. Reader task: reads incoming client commands
     let reader_task = tokio::spawn(async move {
+        let mut handshaken = false;
         loop {
             match read_framed_message::<_, ClientCommand>(&mut reader).await {
                 Ok(envelope) => {
+                    match &envelope.payload {
+                        ClientCommand::ClientHandshake { client_name, client_version } => {
+                            info!(client = %client_name, version = %client_version, "Client handshake accepted");
+                            handshaken = true;
+                        }
+                        _ => {
+                            if !handshaken {
+                                warn!("Unauthenticated command received from client before handshake; aborting connection");
+                                break;
+                            }
+                        }
+                    }
                     debug!(cmd = ?envelope.payload, "Received client command");
                     let _ = command_tx.send(envelope.payload).await;
                 }

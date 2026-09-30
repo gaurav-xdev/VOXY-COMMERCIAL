@@ -36,13 +36,22 @@ impl AuthPasswordHasher {
     }
 
     /// Verifies a plaintext password against an Argon2id PHC formatted hash in constant time.
+    ///
+    /// The algorithm, memory cost (64MB), time cost (3 iterations), and lanes (4)
+    /// are parsed directly from the PHC formatted string itself.
     pub fn verify_password(password: &str, password_hash: &str) -> bool {
         let parsed_hash = match PasswordHash::new(password_hash) {
             Ok(h) => h,
             Err(_) => return false,
         };
 
-        Argon2::default()
+        let params = match Params::new(65536, 3, 4, None) {
+            Ok(p) => p,
+            Err(_) => return false,
+        };
+        let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
+
+        argon2
             .verify_password(password.as_bytes(), &parsed_hash)
             .is_ok()
     }

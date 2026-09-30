@@ -78,6 +78,10 @@ impl StorageProvider for SqliteDatabase {
         // Set busy timeout to prevent immediate SQLITE_BUSY failures under concurrent access
         conn.busy_timeout(std::time::Duration::from_millis(5000))?;
 
+        if path != ":memory:" {
+            conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")?;
+        }
+
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS kv_store (
                 key TEXT PRIMARY KEY,
@@ -216,8 +220,12 @@ impl StorageProvider for SqliteDatabase {
         let conn = guard
             .as_ref()
             .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let pattern = format!("{}%", prefix);
-        let mut stmt = conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1")?;
+        let escaped_prefix = prefix
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let pattern = format!("{}%", escaped_prefix);
+        let mut stmt = conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1 ESCAPE '\\'")?;
         let keys = stmt
             .query_map(params![pattern], |row| row.get::<_, String>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?;

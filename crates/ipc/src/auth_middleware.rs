@@ -54,8 +54,13 @@ impl RateLimiter {
     }
 
     fn check_and_record(&mut self, subject: &str, now_ms: u64) -> bool {
+        // Prune expired entries to prevent unbounded memory growth
+        self.subjects.retain(|_, timestamps| {
+            timestamps.retain(|&t| now_ms.saturating_sub(t) <= self.window_ms);
+            !timestamps.is_empty()
+        });
+
         let timestamps = self.subjects.entry(subject.to_string()).or_default();
-        // Remove timestamps outside the window
         timestamps.retain(|&t| now_ms.saturating_sub(t) <= self.window_ms);
         if timestamps.len() >= self.max_requests {
             return false;
@@ -73,6 +78,8 @@ pub struct AuthMiddleware {
     rate_limiter: RwLock<RateLimiter>,
     /// Required capabilities per method name.
     method_capabilities: HashMap<String, String>,
+    /// Optional set of trusted token SHA-256 hashes for authentication.
+    trusted_token_hashes: RwLock<Option<std::collections::HashSet<Vec<u8>>>>,
 }
 
 struct SessionInfo {
@@ -105,7 +112,19 @@ impl AuthMiddleware {
                 60_000, // 1 minute window
             )),
             method_capabilities,
+            trusted_token_hashes: RwLock::new(None),
         }
+    }
+
+    /// Add a trusted token whose SHA-256 hash will be verified during authenticate().
+    pub fn add_trusted_token(&self, token: &str) {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(token.as_bytes());
+        let hash = hasher.finalize().to_vec();
+        let mut guard = self.trusted_token_hashes.write();
+        let set = guard.get_or_insert_with(std::collections::HashSet::new);
+        set.insert(hash);
     }
 
     /// Authenticate a new session. Returns a session token on success.
@@ -122,9 +141,22 @@ impl AuthMiddleware {
                         AuthError::AuthenticationFailed("Missing token in credentials".into())
                     })?;
 
-                // Basic validation — in production, verify against a signing key
                 if token_str.is_empty() {
                     return Err(AuthError::AuthenticationFailed("Empty token".into()));
+                }
+
+                // Cryptographic validation against configured trusted tokens
+                {
+                    let guard = self.trusted_token_hashes.read();
+                    if let Some(ref trusted) = *guard {
+                        use sha2::{Digest, Sha256};
+                        let mut hasher = Sha256::new();
+                        hasher.update(token_str.as_bytes());
+                        let hash = hasher.finalize().to_vec();
+                        if !trusted.contains(&hash) {
+                            return Err(AuthError::AuthenticationFailed("Invalid token hash".into()));
+                        }
+                    }
                 }
 
                 let now_ms = std::time::SystemTime::now()

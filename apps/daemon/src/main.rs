@@ -176,6 +176,12 @@ impl ConversationMemory {
         let db_path = data_dir.join("conversation.db");
         match rusqlite::Connection::open(&db_path) {
             Ok(conn) => {
+                if let Err(e) = conn.busy_timeout(std::time::Duration::from_millis(5000)) {
+                    tracing::warn!("[MEMORY] Failed to set busy timeout: {e}");
+                }
+                if let Err(e) = conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;") {
+                    tracing::warn!("[MEMORY] Failed to set WAL mode: {e}");
+                }
                 if let Err(e) = conn.execute_batch(
                     "CREATE TABLE IF NOT EXISTS conversation_turns (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1192,6 +1198,56 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
 
                         if lower.contains("open it again") || lower.contains("reopen") {
                             if let Some(app) = mem.last_app.clone() {
+                                let decision = {
+                                    let r = recovery_mode.lock().await;
+                                    guardian.evaluate(
+                                        "voice-user",
+                                        "automation:write",
+                                        Some(&app),
+                                        "launch_application",
+                                        std::collections::HashMap::new(),
+                                        &r,
+                                    )
+                                };
+
+                                {
+                                    let mut log = audit_log.lock().await;
+                                    let event_type = if decision.allowed {
+                                        AuditEventType::Authorization {
+                                            decision: "allowed".to_string(),
+                                        }
+                                    } else {
+                                        AuditEventType::Authorization {
+                                            decision: "denied".to_string(),
+                                        }
+                                    };
+                                    log.record_typed(
+                                        "voice-user",
+                                        "automation:write",
+                                        Some(&app),
+                                        if decision.allowed { "allowed" } else { "denied" },
+                                        Some(&decision.reason),
+                                        "high",
+                                        "trusted",
+                                        voxy_security::policy::AuditLevel::Detailed,
+                                        event_type,
+                                    );
+                                }
+
+                                if !decision.allowed {
+                                    let response = format!(
+                                        "I need permission to reopen {app}. {}",
+                                        decision.reason
+                                    );
+                                    mem.add_turn("assistant", &response);
+                                    drop(mem);
+                                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                                        text: response.clone(),
+                                        is_final: true,
+                                    });
+                                    return response;
+                                }
+
                                 let response = match open_application(&app).await {
                                     Ok(_) => format!("Opening {app} again."),
                                     Err(e) => format!("Failed to reopen {app}: {e}"),

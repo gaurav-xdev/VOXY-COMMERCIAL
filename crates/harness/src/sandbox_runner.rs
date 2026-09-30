@@ -79,8 +79,27 @@ impl SandboxedRunner {
 
         let working_dir = match relative_cwd {
             Some(rel) => {
+                if rel.is_absolute() {
+                    return Err(RunnerError::InvalidWorkingDir);
+                }
+                for comp in rel.components() {
+                    match comp {
+                        std::path::Component::Prefix(_)
+                        | std::path::Component::RootDir
+                        | std::path::Component::ParentDir => {
+                            return Err(RunnerError::InvalidWorkingDir);
+                        }
+                        _ => {}
+                    }
+                }
                 let full = self.repo_root.join(rel);
-                if !full.starts_with(&self.repo_root) {
+                if let Ok(canon_full) = full.canonicalize() {
+                    if let Ok(canon_root) = self.repo_root.canonicalize() {
+                        if !canon_full.starts_with(&canon_root) {
+                            return Err(RunnerError::InvalidWorkingDir);
+                        }
+                    }
+                } else if !full.starts_with(&self.repo_root) {
                     return Err(RunnerError::InvalidWorkingDir);
                 }
                 full
@@ -97,8 +116,24 @@ impl SandboxedRunner {
             .stderr(Stdio::piped())
             .spawn()?;
 
-        let stdout_pipe = child.stdout.take();
-        let stderr_pipe = child.stderr.take();
+        let mut stdout_pipe = child.stdout.take();
+        let mut stderr_pipe = child.stderr.take();
+
+        let stdout_task = tokio::spawn(async move {
+            let mut out = String::new();
+            if let Some(ref mut p) = stdout_pipe {
+                let _ = p.read_to_string(&mut out).await;
+            }
+            out
+        });
+
+        let stderr_task = tokio::spawn(async move {
+            let mut err = String::new();
+            if let Some(ref mut p) = stderr_pipe {
+                let _ = p.read_to_string(&mut err).await;
+            }
+            err
+        });
 
         let stop_token = self.emergency_stop.clone();
 
@@ -128,15 +163,8 @@ impl SandboxedRunner {
             }
         };
 
-        let mut stdout = String::new();
-        if let Some(mut p) = stdout_pipe {
-            let _ = p.read_to_string(&mut stdout).await;
-        }
-
-        let mut stderr = String::new();
-        if let Some(mut p) = stderr_pipe {
-            let _ = p.read_to_string(&mut stderr).await;
-        }
+        let stdout = stdout_task.await.unwrap_or_default();
+        let stderr = stderr_task.await.unwrap_or_default();
 
         let duration = start.elapsed();
 

@@ -282,9 +282,13 @@ fn App() -> Element {
                         active_tts,
                         is_offline,
                     } => {
+                        let mode_json = serde_json::to_string(&mode).unwrap_or_default();
+                        let llm_json = serde_json::to_string(&active_llm).unwrap_or_default();
+                        let stt_json = serde_json::to_string(&active_stt).unwrap_or_default();
+                        let tts_json = serde_json::to_string(&active_tts).unwrap_or_default();
                         let _ = document::eval(&format!(
-                            "if (window.voxySetRoutingStatus) window.voxySetRoutingStatus('{}', '{}', '{}', '{}', {});",
-                            mode, active_llm, active_stt, active_tts, is_offline
+                            "if (window.voxySetRoutingStatus) window.voxySetRoutingStatus({}, {}, {}, {}, {});",
+                            mode_json, llm_json, stt_json, tts_json, is_offline
                         ));
                     }
                     voxy_ipc::DaemonMessage::HardwareStatusUpdate {
@@ -294,20 +298,26 @@ fn App() -> Element {
                         gpu_name,
                         vram_gb,
                     } => {
+                        let cpu_json = serde_json::to_string(&cpu_brand).unwrap_or_default();
                         let gpu_str = gpu_name.unwrap_or_else(|| "CPU Only".into());
+                        let gpu_json = serde_json::to_string(&gpu_str).unwrap_or_default();
                         let _ = document::eval(&format!(
-                            "if (window.voxySetHardwareStatus) window.voxySetHardwareStatus('{}', {}, {:.1}, '{}', {:.1});",
-                            cpu_brand, cpu_cores, ram_gb, gpu_str, vram_gb
+                            "if (window.voxySetHardwareStatus) window.voxySetHardwareStatus({}, {}, {:.1}, {}, {:.1});",
+                            cpu_json, cpu_cores, ram_gb, gpu_json, vram_gb
                         ));
                     }
                     voxy_ipc::DaemonMessage::CursorUpdate(telem_data) => {
                         let is_active = telem_data.state != voxy_ipc::VoxyCursorState::Idle;
                         let desc = telem_data.action_description.clone();
                         let elem = telem_data.target_element.clone();
+                        let elem_json = serde_json::to_string(&elem).unwrap_or_default();
+                        let desc_json = serde_json::to_string(&desc).unwrap_or_default();
+                        let state_str = format!("{:?}", telem_data.state);
+                        let state_json = serde_json::to_string(&state_str).unwrap_or_default();
                         ct_mut.set(Some(telem_data.clone()));
                         let _ = document::eval(&format!(
-                            "if (window.voxySetCursorTelemetry) window.voxySetCursorTelemetry({}, {}, '{:?}', '{}', '{}', {}, {}, {});",
-                            telem_data.x, telem_data.y, telem_data.state, elem, desc, telem_data.confidence, telem_data.requires_confirmation, telem_data.action_id.unwrap_or(0)
+                            "if (window.voxySetCursorTelemetry) window.voxySetCursorTelemetry({}, {}, {}, {}, {}, {}, {}, {});",
+                            telem_data.x, telem_data.y, state_json, elem_json, desc_json, telem_data.confidence, telem_data.requires_confirmation, telem_data.action_id.unwrap_or(0)
                         ));
                         if is_active && telem_data.requires_confirmation {
                             let mut vs_mut = vs.clone();
@@ -441,6 +451,22 @@ fn App() -> Element {
 }
 
 fn main() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        let location = panic_info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "unknown location".to_string());
+        let message = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic payload".to_string()
+        };
+        eprintln!("[FATAL PANIC] Overlay crashed at {location}: {message}");
+        tracing::error!("[FATAL PANIC] Overlay crashed at {location}: {message}");
+    }));
+
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
