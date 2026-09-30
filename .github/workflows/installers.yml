@@ -55,7 +55,7 @@ jobs:
           echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Build release binaries
-        run: cargo build --release --locked
+        run: cargo build --release -p voxy-daemon -p voxy-overlay
 
       - name: Build MSI installer
         run: |
@@ -69,26 +69,27 @@ jobs:
 
       - name: Verify installers exist
         run: |
-          if (!(Test-Path "voxy.msi")) { exit 1 }
-          if (!(Test-Path "voxy-0.1.0-setup.exe")) { exit 1 }
+          if (!(Test-Path "voxy.msi")) { throw "voxy.msi not found" }
+          if (!(Test-Path "voxy-0.1.0-setup.exe")) { throw "voxy-0.1.0-setup.exe not found" }
           Write-Host "Both installers built successfully"
 
-      - name: Compute checksums
-        run: |
-          Get-FileHash voxy.msi -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Out-File -FilePath voxy.msi.sha256 -NoNewline
-          Get-FileHash voxy-0.1.0-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Out-File -FilePath voxy-0.1.0-setup.exe.sha256 -NoNewline
-
-      - name: Sign MSI (optional)
-        if: github.event.inputs.sign == 'true'
+      - name: Sign MSI installer
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.sign == 'true'
         env:
           CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          IS_TAG_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
           if ($env:CERTIFICATE) {
             $cert = [System.Convert]::FromBase64String($env:CERTIFICATE)
             $certPath = Join-Path $env:RUNNER_TEMP "cert.pfx"
             [System.IO.File]::WriteAllBytes($certPath, $cert)
-            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+            $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+            if (!(Test-Path $signtool)) {
+              $found = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($found) { $signtool = $found.FullName }
+            }
+            & $signtool sign `
               /f $certPath `
               /p $env:CERTIFICATE_PASSWORD `
               /tr http://timestamp.digicert.com `
@@ -97,21 +98,29 @@ jobs:
               voxy.msi
             Remove-Item $certPath
             Write-Host "MSI signed successfully"
+          } elseif ($env:IS_TAG_RELEASE -eq 'True') {
+            throw "FATAL: Production tag release requires WINDOWS_CERTIFICATE secret for MSI code signing. Aborting (fail-closed)."
           } else {
-            Write-Host "No certificate provided — skipping signing"
+            Write-Host "Development build: skipping MSI signing"
           }
 
-      - name: Sign NSIS (optional)
-        if: github.event.inputs.sign == 'true'
+      - name: Sign NSIS installer
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.sign == 'true'
         env:
           CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          IS_TAG_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
           if ($env:CERTIFICATE) {
             $cert = [System.Convert]::FromBase64String($env:CERTIFICATE)
             $certPath = Join-Path $env:RUNNER_TEMP "cert.pfx"
             [System.IO.File]::WriteAllBytes($certPath, $cert)
-            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+            $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+            if (!(Test-Path $signtool)) {
+              $found = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($found) { $signtool = $found.FullName }
+            }
+            & $signtool sign `
               /f $certPath `
               /p $env:CERTIFICATE_PASSWORD `
               /tr http://timestamp.digicert.com `
@@ -119,10 +128,17 @@ jobs:
               /fd sha256 `
               voxy-0.1.0-setup.exe
             Remove-Item $certPath
-            Write-Host "NSIS signed successfully"
+            Write-Host "NSIS installer signed successfully"
+          } elseif ($env:IS_TAG_RELEASE -eq 'True') {
+            throw "FATAL: Production tag release requires WINDOWS_CERTIFICATE secret for NSIS code signing. Aborting (fail-closed)."
           } else {
-            Write-Host "No certificate provided — skipping signing"
+            Write-Host "Development build: skipping NSIS signing"
           }
+
+      - name: Compute checksums
+        run: |
+          Get-FileHash voxy.msi -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Out-File -FilePath voxy.msi.sha256 -NoNewline
+          Get-FileHash voxy-0.1.0-setup.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Out-File -FilePath voxy-0.1.0-setup.exe.sha256 -NoNewline
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4

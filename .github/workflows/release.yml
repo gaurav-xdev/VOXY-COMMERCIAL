@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Packaging environment (Production or Development)'
+        required: false
+        default: 'Production'
+        type: choice
+        options:
+          - Production
+          - Development
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,49 +22,110 @@ env:
 
 jobs:
   build:
-    name: Build Release
+    name: Build & Package Release
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+    permissions:
+      contents: write
 
-      - name: Build release binary
-        run: cargo build --release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binaries
+        run: cargo build --release -p voxy-daemon -p voxy-overlay
+
+      - name: Verify binaries exist
+        shell: pwsh
+        run: |
+          if (!(Test-Path "target\release\voxy-daemon.exe")) {
+            throw "voxy-daemon.exe missing from target\release"
+          }
+          if (!(Test-Path "target\release\voxy-overlay.exe")) {
+            throw "voxy-overlay.exe missing from target\release"
+          }
+          Write-Host "Both release binaries verified successfully."
+
+      - name: Sign binaries (Fail-Closed on Production Releases)
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          IS_TAG_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          $isProd = ($env:IS_TAG_RELEASE -eq 'True') -or ('${{ github.event.inputs.environment }}' -eq 'Production')
+          if ($env:CERTIFICATE) {
+            Write-Host "Decoding code signing certificate..."
+            $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE)
+            $certPath = Join-Path $env:RUNNER_TEMP "release_cert.pfx"
+            [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+            
+            $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+            if (!(Test-Path $signtool)) {
+              $found = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($found) { $signtool = $found.FullName }
+            }
+
+            Write-Host "Signing voxy-daemon.exe and voxy-overlay.exe with $signtool..."
+            & $signtool sign /f $certPath /p $env:CERTIFICATE_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 target\release\voxy-daemon.exe
+            if ($LASTEXITCODE -ne 0) { throw "Signing voxy-daemon.exe failed" }
+            & $signtool sign /f $certPath /p $env:CERTIFICATE_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 target\release\voxy-overlay.exe
+            if ($LASTEXITCODE -ne 0) { throw "Signing voxy-overlay.exe failed" }
+
+            Remove-Item $certPath -Force
+            Write-Host "Binaries signed and timestamped successfully."
+          } elseif ($isProd) {
+            throw "FATAL: Production tag release requires WINDOWS_CERTIFICATE secret for Authenticode signing. Release aborted (fail-closed)."
+          } else {
+            Write-Host "Development build: no signing certificate provided, proceeding unsigned."
+          }
 
       - name: Get version from tag
         id: version
         shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Create archive
-        shell: bash
         run: |
-          7z a "voxy-${{ steps.version.outputs.VERSION }}-windows-x86_64.zip" target/release/voxy-daemon.exe
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=0.1.0-dev" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Create release
+      - name: Create release distribution archive
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          $distDir = "voxy-$ver-windows-x86_64"
+          New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+          Copy-Item "target\release\voxy-daemon.exe" "$distDir\"
+          Copy-Item "target\release\voxy-overlay.exe" "$distDir\"
+          if (Test-Path "package\windows\run-voxy.bat") {
+            Copy-Item "package\windows\run-voxy.bat" "$distDir\"
+          }
+          if (Test-Path "package\windows\Assets") {
+            Copy-Item -Recurse "package\windows\Assets" "$distDir\"
+          }
+          if (Test-Path "config") {
+            Copy-Item -Recurse "config" "$distDir\"
+          }
+
+          $zipName = "voxy-$ver-windows-x86_64.zip"
+          Compress-Archive -Path "$distDir\*" -DestinationPath $zipName -Force
+          $hash = (Get-FileHash $zipName -Algorithm SHA256).Hash
+          Set-Content -Path "$zipName.sha256" -Value $hash -NoNewline
+          Write-Host "Created $zipName (SHA256: $hash)"
+
+      - name: Create release on GitHub
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
             voxy-${{ steps.version.outputs.VERSION }}-windows-x86_64.zip
+            voxy-${{ steps.version.outputs.VERSION }}-windows-x86_64.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish:
-    name: Publish to crates.io
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Publish workspace crates
-        run: |
-          for crate in crates/*/; do
-            if [ -f "$crate/Cargo.toml" ]; then
-              cargo publish -p "$(basename $crate)" --allow-dirty || true
-            fi
-          done
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

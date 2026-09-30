@@ -41,7 +41,7 @@ encryption = ["dep:aes-gcm", "dep:base64", "dep:sha2", "dep:hex", "dep:rand"]
 all = ["sqlite", "postgres", "duckdb", "remote", "encryption"]
 
 [dev-dependencies]
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 voxy-event-bus = { workspace = true }
 voxy-shared = { workspace = true }
 voxy-health = { workspace = true }

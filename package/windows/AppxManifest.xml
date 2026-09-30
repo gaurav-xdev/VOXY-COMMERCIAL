@@ -6,9 +6,10 @@
   xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
   IgnorableNamespaces="uap rescap uap10">
 
+  <!-- Publisher is dynamically injected by build-package.ps1 from the authoritative code signing certificate -->
   <Identity
     Name="VOXY.Commercial"
-    Publisher="CN=VOXY-AI-LocalDev"
+    Publisher="CN=&quot;VOXY AI Systems Inc.&quot;"
     Version="1.0.0.0"
     ProcessorArchitecture="x64" />
 

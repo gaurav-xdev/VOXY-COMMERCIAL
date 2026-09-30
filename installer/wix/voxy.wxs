@@ -98,9 +98,15 @@
         <Directory Id="ApplicationProgramsFolder" Name="VOXY">
           <Component Id="StartMenuShortcuts" Guid="*">
             <Shortcut
+              Id="OverlayStartMenuShortcut"
+              Name="VOXY"
+              Description="VOXY Commercial AI Operating Companion"
+              Target="[INSTALLDIR]voxy-overlay.exe"
+              WorkingDirectory="INSTALLDIR" />
+            <Shortcut
               Id="DaemonStartMenuShortcut"
-              Name="VOXY Daemon"
-              Description="Start VOXY daemon"
+              Name="VOXY Background Runtime"
+              Description="VOXY AI Background Runtime Daemon"
               Target="[INSTALLDIR]voxy-daemon.exe"
               WorkingDirectory="INSTALLDIR" />
             <Shortcut
@@ -128,8 +134,8 @@
           <Shortcut
             Id="DesktopShortcut"
             Name="VOXY"
-            Description="Start VOXY daemon"
-            Target="[INSTALLDIR]voxy-daemon.exe"
+            Description="VOXY Commercial AI Operating Companion"
+            Target="[INSTALLDIR]voxy-overlay.exe"
             WorkingDirectory="INSTALLDIR" />
           <RegistryValue
             Root="HKCU"
