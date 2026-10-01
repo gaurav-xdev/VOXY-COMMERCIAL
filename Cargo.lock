@@ -8091,6 +8091,7 @@ dependencies = [
  "voxy-runtime-guard",
  "voxy-security",
  "voxy-shared",
+ "voxy-tool-calling",
  "voxy-voice",
  "voxy-voice-orchestrator",
  "voxy-voice-stream",
@@ -8785,6 +8786,7 @@ name = "voxy-platform-windows"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "tokio",
  "tracing",
  "voxy-platform-core",
@@ -9027,13 +9029,19 @@ name = "voxy-tool-calling"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
+ "uuid",
  "voxy-config",
  "voxy-event-bus",
+ "voxy-harness",
+ "voxy-platform-core",
+ "voxy-platform-windows",
  "voxy-security",
  "voxy-shared",
 ]

@@ -301,5 +301,16 @@ fn main() {
 
     BRIDGE.set(bridge.clone()).ok();
 
-    dioxus::launch(app::App);
+    let cfg = dioxus::desktop::Config::new()
+        .with_window(
+            dioxus::desktop::WindowBuilder::new()
+                .with_title("VOXY — Windows AI Operating Companion")
+                .with_inner_size(dioxus::desktop::LogicalSize::new(1280.0, 820.0))
+                .with_resizable(true),
+        )
+        .with_custom_head(format!("<style>{}</style>", styles::APP_CSS));
+
+    dioxus::LaunchBuilder::desktop()
+        .with_cfg(cfg)
+        .launch(app::App);
 }

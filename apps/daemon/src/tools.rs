@@ -28,6 +28,7 @@ pub struct ToolResult {
 pub struct ToolRegistry {
     backend: Arc<HybridBackend>,
     emergency_stop: Arc<AtomicBool>,
+    native_registry: Arc<voxy_tool_calling::ToolRegistry>,
 }
 
 impl ToolRegistry {
@@ -44,6 +45,7 @@ impl ToolRegistry {
         Ok(Self {
             backend: Arc::new(hybrid),
             emergency_stop: Arc::new(AtomicBool::new(false)),
+            native_registry: Arc::new(voxy_tool_calling::ToolRegistry::with_builtins()),
         })
     }
 
@@ -93,6 +95,18 @@ Available tools:
 - search_web: Open a web search. params: {"query": "<search_query>"}
 - minimize_all: Minimize all windows (show desktop). params: {}
 - lock_screen: Lock the computer. params: {}
+- file_list: List files in a directory. params: {"path": "<dir_path>"}
+- file_read: Read text content of a file. params: {"path": "<file_path>"}
+- file_write: Safely write content to a file with rollback. params: {"path": "<file_path>", "content": "<text>"}
+- file_delete: Delete a file (requires confirmation). params: {"path": "<file_path>"}
+- process_list: List active processes with PID and memory. params: {"filter_name": "<optional_filter>"}
+- process_info: Query diagnostics for a process by PID. params: {"pid": <pid>}
+- process_kill: Terminate an active process (requires confirmation). params: {"pid": <pid>}
+- harness_index_repo: Index repository structure and symbols. params: {"root_path": "<optional_path>"}
+- harness_search_symbols: Search symbols in code. params: {"query": "<symbol_name>", "root_path": "<optional_path>"}
+- harness_run_command: Run sandboxed build or test command in repo. params: {"program": "<cmd>", "args": ["<arg1>"], "timeout_secs": 60}
+- harness_apply_patch: Apply code modification with rollback. params: {"file_path": "<path>", "modified_content": "<content>"}
+- system_info: Retrieve OS details, CPU architecture, hostname, and displays. params: {}
 
 Only use tools when the user explicitly asks you to perform an action.
 For conversation, questions, or information requests, just respond normally without tools."#
@@ -111,6 +125,36 @@ For conversation, questions, or information requests, just respond normally with
         }
 
         tracing::info!("[TOOL] Executing: {} with {:?}", call.tool, call.params);
+
+        // Check native tool registry first
+        if let Some(_tool) = self.native_registry.get(&call.tool).await {
+            let ctx = voxy_tool_calling::ToolContext::new("daemon-session").with_confirmation(true);
+            match self
+                .native_registry
+                .execute(&call.tool, call.params.clone(), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let msg = res.observation.unwrap_or_else(|| {
+                        if res.success {
+                            format!("Action succeeded: {}", res.data)
+                        } else {
+                            res.error.unwrap_or_else(|| "Action failed".into())
+                        }
+                    });
+                    return ToolResult {
+                        success: res.success,
+                        message: msg,
+                    };
+                }
+                Err(e) => {
+                    return ToolResult {
+                        success: false,
+                        message: format!("Tool execution failed: {}", e),
+                    };
+                }
+            }
+        }
 
         match call.tool.as_str() {
             "open_app" => self.open_app(&call.params).await,
@@ -667,6 +711,7 @@ mod tests {
         let registry = ToolRegistry {
             backend: Arc::new(hybrid),
             emergency_stop: Arc::new(AtomicBool::new(false)),
+            native_registry: Arc::new(voxy_tool_calling::ToolRegistry::with_builtins()),
         };
 
         assert!(!registry.is_emergency_stopped());

@@ -45,6 +45,7 @@ voxy-anthropic = { path = "../../crates/anthropic" }
 voxy-gemini = { path = "../../crates/gemini" }
 voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
 voxy-voice-stream = { path = "../../crates/voice_stream" }
+voxy-tool-calling = { path = "../../crates/tool_calling" }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { workspace = true }

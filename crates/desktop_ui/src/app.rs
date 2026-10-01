@@ -11,7 +11,7 @@ pub fn App() -> Element {
     let route = use_signal(|| Route::Chat);
 
     rsx! {
-        document::Link { rel: "stylesheet", href: styles::APP_CSS }
+        style { "{styles::APP_CSS}" }
         document::Link { rel: "preconnect", href: "https://fonts.googleapis.com" }
         document::Link {
             rel: "stylesheet",

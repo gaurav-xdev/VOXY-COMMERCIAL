@@ -36,6 +36,31 @@ pub trait WindowPlatform: Send + Sync {
 
     /// Close a window by ID.
     async fn close_window(&self, id: u64) -> Result<()>;
+
+    /// Minimize a window by ID.
+    async fn minimize_window(&self, _id: u64) -> Result<()> {
+        Ok(())
+    }
+
+    /// Maximize a window by ID.
+    async fn maximize_window(&self, _id: u64) -> Result<()> {
+        Ok(())
+    }
+
+    /// Restore a window by ID.
+    async fn restore_window(&self, _id: u64) -> Result<()> {
+        Ok(())
+    }
+
+    /// Resize a window by ID.
+    async fn resize_window(&self, _id: u64, _width: u32, _height: u32) -> Result<()> {
+        Ok(())
+    }
+
+    /// Move a window by ID.
+    async fn move_window(&self, _id: u64, _x: i32, _y: i32) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Input simulation platform interface.

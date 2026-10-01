@@ -1,27 +1,33 @@
 //! Tool error types.
 
-use std::fmt;
+use thiserror::Error;
 
 /// Tool error type.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ToolError {
+    #[error("Execution failed: {0}")]
     ExecutionFailed(String),
+
+    #[error("Invalid parameters: {0}")]
     InvalidParams(String),
+
+    #[error("Tool not found: {0}")]
     ToolNotFound(String),
+
+    #[error("Permission denied: {0}")]
     PermissionDenied(String),
-}
 
-impl fmt::Display for ToolError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ExecutionFailed(msg) => write!(f, "Execution failed: {}", msg),
-            Self::InvalidParams(msg) => write!(f, "Invalid params: {}", msg),
-            Self::ToolNotFound(msg) => write!(f, "Tool not found: {}", msg),
-            Self::PermissionDenied(msg) => write!(f, "Permission denied: {}", msg),
-        }
-    }
-}
+    #[error("Confirmation required for action: {0}")]
+    ConfirmationRequired(String),
 
-impl std::error::Error for ToolError {}
+    #[error("Execution timed out after {0}")]
+    Timeout(String),
+
+    #[error("Verification failed: {0}")]
+    VerificationFailed(String),
+
+    #[error("IO error: {0}")]
+    IoError(String),
+}
 
 pub type Result<T> = std::result::Result<T, ToolError>;
