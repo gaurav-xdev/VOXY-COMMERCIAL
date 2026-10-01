@@ -1,4 +1,24 @@
+# RustSec Security Advisory Configuration for VOXY COM
+# All entries are individually audited, classified, and verified for runtime reachability.
+
 [advisories]
 ignore = [
-    "RUSTSEC-2026-0257", # Unix BROWSER argument injection; not applicable on Windows (VOXY is Windows desktop app using ShellExecute)
+    # RUSTSEC-2026-0257: Unix BROWSER argument injection in `webbrowser` crate.
+    # Applicability: Unix-only. On Windows, VOXY uses native ShellExecuteW / windows-rs, never $BROWSER.
+    "RUSTSEC-2026-0257",
+
+    # RUSTSEC-2024-0429: Unsoundness in Iterator for glib::VariantStrIter.
+    # Applicability: Linux-only GTK stack (transitive from tao/wry Linux dependencies).
+    # On Windows, VOXY uses Win32 and Microsoft Edge WebView2; glib/GTK are never compiled or linked.
+    "RUSTSEC-2024-0429",
+
+    # RUSTSEC-2026-0186: Unchecked pointer offset in memmap2 v0.8.0.
+    # Applicability: Transitive dependency of `xkbcommon` (Linux X11/Wayland keyboard mapping).
+    # On Windows, VOXY automation uses native Win32 SendInput API; xkbcommon is never compiled or executed.
+    "RUSTSEC-2026-0186",
+
+    # RUSTSEC-2026-0097: Rand is unsound with custom logger using `rand::rng()`.
+    # Applicability: Compile-time proc-macro code generation only (phf_generator for static CSS selector tables).
+    # Never executed at runtime or with custom loggers.
+    "RUSTSEC-2026-0097",
 ]

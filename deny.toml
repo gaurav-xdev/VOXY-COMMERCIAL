@@ -4,7 +4,7 @@
 [advisories]
 unmaintained = "workspace"
 ignore = [
-    "RUSTSEC-2026-0257", # Unix BROWSER argument injection; not applicable on Windows (VOXY is a Windows desktop application that opens URLs via ShellExecute)
+    "RUSTSEC-2026-0257", # Unix BROWSER argument injection; not applicable on Windows (VOXY is Windows desktop app using ShellExecute)
 ]
 
 [licenses]

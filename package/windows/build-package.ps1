@@ -256,18 +256,28 @@ if ($isTemporaryCertFile -and (Test-Path $certPfxFile)) {
 
 # AUTOMATED SIGNATURE VERIFICATION PASS
 Write-Host "[7/7] Verifying Authenticode Signatures and Package Integrity..." -ForegroundColor Yellow
-$verifySig = Get-AuthenticodeSignature $msixPath
-if ($verifySig.Status -eq "NotSigned") {
-    throw "VERIFICATION FAILED: MSIX artifact $msixPath is unsigned!"
-}
+$verifyTargets = @(
+    @{ Name = "Daemon"; Path = "$stagingDir\voxy-daemon.exe" },
+    @{ Name = "Overlay"; Path = "$stagingDir\voxy-overlay.exe" },
+    @{ Name = "MSIX Package"; Path = $msixPath }
+)
 
-if ($Environment -eq "Production") {
-    if ($verifySig.SignerCertificate.Subject -like "*LocalDev*") {
-        throw "FAIL-CLOSED VIOLATION: Production artifact was signed with local development certificate!"
+foreach ($target in $verifyTargets) {
+    $verifySig = Get-AuthenticodeSignature $target.Path
+    if ($verifySig.Status -eq "NotSigned") {
+        throw "VERIFICATION FAILED: $($target.Name) artifact $($target.Path) is unsigned!"
     }
-    Write-Host "  -> Production Authenticode signature verified successfully: $($verifySig.SignerCertificate.Subject)" -ForegroundColor Green
-} else {
-    Write-Host "  -> Development Authenticode signature verified: $($verifySig.SignerCertificate.Subject)" -ForegroundColor Yellow
+    if ($Environment -eq "Production") {
+        if ($verifySig.Status -ne "Valid") {
+            throw "FAIL-CLOSED VIOLATION: $($target.Name) signature status is '$($verifySig.Status)' ($($verifySig.StatusMessage))!"
+        }
+        if ($verifySig.SignerCertificate.Subject -like "*LocalDev*") {
+            throw "FAIL-CLOSED VIOLATION: Production artifact $($target.Name) was signed with local development certificate!"
+        }
+        Write-Host "  -> Production Authenticode signature verified on $($target.Name): $($verifySig.SignerCertificate.Subject)" -ForegroundColor Green
+    } else {
+        Write-Host "  -> Development Authenticode signature verified on $($target.Name): $($verifySig.SignerCertificate.Subject) [Status: $($verifySig.Status)]" -ForegroundColor Yellow
+    }
 }
 
 # Generate Portable Standalone Distribution ZIP
