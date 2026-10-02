@@ -252,10 +252,60 @@ fn init_bridge() -> AppBridge {
         let exp_bridge = Arc::new(exp_bridge);
         tracing::info!("Experience Layer started in Desktop UI");
 
+        // ── Real IPC Bridge (connects to \\.\pipe\voxy-com-ipc) ────────────
+        let ipc = Arc::new(crate::bridge::IpcBridge::new());
+        tracing::info!("IPC Bridge started, listening for VOXY Daemon Named Pipe");
+
+        // ── Commercial Auth & Billing Router ──────────────────────────────
+        let commercial_db_path = data_dir.join("commercial.db");
+        let commercial_sqlite = Arc::new(voxy_database::SqliteDatabase::new());
+        let db_cfg = voxy_database::DatabaseConfig {
+            kind: voxy_database::DatabaseKind::Sqlite,
+            path: Some(commercial_db_path.to_string_lossy().to_string()),
+            ..Default::default()
+        };
+        use voxy_database::StorageProvider;
+        if let Err(e) = commercial_sqlite.connect(&db_cfg).await {
+            tracing::warn!(
+                "Failed to connect persistent commercial SQLite ({e}), using memory fallback"
+            );
+            let mem_cfg = voxy_database::DatabaseConfig {
+                kind: voxy_database::DatabaseKind::Sqlite,
+                path: Some(":memory:".to_string()),
+                ..Default::default()
+            };
+            let _ = commercial_sqlite.connect(&mem_cfg).await;
+        }
+
+        let commercial_store = Arc::new(voxy_database::CommercialStore::new(commercial_sqlite));
+        if let Err(e) = commercial_store.initialize_schema().await {
+            tracing::warn!("Commercial schema migration warning: {e}");
+        }
+
+        let auth_middleware = Arc::new(voxy_api_server::middleware::AuthMiddleware::new(
+            commercial_store.clone(),
+        ));
+        let rate_limiter = Arc::new(voxy_api_server::middleware::RateLimitMiddleware::new(
+            120,
+            std::time::Duration::from_secs(60),
+        ));
+        let api_handlers = Arc::new(voxy_api_server::handlers::ApiHandlers::new(
+            commercial_store,
+            None,
+            None,
+        ));
+        let api_router = Arc::new(voxy_api_server::router::ApiRouter::new(
+            api_handlers,
+            auth_middleware,
+            rate_limiter,
+        ));
+        let auth = Arc::new(crate::bridge::AuthBridge::new(api_router));
+        tracing::info!("AuthBridge and ApiRouter initialized");
+
         tracing::info!(
             "Backend initialized: EventBus, Settings, Cognition(InMemory), Memory(SQLite), \
              Personality(InMemory), Security, Plugins, Health, Voice, Downloads, Notifications, \
-             Conversations(SQLite), AuditLog(SQLite), ExperienceBridge"
+             Conversations(SQLite), AuditLog(SQLite), ExperienceBridge, IPC, Auth"
         );
 
         AppBridge::new(
@@ -275,6 +325,8 @@ fn init_bridge() -> AppBridge {
             audit_log,
             exp_bridge,
             exp_input_tx,
+            ipc,
+            auth,
         )
     })
 }

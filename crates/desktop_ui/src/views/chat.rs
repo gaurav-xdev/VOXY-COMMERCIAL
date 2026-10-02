@@ -18,6 +18,84 @@ pub fn ChatView() -> Element {
     let is_speaking = use_signal(|| false);
     let is_thinking = use_signal(|| false);
     let error_msg = use_signal(|| Option::<String>::None);
+    let daemon_connected = use_signal(|| false);
+
+    // Listen to real Named Pipe IPC messages from Daemon
+    {
+        let mut messages = messages;
+        let mut is_listening = is_listening;
+        let mut is_speaking = is_speaking;
+        let mut is_thinking = is_thinking;
+        let mut error_msg = error_msg;
+        let mut daemon_connected = daemon_connected;
+        let ipc = bridge.ipc.clone();
+
+        spawn(async move {
+            let mut event_rx = ipc.subscribe();
+            let mut conn_rx = ipc.watch_connected();
+
+            loop {
+                tokio::select! {
+                    Ok(_changed) = conn_rx.changed() => {
+                        let is_conn = *conn_rx.borrow();
+                        daemon_connected.set(is_conn);
+                    }
+                    Ok(msg) = event_rx.recv() => {
+                        match msg {
+                            voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
+                                match state {
+                                    voxy_ipc::VoiceState::Listening => {
+                                        is_listening.set(true);
+                                        is_speaking.set(false);
+                                        is_thinking.set(false);
+                                    }
+                                    voxy_ipc::VoiceState::Thinking => {
+                                        is_thinking.set(true);
+                                        is_listening.set(false);
+                                        is_speaking.set(false);
+                                    }
+                                    voxy_ipc::VoiceState::Speaking => {
+                                        is_speaking.set(true);
+                                        is_listening.set(false);
+                                        is_thinking.set(false);
+                                    }
+                                    voxy_ipc::VoiceState::Error => {
+                                        error_msg.set(Some("Daemon encountered voice error".to_string()));
+                                        is_listening.set(false);
+                                        is_thinking.set(false);
+                                        is_speaking.set(false);
+                                    }
+                                    _ => {
+                                        is_listening.set(false);
+                                        is_speaking.set(false);
+                                        is_thinking.set(false);
+                                    }
+                                }
+                            }
+                            voxy_ipc::DaemonMessage::TranscriptUpdate { text, is_final, .. } => {
+                                if is_final && !text.is_empty() {
+                                    messages.write().push(Message {
+                                        role: "user".to_string(),
+                                        content: text,
+                                    });
+                                }
+                            }
+                            voxy_ipc::DaemonMessage::ChatMessage { sender, text, .. } => {
+                                messages.write().push(Message {
+                                    role: sender,
+                                    content: text,
+                                });
+                            }
+                            voxy_ipc::DaemonMessage::ErrorNotification { code, message } => {
+                                error_msg.set(Some(format!("{code}: {message}")));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     let orb_state = if *is_thinking.read() {
         OrbState::Thinking
@@ -38,6 +116,8 @@ pub fn ChatView() -> Element {
         let mut error_msg = error_msg;
         let cognition = bridge.cognition.clone();
         let voice = bridge.voice.clone();
+        let ipc = bridge.ipc.clone();
+
         move |text: String| {
             if text.is_empty() {
                 return;
@@ -57,8 +137,14 @@ pub fn ChatView() -> Element {
             let mut err = error_msg;
             let cog = cognition.clone();
             let v = voice.clone();
+            let ipc_client = ipc.clone();
 
             spawn(async move {
+                // Forward input to daemon via IPC as well
+                let _ = ipc_client
+                    .send_command(voxy_ipc::ClientCommand::SendTextInput { text: text.clone() })
+                    .await;
+
                 let intent_input = voxy_cognition::IntentInput {
                     raw_text: text,
                     context: None,
@@ -114,15 +200,20 @@ pub fn ChatView() -> Element {
     let toggle_listening = {
         let mut is_listening = is_listening;
         let voice = bridge.voice.clone();
+        let ipc = bridge.ipc.clone();
         move |_: Event<MouseData>| {
             let current = *is_listening.read();
             is_listening.set(!current);
             let v = voice.clone();
+            let ipc_client = ipc.clone();
             spawn(async move {
-                if !*is_listening.read() {
+                if !current {
                     let _ = v.start_listening().await;
                 } else {
                     v.stop_listening().await;
+                    let _ = ipc_client
+                        .send_command(voxy_ipc::ClientCommand::InterruptSpeech)
+                        .await;
                 }
             });
         }
@@ -147,7 +238,13 @@ pub fn ChatView() -> Element {
                         VoiceOrb { state: orb_state, on_click: None }
                         div { class: "empty-state-title", "How can I help you today?" }
                         div { class: "empty-state-desc",
-                            "Type a message or click the orb to start a voice conversation."
+                            "VOXY is voice-first. Speak aloud or use push-to-talk."
+                        }
+                        div { style: "margin-top: 8px;",
+                            span {
+                                class: if *daemon_connected.read() { "badge badge-success" } else { "badge badge-warning" },
+                                if *daemon_connected.read() { "Daemon: Connected" } else { "Daemon: Standalone / Connecting" }
+                            }
                         }
                         if let Some(err) = error_msg.read().as_ref() {
                             div { style: "color: var(--error); margin-top: 12px; font-size: 12px;",
@@ -180,7 +277,7 @@ pub fn ChatView() -> Element {
                 div { class: "chat-input-wrapper",
                     textarea {
                         class: "chat-input",
-                        placeholder: "Type a message...",
+                        placeholder: "Voice-first active — or type intent here...",
                         value: "{input_text}",
                         oninput: move |e| input_text.set(e.value()),
                         onkeydown: on_keydown,

@@ -38,6 +38,11 @@ voxy-health = { path = "../health" }
 voxy-database = { workspace = true }
 voxy-ipc = { path = "../ipc" }
 voxy-companion-intelligence = { path = "../companion_intelligence" }
+voxy-api-server = { path = "../api_server" }
+voxy-billing = { path = "../billing" }
+
+[dev-dependencies]
+tempfile = "3"
 
 [features]
 default = []

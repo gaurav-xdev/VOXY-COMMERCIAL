@@ -1,9 +1,26 @@
 use dioxus::prelude::*;
 
+use crate::bridge::AppBridge;
 use crate::router::Route;
 
 #[component]
 pub fn Sidebar(route: Signal<Route>) -> Element {
+    let bridge = use_context::<AppBridge>();
+    let session = bridge.auth.current_session();
+
+    let user_name = session
+        .as_ref()
+        .map(|s| s.email.split('@').next().unwrap_or("User").to_string())
+        .unwrap_or_else(|| "Guest".to_string());
+
+    let plan_name = session
+        .as_ref()
+        .map(|s| match s.active_tier.to_lowercase().as_str() {
+            "pro" => "Pro Plan",
+            "enterprise" => "Enterprise",
+            _ => "Free Tier",
+        })
+        .unwrap_or("Free Tier");
     rsx! {
         div { class: "sidebar",
             div { class: "sidebar-header",
@@ -50,8 +67,8 @@ pub fn Sidebar(route: Signal<Route>) -> Element {
                 div { class: "user-info",
                     div { class: "user-avatar", "\u{1F464}" }
                     div {
-                        div { class: "user-name", "Guest" }
-                        div { class: "user-plan", "Free Tier" }
+                        div { class: "user-name", "{user_name}" }
+                        div { class: "user-plan", "{plan_name}" }
                     }
                 }
             }

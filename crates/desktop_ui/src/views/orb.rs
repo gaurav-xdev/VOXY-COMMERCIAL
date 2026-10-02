@@ -12,10 +12,58 @@ pub fn OrbView() -> Element {
     let metrics = use_signal(|| (0u64, 0u64, 0u64));
     let mood_text = use_signal(|| String::from("Calm"));
     let presence_text = use_signal(|| String::from("Idle"));
+    let daemon_connected = use_signal(|| false);
 
-    // Subscribe to ExperienceBridge output for live state
+    // 1. Subscribe to real Named Pipe IPC Daemon events
     {
         let mut orb_state = orb_state;
+        let mut daemon_connected = daemon_connected;
+        let ipc = bridge.ipc.clone();
+
+        spawn(async move {
+            let mut event_rx = ipc.subscribe();
+            let mut conn_rx = ipc.watch_connected();
+
+            loop {
+                tokio::select! {
+                    Ok(_changed) = conn_rx.changed() => {
+                        let is_conn = *conn_rx.borrow();
+                        daemon_connected.set(is_conn);
+                    }
+                    Ok(msg) = event_rx.recv() => {
+                        match msg {
+                            voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
+                                let new_state = match state {
+                                    voxy_ipc::VoiceState::Idle => OrbState::Idle,
+                                    voxy_ipc::VoiceState::Listening => OrbState::Listening,
+                                    voxy_ipc::VoiceState::Thinking => OrbState::Thinking,
+                                    voxy_ipc::VoiceState::Speaking => OrbState::Speaking,
+                                    voxy_ipc::VoiceState::Interrupted => OrbState::Idle,
+                                    voxy_ipc::VoiceState::Error => OrbState::Error,
+                                };
+                                orb_state.set(new_state);
+                            }
+                            voxy_ipc::DaemonMessage::StateSnapshot { voice_state, .. } => {
+                                let new_state = match voice_state {
+                                    voxy_ipc::VoiceState::Idle => OrbState::Idle,
+                                    voxy_ipc::VoiceState::Listening => OrbState::Listening,
+                                    voxy_ipc::VoiceState::Thinking => OrbState::Thinking,
+                                    voxy_ipc::VoiceState::Speaking => OrbState::Speaking,
+                                    voxy_ipc::VoiceState::Interrupted => OrbState::Idle,
+                                    voxy_ipc::VoiceState::Error => OrbState::Error,
+                                };
+                                orb_state.set(new_state);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Poll ExperienceBridge as companion intelligence fallback/complement
+    {
         let mut mood_text = mood_text;
         let mut presence_text = presence_text;
         let experience = bridge.experience.clone();
@@ -25,24 +73,7 @@ pub fn OrbView() -> Element {
             loop {
                 interval.tick().await;
                 let snapshot = experience.get_snapshot().await;
-
-                // Map presence state to OrbState
-                let new_orb_state = match snapshot.presence.state {
-                    voxy_companion_intelligence::PresenceState::Listening => OrbState::Listening,
-                    voxy_companion_intelligence::PresenceState::Thinking => OrbState::Thinking,
-                    voxy_companion_intelligence::PresenceState::Speaking => OrbState::Speaking,
-                    voxy_companion_intelligence::PresenceState::Celebrating => OrbState::Speaking,
-                    voxy_companion_intelligence::PresenceState::EmergencyMode => OrbState::Error,
-                    voxy_companion_intelligence::PresenceState::Sleeping => OrbState::Idle,
-                    voxy_companion_intelligence::PresenceState::Idle => OrbState::Idle,
-                    voxy_companion_intelligence::PresenceState::FocusMode => OrbState::Thinking,
-                };
-                orb_state.set(new_orb_state);
-
-                // Update mood display
                 mood_text.set(format!("{:?}", snapshot.current_mood));
-
-                // Update presence display
                 presence_text.set(format!("{:?}", snapshot.presence.state));
             }
         });
@@ -51,6 +82,7 @@ pub fn OrbView() -> Element {
     let toggle_orb = {
         let voice = bridge.voice.clone();
         let experience_input = bridge.experience_input.clone();
+        let ipc = bridge.ipc.clone();
         move |_: Event<MouseData>| {
             let current = *is_listening.read();
             is_listening.set(!current);
@@ -58,6 +90,8 @@ pub fn OrbView() -> Element {
             let mut state = orb_state;
             let listening = is_listening;
             let exp_input = experience_input.clone();
+            let ipc_clone = ipc.clone();
+
             spawn(async move {
                 if *listening.read() {
                     state.set(OrbState::Listening);
@@ -75,6 +109,9 @@ pub fn OrbView() -> Element {
                             active: false,
                         },
                     );
+                    let _ = ipc_clone
+                        .send_command(voxy_ipc::ClientCommand::InterruptSpeech)
+                        .await;
                 }
             });
         }
@@ -133,8 +170,12 @@ pub fn OrbView() -> Element {
                         "Click the microphone to start"
                     }
                 }
-                div { style: "font-size: 12px; color: var(--text-muted); margin-top: 8px;",
-                    "Push-to-Talk: Hold Space"
+                div { style: "font-size: 12px; color: var(--text-muted); margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;",
+                    span {
+                        class: if *daemon_connected.read() { "badge badge-success" } else { "badge badge-warning" },
+                        if *daemon_connected.read() { "Daemon: Connected" } else { "Daemon: Connecting..." }
+                    }
+                    span { "• Push-to-Talk: Hold Space" }
                 }
             }
 

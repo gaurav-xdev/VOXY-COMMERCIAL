@@ -1,10 +1,14 @@
+pub mod auth;
 pub mod cognition;
 pub mod events;
+pub mod ipc;
 pub mod memory;
 pub mod voice;
 
 use std::sync::Arc;
 
+pub use auth::AuthBridge;
+pub use ipc::IpcBridge;
 use voxy_cognition::CognitiveEngine;
 use voxy_companion_intelligence::{ExperienceBridge, ExperienceInput};
 use voxy_config::ConfigManager;
@@ -38,6 +42,8 @@ pub struct AppBridge {
     pub audit_log: Arc<dyn AuditLogStore>,
     pub experience: Arc<ExperienceBridge>,
     pub experience_input: tokio::sync::broadcast::Sender<ExperienceInput>,
+    pub ipc: Arc<IpcBridge>,
+    pub auth: Arc<AuthBridge>,
 }
 
 impl AppBridge {
@@ -59,6 +65,8 @@ impl AppBridge {
         audit_log: Arc<dyn AuditLogStore>,
         experience: Arc<ExperienceBridge>,
         experience_input: tokio::sync::broadcast::Sender<ExperienceInput>,
+        ipc: Arc<IpcBridge>,
+        auth: Arc<AuthBridge>,
     ) -> Self {
         Self {
             event_bus,
@@ -77,6 +85,8 @@ impl AppBridge {
             audit_log,
             experience,
             experience_input,
+            ipc,
+            auth,
         }
     }
 }
