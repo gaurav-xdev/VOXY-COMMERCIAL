@@ -84,58 +84,27 @@ impl IntentAnalyzer for InMemoryIntentAnalyzer {
 
 impl InMemoryIntentAnalyzer {
     fn classify_intent(&self, text: &str) -> IntentType {
-        if text.starts_with("create")
-            || text.starts_with("make")
-            || text.starts_with("build")
-            || text.starts_with("new")
-        {
+        let words: Vec<&str> = text.split_whitespace().collect();
+        let first = words.first().copied().unwrap_or("");
+
+        // Exact first-token checks or whole phrase checks (avoiding partial substring matches)
+        if matches!(first, "create" | "make" | "build" | "new") {
             IntentType::Creation
-        } else if text.starts_with("modify")
-            || text.starts_with("change")
-            || text.starts_with("update")
-            || text.starts_with("edit")
-        {
+        } else if matches!(first, "modify" | "change" | "update" | "edit") {
             IntentType::Modification
-        } else if text.starts_with("delete")
-            || text.starts_with("remove")
-            || text.starts_with("destroy")
-        {
+        } else if matches!(first, "delete" | "remove" | "destroy") {
             IntentType::Deletion
-        } else if text.starts_with("navigate")
-            || text.starts_with("go")
-            || text.starts_with("open")
-            || text.starts_with("show")
-        {
+        } else if matches!(first, "navigate" | "go" | "open" | "show") {
             IntentType::Navigation
-        } else if text.starts_with("call")
-            || text.starts_with("message")
-            || text.starts_with("email")
-            || text.starts_with("send")
-        {
+        } else if matches!(first, "call" | "message" | "email" | "send") {
             IntentType::Communication
-        } else if text.starts_with("play")
-            || text.starts_with("watch")
-            || text.starts_with("listen")
-        {
+        } else if matches!(first, "play" | "watch" | "listen") {
             IntentType::Entertainment
-        } else if text.starts_with("what")
-            || text.starts_with("how")
-            || text.starts_with("why")
-            || text.starts_with("when")
-            || text.starts_with("where")
-            || text.starts_with("who")
-        {
+        } else if matches!(first, "what" | "how" | "why" | "when" | "where" | "who") {
             IntentType::Query
-        } else if text.starts_with("learn")
-            || text.starts_with("study")
-            || text.starts_with("explain")
-        {
+        } else if matches!(first, "learn" | "study" | "explain") {
             IntentType::Learning
-        } else if text.contains("do")
-            || text.contains("run")
-            || text.contains("execute")
-            || text.contains("perform")
-        {
+        } else if words.iter().any(|&w| matches!(w, "do" | "run" | "execute" | "perform")) {
             IntentType::Command
         } else {
             IntentType::Query

@@ -58,32 +58,32 @@ impl IntentPreprocessor {
         }
 
         // 2. Volume controls
-        if cleaned == "mute" || cleaned == "mute audio" || cleaned == "mute volume" {
+        let v_target = cleaned.strip_prefix("please ").unwrap_or(&cleaned);
+        if matches!(v_target, "mute" | "mute audio" | "mute volume") {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeMute { mute: true },
                 immediate_verbal_response: Some("Muted.".into()),
             });
         }
-        if cleaned == "unmute" || cleaned == "unmute audio" || cleaned == "unmute volume" {
+        if matches!(v_target, "unmute" | "unmute audio" | "unmute volume") {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeMute { mute: false },
                 immediate_verbal_response: Some("Unmuted.".into()),
             });
         }
-        if cleaned.contains("volume up")
-            || cleaned.contains("increase volume")
-            || cleaned.contains("louder")
-        {
+        if matches!(
+            v_target,
+            "volume up" | "turn volume up" | "turn the volume up" | "increase volume" | "louder" | "make it louder"
+        ) {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: 10 },
                 immediate_verbal_response: Some("Volume raised.".into()),
             });
         }
-        if cleaned.contains("volume down")
-            || cleaned.contains("decrease volume")
-            || cleaned.contains("quieter")
-            || cleaned.contains("lower volume")
-        {
+        if matches!(
+            v_target,
+            "volume down" | "turn volume down" | "turn the volume down" | "decrease volume" | "quieter" | "lower volume" | "make it quieter"
+        ) {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: -10 },
                 immediate_verbal_response: Some("Volume lowered.".into()),
@@ -245,6 +245,11 @@ mod tests {
     fn test_non_intent_passes_to_llm() {
         assert!(IntentPreprocessor::classify("Can you write a poem about rust?").is_none());
         assert!(IntentPreprocessor::classify("How does quantum computing work?").is_none());
+        // Regression tests: substrings must never trigger actions
+        assert!(IntentPreprocessor::classify("restart the server").is_none());
+        assert!(IntentPreprocessor::classify("postcode lookup").is_none());
+        assert!(IntentPreprocessor::classify("user profiles").is_none());
+        assert!(IntentPreprocessor::classify("can you check the volume upstairs").is_none());
     }
 
     #[test]
