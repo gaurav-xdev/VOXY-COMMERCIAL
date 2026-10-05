@@ -11,11 +11,17 @@
     clippy::manual_div_ceil
 )]
 
+pub mod agentic_loop;
 pub mod backends;
 pub mod config;
 pub mod cursor;
 pub mod error;
 
+pub use agentic_loop::{
+    ActionVerification, AgentAction, AgentPlanner, AgenticOperationLoop, DesktopObservation,
+    HeuristicAgentPlanner, LoopState, OperationLoopConfig, OperationProgress, PlannedStep,
+    StepRecord,
+};
 pub use backends::{
     hybrid::HybridBackend, hybrid::HybridBuilder, hybrid::HybridConfig, openclaw::OpenClawBackend,
     recovery::RecoveryEngine, verification::VerificationEngine, windows_uia::WindowsUiaBackend,

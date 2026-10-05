@@ -21,6 +21,7 @@ hmac = "0.12"
 zeroize = { workspace = true }
 argon2 = "0.5"
 rand = "0.8"
+tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

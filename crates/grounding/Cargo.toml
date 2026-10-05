@@ -11,13 +11,16 @@ voxy-shared = { workspace = true }
 voxy-config = { workspace = true }
 voxy-event-bus = { workspace = true }
 voxy-vision = { path = "../vision" }
-voxy-automation = { path = "../automation" }
 voxy-world-model = { path = "../world_model" }
-voxy-orchestrator = { path = "../orchestrator" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+reqwest = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

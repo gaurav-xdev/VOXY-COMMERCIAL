@@ -20,13 +20,52 @@ pub struct AuthSession {
 pub struct AuthBridge {
     router: Arc<ApiRouter>,
     session: Arc<RwLock<Option<AuthSession>>>,
+    session_file: std::path::PathBuf,
 }
 
 impl AuthBridge {
+    fn session_path() -> std::path::PathBuf {
+        dirs::config_dir()
+            .or_else(dirs::data_local_dir)
+            .map(|p| p.join("voxy"))
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("auth_session.json")
+    }
+
     pub fn new(router: Arc<ApiRouter>) -> Self {
+        let session_file = Self::session_path();
+        let loaded_session = if session_file.exists() {
+            match std::fs::read_to_string(&session_file) {
+                Ok(content) => match serde_json::from_str::<AuthSession>(&content) {
+                    Ok(sess) => {
+                        let now = chrono::Utc::now().timestamp();
+                        if sess.expires_at > now {
+                            tracing::info!("Restored active OSMOO session for {}", sess.email);
+                            Some(sess)
+                        } else {
+                            tracing::info!("Stored OSMOO session expired, clearing");
+                            let _ = std::fs::remove_file(&session_file);
+                            None
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to parse session file: {e}");
+                        None
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("Failed to read session file: {e}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         Self {
             router,
-            session: Arc::new(RwLock::new(None)),
+            session: Arc::new(RwLock::new(loaded_session)),
+            session_file,
         }
     }
 
@@ -35,10 +74,25 @@ impl AuthBridge {
     }
 
     pub fn is_authenticated(&self) -> bool {
-        self.session.read().is_some()
+        if let Some(sess) = self.session.read().as_ref() {
+            let now = chrono::Utc::now().timestamp();
+            sess.expires_at > now
+        } else {
+            false
+        }
     }
 
     pub fn set_session(&self, session: Option<AuthSession>) {
+        if let Some(ref sess) = session {
+            if let Some(parent) = self.session_file.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            if let Ok(json) = serde_json::to_string(sess) {
+                let _ = std::fs::write(&self.session_file, json);
+            }
+        } else {
+            let _ = std::fs::remove_file(&self.session_file);
+        }
         *self.session.write() = session;
     }
 

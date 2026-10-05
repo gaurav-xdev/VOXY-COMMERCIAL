@@ -61,7 +61,15 @@ impl WindowTracker {
 
     pub fn minimize_to_tray(&self) -> Result<()> {
         if let Some(hwnd) = *self.main_window_hwnd.read() {
-            info!("Window {} minimized to tray", hwnd);
+            info!("Window {} minimized to tray / hidden", hwnd);
+            #[cfg(windows)]
+            {
+                use windows::Win32::Foundation::HWND;
+                use windows::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_HIDE};
+                unsafe {
+                    let _ = ShowWindow(HWND(hwnd as isize as *mut _), SW_HIDE);
+                }
+            }
         }
         Ok(())
     }
@@ -69,8 +77,51 @@ impl WindowTracker {
     pub fn restore_from_tray(&self) -> Result<()> {
         if let Some(hwnd) = *self.main_window_hwnd.read() {
             info!("Window {} restored from tray", hwnd);
+            #[cfg(windows)]
+            {
+                use windows::Win32::Foundation::HWND;
+                use windows::Win32::UI::WindowsAndMessaging::{ShowWindow, SetForegroundWindow, SW_RESTORE};
+                unsafe {
+                    let h = HWND(hwnd as isize as *mut _);
+                    let _ = ShowWindow(h, SW_RESTORE);
+                    let _ = SetForegroundWindow(h);
+                }
+            }
         }
         Ok(())
+    }
+
+    /// Check if the currently focused foreground window is running fullscreen
+    /// (e.g. video playback, media presentation, or game) to allow intelligent overlay suppression.
+    pub fn is_foreground_fullscreen(&self) -> bool {
+        #[cfg(windows)]
+        {
+            use windows::Win32::Foundation::RECT;
+            use windows::Win32::UI::WindowsAndMessaging::{
+                GetForegroundWindow, GetWindowRect, GetDesktopWindow, GetShellWindow
+            };
+            unsafe {
+                let fg = GetForegroundWindow();
+                if fg.0.is_null() {
+                    return false;
+                }
+                let desktop = GetDesktopWindow();
+                let shell = GetShellWindow();
+                if fg == desktop || fg == shell {
+                    return false;
+                }
+
+                let mut fg_rect = RECT::default();
+                let mut desk_rect = RECT::default();
+                if GetWindowRect(fg, &mut fg_rect).is_ok() && GetWindowRect(desktop, &mut desk_rect).is_ok() {
+                    return fg_rect.left <= desk_rect.left
+                        && fg_rect.top <= desk_rect.top
+                        && fg_rect.right >= desk_rect.right
+                        && fg_rect.bottom >= desk_rect.bottom;
+                }
+            }
+        }
+        false
     }
 
     pub fn save_state(&self, path: &std::path::Path) -> Result<()> {

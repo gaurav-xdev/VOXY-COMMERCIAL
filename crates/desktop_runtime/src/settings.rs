@@ -18,6 +18,8 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingsSnapshot {
     pub app_name: String,
+    #[serde(default)]
+    pub onboarded: bool,
     pub voice: VoiceSettings,
     pub models: ModelSettings,
     pub memory: MemorySettings,
@@ -35,6 +37,8 @@ pub struct SettingsSnapshot {
 pub struct VoiceSettings {
     pub enabled: bool,
     pub wake_word: String,
+    #[serde(default)]
+    pub wake_words: Vec<String>,
     pub wake_word_sensitivity: f64,
     pub always_listening: bool,
     pub noise_suppression: bool,
@@ -43,13 +47,18 @@ pub struct VoiceSettings {
     pub input_device: Option<String>,
     pub output_device: Option<String>,
     pub language: String,
+    #[serde(default)]
+    pub tts_provider: Option<String>,
+    #[serde(default)]
+    pub stt_provider: Option<String>,
 }
 
 impl Default for VoiceSettings {
     fn default() -> Self {
         Self {
             enabled: true,
-            wake_word: "Hey VOXY".to_string(),
+            wake_word: "Hey OSMOO".to_string(),
+            wake_words: vec!["Hey OSMOO".to_string(), "OSMOO".to_string()],
             wake_word_sensitivity: 0.5,
             always_listening: true,
             noise_suppression: true,
@@ -58,6 +67,8 @@ impl Default for VoiceSettings {
             input_device: None,
             output_device: None,
             language: "en".to_string(),
+            tts_provider: Some("cartesia".to_string()),
+            stt_provider: Some("groq".to_string()),
         }
     }
 }
@@ -72,6 +83,8 @@ pub struct ModelSettings {
     pub max_tokens: u32,
     pub temperature: f64,
     pub local_only: bool,
+    #[serde(default)]
+    pub fallback_providers: Vec<String>,
 }
 
 impl Default for ModelSettings {
@@ -84,6 +97,7 @@ impl Default for ModelSettings {
             max_tokens: 4096,
             temperature: 0.7,
             local_only: true,
+            fallback_providers: vec!["groq".to_string(), "openai".to_string()],
         }
     }
 }
@@ -230,13 +244,23 @@ impl Default for PluginSettings {
     }
 }
 
-/// Appearance settings.
+/// Appearance and window/overlay behavior settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppearanceSettings {
     pub theme: String,
     pub opacity: f64,
     pub font_size: u32,
     pub always_on_top: bool,
+    #[serde(default = "default_true")]
+    pub start_with_windows: bool,
+    #[serde(default = "default_true")]
+    pub overlay_enabled: bool,
+    #[serde(default = "default_true")]
+    pub close_to_overlay: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for AppearanceSettings {
@@ -246,6 +270,9 @@ impl Default for AppearanceSettings {
             opacity: 0.95,
             font_size: 14,
             always_on_top: false,
+            start_with_windows: true,
+            overlay_enabled: true,
+            close_to_overlay: true,
         }
     }
 }
@@ -253,7 +280,8 @@ impl Default for AppearanceSettings {
 impl Default for SettingsSnapshot {
     fn default() -> Self {
         Self {
-            app_name: "VOXY".to_string(),
+            app_name: "OSMOO".to_string(),
+            onboarded: false,
             voice: VoiceSettings::default(),
             models: ModelSettings::default(),
             memory: MemorySettings::default(),
@@ -549,7 +577,7 @@ mod tests {
     #[test]
     fn settings_defaults() {
         let s = SettingsSnapshot::default();
-        assert_eq!(s.app_name, "VOXY");
+        assert_eq!(s.app_name, "OSMOO");
         assert!(s.voice.enabled);
         assert!(s.privacy.local_processing_only);
     }
@@ -575,7 +603,7 @@ mod tests {
     fn settings_manager_new() {
         let mgr = SettingsManager::new().unwrap();
         let settings = mgr.get();
-        assert_eq!(settings.app_name, "VOXY");
+        assert_eq!(settings.app_name, "OSMOO");
     }
 
     #[test]
@@ -638,7 +666,7 @@ mod tests {
         mgr.save_to_file(&path).unwrap();
         let loaded = SettingsManager::load_from_file(&path).unwrap();
         assert_eq!(
-            loaded.app_name, "VOXY",
+            loaded.app_name, "OSMOO",
             "old content must be fully replaced"
         );
 

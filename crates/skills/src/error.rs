@@ -14,6 +14,14 @@ pub enum SkillsError {
     Timeout(String),
     #[error("Skill execution cancelled: {0}")]
     ExecutionCancelled(String),
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+    #[error("Invalid skill manifest: {0}")]
+    ManifestInvalid(String),
+    #[error("Untrusted skill rejected: {0}")]
+    UntrustedSkill(String),
+    #[error("Workflow error: {0}")]
+    WorkflowError(String),
 }
 
 pub type Result<T> = std::result::Result<T, SkillsError>;

@@ -44,9 +44,9 @@ pub use transport::{
     JsonCodec, Transport, TransportAddr, TransportConnection, TransportListener, WireCodec,
 };
 pub use voxy_protocol::{
-    decode_ipc_payload, encode_ipc_frame, ClientCommand, DaemonMessage, IpcEnvelope,
-    ToolStepStatus, VoiceState, VoxyCursorState, VoxyCursorTelemetry, MAX_IPC_FRAME_SIZE,
-    VOXY_IPC_VERSION, VOXY_PIPE_NAME,
+    decode_ipc_payload, encode_ipc_frame, ClientCommand, DaemonMessage, IpcApprovalDecision,
+    IpcApprovalRequest, IpcEnvelope, ToolStepStatus, VoiceState, VoxyCursorState,
+    VoxyCursorTelemetry, MAX_IPC_FRAME_SIZE, VOXY_IPC_VERSION, VOXY_PIPE_NAME,
 };
 
 #[cfg(test)]

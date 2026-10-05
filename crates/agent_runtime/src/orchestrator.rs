@@ -64,7 +64,14 @@ impl AgentRole {
         match self {
             Self::Planner => task_type == "plan" || task_type == "decompose",
             Self::Researcher => task_type == "research" || task_type == "analyze",
-            Self::Coder => task_type == "code" || task_type == "implement",
+            Self::Coder => {
+                task_type == "code"
+                    || task_type == "implement"
+                    || task_type == "patch"
+                    || task_type == "build"
+                    || task_type == "diagnostics"
+                    || task_type == "harness"
+            }
             Self::Desktop => task_type == "desktop" || task_type == "ui",
             Self::Browser => task_type == "browser" || task_type == "web",
             Self::QA => task_type == "test" || task_type == "validate",

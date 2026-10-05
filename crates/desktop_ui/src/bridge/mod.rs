@@ -15,6 +15,7 @@ use voxy_config::ConfigManager;
 use voxy_database::{AuditLogStore, ConversationStore};
 use voxy_desktop_runtime::{
     download::DownloadManager, notifications::NotificationManager, settings::SettingsManager,
+    window_manager::WindowTracker,
 };
 use voxy_event_bus::EventBus;
 use voxy_health::HealthMonitor;
@@ -44,6 +45,7 @@ pub struct AppBridge {
     pub experience_input: tokio::sync::broadcast::Sender<ExperienceInput>,
     pub ipc: Arc<IpcBridge>,
     pub auth: Arc<AuthBridge>,
+    pub window_tracker: Arc<WindowTracker>,
 }
 
 impl AppBridge {
@@ -67,6 +69,7 @@ impl AppBridge {
         experience_input: tokio::sync::broadcast::Sender<ExperienceInput>,
         ipc: Arc<IpcBridge>,
         auth: Arc<AuthBridge>,
+        window_tracker: Arc<WindowTracker>,
     ) -> Self {
         Self {
             event_bus,
@@ -87,6 +90,7 @@ impl AppBridge {
             experience_input,
             ipc,
             auth,
+            window_tracker,
         }
     }
 }

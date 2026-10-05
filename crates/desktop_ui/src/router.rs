@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[allow(dead_code)]
 pub enum Route {
+    Core,
     Chat,
     Settings,
     Memory,
@@ -18,6 +19,7 @@ pub enum Route {
 impl Route {
     pub fn label(&self) -> &'static str {
         match self {
+            Route::Core => "OSMOO Core",
             Route::Chat => "Chat",
             Route::Settings => "Settings",
             Route::Memory => "Memory",
@@ -34,6 +36,7 @@ impl Route {
 
     pub fn icon(&self) -> &'static str {
         match self {
+            Route::Core => "\u{25C9}",
             Route::Chat => "\u{1F4AC}",
             Route::Settings => "\u{2699}",
             Route::Memory => "\u{1F4E6}",

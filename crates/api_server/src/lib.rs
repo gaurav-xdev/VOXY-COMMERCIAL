@@ -4,11 +4,13 @@
 //! session lifecycle management, sliding-window rate limiting, Dodo Payments integration,
 //! and structured RFC-compliant JSON error responses.
 
+pub mod email;
 pub mod error;
 pub mod handlers;
 pub mod middleware;
 pub mod router;
 
+pub use email::{EmailError, ResendMailer, SendEmailRequest, SendEmailResponse};
 pub use error::{ApiError, ApiErrorBody, ApiResponseEnvelope};
 pub use handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,

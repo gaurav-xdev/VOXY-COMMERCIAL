@@ -3,13 +3,25 @@
 //! Grounding resolves high-level user intents (e.g. "open the browser")
 //! into concrete UI targets (window handles, element selectors, coordinates).
 
+pub mod defense;
 pub mod error;
+pub mod extractor;
+pub mod orchestrator;
+pub mod quality;
+pub mod synthesis;
 
+pub use defense::{PromptInjectionDefense, SanitizedContent};
 pub use error::{GroundingError, Result};
+pub use extractor::{ContentExtractor, ExtractedDocument};
+pub use orchestrator::{ResearchConfig, ResearchOrchestrator, ResearchState};
+pub use quality::{SourceQualityEvaluator, SourceQualityScore, SourceTier};
+pub use synthesis::{Citation, ClaimConfidence, CrossSourceSynthesizer, ResearchClaim, SynthesisReport};
 
 use async_trait::async_trait;
-use voxy_orchestrator::automation::AutomationBackend;
 use voxy_world_model::context::WorldContext;
+
+/// Pluggable automation verification backend.
+pub trait TargetVerifier: Send + Sync {}
 
 /// A resolved UI target that can be passed to an automation backend.
 #[derive(Debug, Clone)]
@@ -58,7 +70,7 @@ pub trait GroundingEngine: Send + Sync {
     async fn verify_target(
         &self,
         target: &ResolvedTarget,
-        backend: &dyn AutomationBackend,
+        backend: &dyn TargetVerifier,
     ) -> Result<bool>;
 }
 
@@ -117,7 +129,7 @@ impl GroundingEngine for InMemoryGroundingEngine {
     async fn verify_target(
         &self,
         target: &ResolvedTarget,
-        _backend: &dyn AutomationBackend,
+        _backend: &dyn TargetVerifier,
     ) -> Result<bool> {
         match target {
             ResolvedTarget::Window {

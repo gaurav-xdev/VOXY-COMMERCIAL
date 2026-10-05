@@ -158,8 +158,49 @@ pub enum DaemonMessage {
     /// Real-time VOXY visual cursor and computer control telemetry.
     CursorUpdate(VoxyCursorTelemetry),
 
+    /// Human-in-the-loop approval requested for a sensitive or destructive action.
+    ApprovalRequested(IpcApprovalRequest),
+
+    /// A previously pending approval request has been resolved.
+    ApprovalResolved {
+        request_id: uuid::Uuid,
+        decision: IpcApprovalDecision,
+    },
+
+    /// Proactive notification or assistance suggestion emitted by companion intelligence.
+    ProactiveNotification {
+        id: String,
+        category: String,
+        title: String,
+        message: String,
+        priority: f64,
+        requires_action: bool,
+    },
+
     /// Heartbeat ping from daemon (every 5-10s).
     Heartbeat { uptime_secs: u64 },
+}
+
+/// Structured IPC approval request transmitted to desktop UI and overlay.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IpcApprovalRequest {
+    pub request_id: uuid::Uuid,
+    pub session_id: String,
+    pub tool_name: String,
+    pub parameters_redacted: serde_json::Value,
+    pub risk_level: String,
+    pub reason: String,
+    pub timeout_secs: u64,
+}
+
+/// Structured resolution outcome of an approval request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IpcApprovalDecision {
+    Approved,
+    Denied,
+    Expired,
+    Cancelled,
 }
 
 /// Visual interaction state of the dedicated VOXY computer control cursor.
@@ -217,8 +258,16 @@ pub enum ClientCommand {
     /// Reset Emergency Stop: re-enables computer control.
     ResetEmergencyStop,
 
-    /// User approval or rejection for a pending high-risk / destructive action.
+    /// User approval or rejection for a pending high-risk / destructive action (legacy u64).
     ConfirmAction { action_id: u64, approved: bool },
+
+    /// User approval or rejection for a pending unified ApprovalRequest.
+    RespondApproval {
+        request_id: uuid::Uuid,
+        approved: bool,
+        #[serde(default)]
+        reason: Option<String>,
+    },
 
     /// Interrupt ongoing speech synthesis immediately.
     InterruptSpeech,
@@ -245,6 +294,7 @@ impl ClientCommand {
             ClientCommand::EmergencyStop
                 | ClientCommand::ResetEmergencyStop
                 | ClientCommand::ConfirmAction { .. }
+                | ClientCommand::RespondApproval { .. }
                 | ClientCommand::SendTextInput { .. }
                 | ClientCommand::SetRoutingMode { .. }
         )

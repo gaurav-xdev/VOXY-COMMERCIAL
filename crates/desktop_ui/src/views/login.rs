@@ -82,7 +82,7 @@ pub fn LoginView() -> Element {
         div {
             style: "display: flex; align-items: center; justify-content: center; min-height: 100%;",
             div { class: "card", style: "width: 420px; text-align: center; padding: 32px;",
-                div { style: "font-size: 32px; font-weight: 700; color: var(--accent-secondary); margin-bottom: 8px;", "VOXY" }
+                div { style: "font-size: 32px; font-weight: 700; color: var(--accent-secondary); margin-bottom: 8px;", "OSMOO" }
 
                 if let Some(sess) = session {
                     div { style: "font-size: 13px; color: var(--text-muted); margin-bottom: 24px;", "Active Account Session" }
@@ -99,7 +99,7 @@ pub fn LoginView() -> Element {
                     }
                 } else {
                     div { style: "font-size: 13px; color: var(--text-muted); margin-bottom: 24px;",
-                        if *is_register_mode.read() { "Create a new VOXY account" } else { "Sign in to your account" }
+                        if *is_register_mode.read() { "Create a new OSMOO account" } else { "Sign in to your account" }
                     }
 
                     div { style: "margin-bottom: 16px; text-align: left;",

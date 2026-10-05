@@ -176,6 +176,40 @@ fn VoiceSettingsTab() -> Element {
                         }
                     }
                 }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "STT Provider" }, div { class: "setting-desc", "Speech-to-Text engine" } }
+                    input {
+                        class: "input",
+                        value: "{s.read().voice.stt_provider.clone().unwrap_or_else(|| \"groq\".to_string())}",
+                        style: "width: 160px;",
+                        oninput: move |evt: Event<FormData>| {
+                            s.write().voice.stt_provider = Some(evt.value());
+                        }
+                    }
+                }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "TTS Provider" }, div { class: "setting-desc", "Text-to-Speech synthesizer" } }
+                    input {
+                        class: "input",
+                        value: "{s.read().voice.tts_provider.clone().unwrap_or_else(|| \"cartesia\".to_string())}",
+                        style: "width: 160px;",
+                        oninput: move |evt: Event<FormData>| {
+                            s.write().voice.tts_provider = Some(evt.value());
+                        }
+                    }
+                }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "Registered Wake Words" }, div { class: "setting-desc", "Phrases that awaken OSMOO (comma-separated)" } }
+                    input {
+                        class: "input",
+                        value: "{s.read().voice.wake_words.join(\", \")}",
+                        style: "width: 280px;",
+                        oninput: move |evt: Event<FormData>| {
+                            let words: Vec<String> = evt.value().split(',').map(|w| w.trim().to_string()).filter(|w| !w.is_empty()).collect();
+                            s.write().voice.wake_words = words;
+                        }
+                    }
+                }
             }
         }
     }
@@ -249,6 +283,18 @@ fn ModelsSettingsTab() -> Element {
                         }
                     }
                 }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "Fallback Providers" }, div { class: "setting-desc", "Ordered backup providers (comma-separated)" } }
+                    input {
+                        class: "input",
+                        value: "{s.read().models.fallback_providers.join(\", \")}",
+                        style: "width: 240px;",
+                        oninput: move |evt: Event<FormData>| {
+                            let providers: Vec<String> = evt.value().split(',').map(|p| p.trim().to_string()).filter(|p| !p.is_empty()).collect();
+                            s.write().models.fallback_providers = providers;
+                        }
+                    }
+                }
             }
         }
     }
@@ -263,7 +309,7 @@ fn MemorySettingsTab() -> Element {
             div { class: "card",
                 div { class: "card-header", span { class: "card-title", "Memory Settings" } }
                 div { class: "setting-row",
-                    div { div { class: "setting-label", "Enable Memory" }, div { class: "setting-desc", "Allow VOXY to remember things" } }
+                    div { div { class: "setting-label", "Enable Memory" }, div { class: "setting-desc", "Allow OSMOO to remember things" } }
                     div {
                         class: toggle_class(s.read().memory.enabled),
                         onclick: move |_| {
@@ -683,6 +729,43 @@ fn AppearanceSettingsTab() -> Element {
                         onclick: move |_| {
                             let val = s.read().appearance.always_on_top;
                             s.write().appearance.always_on_top = !val;
+                        }
+                    }
+                }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "Start OSMOO with Windows" }, div { class: "setting-desc", "Silently initialize OSMOO and desktop companion on system boot" } }
+                    div {
+                        class: toggle_class(s.read().appearance.start_with_windows),
+                        onclick: move |_| {
+                            let current = s.read().appearance.start_with_windows;
+                            let new_val = !current;
+                            s.write().appearance.start_with_windows = new_val;
+                            let al = voxy_desktop_runtime::autolaunch::AutoLauncher::new("OSMOO");
+                            if new_val {
+                                let _ = al.enable();
+                            } else {
+                                let _ = al.disable();
+                            }
+                        }
+                    }
+                }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "Smart Desktop Overlay" }, div { class: "setting-desc", "Display the volumetric 3D gimbal companion overlay on your desktop" } }
+                    div {
+                        class: toggle_class(s.read().appearance.overlay_enabled),
+                        onclick: move |_| {
+                            let val = s.read().appearance.overlay_enabled;
+                            s.write().appearance.overlay_enabled = !val;
+                        }
+                    }
+                }
+                div { class: "setting-row",
+                    div { div { class: "setting-label", "Close Window to Overlay" }, div { class: "setting-desc", "Closing the main window keeps OSMOO companion running in background/overlay" } }
+                    div {
+                        class: toggle_class(s.read().appearance.close_to_overlay),
+                        onclick: move |_| {
+                            let val = s.read().appearance.close_to_overlay;
+                            s.write().appearance.close_to_overlay = !val;
                         }
                     }
                 }

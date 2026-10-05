@@ -289,11 +289,36 @@ fn init_bridge() -> AppBridge {
             120,
             std::time::Duration::from_secs(60),
         ));
-        let api_handlers = Arc::new(voxy_api_server::handlers::ApiHandlers::new(
-            commercial_store,
-            None,
-            None,
-        ));
+        let dodo_client = match voxy_billing::DodoPaymentsClient::from_env() {
+            Ok(client) => {
+                tracing::info!("Dodo Payments client initialized successfully");
+                Some(Arc::new(client))
+            }
+            Err(e) => {
+                tracing::info!("Dodo Payments client not configured ({e}), checkout disabled");
+                None
+            }
+        };
+        let webhook_secret = std::env::var("DODO_PAYMENTS_WEBHOOK_SECRET").ok();
+        let mailer = match voxy_api_server::ResendMailer::from_env() {
+            Ok(m) => {
+                tracing::info!("Resend transactional mailer initialized successfully");
+                Some(Arc::new(m))
+            }
+            Err(e) => {
+                tracing::info!("Resend transactional mailer not configured ({e}), email notifications disabled");
+                None
+            }
+        };
+
+        let api_handlers = Arc::new(
+            voxy_api_server::handlers::ApiHandlers::new(
+                commercial_store,
+                dodo_client,
+                webhook_secret,
+            )
+            .with_mailer(mailer),
+        );
         let api_router = Arc::new(voxy_api_server::router::ApiRouter::new(
             api_handlers,
             auth_middleware,
@@ -307,6 +332,8 @@ fn init_bridge() -> AppBridge {
              Personality(InMemory), Security, Plugins, Health, Voice, Downloads, Notifications, \
              Conversations(SQLite), AuditLog(SQLite), ExperienceBridge, IPC, Auth"
         );
+
+        let window_tracker = Arc::new(voxy_desktop_runtime::window_manager::WindowTracker::new());
 
         AppBridge::new(
             event_bus,
@@ -327,6 +354,7 @@ fn init_bridge() -> AppBridge {
             exp_input_tx,
             ipc,
             auth,
+            window_tracker,
         )
     })
 }
@@ -347,19 +375,31 @@ fn main() {
         )
         .init();
 
-    tracing::info!("Starting VOXY Desktop UI v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Starting OSMOO Desktop UI v{}", env!("CARGO_PKG_VERSION"));
 
     let bridge = init_bridge();
 
     BRIDGE.set(bridge.clone()).ok();
 
+    let args: Vec<String> = std::env::args().collect();
+    let is_autostart = args.iter().any(|arg| arg == "--autostart" || arg == "-a");
+
+    if is_autostart {
+        tracing::info!("OSMOO started via Windows auto-start in quiet background companion mode");
+    }
+
+    let mut window_builder = dioxus::desktop::WindowBuilder::new()
+        .with_title("OSMOO — Windows AI Operating Companion")
+        .with_inner_size(dioxus::desktop::LogicalSize::new(1280.0, 820.0))
+        .with_resizable(true);
+
+    if is_autostart {
+        // When launched with Windows, start minimized to maintain a quiet desktop
+        window_builder = window_builder.with_visible(false);
+    }
+
     let cfg = dioxus::desktop::Config::new()
-        .with_window(
-            dioxus::desktop::WindowBuilder::new()
-                .with_title("VOXY — Windows AI Operating Companion")
-                .with_inner_size(dioxus::desktop::LogicalSize::new(1280.0, 820.0))
-                .with_resizable(true),
-        )
+        .with_window(window_builder)
         .with_custom_head(format!("<style>{}</style>", styles::APP_CSS));
 
     dioxus::LaunchBuilder::desktop()

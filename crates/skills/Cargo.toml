@@ -12,6 +12,9 @@ voxy-world-model = { path = "../world_model" }
 voxy-provider-core = { workspace = true }
 voxy-personality = { workspace = true }
 voxy-event-bus = { workspace = true }
+voxy-tool-calling = { path = "../tool_calling" }
+voxy-security = { path = "../security" }
+voxy-database = { path = "../database" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }

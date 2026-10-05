@@ -5,27 +5,25 @@ use tracing::info;
 
 pub struct AutoLauncher {
     app_name: String,
-    registry_key: String,
+    run_key: String,
 }
 
 impl AutoLauncher {
     pub fn new(app_name: &str) -> Self {
         Self {
             app_name: app_name.to_string(),
-            registry_key: format!(
-                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\{}",
-                app_name
-            ),
+            run_key: "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run".to_string(),
         }
     }
 
     pub fn enable(&self) -> Result<()> {
         let exe_path = self.get_exe_path()?;
+        let cmd = format!("\"{}\" --autostart", exe_path);
         #[cfg(windows)]
         {
-            self.set_registry_value(&exe_path)?;
+            self.set_registry_value(&cmd)?;
         }
-        info!("Auto-launch enabled for {}", self.app_name);
+        info!("Auto-launch enabled for {} with command: {}", self.app_name, cmd);
         Ok(())
     }
 
@@ -64,7 +62,12 @@ impl AutoLauncher {
 
         unsafe {
             let key_wide: Vec<u16> = self
-                .registry_key
+                .run_key
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let value_name_wide: Vec<u16> = self
+                .app_name
                 .encode_utf16()
                 .chain(std::iter::once(0))
                 .collect();
@@ -99,7 +102,7 @@ impl AutoLauncher {
 
             let result = RegSetValueExW(
                 hkey,
-                windows::core::PCWSTR::null(),
+                windows::core::PCWSTR::from_raw(value_name_wide.as_ptr()),
                 0,
                 REG_SZ,
                 Some(&value_bytes),
@@ -128,7 +131,12 @@ impl AutoLauncher {
         };
         unsafe {
             let key_wide: Vec<u16> = self
-                .registry_key
+                .run_key
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let value_name_wide: Vec<u16> = self
+                .app_name
                 .encode_utf16()
                 .chain(std::iter::once(0))
                 .collect();
@@ -143,7 +151,7 @@ impl AutoLauncher {
             if result.is_err() {
                 return Ok(());
             }
-            let _ = RegDeleteValueW(hkey, windows::core::PCWSTR::null());
+            let _ = RegDeleteValueW(hkey, windows::core::PCWSTR::from_raw(value_name_wide.as_ptr()));
             let _ = windows::Win32::System::Registry::RegCloseKey(hkey);
         }
         Ok(())
@@ -161,7 +169,12 @@ impl AutoLauncher {
         };
         unsafe {
             let key_wide: Vec<u16> = self
-                .registry_key
+                .run_key
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let value_name_wide: Vec<u16> = self
+                .app_name
                 .encode_utf16()
                 .chain(std::iter::once(0))
                 .collect();
@@ -181,7 +194,7 @@ impl AutoLauncher {
             let mut reg_type = REG_SZ;
             let result = RegQueryValueExW(
                 hkey,
-                windows::core::PCWSTR::null(),
+                windows::core::PCWSTR::from_raw(value_name_wide.as_ptr()),
                 None,
                 Some(&mut reg_type),
                 Some(buffer.as_mut_ptr() as *mut u8),

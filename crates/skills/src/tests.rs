@@ -279,3 +279,152 @@ async fn test_registry_find() {
     let results = registry.find_capabilities("nonexistent").await.unwrap();
     assert!(results.is_empty());
 }
+
+#[tokio::test]
+async fn test_skill_manifest_validation_and_permission_enforcement() {
+    use crate::runtime::SkillRuntime;
+    use crate::types::{SkillManifest, SkillPermission, SkillTrustLevel};
+    use std::sync::Arc;
+    use voxy_tool_calling::ToolRegistry;
+
+    let registry = Arc::new(ToolRegistry::with_builtins());
+    let runtime = SkillRuntime::new(registry);
+
+    // 1. Valid manifest with ReadFiles permission
+    let manifest = SkillManifest {
+        skill_id: "osmoo.test.fs".into(),
+        name: "test_fs_skill".into(),
+        display_name: "Test Filesystem Skill".into(),
+        description: "Tests file operations".into(),
+        version: "1.0.0".into(),
+        publisher_id: "publisher_test".into(),
+        trust_level: SkillTrustLevel::Verified,
+        permissions: vec![SkillPermission::ReadFiles],
+        required_tools: vec!["file_list".into()],
+        inputs_schema: serde_json::json!({}),
+        outputs_schema: serde_json::json!({}),
+        timeout_seconds: 10,
+        max_steps: 5,
+        checksum: "sha256:abc".into(),
+    };
+
+    assert!(manifest.validate().is_ok());
+
+    // 2. Allowed operation: file_list matches ReadFiles
+    let allowed_res = runtime
+        .execute_skill_action(
+            &manifest,
+            "file_list",
+            serde_json::json!({ "path": "." }),
+            "sess_test",
+        )
+        .await;
+    assert!(allowed_res.is_ok());
+
+    // 3. Denied operation: file_delete requires DeleteFiles which is NOT declared
+    let denied_res = runtime
+        .execute_skill_action(
+            &manifest,
+            "file_delete",
+            serde_json::json!({ "path": "test.txt" }),
+            "sess_test",
+        )
+        .await;
+    assert!(denied_res.is_err());
+    let err_str = denied_res.unwrap_err().to_string();
+    assert!(err_str.contains("missing required permission"));
+}
+
+#[tokio::test]
+async fn test_workflow_engine_end_to_end_execution() {
+    use crate::runtime::SkillRuntime;
+    use crate::types::{SkillManifest, SkillPermission, SkillTrustLevel, WorkflowDefinition, WorkflowStep};
+    use crate::workflow::WorkflowEngine;
+    use std::sync::Arc;
+    use voxy_database::{CommercialStore, DatabaseConfig, SqliteDatabase, StorageProvider};
+    use voxy_tool_calling::ToolRegistry;
+
+    let config = DatabaseConfig {
+        path: Some(":memory:".to_string()),
+        ..Default::default()
+    };
+    let db = Arc::new(SqliteDatabase::new());
+    db.connect(&config).await.unwrap();
+    let store = Arc::new(CommercialStore::new(db));
+    store.initialize_schema().await.unwrap();
+
+    let registry = Arc::new(ToolRegistry::with_builtins());
+    let runtime = Arc::new(SkillRuntime::new(registry).with_store(store.clone()));
+    let workflow_engine = WorkflowEngine::new(runtime).with_store(store.clone());
+
+    let manifest = SkillManifest {
+        skill_id: "osmoo.test.flow".into(),
+        name: "test_flow_skill".into(),
+        display_name: "Flow Skill".into(),
+        description: "Tests flow operations".into(),
+        version: "1.0.0".into(),
+        publisher_id: "publisher_test".into(),
+        trust_level: SkillTrustLevel::Verified,
+        permissions: vec![SkillPermission::ReadFiles, SkillPermission::ProcessControl],
+        required_tools: vec!["file_list".into(), "process_list".into()],
+        inputs_schema: serde_json::json!({}),
+        outputs_schema: serde_json::json!({}),
+        timeout_seconds: 15,
+        max_steps: 5,
+        checksum: "sha256:123".into(),
+    };
+
+    let workflow = WorkflowDefinition {
+        workflow_id: "wf_inspection".into(),
+        name: "Inspection Workflow".into(),
+        description: "Inspects filesystem and processes".into(),
+        version: "1.0.0".into(),
+        timeout_seconds: 30,
+        steps: vec![
+            WorkflowStep {
+                step_id: "step_1".into(),
+                name: "List Files".into(),
+                required_skill_or_tool: "file_list".into(),
+                parameters: serde_json::json!({ "path": "." }),
+                requires_approval: false,
+            },
+            WorkflowStep {
+                step_id: "step_2".into(),
+                name: "List Processes".into(),
+                required_skill_or_tool: "process_list".into(),
+                parameters: serde_json::json!({}),
+                requires_approval: false,
+            },
+        ],
+    };
+
+    // Register workflow definition into store to satisfy foreign key
+    let wf_record = store
+        .create_workflow(
+            "acc_user1",
+            Some("ws_osmoo"),
+            &workflow.name,
+            &workflow.description,
+            &workflow.version,
+            "{}",
+        )
+        .await
+        .unwrap();
+
+    let mut workflow_with_id = workflow.clone();
+    workflow_with_id.workflow_id = wf_record.id;
+
+    let result = workflow_engine
+        .execute_workflow(
+            &workflow_with_id,
+            &manifest,
+            "acc_user1",
+            Some("ws_osmoo"),
+            "sess_wf",
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.get("status").unwrap().as_str().unwrap(), "completed");
+    assert_eq!(result.get("steps_completed").unwrap().as_i64().unwrap(), 2);
+}

@@ -79,6 +79,7 @@ pub struct ApiHandlers {
     store: Arc<CommercialStore>,
     dodo_client: Option<Arc<DodoPaymentsClient>>,
     webhook_secret: Option<String>,
+    mailer: Option<Arc<crate::email::ResendMailer>>,
 }
 
 impl ApiHandlers {
@@ -91,7 +92,13 @@ impl ApiHandlers {
             store,
             dodo_client,
             webhook_secret,
+            mailer: None,
         }
+    }
+
+    pub fn with_mailer(mut self, mailer: Option<Arc<crate::email::ResendMailer>>) -> Self {
+        self.mailer = mailer;
+        self
     }
 
     /// GET /health
@@ -138,6 +145,17 @@ impl ApiHandlers {
             .create_user(&email, &password_hash)
             .await
             .map_err(|e| ApiError::Internal(format!("Failed to create user: {e}")))?;
+
+        // Send welcome email asynchronously if transactional mailer is configured
+        if let Some(mailer) = self.mailer.clone() {
+            let email_clone = user.email.clone();
+            let name_clone = req.name.clone();
+            tokio::spawn(async move {
+                if let Err(e) = mailer.send_welcome(&email_clone, name_clone.as_deref()).await {
+                    tracing::warn!("Failed to deliver transactional welcome email: {e}");
+                }
+            });
+        }
 
         Ok(RegisterResponse {
             user_id: user.id,

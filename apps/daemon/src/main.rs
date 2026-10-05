@@ -20,6 +20,7 @@ use voxy_cognitive_orchestrator::bridge::CognitiveBridge;
 use voxy_cognitive_orchestrator::config::OrchestratorConfig;
 use voxy_companion_intelligence::{
     ExperienceBridge, ExperienceInput, IntelligenceConfig, MomentContext, MomentEngine,
+    ProactiveConfig, ProactiveEngine, SuggestionContext,
 };
 use voxy_desktop_runtime::{DesktopRuntime, RuntimeConfig};
 use voxy_gemini::GeminiProvider;
@@ -683,7 +684,8 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         exp_bridge.start().await;
         let exp_bridge = Arc::new(exp_bridge);
         let mut moment_engine = MomentEngine::new();
-        tracing::info!("Experience Layer started");
+        let mut proactive_engine = ProactiveEngine::new(ProactiveConfig::default());
+        tracing::info!("Experience Layer and Proactive Engine started");
 
         // ── Cognitive Orchestrator ────────────────────────────────────────
         let cognitive_bridge = Arc::new(CognitiveBridge::new(OrchestratorConfig::default()));
@@ -946,10 +948,67 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             tools::ToolRegistry::tool_definitions(),
         ));
 
+        // ── Unified Approval Broker (Human-in-the-Loop Governance) ───────
+        let approval_broker = Arc::new(voxy_security::ApprovalBroker::new());
+
+        // Forward ApprovalBroker requests to IPC
+        {
+            let ipc_srv = ipc_server.clone();
+            let mut req_rx = approval_broker.subscribe_requests();
+            tokio::spawn(async move {
+                while let Ok(req) = req_rx.recv().await {
+                    let ipc_req = voxy_ipc::IpcApprovalRequest {
+                        request_id: req.id,
+                        session_id: req.session_id,
+                        tool_name: req.tool_name,
+                        parameters_redacted: req.parameters_redacted,
+                        risk_level: req.risk_level.as_str().to_string(),
+                        reason: req.reason,
+                        timeout_secs: req.timeout_secs,
+                    };
+                    ipc_srv.broadcast(voxy_ipc::DaemonMessage::ApprovalRequested(ipc_req));
+                }
+            });
+        }
+
+        // Forward ApprovalBroker decisions to IPC
+        {
+            let ipc_srv = ipc_server.clone();
+            let mut dec_rx = approval_broker.subscribe_decisions();
+            tokio::spawn(async move {
+                while let Ok(dec) = dec_rx.recv().await {
+                    let ipc_dec = match dec.status {
+                        voxy_security::ApprovalStatus::Approved => voxy_ipc::IpcApprovalDecision::Approved,
+                        voxy_security::ApprovalStatus::Denied => voxy_ipc::IpcApprovalDecision::Denied,
+                        voxy_security::ApprovalStatus::Expired => voxy_ipc::IpcApprovalDecision::Expired,
+                        voxy_security::ApprovalStatus::Cancelled => voxy_ipc::IpcApprovalDecision::Cancelled,
+                        voxy_security::ApprovalStatus::Pending => continue,
+                    };
+                    ipc_srv.broadcast(voxy_ipc::DaemonMessage::ApprovalResolved {
+                        request_id: dec.request_id,
+                        decision: ipc_dec,
+                    });
+                }
+            });
+        }
+
+        // Periodically sweep expired approval requests
+        {
+            let broker_sweep = approval_broker.clone();
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(Duration::from_secs(1));
+                loop {
+                    interval.tick().await;
+                    broker_sweep.sweep_expired();
+                }
+            });
+        }
+
         // ── Tool Registry ─────────────────────────────────────────────────
         let tool_registry = match tools::ToolRegistry::new().await {
             Ok(tr) => {
-                tracing::info!("[TOOLS] Tool registry initialized with automation backend");
+                let tr = tr.with_approval_broker(approval_broker.clone());
+                tracing::info!("[TOOLS] Tool registry initialized with automation backend and ApprovalBroker");
                 Some(Arc::new(tr))
             }
             Err(e) => {
@@ -1811,6 +1870,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         {
             let ipc_srv = ipc_server.clone();
             let tr_opt = tool_registry.clone();
+            let broker_opt = approval_broker.clone();
             let running_flag = running.clone();
             let llm_provider_name = llm.name().to_string();
             tokio::spawn(async move {
@@ -1821,6 +1881,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             if let Some(ref tr) = tr_opt {
                                 tr.trigger_emergency_stop();
                             }
+                            broker_opt.emergency_stop_all();
                             ipc_srv.set_emergency_stop(true).await;
                         }
                         Some(voxy_ipc::ClientCommand::ResetEmergencyStop) => {
@@ -1831,6 +1892,21 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 tr.reset_emergency_stop();
                             }
                             ipc_srv.set_emergency_stop(false).await;
+                        }
+                        Some(voxy_ipc::ClientCommand::RespondApproval {
+                            request_id,
+                            approved,
+                            reason,
+                        }) => {
+                            tracing::info!(
+                                %request_id,
+                                approved,
+                                reason = ?reason,
+                                "[IPC] Received client RespondApproval decision"
+                            );
+                            if let Err(e) = broker_opt.resolve(request_id, approved, reason) {
+                                tracing::warn!(%request_id, error = %e, "[IPC] Failed to resolve approval request");
+                            }
                         }
                         Some(voxy_ipc::ClientCommand::ClientHandshake {
                             client_name,
@@ -2090,6 +2166,43 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 event_type: format!("{:?}", moment.moment_type),
                                 data: Some(moment.message),
                             });
+                        }
+
+                        // ── Proactive Assistance Engine ────────────────────────
+                        let suggestion_ctx = SuggestionContext {
+                            current_app: ctx.focused_app.clone(),
+                            current_activity: ctx.activity_type.clone(),
+                            time_of_day: if now.hour() < 12 {
+                                "morning".to_string()
+                            } else if now.hour() < 17 {
+                                "afternoon".to_string()
+                            } else {
+                                "evening".to_string()
+                            },
+                            session_duration_ms: (chrono::Utc::now().timestamp_millis().max(0)) as u64,
+                            recent_errors: 0,
+                            recent_completions: tasks_completed.load(std::sync::atomic::Ordering::Relaxed) as usize,
+                            typing_speed: 0.0,
+                            idle_time_ms: idle_duration_chrono.num_milliseconds().max(0) as u64,
+                        };
+
+                        let suggestions = proactive_engine.generate_suggestions(&suggestion_ctx);
+                        for sug in suggestions {
+                            tracing::info!(
+                                id = %sug.id,
+                                sug_type = ?sug.suggestion_type,
+                                priority = sug.priority,
+                                "[PROACTIVE] Emitting assistance notification"
+                            );
+                            ipc_server.broadcast(voxy_ipc::DaemonMessage::ProactiveNotification {
+                                id: sug.id.clone(),
+                                category: format!("{:?}", sug.suggestion_type),
+                                title: format!("OSMOO Companion {:?}", sug.suggestion_type),
+                                message: sug.message,
+                                priority: sug.priority,
+                                requires_action: false,
+                            });
+                            proactive_engine.mark_shown(&sug.id);
                         }
                     }
                     _ = tokio::signal::ctrl_c() => {

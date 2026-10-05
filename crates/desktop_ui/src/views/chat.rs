@@ -238,7 +238,7 @@ pub fn ChatView() -> Element {
                         VoiceOrb { state: orb_state, on_click: None }
                         div { class: "empty-state-title", "How can I help you today?" }
                         div { class: "empty-state-desc",
-                            "VOXY is voice-first. Speak aloud or use push-to-talk."
+                            "OSMOO is voice-first. Speak aloud or use push-to-talk."
                         }
                         div { style: "margin-top: 8px;",
                             span {
@@ -257,7 +257,7 @@ pub fn ChatView() -> Element {
                         div {
                             class: if msg.role == "user" { "message user" } else { "message assistant" },
                             div { class: "message-avatar",
-                                if msg.role == "user" { "\u{1F464}" } else { "V" }
+                                if msg.role == "user" { "\u{1F464}" } else { "O" }
                             }
                             div { class: "message-bubble", "{msg.content}" }
                         }

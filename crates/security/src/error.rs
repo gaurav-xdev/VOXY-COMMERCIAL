@@ -27,6 +27,9 @@ pub enum SecurityError {
     IntegrityViolation(String),
     // Policy
     PolicyError(String),
+    // Approval
+    ApprovalError(String),
+    Internal(String),
 }
 
 impl fmt::Display for SecurityError {
@@ -52,6 +55,8 @@ impl fmt::Display for SecurityError {
             Self::ThreatDetected(msg) => write!(f, "Threat detected: {msg}"),
             Self::IntegrityViolation(msg) => write!(f, "Integrity violation: {msg}"),
             Self::PolicyError(msg) => write!(f, "Policy error: {msg}"),
+            Self::ApprovalError(msg) => write!(f, "Approval error: {msg}"),
+            Self::Internal(msg) => write!(f, "Internal security error: {msg}"),
         }
     }
 }

@@ -315,6 +315,157 @@ impl Tool for HarnessApplyPatchTool {
     }
 }
 
+/// Parse compiler or test output into structured diagnostics.
+pub struct HarnessParseDiagnosticsTool {
+    metadata: ToolMetadata,
+}
+
+impl HarnessParseDiagnosticsTool {
+    pub fn new() -> Self {
+        Self {
+            metadata: ToolMetadata::new(
+                "harness_parse_diagnostics",
+                "Parse build output, compiler errors, or test tracebacks into structured diagnostics",
+                ToolCategory::Coding,
+                RiskTier::Read,
+            )
+            .with_schema(json!({
+                "type": "object",
+                "required": ["output"],
+                "properties": {
+                    "output": { "type": "string", "description": "Raw terminal output from cargo, tsc, pytest, etc." }
+                }
+            })),
+        }
+    }
+}
+
+impl Default for HarnessParseDiagnosticsTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for HarnessParseDiagnosticsTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> Result<ToolResult> {
+        let start = Instant::now();
+        let output = params
+            .get("output")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::InvalidParams("Missing 'output'".into()))?;
+
+        let report = voxy_harness::DiagnosticParser::parse(output);
+
+        Ok(ToolResult::success(json!({
+            "success": report.success,
+            "total_errors": report.total_errors,
+            "total_warnings": report.total_warnings,
+            "diagnostics": report.items,
+        }))
+        .with_observation(format!(
+            "Parsed diagnostics: {} errors, {} warnings",
+            report.total_errors, report.total_warnings
+        ))
+        .with_duration_ms(start.elapsed().as_millis() as u64))
+    }
+}
+
+/// Apply multiple file patches in an atomic transaction with rollback and secret checks.
+pub struct HarnessApplyPatchTransactionTool {
+    metadata: ToolMetadata,
+}
+
+impl HarnessApplyPatchTransactionTool {
+    pub fn new() -> Self {
+        Self {
+            metadata: ToolMetadata::new(
+                "harness_apply_patch_transaction",
+                "Apply multi-file atomic patches with pre-flight secret scanning and automatic rollback on failure",
+                ToolCategory::Coding,
+                RiskTier::Modify,
+            )
+            .with_schema(json!({
+                "type": "object",
+                "required": ["patches"],
+                "properties": {
+                    "patches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["file_path", "modified_content"],
+                            "properties": {
+                                "file_path": { "type": "string" },
+                                "modified_content": { "type": "string" }
+                            }
+                        }
+                    },
+                    "root_path": { "type": "string" }
+                }
+            }))
+            .with_rollback(true)
+            .with_confirmation(true),
+        }
+    }
+}
+
+impl Default for HarnessApplyPatchTransactionTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for HarnessApplyPatchTransactionTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(&self, params: serde_json::Value, ctx: &ToolContext) -> Result<ToolResult> {
+        let start = Instant::now();
+        let patches_val = params
+            .get("patches")
+            .and_then(|v| v.as_array())
+            .ok_or_else(|| ToolError::InvalidParams("Missing or invalid 'patches' array".into()))?;
+
+        let root = resolve_repo_root(&params, ctx);
+        let mut tx = voxy_harness::PatchTransaction::new(&root);
+
+        for patch_item in patches_val {
+            let path_str = patch_item
+                .get("file_path")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| ToolError::InvalidParams("Patch item missing 'file_path'".into()))?;
+            let content = patch_item
+                .get("modified_content")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| ToolError::InvalidParams("Patch item missing 'modified_content'".into()))?;
+
+            tx.add_change(path_str, content);
+        }
+
+        let diffs = tx
+            .apply()
+            .map_err(|e| ToolError::ExecutionFailed(format!("Patch transaction rejected: {}", e)))?;
+
+        // Commit transaction to lock in changes
+        tx.commit();
+
+        let count = diffs.len();
+        Ok(ToolResult::success(json!({
+            "files_modified": count,
+            "diffs": diffs,
+        }))
+        .with_observation(format!("Atomically applied {} file patches", count))
+        .with_verification("All files modified cleanly with boundary and secret validation")
+        .with_duration_ms(start.elapsed().as_millis() as u64))
+    }
+}
+
 fn resolve_repo_root(params: &serde_json::Value, ctx: &ToolContext) -> PathBuf {
     if let Some(r) = params.get("root_path").and_then(|v| v.as_str()) {
         PathBuf::from(r)

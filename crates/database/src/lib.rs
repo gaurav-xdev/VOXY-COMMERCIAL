@@ -17,7 +17,8 @@ pub mod sqlite;
 
 pub use commercial::{
     get_commercial_migrations, CommercialStore, ConsentRecord, EntitlementRecord, PlanRecord,
-    SessionRecord, SubscriptionRecord, UserRecord, WebhookEventRecord,
+    SessionRecord, SubscriptionRecord, TaskArtifactRecord, TaskRecord, TaskStatus,
+    TaskToolInvocationRecord, UserRecord, WebhookEventRecord,
 };
 
 pub use backup::BackupManager;

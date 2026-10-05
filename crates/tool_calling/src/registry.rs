@@ -1,19 +1,20 @@
-//! Unified Tool Registry with capability verification, risk tier enforcement, and audit trail.
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
 
+use voxy_security::{ApprovalBroker, ApprovalRiskLevel, ApprovalStatus};
+
 use crate::builtin::*;
 use crate::error::{Result, ToolError};
-use crate::metadata::{ToolContext, ToolMetadata, ToolResult};
+use crate::metadata::{RiskTier, ToolContext, ToolMetadata, ToolResult};
 use crate::traits::Tool;
 
 /// Central tool registry managing discovery, validation, and safe invocation.
 pub struct ToolRegistry {
     tools: Arc<RwLock<HashMap<String, Arc<dyn Tool>>>>,
+    approval_broker: Option<Arc<ApprovalBroker>>,
 }
 
 impl ToolRegistry {
@@ -21,7 +22,14 @@ impl ToolRegistry {
     pub fn new() -> Self {
         Self {
             tools: Arc::new(RwLock::new(HashMap::new())),
+            approval_broker: None,
         }
+    }
+
+    /// Attach an authoritative ApprovalBroker to handle human-in-the-loop approvals.
+    pub fn with_approval_broker(mut self, broker: Arc<ApprovalBroker>) -> Self {
+        self.approval_broker = Some(broker);
+        self
     }
 
     /// Create a tool registry pre-loaded with all native Windows, coding harness, and browser tools.
@@ -45,8 +53,29 @@ impl ToolRegistry {
         registry.register_builtin_sync(Arc::new(HarnessSearchTool::new()));
         registry.register_builtin_sync(Arc::new(HarnessRunCommandTool::new()));
         registry.register_builtin_sync(Arc::new(HarnessApplyPatchTool::new()));
+        registry.register_builtin_sync(Arc::new(HarnessParseDiagnosticsTool::new()));
+        registry.register_builtin_sync(Arc::new(HarnessApplyPatchTransactionTool::new()));
+        registry.register_builtin_sync(Arc::new(ResearchInvestigateTool::new()));
+        registry.register_builtin_sync(Arc::new(TaskHistoryGetTool::new()));
+        registry.register_builtin_sync(Arc::new(TaskArtifactsListTool::new()));
+        registry.register_builtin_sync(Arc::new(MemoryStoreTool::new()));
+        registry.register_builtin_sync(Arc::new(MemoryRecallTool::new()));
+        registry.register_builtin_sync(Arc::new(MemoryForgetTool::new()));
         registry.register_builtin_sync(Arc::new(BrowserOpenTool::new()));
         registry.register_builtin_sync(Arc::new(BrowserFetchTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserLaunchTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserCloseTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserAttachTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserNavigateTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserListPagesTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserSwitchPageTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserObserveTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserExtractTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserScreenshotTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserDownloadTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserUploadTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserWaitTool::new()));
+        registry.register_builtin_sync(Arc::new(BrowserGetUrlTool::new()));
         registry
     }
 
@@ -105,16 +134,89 @@ impl ToolRegistry {
         let meta = tool.metadata();
 
         // 1. Permission and Confirmation Enforcement Gate
-        if meta.requires_confirmation && !ctx.user_confirmed {
-            warn!(
-                tool = %name,
-                risk = ?meta.risk_tier,
-                session = %ctx.session_id,
-                "Tool execution blocked: human confirmation required"
-            );
+        let mut confirmed = ctx.user_confirmed;
+        if meta.requires_confirmation && !confirmed {
+            if let Some(ref broker) = self.approval_broker {
+                let risk_level = match meta.risk_tier {
+                    RiskTier::Destructive => ApprovalRiskLevel::Destructive,
+                    RiskTier::Privileged => ApprovalRiskLevel::Privileged,
+                    RiskTier::Modify => ApprovalRiskLevel::Modify,
+                    RiskTier::LowRisk => ApprovalRiskLevel::LowRisk,
+                    RiskTier::Read => ApprovalRiskLevel::Safe,
+                };
+                let reason = format!(
+                    "Tool '{}' requires authorization before execution",
+                    name
+                );
+                let timeout = Duration::from_millis(meta.timeout_ms.max(30_000));
+                let (req, rx) = broker.submit_request(
+                    &ctx.session_id,
+                    name,
+                    &params,
+                    risk_level,
+                    reason,
+                    timeout,
+                );
+
+                info!(
+                    tool = %name,
+                    request_id = %req.id,
+                    "Awaiting human approval via ApprovalBroker"
+                );
+
+                match rx.await {
+                    Ok(decision) => match decision.status {
+                        ApprovalStatus::Approved => {
+                            info!(tool = %name, request_id = %req.id, "Action approved by user");
+                            confirmed = true;
+                        }
+                        ApprovalStatus::Denied => {
+                            warn!(tool = %name, request_id = %req.id, "Action denied by user");
+                            return Err(ToolError::ExecutionFailed(format!(
+                                "Action '{}' was explicitly denied by user",
+                                name
+                            )));
+                        }
+                        ApprovalStatus::Expired => {
+                            warn!(tool = %name, request_id = %req.id, "Action approval expired");
+                            return Err(ToolError::Timeout(format!(
+                                "Approval request for action '{}' expired without response",
+                                name
+                            )));
+                        }
+                        ApprovalStatus::Cancelled => {
+                            warn!(tool = %name, request_id = %req.id, "Action approval cancelled");
+                            return Err(ToolError::ExecutionFailed(format!(
+                                "Action '{}' was cancelled",
+                                name
+                            )));
+                        }
+                        ApprovalStatus::Pending => unreachable!(),
+                    },
+                    Err(_) => {
+                        return Err(ToolError::ExecutionFailed(
+                            "Approval broker channel dropped before decision".into(),
+                        ));
+                    }
+                }
+            } else {
+                warn!(
+                    tool = %name,
+                    risk = ?meta.risk_tier,
+                    session = %ctx.session_id,
+                    "Tool execution blocked: human confirmation required"
+                );
+                return Err(ToolError::ConfirmationRequired(format!(
+                    "Action '{}' has risk tier {:?} and requires explicit confirmation",
+                    name, meta.risk_tier
+                )));
+            }
+        }
+
+        if meta.requires_confirmation && !confirmed {
             return Err(ToolError::ConfirmationRequired(format!(
-                "Action '{}' has risk tier {:?} and requires explicit confirmation",
-                name, meta.risk_tier
+                "Action '{}' requires confirmed authorization",
+                name
             )));
         }
 
@@ -126,9 +228,12 @@ impl ToolRegistry {
         );
 
         // 2. Invocation with strict timeout boundary
+        let mut exec_ctx = ctx.clone();
+        exec_ctx.user_confirmed = confirmed;
+
         let timeout_dur = Duration::from_millis(meta.timeout_ms);
         let exec_result =
-            tokio::time::timeout(timeout_dur, tool.execute(params.clone(), ctx)).await;
+            tokio::time::timeout(timeout_dur, tool.execute(params.clone(), &exec_ctx)).await;
 
         let result = match exec_result {
             Ok(Ok(res)) => res,

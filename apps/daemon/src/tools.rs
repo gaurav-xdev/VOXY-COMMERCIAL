@@ -29,6 +29,7 @@ pub struct ToolRegistry {
     backend: Arc<HybridBackend>,
     emergency_stop: Arc<AtomicBool>,
     native_registry: Arc<voxy_tool_calling::ToolRegistry>,
+    approval_broker: Option<Arc<voxy_security::ApprovalBroker>>,
 }
 
 impl ToolRegistry {
@@ -46,7 +47,16 @@ impl ToolRegistry {
             backend: Arc::new(hybrid),
             emergency_stop: Arc::new(AtomicBool::new(false)),
             native_registry: Arc::new(voxy_tool_calling::ToolRegistry::with_builtins()),
+            approval_broker: None,
         })
+    }
+
+    /// Attach an ApprovalBroker to the registry and propagate to the native tool registry.
+    pub fn with_approval_broker(mut self, broker: Arc<voxy_security::ApprovalBroker>) -> Self {
+        self.approval_broker = Some(broker.clone());
+        let native = voxy_tool_calling::ToolRegistry::with_builtins().with_approval_broker(broker);
+        self.native_registry = Arc::new(native);
+        self
     }
 
     /// Provide a custom or shared emergency stop token.
@@ -128,7 +138,9 @@ For conversation, questions, or information requests, just respond normally with
 
         // Check native tool registry first
         if let Some(_tool) = self.native_registry.get(&call.tool).await {
-            let ctx = voxy_tool_calling::ToolContext::new("daemon-session").with_confirmation(true);
+            // Note: with_confirmation(false) ensures that if the tool requires confirmation,
+            // it properly delegates to the ApprovalBroker for human authorization.
+            let ctx = voxy_tool_calling::ToolContext::new("daemon-session").with_confirmation(false);
             match self
                 .native_registry
                 .execute(&call.tool, call.params.clone(), &ctx)

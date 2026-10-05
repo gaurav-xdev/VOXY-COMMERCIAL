@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+use crate::secret_scanner::{DetectedSecret, SecretScanner};
+
 #[derive(Debug, Error)]
 pub enum PatchError {
     #[error("IO error: {0}")]
@@ -16,6 +18,12 @@ pub enum PatchError {
     #[error("Protected file cannot be modified: {0}")]
     ProtectedFile(PathBuf),
 
+    #[error("Path escapes repository boundary: {0}")]
+    BoundaryViolation(PathBuf),
+
+    #[error("Secret detected in patch: {0:?}")]
+    SecretDetected(Vec<DetectedSecret>),
+
     #[error("Patch application conflict: target content does not match original")]
     PatchConflict,
 }
@@ -23,6 +31,130 @@ pub enum PatchError {
 pub struct PatchSnapshot {
     pub file_path: PathBuf,
     pub original_content: String,
+}
+
+/// Represents an atomic multi-file modification transaction.
+#[derive(Debug, Clone)]
+pub struct FilePatch {
+    pub relative_path: PathBuf,
+    pub new_content: String,
+}
+
+pub struct PatchTransaction {
+    root_path: PathBuf,
+    patches: Vec<FilePatch>,
+    applied_snapshots: HashMap<PathBuf, String>,
+    committed: bool,
+}
+
+impl PatchTransaction {
+    pub fn new(root: impl AsRef<Path>) -> Self {
+        Self {
+            root_path: root.as_ref().to_path_buf(),
+            patches: Vec::new(),
+            applied_snapshots: HashMap::new(),
+            committed: false,
+        }
+    }
+
+    pub fn add_change(&mut self, relative_path: impl AsRef<Path>, new_content: impl Into<String>) {
+        self.patches.push(FilePatch {
+            relative_path: relative_path.as_ref().to_path_buf(),
+            new_content: new_content.into(),
+        });
+    }
+
+    /// Pre-validates boundaries, protected paths, and secret scanning across all changes.
+    pub fn validate(&self) -> Result<(), PatchError> {
+        for patch in &self.patches {
+            let rel = &patch.relative_path;
+            let rel_str = rel.to_string_lossy();
+
+            if rel.is_absolute()
+                || rel.components().any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir | std::path::Component::ParentDir))
+            {
+                return Err(PatchError::BoundaryViolation(rel.clone()));
+            }
+
+            if rel_str.contains(".git") || rel_str == ".env" || rel_str.starts_with("target") || rel_str.contains(".ssh") {
+                return Err(PatchError::ProtectedFile(rel.clone()));
+            }
+
+            // Run secret scanner
+            if let Err(detected) = SecretScanner::scan_patch(rel, &patch.new_content) {
+                return Err(PatchError::SecretDetected(detected));
+            }
+        }
+        Ok(())
+    }
+
+    /// Atomically applies all patches in the transaction. If any write fails, all preceding changes are rolled back.
+    pub fn apply(&mut self) -> Result<Vec<String>, PatchError> {
+        self.validate()?;
+
+        let mut diffs = Vec::new();
+
+        for patch in &self.patches {
+            let full_path = self.root_path.join(&patch.relative_path);
+
+            let original = if full_path.exists() {
+                match std::fs::read_to_string(&full_path) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        self.rollback();
+                        return Err(PatchError::Io(e));
+                    }
+                }
+            } else {
+                String::new()
+            };
+
+            self.applied_snapshots
+                .entry(full_path.clone())
+                .or_insert_with(|| original.clone());
+
+            if let Some(parent) = full_path.parent() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    self.rollback();
+                    return Err(PatchError::Io(e));
+                }
+            }
+
+            if let Err(e) = std::fs::write(&full_path, &patch.new_content) {
+                self.rollback();
+                return Err(PatchError::Io(e));
+            }
+
+            let diff = PatchEngine::generate_diff(&original, &patch.new_content, &patch.relative_path.to_string_lossy());
+            diffs.push(diff);
+        }
+
+        Ok(diffs)
+    }
+
+    /// Roll back all modifications applied in this transaction.
+    pub fn rollback(&mut self) -> usize {
+        let mut count = 0;
+        for (path, original) in self.applied_snapshots.drain() {
+            if original.is_empty() {
+                if path.exists() {
+                    let _ = std::fs::remove_file(&path);
+                    count += 1;
+                }
+            } else {
+                if std::fs::write(&path, &original).is_ok() {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
+    /// Commit the transaction, making changes permanent and clearing rollback snapshots.
+    pub fn commit(&mut self) {
+        self.committed = true;
+        self.applied_snapshots.clear();
+    }
 }
 
 pub struct PatchEngine {
@@ -61,13 +193,26 @@ impl PatchEngine {
         relative_path: impl AsRef<Path>,
         new_content: &str,
     ) -> Result<String, PatchError> {
-        let full_path = self.root_path.join(relative_path.as_ref());
+        let rel = relative_path.as_ref();
+        let rel_str = rel.to_string_lossy();
+
+        if rel.is_absolute()
+            || rel.components().any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir | std::path::Component::ParentDir))
+        {
+            return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+        }
 
         // Validate protected paths
-        let rel_str = relative_path.as_ref().to_string_lossy();
-        if rel_str.contains(".git") || rel_str == ".env" || rel_str.starts_with("target") {
-            return Err(PatchError::ProtectedFile(full_path));
+        if rel_str.contains(".git") || rel_str == ".env" || rel_str.starts_with("target") || rel_str.contains(".ssh") {
+            return Err(PatchError::ProtectedFile(rel.to_path_buf()));
         }
+
+        // Secret scan
+        if let Err(detected) = SecretScanner::scan_patch(rel, new_content) {
+            return Err(PatchError::SecretDetected(detected));
+        }
+
+        let full_path = self.root_path.join(rel);
 
         let original = if full_path.exists() {
             std::fs::read_to_string(&full_path)?
@@ -146,5 +291,52 @@ mod tests {
 
         let res = engine.apply_modification(".env", "SECRET=123");
         assert!(matches!(res, Err(PatchError::ProtectedFile(_))));
+    }
+
+    #[test]
+    fn test_secret_detection_blocks_patch() {
+        let dir = tempdir().unwrap();
+        let mut engine = PatchEngine::new(dir.path());
+
+        let res = engine.apply_modification("src/auth.rs", "let token = \"ghp_1234567890abcdef\";");
+        assert!(matches!(res, Err(PatchError::SecretDetected(_))));
+    }
+
+    #[test]
+    fn test_patch_transaction_atomic_rollback() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let f1 = root.join("file1.txt");
+        let f2 = root.join("file2.txt");
+        std::fs::write(&f1, "initial1").unwrap();
+        std::fs::write(&f2, "initial2").unwrap();
+
+        let mut tx = PatchTransaction::new(root);
+        tx.add_change("file1.txt", "updated1");
+        // file2 introduces a secret, which causes validate() to fail
+        tx.add_change("file2.txt", "updated2 with AKIAIOSFODNN7EXAMPLE");
+
+        let res = tx.apply();
+        assert!(matches!(res, Err(PatchError::SecretDetected(_))));
+
+        // file1 must not have been modified
+        assert_eq!(std::fs::read_to_string(&f1).unwrap(), "initial1");
+        assert_eq!(std::fs::read_to_string(&f2).unwrap(), "initial2");
+
+        // Successful transaction
+        let mut tx_ok = PatchTransaction::new(root);
+        tx_ok.add_change("file1.txt", "updated1");
+        tx_ok.add_change("file2.txt", "updated2");
+        let diffs = tx_ok.apply().unwrap();
+        assert_eq!(diffs.len(), 2);
+        assert_eq!(std::fs::read_to_string(&f1).unwrap(), "updated1");
+        assert_eq!(std::fs::read_to_string(&f2).unwrap(), "updated2");
+
+        // Rollback all in transaction
+        let count = tx_ok.rollback();
+        assert_eq!(count, 2);
+        assert_eq!(std::fs::read_to_string(&f1).unwrap(), "initial1");
+        assert_eq!(std::fs::read_to_string(&f2).unwrap(), "initial2");
     }
 }

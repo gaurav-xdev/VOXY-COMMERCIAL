@@ -2,6 +2,7 @@
 //! secrets, audit, threat detection, guardian, journal, rollback,
 //! system prompts, input sanitization, signed artifacts, monitoring, and auto-defense.
 
+pub mod approval;
 pub mod audit;
 pub mod auth;
 pub mod capability;
@@ -24,6 +25,10 @@ pub mod threat;
 pub mod token;
 pub mod trust;
 
+pub use approval::{
+    redact_sensitive_values, ApprovalBroker, ApprovalDecision, ApprovalRequest, ApprovalRiskLevel,
+    ApprovalStatus,
+};
 pub use audit::{AuditEntry, AuditEventType, AuditLog};
 pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};
 pub use capability::{Capability, CapabilityCategory, CapabilityRegistry, RiskLevel};

@@ -71,7 +71,7 @@ impl RepositoryIndexer {
                     size_bytes: metadata.len(),
                 });
 
-                if matches!(ext.as_str(), "rs" | "toml" | "py" | "ts" | "js") {
+                if matches!(ext.as_str(), "rs" | "toml" | "py" | "ts" | "js" | "tsx" | "jsx" | "go" | "ps1") {
                     self.extract_symbols(&path);
                 }
             }
@@ -86,32 +86,123 @@ impl RepositoryIndexer {
             Err(_) => return,
         };
 
+        let ext = file_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
         for (idx, line) in content.lines().enumerate() {
             let line_trimmed = line.trim();
-            let keywords = ["fn ", "struct ", "enum ", "trait ", "type "];
-            for kw in keywords {
-                if let Some(pos) = line_trimmed.find(kw) {
-                    let after = &line_trimmed[pos + kw.len()..];
-                    let sym_name = after
-                        .split(|c: char| !c.is_alphanumeric() && c != '_')
-                        .next()
-                        .unwrap_or_default();
+            if line_trimmed.is_empty() || line_trimmed.starts_with("//") || line_trimmed.starts_with('#') {
+                continue;
+            }
 
-                    if !sym_name.is_empty() {
-                        let sym = SymbolInfo {
-                            name: sym_name.to_string(),
-                            kind: kw.trim().to_string(),
-                            file_path: file_path.to_path_buf(),
-                            line_number: idx + 1,
-                        };
-                        self.symbol_index
-                            .entry(sym_name.to_string())
-                            .or_default()
-                            .push(sym);
+            match ext.as_str() {
+                "rs" => {
+                    let keywords = ["pub fn ", "fn ", "pub struct ", "struct ", "pub enum ", "enum ", "pub trait ", "trait ", "pub type ", "type "];
+                    for kw in keywords {
+                        if let Some(pos) = line_trimmed.find(kw) {
+                            let after = &line_trimmed[pos + kw.len()..];
+                            let sym_name = after
+                                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                                .next()
+                                .unwrap_or_default();
+                            if !sym_name.is_empty() {
+                                let kind = kw.trim_start_matches("pub ").trim();
+                                self.add_symbol(sym_name, kind, file_path, idx + 1);
+                                break;
+                            }
+                        }
                     }
                 }
+                "ts" | "js" | "tsx" | "jsx" => {
+                    let keywords = [
+                        "export function ", "function ",
+                        "export class ", "class ",
+                        "export interface ", "interface ",
+                        "export type ", "type ",
+                        "export const ", "const ",
+                    ];
+                    for kw in keywords {
+                        if let Some(pos) = line_trimmed.find(kw) {
+                            let after = &line_trimmed[pos + kw.len()..];
+                            let sym_name = after
+                                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                                .next()
+                                .unwrap_or_default();
+                            if !sym_name.is_empty() {
+                                let kind = kw.trim_start_matches("export ").trim();
+                                self.add_symbol(sym_name, kind, file_path, idx + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+                "py" => {
+                    let keywords = ["def ", "async def ", "class "];
+                    for kw in keywords {
+                        if line_trimmed.starts_with(kw) {
+                            let after = &line_trimmed[kw.len()..];
+                            let sym_name = after
+                                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                                .next()
+                                .unwrap_or_default();
+                            if !sym_name.is_empty() {
+                                self.add_symbol(sym_name, kw.trim(), file_path, idx + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+                "go" => {
+                    let keywords = ["func ", "type "];
+                    for kw in keywords {
+                        if line_trimmed.starts_with(kw) {
+                            let after = &line_trimmed[kw.len()..];
+                            let sym_name = after
+                                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                                .next()
+                                .unwrap_or_default();
+                            if !sym_name.is_empty() {
+                                self.add_symbol(sym_name, kw.trim(), file_path, idx + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+                "ps1" => {
+                    let keywords = ["function ", "filter ", "class "];
+                    for kw in keywords {
+                        if line_trimmed.to_lowercase().starts_with(kw) {
+                            let after = &line_trimmed[kw.len()..];
+                            let sym_name = after
+                                .split(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+                                .next()
+                                .unwrap_or_default();
+                            if !sym_name.is_empty() {
+                                self.add_symbol(sym_name, kw.trim(), file_path, idx + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         }
+    }
+
+    fn add_symbol(&mut self, name: &str, kind: &str, file_path: &Path, line: usize) {
+        let sym = SymbolInfo {
+            name: name.to_string(),
+            kind: kind.to_string(),
+            file_path: file_path.to_path_buf(),
+            line_number: line,
+        };
+        self.symbol_index
+            .entry(name.to_string())
+            .or_default()
+            .push(sym);
     }
 
     /// Queries symbols by exact or partial name.
@@ -165,5 +256,42 @@ mod tests {
         let funcs = indexer.find_symbols("run_server");
         assert_eq!(funcs.len(), 1);
         assert_eq!(funcs[0].kind, "fn");
+    }
+
+    #[test]
+    fn test_harness_multilang_symbol_extraction() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // TS file
+        std::fs::write(
+            root.join("api.ts"),
+            "export interface UserProfile { id: string; }\nexport function fetchUser() {}\n",
+        ).unwrap();
+
+        // Python file
+        std::fs::write(
+            root.join("worker.py"),
+            "class TaskQueue:\n    pass\n\ndef process_job():\n    pass\n",
+        ).unwrap();
+
+        let mut indexer = RepositoryIndexer::new(root);
+        indexer.index_repository().unwrap();
+
+        let interfaces = indexer.find_symbols("UserProfile");
+        assert_eq!(interfaces.len(), 1);
+        assert_eq!(interfaces[0].kind, "interface");
+
+        let ts_fn = indexer.find_symbols("fetchUser");
+        assert_eq!(ts_fn.len(), 1);
+        assert_eq!(ts_fn[0].kind, "function");
+
+        let py_class = indexer.find_symbols("TaskQueue");
+        assert_eq!(py_class.len(), 1);
+        assert_eq!(py_class[0].kind, "class");
+
+        let py_fn = indexer.find_symbols("process_job");
+        assert_eq!(py_fn.len(), 1);
+        assert_eq!(py_fn[0].kind, "def");
     }
 }

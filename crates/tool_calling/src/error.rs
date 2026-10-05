@@ -26,6 +26,12 @@ pub enum ToolError {
     #[error("Verification failed: {0}")]
     VerificationFailed(String),
 
+    #[error("Security violation: {0}")]
+    SecurityViolation(String),
+
+    #[error("Resource not found: {0}")]
+    NotFound(String),
+
     #[error("IO error: {0}")]
     IoError(String),
 }

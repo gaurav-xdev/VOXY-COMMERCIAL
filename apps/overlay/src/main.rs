@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 use tracing_subscriber::EnvFilter;
 
 use client_js::CLIENT_JS;
-use components::computer_control::{ComputerControlBanner, VoxyCursorBeacon};
+use components::computer_control::{ComputerControlBanner, OverlayApprovalModal, VoxyCursorBeacon};
 use components::context_layer::{ContextBottomBar, ContextTopBar};
 use components::core_entity::CoreEntity;
 use components::depth_drawer::{DepthDrawer, DrawerTab};
@@ -97,6 +97,34 @@ fn App() -> Element {
     let tool_steps = use_signal(|| global_state.tool_steps.read().clone());
     let telemetry = use_signal(SystemTelemetry::default);
     let cursor_telem = use_signal(|| None::<voxy_ipc::VoxyCursorTelemetry>);
+    let mut pending_approval = use_signal(|| None::<voxy_ipc::IpcApprovalRequest>);
+    let is_suppressed = use_signal(|| false);
+
+    // Screen Awareness: Check foreground window fullscreen status (e.g. video playback / presentation)
+    // Suppress visual footprint while keeping audio capture & wake-word listening active
+    use_effect(move || {
+        let mut suppressed = is_suppressed;
+        let vs = visual_state;
+        spawn(async move {
+            let tracker = voxy_desktop_runtime::window_manager::WindowTracker::new();
+            let mut interval = tokio::time::interval(std::time::Duration::from_millis(1500));
+            loop {
+                interval.tick().await;
+                let is_active_voice = matches!(*vs.read(), VisualState::Listening | VisualState::Speaking | VisualState::Thinking);
+                if is_active_voice {
+                    // Active voice interaction always takes visual precedence
+                    if *suppressed.read() {
+                        suppressed.set(false);
+                    }
+                } else {
+                    let is_fs = tracker.is_foreground_fullscreen();
+                    if *suppressed.read() != is_fs {
+                        suppressed.set(is_fs);
+                    }
+                }
+            }
+        });
+    });
 
     // Listen to VOXY Daemon via native Windows Named Pipe IPC
     use_effect(move || {
@@ -108,6 +136,7 @@ fn App() -> Element {
         let mut telem = telemetry;
         let gs = global_state.clone();
         let mut ct_mut = cursor_telem;
+        let mut pa_mut = pending_approval;
 
         spawn(async move {
             let client = get_ipc_client();
@@ -269,6 +298,7 @@ fn App() -> Element {
                     }
                     voxy_ipc::DaemonMessage::EmergencyStopChanged { is_stopped } => {
                         if is_stopped {
+                            pa_mut.set(None);
                             let mut vs_mut = vs;
                             vs_mut.set(VisualState::Error);
                             let mut ts_mut = ts;
@@ -327,6 +357,21 @@ fn App() -> Element {
                             vs_mut.set(VisualState::Thinking);
                         }
                     }
+                    voxy_ipc::DaemonMessage::ApprovalRequested(req) => {
+                        pa_mut.set(Some(req));
+                        let mut vs_mut = vs;
+                        vs_mut.set(VisualState::Thinking);
+                    }
+                    voxy_ipc::DaemonMessage::ApprovalResolved { request_id, .. } => {
+                        let should_clear = pa_mut
+                            .read()
+                            .as_ref()
+                            .map(|curr| curr.request_id == request_id)
+                            .unwrap_or(false);
+                        if should_clear {
+                            pa_mut.set(None);
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -345,10 +390,19 @@ fn App() -> Element {
     let collapsed = *is_collapsed.read();
     let drawer_is_open = *drawer_open.read();
 
-    let root_class = if collapsed {
+    let is_fs_suppressed = *is_suppressed.read();
+    let root_class = if is_fs_suppressed {
+        "voxy-app-root suppressed"
+    } else if collapsed {
         "voxy-app-root collapsed"
     } else {
         "voxy-app-root"
+    };
+
+    let root_style = if is_fs_suppressed {
+        "opacity: 0; pointer-events: none; transition: opacity 0.5s ease-out;"
+    } else {
+        "transition: opacity 0.3s ease-in;"
     };
 
     let toggle_spatial = move |_| {
@@ -372,7 +426,7 @@ fn App() -> Element {
     };
 
     rsx! {
-        div { id: "app-root", class: "{root_class}",
+        div { id: "app-root", class: "{root_class}", style: "{root_style}",
             match cur_mode {
                 DesktopMode::Compact => rsx! {
                     CompactModeView {
@@ -451,6 +505,14 @@ fn App() -> Element {
                     requires_confirmation: ct.requires_confirmation,
                     action_id: ct.action_id,
                     is_active: ct.state != voxy_ipc::VoxyCursorState::Idle,
+                }
+            }
+            if let Some(req) = pending_approval.read().as_ref() {
+                OverlayApprovalModal {
+                    request: req.clone(),
+                    on_close: move |()| {
+                        pending_approval.set(None);
+                    },
                 }
             }
         }
