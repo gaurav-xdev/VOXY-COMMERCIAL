@@ -82,7 +82,9 @@ impl WorkflowEngine {
                     &serde_json::to_string(&workflow.steps).unwrap_or_default(),
                 )
                 .await
-                .map_err(|e| SkillsError::WorkflowError(format!("DB execution creation failed: {}", e)))?;
+                .map_err(|e| {
+                    SkillsError::WorkflowError(format!("DB execution creation failed: {}", e))
+                })?;
             Some(record.id)
         } else {
             None
@@ -91,7 +93,14 @@ impl WorkflowEngine {
         if let Some(ref exec_id) = execution_id {
             if let Some(ref store) = self.store {
                 let _ = store
-                    .update_workflow_execution(exec_id, WorkflowStatus::Running.as_str(), 0, None, None, false)
+                    .update_workflow_execution(
+                        exec_id,
+                        WorkflowStatus::Running.as_str(),
+                        0,
+                        None,
+                        None,
+                        false,
+                    )
                     .await;
             }
         }
@@ -101,7 +110,10 @@ impl WorkflowEngine {
         // 2. Bounded Step Execution Loop: Observe -> Plan -> Act -> Verify
         for step in &workflow.steps {
             current_step += 1;
-            info!("Executing workflow '{}' step {}/{}", workflow.name, current_step, total_steps);
+            info!(
+                "Executing workflow '{}' step {}/{}",
+                workflow.name, current_step, total_steps
+            );
 
             let res = self
                 .runtime
@@ -116,7 +128,9 @@ impl WorkflowEngine {
             match res {
                 Ok(tool_res) => {
                     if !tool_res.success {
-                        let err_msg = tool_res.error.unwrap_or_else(|| "Step tool execution failed".into());
+                        let err_msg = tool_res
+                            .error
+                            .unwrap_or_else(|| "Step tool execution failed".into());
                         if let Some(ref exec_id) = execution_id {
                             if let Some(ref store) = self.store {
                                 let _ = store

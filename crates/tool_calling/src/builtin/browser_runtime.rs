@@ -214,7 +214,9 @@ impl BrowserRuntime {
     /// Launch browser process with CDP debugging enabled.
     pub async fn launch(&self, headless: Option<bool>) -> Result<u16> {
         if self.is_emergency_stopped() {
-            return Err(ToolError::ExecutionFailed("Emergency Stop is active".into()));
+            return Err(ToolError::ExecutionFailed(
+                "Emergency Stop is active".into(),
+            ));
         }
 
         // Return existing port if already running
@@ -265,7 +267,9 @@ impl BrowserRuntime {
         while start.elapsed() < Duration::from_secs(5) {
             if self.is_emergency_stopped() {
                 self.emergency_stop();
-                return Err(ToolError::ExecutionFailed("Emergency stop triggered during launch".into()));
+                return Err(ToolError::ExecutionFailed(
+                    "Emergency stop triggered during launch".into(),
+                ));
             }
 
             if let Ok(resp) = self.http_client.get(&cdp_url).send().await {
@@ -288,16 +292,17 @@ impl BrowserRuntime {
     /// Attach to an existing browser instance running at a given CDP port.
     pub async fn attach(&self, port: u16) -> Result<()> {
         if self.is_emergency_stopped() {
-            return Err(ToolError::ExecutionFailed("Emergency Stop is active".into()));
+            return Err(ToolError::ExecutionFailed(
+                "Emergency Stop is active".into(),
+            ));
         }
 
         let cdp_url = format!("http://127.0.0.1:{port}/json/version");
-        let resp = self
-            .http_client
-            .get(&cdp_url)
-            .send()
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to connect to CDP endpoint on port {port}: {e}")))?;
+        let resp = self.http_client.get(&cdp_url).send().await.map_err(|e| {
+            ToolError::ExecutionFailed(format!(
+                "Failed to connect to CDP endpoint on port {port}: {e}"
+            ))
+        })?;
 
         if !resp.status().is_success() {
             return Err(ToolError::ExecutionFailed(format!(
@@ -332,25 +337,33 @@ impl BrowserRuntime {
         };
 
         let list_url = format!("http://127.0.0.1:{port}/json/list");
-        let resp = self
-            .http_client
-            .get(&list_url)
-            .send()
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to query pages from CDP: {e}")))?;
+        let resp = self.http_client.get(&list_url).send().await.map_err(|e| {
+            ToolError::ExecutionFailed(format!("Failed to query pages from CDP: {e}"))
+        })?;
 
-        let pages_json: Vec<serde_json::Value> = resp
-            .json()
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Invalid JSON from CDP pages list: {e}")))?;
+        let pages_json: Vec<serde_json::Value> = resp.json().await.map_err(|e| {
+            ToolError::ExecutionFailed(format!("Invalid JSON from CDP pages list: {e}"))
+        })?;
 
         let mut pages = Vec::new();
         for item in pages_json {
             let target_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
             if target_type == "page" {
-                let id = item.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let title = item.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let id = item
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let title = item
+                    .get("title")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let url = item
+                    .get("url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 let ws_url = item
                     .get("webSocketDebuggerUrl")
                     .and_then(|v| v.as_str())
@@ -388,7 +401,9 @@ impl BrowserRuntime {
         self.validate_url(target_url)?;
 
         if self.is_emergency_stopped() {
-            return Err(ToolError::ExecutionFailed("Emergency Stop is active".into()));
+            return Err(ToolError::ExecutionFailed(
+                "Emergency Stop is active".into(),
+            ));
         }
 
         let existing_port = *self.active_cdp_port.read();
@@ -401,12 +416,10 @@ impl BrowserRuntime {
             .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
         new_url.set_query(Some(target_url));
 
-        let resp = self
-            .http_client
-            .put(new_url)
-            .send()
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to navigate via CDP: {e}")))?;
+        let resp =
+            self.http_client.put(new_url).send().await.map_err(|e| {
+                ToolError::ExecutionFailed(format!("Failed to navigate via CDP: {e}"))
+            })?;
 
         if resp.status().is_success() {
             let target_info: serde_json::Value = resp
@@ -422,7 +435,9 @@ impl BrowserRuntime {
 
             *self.selected_page_id.write() = Some(page_id.clone());
             self.refresh_pages().await?;
-            Ok(format!("Navigated successfully to {target_url} (page id: {page_id})"))
+            Ok(format!(
+                "Navigated successfully to {target_url} (page id: {page_id})"
+            ))
         } else {
             // Fallback if /json/new put fails: try refresh and report
             self.refresh_pages().await?;

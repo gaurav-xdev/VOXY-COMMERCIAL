@@ -15,7 +15,9 @@ pub use error::{GroundingError, Result};
 pub use extractor::{ContentExtractor, ExtractedDocument};
 pub use orchestrator::{ResearchConfig, ResearchOrchestrator, ResearchState};
 pub use quality::{SourceQualityEvaluator, SourceQualityScore, SourceTier};
-pub use synthesis::{Citation, ClaimConfidence, CrossSourceSynthesizer, ResearchClaim, SynthesisReport};
+pub use synthesis::{
+    Citation, ClaimConfidence, CrossSourceSynthesizer, ResearchClaim, SynthesisReport,
+};
 
 use async_trait::async_trait;
 use voxy_world_model::context::WorldContext;

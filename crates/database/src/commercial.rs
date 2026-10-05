@@ -435,7 +435,10 @@ impl TaskStatus {
             | (Self::WaitingApproval, Self::Expired) => true,
             (Self::Paused, Self::Running) | (Self::Paused, Self::Cancelled) => true,
             // Terminal states cannot transition
-            (Self::Completed, _) | (Self::Failed, _) | (Self::Cancelled, _) | (Self::Expired, _) => false,
+            (Self::Completed, _)
+            | (Self::Failed, _)
+            | (Self::Cancelled, _)
+            | (Self::Expired, _) => false,
             _ => false,
         }
     }
@@ -1227,12 +1230,16 @@ impl CommercialStore {
                 &[
                     Value::String(id.clone()),
                     Value::String(session_id.to_string()),
-                    workspace_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    workspace_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(user_goal.to_string()),
                     Value::String(task_type.to_string()),
                     Value::String(status.as_str().to_string()),
                     Value::String(phase.to_string()),
-                    parent_task_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    parent_task_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(now.clone()),
                 ],
             )
@@ -1270,24 +1277,72 @@ impl CommercialStore {
             .await?;
 
         if let Some(row) = rows.into_iter().next() {
-            let status_str = row.get("status").and_then(|v| v.as_str()).unwrap_or("FAILED");
-            let progress = row.get("progress").and_then(|v| v.as_f64().or_else(|| v.as_i64().map(|i| i as f64))).unwrap_or(0.0);
+            let status_str = row
+                .get("status")
+                .and_then(|v| v.as_str())
+                .unwrap_or("FAILED");
+            let progress = row
+                .get("progress")
+                .and_then(|v| v.as_f64().or_else(|| v.as_i64().map(|i| i as f64)))
+                .unwrap_or(0.0);
 
             Ok(Some(TaskRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                session_id: row.get("session_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workspace_id: row.get("workspace_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                user_goal: row.get("user_goal").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                task_type: row.get("task_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                session_id: row
+                    .get("session_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workspace_id: row
+                    .get("workspace_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                user_goal: row
+                    .get("user_goal")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                task_type: row
+                    .get("task_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
                 status: TaskStatus::from_str(status_str),
-                phase: row.get("phase").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                phase: row
+                    .get("phase")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
                 progress,
-                parent_task_id: row.get("parent_task_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                error_message: row.get("error_message").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                result_summary: row.get("result_summary").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                created_at: row.get("created_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                started_at: row.get("started_at").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                ended_at: row.get("ended_at").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                parent_task_id: row
+                    .get("parent_task_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                error_message: row
+                    .get("error_message")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                result_summary: row
+                    .get("result_summary")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                created_at: row
+                    .get("created_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                started_at: row
+                    .get("started_at")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                ended_at: row
+                    .get("ended_at")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
             }))
         } else {
             Ok(None)
@@ -1319,16 +1374,18 @@ impl CommercialStore {
         let phase_str = phase.unwrap_or(&current.phase);
         let progress_val = progress.unwrap_or(current.progress);
 
-        let started_at_update = if current.status == TaskStatus::Queued && new_status == TaskStatus::Running {
-            Some(now.clone())
-        } else {
-            current.started_at.clone()
-        };
+        let started_at_update =
+            if current.status == TaskStatus::Queued && new_status == TaskStatus::Running {
+                Some(now.clone())
+            } else {
+                current.started_at.clone()
+            };
 
         let ended_at_update = match new_status {
-            TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Cancelled | TaskStatus::Expired => {
-                Some(now.clone())
-            }
+            TaskStatus::Completed
+            | TaskStatus::Failed
+            | TaskStatus::Cancelled
+            | TaskStatus::Expired => Some(now.clone()),
             _ => None,
         };
 
@@ -1348,10 +1405,18 @@ impl CommercialStore {
                     Value::String(new_status.as_str().to_string()),
                     Value::String(phase_str.to_string()),
                     Value::F64(progress_val),
-                    error_message.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
-                    result_summary.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
-                    started_at_update.map(|s| Value::String(s)).unwrap_or(Value::Null),
-                    ended_at_update.map(|s| Value::String(s)).unwrap_or(Value::Null),
+                    error_message
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
+                    result_summary
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
+                    started_at_update
+                        .map(|s| Value::String(s))
+                        .unwrap_or(Value::Null),
+                    ended_at_update
+                        .map(|s| Value::String(s))
+                        .unwrap_or(Value::Null),
                     Value::String(task_id.to_string()),
                 ],
             )
@@ -1371,10 +1436,7 @@ impl CommercialStore {
             WHERE status = 'RUNNING' OR status = 'QUEUED'
         ";
 
-        let affected = self
-            .db
-            .execute(sql, &[Value::String(now)])
-            .await?;
+        let affected = self.db.execute(sql, &[Value::String(now)]).await?;
 
         Ok(affected)
     }
@@ -1408,7 +1470,9 @@ impl CommercialStore {
                 &[
                     Value::String(id.clone()),
                     Value::String(task_id.to_string()),
-                    workspace_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    workspace_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(artifact_type.to_string()),
                     Value::String(name.to_string()),
                     Value::String(relative_path.to_string()),
@@ -1454,17 +1518,56 @@ impl CommercialStore {
             let size = row.get("size_bytes").and_then(|v| v.as_i64()).unwrap_or(0);
 
             list.push(TaskArtifactRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                task_id: row.get("task_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workspace_id: row.get("workspace_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                artifact_type: row.get("artifact_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                name: row.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                relative_path: row.get("relative_path").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                storage_uri: row.get("storage_uri").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                content_hash: row.get("content_hash").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                task_id: row
+                    .get("task_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workspace_id: row
+                    .get("workspace_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                artifact_type: row
+                    .get("artifact_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                name: row
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                relative_path: row
+                    .get("relative_path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                storage_uri: row
+                    .get("storage_uri")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                content_hash: row
+                    .get("content_hash")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
                 size_bytes: size,
-                metadata: row.get("metadata").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                created_at: row.get("created_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                metadata: row
+                    .get("metadata")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: row
+                    .get("created_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
             });
         }
         Ok(list)
@@ -1498,10 +1601,14 @@ impl CommercialStore {
                     Value::String(task_id.to_string()),
                     Value::String(tool_name.to_string()),
                     Value::String(risk_tier.to_string()),
-                    approval_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    approval_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::I64(duration_ms),
                     Value::I64(if was_success { 1 } else { 0 }),
-                    error_message.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    error_message
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(now.clone()),
                 ],
             )
@@ -1552,11 +1659,15 @@ impl CommercialStore {
                 &[
                     Value::String(id.clone()),
                     Value::String(account_id.to_string()),
-                    workspace_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    workspace_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(memory_type.to_string()),
                     Value::String(content.to_string()),
                     Value::String(source.to_string()),
-                    source_reference.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    source_reference
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::F64(confidence),
                     Value::F64(importance),
                     Value::String(provenance.to_string()),
@@ -1591,25 +1702,81 @@ impl CommercialStore {
         let sql = "SELECT * FROM scoped_memories WHERE id = ?";
         let rows = self.db.query(sql, &[Value::String(id.to_string())]).await?;
         if let Some(row) = rows.into_iter().next() {
-            let conf = row.get("confidence").and_then(|v| v.as_f64()).unwrap_or(1.0);
-            let imp = row.get("importance").and_then(|v| v.as_f64()).unwrap_or(0.5);
+            let conf = row
+                .get("confidence")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(1.0);
+            let imp = row
+                .get("importance")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.5);
 
             Ok(Some(ScopedMemoryRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                account_id: row.get("account_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workspace_id: row.get("workspace_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                memory_type: row.get("memory_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                content: row.get("content").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                source: row.get("source").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                source_reference: row.get("source_reference").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                account_id: row
+                    .get("account_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workspace_id: row
+                    .get("workspace_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                memory_type: row
+                    .get("memory_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                content: row
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                source: row
+                    .get("source")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                source_reference: row
+                    .get("source_reference")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 confidence: conf,
                 importance: imp,
-                provenance: row.get("provenance").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                sensitivity: row.get("sensitivity").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                status: row.get("status").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                created_at: row.get("created_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                updated_at: row.get("updated_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                last_accessed_at: row.get("last_accessed_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                provenance: row
+                    .get("provenance")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                sensitivity: row
+                    .get("sensitivity")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                status: row
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: row
+                    .get("created_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                updated_at: row
+                    .get("updated_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                last_accessed_at: row
+                    .get("last_accessed_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
             }))
         } else {
             Ok(None)
@@ -1651,25 +1818,81 @@ impl CommercialStore {
         let mut list = Vec::new();
 
         for row in rows {
-            let conf = row.get("confidence").and_then(|v| v.as_f64()).unwrap_or(1.0);
-            let imp = row.get("importance").and_then(|v| v.as_f64()).unwrap_or(0.5);
+            let conf = row
+                .get("confidence")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(1.0);
+            let imp = row
+                .get("importance")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.5);
 
             list.push(ScopedMemoryRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                account_id: row.get("account_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workspace_id: row.get("workspace_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                memory_type: row.get("memory_type").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                content: row.get("content").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                source: row.get("source").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                source_reference: row.get("source_reference").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                account_id: row
+                    .get("account_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workspace_id: row
+                    .get("workspace_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                memory_type: row
+                    .get("memory_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                content: row
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                source: row
+                    .get("source")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                source_reference: row
+                    .get("source_reference")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 confidence: conf,
                 importance: imp,
-                provenance: row.get("provenance").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                sensitivity: row.get("sensitivity").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                status: row.get("status").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                created_at: row.get("created_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                updated_at: row.get("updated_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                last_accessed_at: row.get("last_accessed_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                provenance: row
+                    .get("provenance")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                sensitivity: row
+                    .get("sensitivity")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                status: row
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: row
+                    .get("created_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                updated_at: row
+                    .get("updated_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                last_accessed_at: row
+                    .get("last_accessed_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
             });
         }
 
@@ -1707,15 +1930,31 @@ impl CommercialStore {
         let sql = "DELETE FROM scoped_memories WHERE account_id = ? AND id = ?";
         let affected = self
             .db
-            .execute(sql, &[Value::String(account_id.to_string()), Value::String(id.to_string())])
+            .execute(
+                sql,
+                &[
+                    Value::String(account_id.to_string()),
+                    Value::String(id.to_string()),
+                ],
+            )
             .await?;
         Ok(affected > 0)
     }
 
-    pub async fn delete_workspace_memories(&self, account_id: &str, workspace_id: &str) -> Result<u64> {
+    pub async fn delete_workspace_memories(
+        &self,
+        account_id: &str,
+        workspace_id: &str,
+    ) -> Result<u64> {
         let sql = "DELETE FROM scoped_memories WHERE account_id = ? AND workspace_id = ?";
         self.db
-            .execute(sql, &[Value::String(account_id.to_string()), Value::String(workspace_id.to_string())])
+            .execute(
+                sql,
+                &[
+                    Value::String(account_id.to_string()),
+                    Value::String(workspace_id.to_string()),
+                ],
+            )
             .await
     }
 
@@ -1788,23 +2027,77 @@ impl CommercialStore {
         let sql = "SELECT * FROM skills WHERE name = ? AND version = ?";
         let rows = self
             .db
-            .query(sql, &[Value::String(name.to_string()), Value::String(version.to_string())])
+            .query(
+                sql,
+                &[
+                    Value::String(name.to_string()),
+                    Value::String(version.to_string()),
+                ],
+            )
             .await?;
 
         if let Some(row) = rows.into_iter().next() {
             Ok(Some(SkillRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                name: row.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                display_name: row.get("display_name").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                description: row.get("description").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                version: row.get("version").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                publisher_id: row.get("publisher_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                trust_level: row.get("trust_level").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                manifest_json: row.get("manifest_json").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                status: row.get("status").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                checksum: row.get("checksum").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                created_at: row.get("created_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                updated_at: row.get("updated_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                name: row
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                display_name: row
+                    .get("display_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                description: row
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                version: row
+                    .get("version")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                publisher_id: row
+                    .get("publisher_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                trust_level: row
+                    .get("trust_level")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                manifest_json: row
+                    .get("manifest_json")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                status: row
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                checksum: row
+                    .get("checksum")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                created_at: row
+                    .get("created_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                updated_at: row
+                    .get("updated_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
             }))
         } else {
             Ok(None)
@@ -1836,7 +2129,9 @@ impl CommercialStore {
                 &[
                     Value::String(id.clone()),
                     Value::String(account_id.to_string()),
-                    workspace_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    workspace_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::String(name.to_string()),
                     Value::String(description.to_string()),
                     Value::String(version.to_string()),
@@ -1886,7 +2181,9 @@ impl CommercialStore {
                     Value::String(id.clone()),
                     Value::String(workflow_id.to_string()),
                     Value::String(account_id.to_string()),
-                    workspace_id.map(|s| Value::String(s.to_string())).unwrap_or(Value::Null),
+                    workspace_id
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
                     Value::I64(total_steps),
                     Value::String(input_data.to_string()),
                     Value::String(now.clone()),
@@ -1921,10 +2218,7 @@ impl CommercialStore {
     ) -> Result<bool> {
         let now = Utc::now().to_rfc3339();
         let mut sql = "UPDATE workflow_executions SET status = ?, current_step = ?".to_string();
-        let mut params = vec![
-            Value::String(status.to_string()),
-            Value::I64(current_step),
-        ];
+        let mut params = vec![Value::String(status.to_string()), Value::I64(current_step)];
 
         if let Some(out) = output_data {
             sql.push_str(", output_data = ?");
@@ -1948,27 +2242,72 @@ impl CommercialStore {
         Ok(affected > 0)
     }
 
-    pub async fn get_workflow_execution(&self, execution_id: &str) -> Result<Option<WorkflowExecutionRecord>> {
+    pub async fn get_workflow_execution(
+        &self,
+        execution_id: &str,
+    ) -> Result<Option<WorkflowExecutionRecord>> {
         let sql = "SELECT * FROM workflow_executions WHERE id = ?";
-        let rows = self.db.query(sql, &[Value::String(execution_id.to_string())]).await?;
+        let rows = self
+            .db
+            .query(sql, &[Value::String(execution_id.to_string())])
+            .await?;
 
         if let Some(row) = rows.into_iter().next() {
-            let cur = row.get("current_step").and_then(|v| v.as_i64()).unwrap_or(0);
+            let cur = row
+                .get("current_step")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
             let tot = row.get("total_steps").and_then(|v| v.as_i64()).unwrap_or(0);
 
             Ok(Some(WorkflowExecutionRecord {
-                id: row.get("id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workflow_id: row.get("workflow_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                account_id: row.get("account_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                workspace_id: row.get("workspace_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                status: row.get("status").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                id: row
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workflow_id: row
+                    .get("workflow_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                account_id: row
+                    .get("account_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                workspace_id: row
+                    .get("workspace_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                status: row
+                    .get("status")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
                 current_step: cur,
                 total_steps: tot,
-                input_data: row.get("input_data").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                output_data: row.get("output_data").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                error_message: row.get("error_message").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                started_at: row.get("started_at").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
-                ended_at: row.get("ended_at").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                input_data: row
+                    .get("input_data")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                output_data: row
+                    .get("output_data")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                error_message: row
+                    .get("error_message")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                started_at: row
+                    .get("started_at")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string(),
+                ended_at: row
+                    .get("ended_at")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
             }))
         } else {
             Ok(None)
@@ -2128,7 +2467,14 @@ mod tests {
 
         // Transition: Queued -> Running
         let started = store
-            .update_task_status(&task.id, TaskStatus::Running, Some("EXECUTING"), Some(0.2), None, None)
+            .update_task_status(
+                &task.id,
+                TaskStatus::Running,
+                Some("EXECUTING"),
+                Some(0.2),
+                None,
+                None,
+            )
             .await
             .unwrap();
         assert!(started);
@@ -2200,7 +2546,13 @@ mod tests {
 
         // Test crash recovery for abandoned running tasks
         let abandoned = store
-            .create_task("session_crash", None, "Abandoned operation", "Research", None)
+            .create_task(
+                "session_crash",
+                None,
+                "Abandoned operation",
+                "Research",
+                None,
+            )
             .await
             .unwrap();
         store
@@ -2266,15 +2618,27 @@ mod tests {
         assert_eq!(acc2_memories[0].id, mem2.id);
 
         // Update status and touch
-        assert!(store.update_memory_status(&mem1.id, "superseded").await.unwrap());
+        assert!(store
+            .update_memory_status(&mem1.id, "superseded")
+            .await
+            .unwrap());
         let re_queried = store
-            .query_scoped_memories("acc_primary", Some("ws_osmoo"), None, Some("superseded"), 10)
+            .query_scoped_memories(
+                "acc_primary",
+                Some("ws_osmoo"),
+                None,
+                Some("superseded"),
+                10,
+            )
             .await
             .unwrap();
         assert_eq!(re_queried.len(), 1);
 
         // Deletion
-        assert!(store.delete_scoped_memory("acc_primary", &mem1.id).await.unwrap());
+        assert!(store
+            .delete_scoped_memory("acc_primary", &mem1.id)
+            .await
+            .unwrap());
         let deleted = store.get_scoped_memory(&mem1.id).await.unwrap();
         assert!(deleted.is_none());
 
@@ -2295,7 +2659,11 @@ mod tests {
         assert_eq!(skill.name, "repo_doctor");
         assert_eq!(skill.trust_level, "verified");
 
-        let fetched_skill = store.get_skill("repo_doctor", "1.0.0").await.unwrap().unwrap();
+        let fetched_skill = store
+            .get_skill("repo_doctor", "1.0.0")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(fetched_skill.id, skill.id);
 
         let workflow = store
@@ -2326,14 +2694,7 @@ mod tests {
         assert_eq!(run.total_steps, 4);
 
         assert!(store
-            .update_workflow_execution(
-                &run.id,
-                "running",
-                2,
-                None,
-                None,
-                false
-            )
+            .update_workflow_execution(&run.id, "running", 2, None, None, false)
             .await
             .unwrap());
 
@@ -2349,7 +2710,11 @@ mod tests {
             .await
             .unwrap());
 
-        let final_run = store.get_workflow_execution(&run.id).await.unwrap().unwrap();
+        let final_run = store
+            .get_workflow_execution(&run.id)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(final_run.status, "completed");
         assert_eq!(final_run.current_step, 4);
         assert!(final_run.ended_at.is_some());

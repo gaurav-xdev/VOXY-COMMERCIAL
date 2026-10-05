@@ -151,7 +151,10 @@ impl ApiHandlers {
             let email_clone = user.email.clone();
             let name_clone = req.name.clone();
             tokio::spawn(async move {
-                if let Err(e) = mailer.send_welcome(&email_clone, name_clone.as_deref()).await {
+                if let Err(e) = mailer
+                    .send_welcome(&email_clone, name_clone.as_deref())
+                    .await
+                {
                     tracing::warn!("Failed to deliver transactional welcome email: {e}");
                 }
             });

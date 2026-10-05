@@ -104,7 +104,10 @@ impl InMemoryIntentAnalyzer {
             IntentType::Query
         } else if matches!(first, "learn" | "study" | "explain") {
             IntentType::Learning
-        } else if words.iter().any(|&w| matches!(w, "do" | "run" | "execute" | "perform")) {
+        } else if words
+            .iter()
+            .any(|&w| matches!(w, "do" | "run" | "execute" | "perform"))
+        {
             IntentType::Command
         } else {
             IntentType::Query

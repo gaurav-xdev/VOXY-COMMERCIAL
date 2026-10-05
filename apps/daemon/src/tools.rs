@@ -140,7 +140,8 @@ For conversation, questions, or information requests, just respond normally with
         if let Some(_tool) = self.native_registry.get(&call.tool).await {
             // Note: with_confirmation(false) ensures that if the tool requires confirmation,
             // it properly delegates to the ApprovalBroker for human authorization.
-            let ctx = voxy_tool_calling::ToolContext::new("daemon-session").with_confirmation(false);
+            let ctx =
+                voxy_tool_calling::ToolContext::new("daemon-session").with_confirmation(false);
             match self
                 .native_registry
                 .execute(&call.tool, call.params.clone(), &ctx)

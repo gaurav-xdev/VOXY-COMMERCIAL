@@ -7,7 +7,9 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use serde_json::json;
 
-use crate::builtin::browser_runtime::{sanitize_untrusted_web_content, BrowserConfig, BrowserRuntime};
+use crate::builtin::browser_runtime::{
+    sanitize_untrusted_web_content, BrowserConfig, BrowserRuntime,
+};
 use crate::error::{Result, ToolError};
 use crate::metadata::{RiskTier, ToolCategory, ToolContext, ToolMetadata, ToolResult};
 use crate::traits::Tool;
@@ -332,15 +334,18 @@ impl Tool for BrowserAttachTool {
         let port = params
             .get("port")
             .and_then(|v| v.as_u64())
-            .ok_or_else(|| ToolError::InvalidParams("Missing 'port'".into()))? as u16;
+            .ok_or_else(|| ToolError::InvalidParams("Missing 'port'".into()))?
+            as u16;
 
         let runtime = get_or_create_runtime();
         runtime.attach(port).await?;
 
-        Ok(ToolResult::success(json!({ "attached": true, "port": port }))
-            .with_observation(format!("Attached to existing browser on CDP port {}", port))
-            .with_verification("CDP handshake confirmed")
-            .with_duration_ms(start.elapsed().as_millis() as u64))
+        Ok(
+            ToolResult::success(json!({ "attached": true, "port": port }))
+                .with_observation(format!("Attached to existing browser on CDP port {}", port))
+                .with_verification("CDP handshake confirmed")
+                .with_duration_ms(start.elapsed().as_millis() as u64),
+        )
     }
 }
 
@@ -618,7 +623,10 @@ impl Tool for BrowserScreenshotTool {
     async fn execute(&self, _params: serde_json::Value, _ctx: &ToolContext) -> Result<ToolResult> {
         let start = Instant::now();
         let runtime = get_or_create_runtime();
-        let url = runtime.get_current_url().await.unwrap_or_else(|_| "about:blank".into());
+        let url = runtime
+            .get_current_url()
+            .await
+            .unwrap_or_else(|_| "about:blank".into());
 
         Ok(ToolResult::success(json!({
             "url": url,
@@ -721,14 +729,13 @@ impl Tool for BrowserDownloadTool {
             .await
             .map_err(|e| ToolError::ExecutionFailed(format!("Download request failed: {e}")))?;
 
-        let bytes = resp
-            .bytes()
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to read response body: {e}")))?;
+        let bytes = resp.bytes().await.map_err(|e| {
+            ToolError::ExecutionFailed(format!("Failed to read response body: {e}"))
+        })?;
 
-        tokio::fs::write(&dest_path, &bytes)
-            .await
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to write file to disk: {e}")))?;
+        tokio::fs::write(&dest_path, &bytes).await.map_err(|e| {
+            ToolError::ExecutionFailed(format!("Failed to write file to disk: {e}"))
+        })?;
 
         Ok(ToolResult::success(json!({
             "url": url,
@@ -793,7 +800,10 @@ impl Tool for BrowserUploadTool {
 
         let path = PathBuf::from(path_str);
         if !path.exists() {
-            return Err(ToolError::NotFound(format!("File '{}' not found", path_str)));
+            return Err(ToolError::NotFound(format!(
+                "File '{}' not found",
+                path_str
+            )));
         }
 
         // Sensitive credential blacklist
@@ -803,7 +813,14 @@ impl Tool for BrowserUploadTool {
             .unwrap_or("")
             .to_lowercase();
 
-        let forbidden = ["id_rsa", ".env", "secrets", "credentials", "id_ed25519", "token"];
+        let forbidden = [
+            "id_rsa",
+            ".env",
+            "secrets",
+            "credentials",
+            "id_ed25519",
+            "token",
+        ];
         for f in forbidden {
             if fname.contains(f) {
                 return Err(ToolError::SecurityViolation(format!(
@@ -822,7 +839,11 @@ impl Tool for BrowserUploadTool {
             "bytes": metadata.len(),
             "approved": true
         }))
-        .with_observation(format!("Validated file '{}' for upload ({} bytes)", path.display(), metadata.len()))
+        .with_observation(format!(
+            "Validated file '{}' for upload ({} bytes)",
+            path.display(),
+            metadata.len()
+        ))
         .with_verification("File validated and staged for upload")
         .with_duration_ms(start.elapsed().as_millis() as u64))
     }

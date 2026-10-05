@@ -87,7 +87,10 @@ impl Tool for TaskHistoryGetTool {
                 .with_observation(format!("Retrieved task '{}' in state {:?}", t.id, t.status))
                 .with_duration_ms(start.elapsed().as_millis() as u64))
             } else {
-                Err(ToolError::ExecutionFailed(format!("Task '{}' not found", task_id)))
+                Err(ToolError::ExecutionFailed(format!(
+                    "Task '{}' not found",
+                    task_id
+                )))
             }
         } else {
             // Standalone fallback when store is not injected

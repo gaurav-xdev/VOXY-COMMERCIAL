@@ -128,7 +128,9 @@ pub fn OrbView() -> Element {
             spawn(async move {
                 state.set(OrbState::Speaking);
                 speaking.set(true);
-                let _ = v.speak("Hello, I am OSMOO. How can I help you today?").await;
+                let _ = v
+                    .speak("Hello, I am OSMOO. How can I help you today?")
+                    .await;
                 let _ = exp_input.send(voxy_companion_intelligence::ExperienceInput::SystemEvent {
                     event_type: "task_complete".to_string(),
                     data: Some("greeting_spoken".to_string()),

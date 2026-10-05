@@ -2,10 +2,7 @@ use dioxus::prelude::*;
 use voxy_ipc::{ClientCommand, IpcApprovalRequest};
 
 #[component]
-pub fn ApprovalModal(
-    request: IpcApprovalRequest,
-    on_close: EventHandler<()>,
-) -> Element {
+pub fn ApprovalModal(request: IpcApprovalRequest, on_close: EventHandler<()>) -> Element {
     let bridge = crate::BRIDGE.get().expect("Bridge not initialized").clone();
     let ipc = bridge.ipc.clone();
 

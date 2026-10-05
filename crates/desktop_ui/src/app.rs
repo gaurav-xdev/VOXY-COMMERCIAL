@@ -39,15 +39,13 @@ pub fn App() -> Element {
 
             while let Ok(msg) = event_rx.recv().await {
                 match msg {
-                    voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
-                        match state {
-                            voxy_ipc::VoiceState::Listening => core_state.set(CoreState::Listening),
-                            voxy_ipc::VoiceState::Thinking => core_state.set(CoreState::Thinking),
-                            voxy_ipc::VoiceState::Speaking => core_state.set(CoreState::Speaking),
-                            voxy_ipc::VoiceState::Error => core_state.set(CoreState::Error),
-                            _ => core_state.set(CoreState::Idle),
-                        }
-                    }
+                    voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => match state {
+                        voxy_ipc::VoiceState::Listening => core_state.set(CoreState::Listening),
+                        voxy_ipc::VoiceState::Thinking => core_state.set(CoreState::Thinking),
+                        voxy_ipc::VoiceState::Speaking => core_state.set(CoreState::Speaking),
+                        voxy_ipc::VoiceState::Error => core_state.set(CoreState::Error),
+                        _ => core_state.set(CoreState::Idle),
+                    },
                     voxy_ipc::DaemonMessage::ErrorNotification { .. } => {
                         core_state.set(CoreState::Error);
                     }

@@ -144,10 +144,7 @@ impl ToolRegistry {
                     RiskTier::LowRisk => ApprovalRiskLevel::LowRisk,
                     RiskTier::Read => ApprovalRiskLevel::Safe,
                 };
-                let reason = format!(
-                    "Tool '{}' requires authorization before execution",
-                    name
-                );
+                let reason = format!("Tool '{}' requires authorization before execution", name);
                 let timeout = Duration::from_millis(meta.timeout_ms.max(30_000));
                 let (req, rx) = broker.submit_request(
                     &ctx.session_id,

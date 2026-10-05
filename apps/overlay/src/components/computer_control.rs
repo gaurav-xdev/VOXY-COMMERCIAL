@@ -213,7 +213,9 @@ pub fn OverlayApprovalModal(
             let on_close = on_close.clone();
             spawn(async move {
                 let client = crate::get_ipc_client();
-                let _ = client.send_command(voxy_ipc::ClientCommand::EmergencyStop).await;
+                let _ = client
+                    .send_command(voxy_ipc::ClientCommand::EmergencyStop)
+                    .await;
                 on_close.call(());
             });
         }

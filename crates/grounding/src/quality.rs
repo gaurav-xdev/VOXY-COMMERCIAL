@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SourceTier {
-    PrimaryAuthority, // Official documentation, RFCs, scientific standards, .gov/.edu
+    PrimaryAuthority,  // Official documentation, RFCs, scientific standards, .gov/.edu
     ReputableIndustry, // Established tech blogs, major engineering teams, Wikipedia
-    SecondaryGeneral, // General blogs, forums, aggregator sites
+    SecondaryGeneral,  // General blogs, forums, aggregator sites
     Unverified,
 }
 
@@ -22,7 +22,11 @@ pub struct SourceQualityEvaluator;
 
 impl SourceQualityEvaluator {
     /// Evaluates domain quality and evidence depth.
-    pub fn evaluate(domain: &str, content_length: usize, has_code_or_data: bool) -> SourceQualityScore {
+    pub fn evaluate(
+        domain: &str,
+        content_length: usize,
+        has_code_or_data: bool,
+    ) -> SourceQualityScore {
         let dom_lower = domain.to_lowercase();
 
         let (tier, base_score, rationale) = if dom_lower.ends_with(".gov")
@@ -39,7 +43,8 @@ impl SourceQualityEvaluator {
             (
                 SourceTier::PrimaryAuthority,
                 0.90,
-                "Official standard, government, educational or primary vendor documentation".to_string(),
+                "Official standard, government, educational or primary vendor documentation"
+                    .to_string(),
             )
         } else if dom_lower.contains("github.com")
             || dom_lower.contains("stackoverflow.com")

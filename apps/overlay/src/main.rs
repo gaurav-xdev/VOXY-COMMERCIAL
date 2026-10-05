@@ -110,7 +110,10 @@ fn App() -> Element {
             let mut interval = tokio::time::interval(std::time::Duration::from_millis(1500));
             loop {
                 interval.tick().await;
-                let is_active_voice = matches!(*vs.read(), VisualState::Listening | VisualState::Speaking | VisualState::Thinking);
+                let is_active_voice = matches!(
+                    *vs.read(),
+                    VisualState::Listening | VisualState::Speaking | VisualState::Thinking
+                );
                 if is_active_voice {
                     // Active voice interaction always takes visual precedence
                     if *suppressed.read() {

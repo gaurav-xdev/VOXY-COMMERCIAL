@@ -108,9 +108,18 @@ impl Tool for MemoryStoreTool {
             .unwrap_or("user_explicit");
 
         let source_ref = params.get("source_reference").and_then(|v| v.as_str());
-        let confidence = params.get("confidence").and_then(|v| v.as_f64()).unwrap_or(1.0);
-        let importance = params.get("importance").and_then(|v| v.as_f64()).unwrap_or(0.5);
-        let sensitivity = params.get("sensitivity").and_then(|v| v.as_str()).unwrap_or("standard");
+        let confidence = params
+            .get("confidence")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(1.0);
+        let importance = params
+            .get("importance")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.5);
+        let sensitivity = params
+            .get("sensitivity")
+            .and_then(|v| v.as_str())
+            .unwrap_or("standard");
 
         let provenance_str = params
             .get("provenance")
@@ -120,19 +129,17 @@ impl Tool for MemoryStoreTool {
         // 1. Mandatory Secret Scanning Pre-Filter
         if let Err(secrets) = SecretScanner::scan_patch(Path::new("memory.txt"), content) {
             let descriptions: Vec<&str> = secrets.iter().map(|s| s.description).collect();
-            return Ok(ToolResult::failure(
-                format!(
-                    "Memory store rejected: content contains secret credentials or private keys ({})",
-                    descriptions.join(", ")
-                ),
-            ).with_duration_ms(start.elapsed().as_millis() as u64));
+            return Ok(ToolResult::failure(format!(
+                "Memory store rejected: content contains secret credentials or private keys ({})",
+                descriptions.join(", ")
+            ))
+            .with_duration_ms(start.elapsed().as_millis() as u64));
         }
 
         // 2. Persist to storage
-        let store = self
-            .store
-            .as_ref()
-            .ok_or_else(|| ToolError::ExecutionFailed("CommercialStore is not initialized".into()))?;
+        let store = self.store.as_ref().ok_or_else(|| {
+            ToolError::ExecutionFailed("CommercialStore is not initialized".into())
+        })?;
 
         let record = store
             .store_scoped_memory(
@@ -222,29 +229,50 @@ impl Tool for MemoryRecallTool {
             .ok_or_else(|| ToolError::InvalidParams("Missing 'account_id'".into()))?;
 
         let workspace_id = params.get("workspace_id").and_then(|v| v.as_str());
-        let query_str = params.get("query").and_then(|v| v.as_str()).unwrap_or("").trim().to_lowercase();
+        let query_str = params
+            .get("query")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_lowercase();
         let memory_type = params.get("memory_type").and_then(|v| v.as_str());
-        let max_results = params.get("max_results").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
-        let token_budget = params.get("token_budget").and_then(|v| v.as_u64()).unwrap_or(2000) as usize;
+        let max_results = params
+            .get("max_results")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(5) as usize;
+        let token_budget = params
+            .get("token_budget")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(2000) as usize;
 
-        let store = self
-            .store
-            .as_ref()
-            .ok_or_else(|| ToolError::ExecutionFailed("CommercialStore is not initialized".into()))?;
+        let store = self.store.as_ref().ok_or_else(|| {
+            ToolError::ExecutionFailed("CommercialStore is not initialized".into())
+        })?;
 
         // 1. Fetch candidate active memories for this account and workspace
         let mut candidates = store
-            .query_scoped_memories(account_id, workspace_id, memory_type, Some("active"), max_results * 4)
+            .query_scoped_memories(
+                account_id,
+                workspace_id,
+                memory_type,
+                Some("active"),
+                max_results * 4,
+            )
             .await
             .map_err(|e| ToolError::ExecutionFailed(format!("Failed to query memories: {}", e)))?;
 
         // 2. Score candidates: Query matching score + importance + recency
-        let query_words: Vec<&str> = query_str.split_whitespace().filter(|w| !w.is_empty()).collect();
+        let query_words: Vec<&str> = query_str
+            .split_whitespace()
+            .filter(|w| !w.is_empty())
+            .collect();
 
         candidates.sort_by(|a, b| {
             let score_a = calculate_relevance(&a.content, a.importance, &query_words);
             let score_b = calculate_relevance(&b.content, b.importance, &query_words);
-            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         // 3. Apply context budgeting & prompt injection quarantine
@@ -348,19 +376,23 @@ impl Tool for MemoryForgetTool {
 
         let memory_id = params.get("memory_id").and_then(|v| v.as_str());
         let workspace_id = params.get("workspace_id").and_then(|v| v.as_str());
-        let hard_delete = params.get("hard_delete").and_then(|v| v.as_bool()).unwrap_or(false);
+        let hard_delete = params
+            .get("hard_delete")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
-        let store = self
-            .store
-            .as_ref()
-            .ok_or_else(|| ToolError::ExecutionFailed("CommercialStore is not initialized".into()))?;
+        let store = self.store.as_ref().ok_or_else(|| {
+            ToolError::ExecutionFailed("CommercialStore is not initialized".into())
+        })?;
 
         if let Some(id) = memory_id {
             if hard_delete {
                 let success = store
                     .delete_scoped_memory(account_id, id)
                     .await
-                    .map_err(|e| ToolError::ExecutionFailed(format!("Failed to delete memory: {}", e)))?;
+                    .map_err(|e| {
+                        ToolError::ExecutionFailed(format!("Failed to delete memory: {}", e))
+                    })?;
                 return Ok(ToolResult::success(json!({
                     "action": "hard_delete",
                     "memory_id": id,
@@ -371,7 +403,9 @@ impl Tool for MemoryForgetTool {
                 let success = store
                     .update_memory_status(id, "revoked")
                     .await
-                    .map_err(|e| ToolError::ExecutionFailed(format!("Failed to revoke memory: {}", e)))?;
+                    .map_err(|e| {
+                        ToolError::ExecutionFailed(format!("Failed to revoke memory: {}", e))
+                    })?;
                 return Ok(ToolResult::success(json!({
                     "action": "revoke",
                     "memory_id": id,
@@ -385,7 +419,9 @@ impl Tool for MemoryForgetTool {
             let count = store
                 .delete_workspace_memories(account_id, ws)
                 .await
-                .map_err(|e| ToolError::ExecutionFailed(format!("Failed to purge workspace memories: {}", e)))?;
+                .map_err(|e| {
+                    ToolError::ExecutionFailed(format!("Failed to purge workspace memories: {}", e))
+                })?;
             return Ok(ToolResult::success(json!({
                 "action": "purge_workspace",
                 "workspace_id": ws,
@@ -481,10 +517,22 @@ mod tests {
         });
         let recalled = recall_tool.execute(recall_params, &ctx).await.unwrap();
         assert!(recalled.success);
-        assert_eq!(recalled.data.get("total_recalled").unwrap().as_u64().unwrap(), 1);
+        assert_eq!(
+            recalled
+                .data
+                .get("total_recalled")
+                .unwrap()
+                .as_u64()
+                .unwrap(),
+            1
+        );
 
         let mem_entry = &recalled.data.get("memories").unwrap().as_array().unwrap()[0];
-        let quarantined = mem_entry.get("quarantined_content").unwrap().as_str().unwrap();
+        let quarantined = mem_entry
+            .get("quarantined_content")
+            .unwrap()
+            .as_str()
+            .unwrap();
         assert!(quarantined.contains("<<<UNTRUSTED_RESEARCH_DATA_START"));
         assert!(quarantined.contains("[SUSPICIOUS_INSTRUCTION_REDACTED_BY_RESEARCH_DEFENSE]"));
         assert!(!quarantined.contains("drop database"));
@@ -496,7 +544,15 @@ mod tests {
             "query": "Actix-web"
         });
         let foreign_recall = recall_tool.execute(foreign_params, &ctx).await.unwrap();
-        assert_eq!(foreign_recall.data.get("total_recalled").unwrap().as_u64().unwrap(), 0);
+        assert_eq!(
+            foreign_recall
+                .data
+                .get("total_recalled")
+                .unwrap()
+                .as_u64()
+                .unwrap(),
+            0
+        );
 
         // 4. Forget memory
         let forget_params = json!({
@@ -507,7 +563,18 @@ mod tests {
         assert!(forgotten.success);
 
         // Verify no longer recalled
-        let recall_after = recall_tool.execute(json!({ "account_id": "acc_team1" }), &ctx).await.unwrap();
-        assert_eq!(recall_after.data.get("total_recalled").unwrap().as_u64().unwrap(), 0);
+        let recall_after = recall_tool
+            .execute(json!({ "account_id": "acc_team1" }), &ctx)
+            .await
+            .unwrap();
+        assert_eq!(
+            recall_after
+                .data
+                .get("total_recalled")
+                .unwrap()
+                .as_u64()
+                .unwrap(),
+            0
+        );
     }
 }

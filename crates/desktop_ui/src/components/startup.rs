@@ -41,7 +41,10 @@ pub fn CinematicStartup(on_complete: EventHandler<()>) -> Element {
         return rsx! {};
     }
 
-    let is_logo_visible = matches!(current, IntroStage::OsmooLogo | IntroStage::OsmioraParent | IntroStage::FadeOut);
+    let is_logo_visible = matches!(
+        current,
+        IntroStage::OsmooLogo | IntroStage::OsmioraParent | IntroStage::FadeOut
+    );
     let is_parent_visible = matches!(current, IntroStage::OsmioraParent | IntroStage::FadeOut);
     let is_fading_out = matches!(current, IntroStage::FadeOut);
 

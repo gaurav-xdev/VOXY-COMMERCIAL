@@ -209,9 +209,9 @@ impl ApprovalBroker {
         reason: Option<String>,
     ) -> Result<ApprovalDecision> {
         let mut entries = self.entries.write();
-        let entry = entries
-            .get_mut(&request_id)
-            .ok_or_else(|| SecurityError::Internal(format!("Approval request {request_id} not found")))?;
+        let entry = entries.get_mut(&request_id).ok_or_else(|| {
+            SecurityError::Internal(format!("Approval request {request_id} not found"))
+        })?;
 
         // Check if already expired by wall clock
         if entry.created_at_instant.elapsed() > entry.timeout {
@@ -273,9 +273,9 @@ impl ApprovalBroker {
     /// Cancel a specific request (e.g. user aborted subtask).
     pub fn cancel(&self, request_id: Uuid, reason: Option<String>) -> Result<ApprovalDecision> {
         let mut entries = self.entries.write();
-        let entry = entries
-            .get_mut(&request_id)
-            .ok_or_else(|| SecurityError::Internal(format!("Approval request {request_id} not found")))?;
+        let entry = entries.get_mut(&request_id).ok_or_else(|| {
+            SecurityError::Internal(format!("Approval request {request_id} not found"))
+        })?;
 
         if entry.status.is_terminal() {
             return Err(SecurityError::Internal(format!(
@@ -366,7 +366,9 @@ impl ApprovalBroker {
         let entries = self.entries.read();
         entries
             .values()
-            .filter(|e| e.status == ApprovalStatus::Pending && e.created_at_instant.elapsed() <= e.timeout)
+            .filter(|e| {
+                e.status == ApprovalStatus::Pending && e.created_at_instant.elapsed() <= e.timeout
+            })
             .map(|e| e.request.clone())
             .collect()
     }

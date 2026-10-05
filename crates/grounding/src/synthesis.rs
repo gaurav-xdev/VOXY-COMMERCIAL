@@ -49,7 +49,9 @@ impl CrossSourceSynthesizer {
         claims: Vec<ResearchClaim>,
         citations: HashMap<String, Citation>,
     ) -> SynthesisReport {
-        let has_contradictions = claims.iter().any(|c| !c.contradicting_citation_ids.is_empty() || c.confidence == ClaimConfidence::Contested);
+        let has_contradictions = claims.iter().any(|c| {
+            !c.contradicting_citation_ids.is_empty() || c.confidence == ClaimConfidence::Contested
+        });
         let total = citations.len();
 
         SynthesisReport {
@@ -70,20 +72,26 @@ mod tests {
     #[test]
     fn test_synthesis_report_tracks_contradictions_and_citations() {
         let mut citations = HashMap::new();
-        citations.insert("src-1".to_string(), Citation {
-            id: "src-1".to_string(),
-            title: "Rust Official Docs".to_string(),
-            url: "https://doc.rust-lang.org".to_string(),
-            domain: "doc.rust-lang.org".to_string(),
-            credibility_score: 0.95,
-        });
-        citations.insert("src-2".to_string(), Citation {
-            id: "src-2".to_string(),
-            title: "Outdated Blog 2018".to_string(),
-            url: "https://oldblog.com".to_string(),
-            domain: "oldblog.com".to_string(),
-            credibility_score: 0.50,
-        });
+        citations.insert(
+            "src-1".to_string(),
+            Citation {
+                id: "src-1".to_string(),
+                title: "Rust Official Docs".to_string(),
+                url: "https://doc.rust-lang.org".to_string(),
+                domain: "doc.rust-lang.org".to_string(),
+                credibility_score: 0.95,
+            },
+        );
+        citations.insert(
+            "src-2".to_string(),
+            Citation {
+                id: "src-2".to_string(),
+                title: "Outdated Blog 2018".to_string(),
+                url: "https://oldblog.com".to_string(),
+                domain: "oldblog.com".to_string(),
+                credibility_score: 0.50,
+            },
+        );
 
         let claim = ResearchClaim {
             statement: "Async fn in traits is supported natively in Rust 2024".to_string(),

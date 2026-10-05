@@ -1,15 +1,17 @@
 //! Deep Research Orchestrator & State Machine.
 
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use serde::{Deserialize, Serialize};
 
 use crate::defense::PromptInjectionDefense;
 use crate::extractor::ContentExtractor;
 use crate::quality::SourceQualityEvaluator;
-use crate::synthesis::{Citation, ClaimConfidence, CrossSourceSynthesizer, ResearchClaim, SynthesisReport};
+use crate::synthesis::{
+    Citation, ClaimConfidence, CrossSourceSynthesizer, ResearchClaim, SynthesisReport,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResearchState {
@@ -123,19 +125,27 @@ impl ResearchOrchestrator {
             let extracted = ContentExtractor::extract_text(raw_content, url);
 
             // Defend against prompt injections
-            let sanitized = PromptInjectionDefense::sanitize_external_text(&extracted.text_content, url);
+            let sanitized =
+                PromptInjectionDefense::sanitize_external_text(&extracted.text_content, url);
 
             self.state = ResearchState::Evaluating;
-            let quality = SourceQualityEvaluator::evaluate(&extracted.domain, sanitized.sanitized_length, true);
+            let quality = SourceQualityEvaluator::evaluate(
+                &extracted.domain,
+                sanitized.sanitized_length,
+                true,
+            );
 
             let cite_id = format!("cite-{}", idx + 1);
-            citations.insert(cite_id.clone(), Citation {
-                id: cite_id,
-                title: extracted.title.clone(),
-                url: url.to_string(),
-                domain: extracted.domain.clone(),
-                credibility_score: quality.score,
-            });
+            citations.insert(
+                cite_id.clone(),
+                Citation {
+                    id: cite_id,
+                    title: extracted.title.clone(),
+                    url: url.to_string(),
+                    domain: extracted.domain.clone(),
+                    credibility_score: quality.score,
+                },
+            );
 
             extracted_docs.push((extracted, sanitized, quality));
         }
@@ -156,7 +166,10 @@ impl ResearchOrchestrator {
         let primary_doc = &extracted_docs[0].0;
 
         let claim = ResearchClaim {
-            statement: format!("Primary evidence from {}: {}", primary_doc.domain, primary_doc.title),
+            statement: format!(
+                "Primary evidence from {}: {}",
+                primary_doc.domain, primary_doc.title
+            ),
             supporting_citation_ids: vec![primary_citation_id],
             contradicting_citation_ids: Vec::new(),
             confidence: ClaimConfidence::HighConfidence,
@@ -165,7 +178,10 @@ impl ResearchOrchestrator {
 
         let report = CrossSourceSynthesizer::build_report(
             objective,
-            &format!("Synthesized findings across {} verified sources.", extracted_docs.len()),
+            &format!(
+                "Synthesized findings across {} verified sources.",
+                extracted_docs.len()
+            ),
             vec![claim],
             citations,
         );
@@ -186,17 +202,23 @@ mod tests {
             .with_cancellation_token(cancel_flag.clone());
 
         // Test normal run
-        let sources = vec![
-            ("https://doc.rust-lang.org/book/", "<html><head><title>Rust Book</title></head><body>Ownership is key.</body></html>"),
-        ];
+        let sources = vec![(
+            "https://doc.rust-lang.org/book/",
+            "<html><head><title>Rust Book</title></head><body>Ownership is key.</body></html>",
+        )];
 
-        let report = orch.execute_research("Rust Ownership", sources).await.unwrap();
+        let report = orch
+            .execute_research("Rust Ownership", sources)
+            .await
+            .unwrap();
         assert_eq!(report.total_sources_analyzed, 1);
         assert!(!report.citations.is_empty());
 
         // Test cancellation
         cancel_flag.store(true, Ordering::SeqCst);
-        let res = orch.execute_research("Rust Concurrency", vec![("https://example.com", "content")]).await;
+        let res = orch
+            .execute_research("Rust Concurrency", vec![("https://example.com", "content")])
+            .await;
         assert!(res.is_err());
         assert_eq!(orch.state, ResearchState::Cancelled);
     }

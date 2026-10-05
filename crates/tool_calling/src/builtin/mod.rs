@@ -19,7 +19,9 @@ pub use browser::{
     BrowserObserveTool, BrowserOpenTool, BrowserScreenshotTool, BrowserSwitchPageTool,
     BrowserUploadTool, BrowserWaitTool,
 };
-pub use browser_runtime::{BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, PageObservation};
+pub use browser_runtime::{
+    BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, PageObservation,
+};
 pub use filesystem::{FileDeleteTool, FileListTool, FileReadTool, FileWriteTool};
 pub use harness::{
     HarnessApplyPatchTool, HarnessApplyPatchTransactionTool, HarnessIndexTool,

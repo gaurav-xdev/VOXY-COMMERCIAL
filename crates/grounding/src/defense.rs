@@ -51,7 +51,8 @@ impl PromptInjectionDefense {
 
             if line_has_injection {
                 // Neutralize injection by replacing line with safety marker
-                cleaned_lines.push("[SUSPICIOUS_INSTRUCTION_REDACTED_BY_RESEARCH_DEFENSE]".to_string());
+                cleaned_lines
+                    .push("[SUSPICIOUS_INSTRUCTION_REDACTED_BY_RESEARCH_DEFENSE]".to_string());
             } else {
                 cleaned_lines.push(line.to_string());
             }
@@ -83,10 +84,16 @@ mod tests {
         let res = PromptInjectionDefense::sanitize_external_text(text, "https://example.com/paper");
 
         assert_eq!(res.injections_detected, 1);
-        assert!(res.sanitized_text.contains("[SUSPICIOUS_INSTRUCTION_REDACTED_BY_RESEARCH_DEFENSE]"));
+        assert!(res
+            .sanitized_text
+            .contains("[SUSPICIOUS_INSTRUCTION_REDACTED_BY_RESEARCH_DEFENSE]"));
         assert!(!res.sanitized_text.contains("format C:"));
-        assert!(res.sanitized_text.starts_with("<<<UNTRUSTED_RESEARCH_DATA_START [Source: https://example.com/paper]>>>"));
-        assert!(res.sanitized_text.ends_with("<<<UNTRUSTED_RESEARCH_DATA_END>>>"));
+        assert!(res.sanitized_text.starts_with(
+            "<<<UNTRUSTED_RESEARCH_DATA_START [Source: https://example.com/paper]>>>"
+        ));
+        assert!(res
+            .sanitized_text
+            .ends_with("<<<UNTRUSTED_RESEARCH_DATA_END>>>"));
     }
 
     #[test]

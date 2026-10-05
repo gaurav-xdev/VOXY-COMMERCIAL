@@ -31,7 +31,9 @@ impl fmt::Display for InvocationId {
 }
 
 /// Trust classification tier for skills.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTrustLevel {
     System,
@@ -145,4 +147,3 @@ pub struct WorkflowDefinition {
     #[serde(default = "default_timeout_seconds")]
     pub timeout_seconds: u64,
 }
-

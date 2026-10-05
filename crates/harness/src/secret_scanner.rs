@@ -47,7 +47,9 @@ impl SecretScanner {
             }
 
             // Private Keys (RSA, EC, OpenSSH)
-            if line.contains("-----BEGIN") && (line.contains("PRIVATE KEY") || line.contains("RSA PRIVATE KEY")) {
+            if line.contains("-----BEGIN")
+                && (line.contains("PRIVATE KEY") || line.contains("RSA PRIVATE KEY"))
+            {
                 detected.push(DetectedSecret {
                     rule: "private_key",
                     description: "Private cryptographic key block detected",
@@ -69,7 +71,11 @@ impl SecretScanner {
                 if let Some(pos) = line.find("sk-") {
                     let candidate = &line[pos..];
                     let prefix_chars: String = candidate.chars().take(20).collect();
-                    if prefix_chars.len() >= 20 && prefix_chars.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+                    if prefix_chars.len() >= 20
+                        && prefix_chars
+                            .chars()
+                            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                    {
                         detected.push(DetectedSecret {
                             rule: "generic_api_key",
                             description: "API secret token (sk-*) detected",

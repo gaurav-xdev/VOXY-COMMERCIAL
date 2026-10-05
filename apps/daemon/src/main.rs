@@ -721,7 +721,10 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let _c = cog_ref.clone();
             async move {
                 // Cognitive bridge active in process
-                voxy_health::HealthReport::new("cognitive_bridge", voxy_shared::HealthStatus::Healthy)
+                voxy_health::HealthReport::new(
+                    "cognitive_bridge",
+                    voxy_shared::HealthStatus::Healthy,
+                )
             }
         })
         .await;
@@ -732,7 +735,10 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let _e = exp_ref.clone();
             async move {
                 // Experience bridge running
-                voxy_health::HealthReport::new("experience_bridge", voxy_shared::HealthStatus::Healthy)
+                voxy_health::HealthReport::new(
+                    "experience_bridge",
+                    voxy_shared::HealthStatus::Healthy,
+                )
             }
         })
         .await;
@@ -978,10 +984,18 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             tokio::spawn(async move {
                 while let Ok(dec) = dec_rx.recv().await {
                     let ipc_dec = match dec.status {
-                        voxy_security::ApprovalStatus::Approved => voxy_ipc::IpcApprovalDecision::Approved,
-                        voxy_security::ApprovalStatus::Denied => voxy_ipc::IpcApprovalDecision::Denied,
-                        voxy_security::ApprovalStatus::Expired => voxy_ipc::IpcApprovalDecision::Expired,
-                        voxy_security::ApprovalStatus::Cancelled => voxy_ipc::IpcApprovalDecision::Cancelled,
+                        voxy_security::ApprovalStatus::Approved => {
+                            voxy_ipc::IpcApprovalDecision::Approved
+                        }
+                        voxy_security::ApprovalStatus::Denied => {
+                            voxy_ipc::IpcApprovalDecision::Denied
+                        }
+                        voxy_security::ApprovalStatus::Expired => {
+                            voxy_ipc::IpcApprovalDecision::Expired
+                        }
+                        voxy_security::ApprovalStatus::Cancelled => {
+                            voxy_ipc::IpcApprovalDecision::Cancelled
+                        }
                         voxy_security::ApprovalStatus::Pending => continue,
                     };
                     ipc_srv.broadcast(voxy_ipc::DaemonMessage::ApprovalResolved {
@@ -1008,7 +1022,9 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         let tool_registry = match tools::ToolRegistry::new().await {
             Ok(tr) => {
                 let tr = tr.with_approval_broker(approval_broker.clone());
-                tracing::info!("[TOOLS] Tool registry initialized with automation backend and ApprovalBroker");
+                tracing::info!(
+                    "[TOOLS] Tool registry initialized with automation backend and ApprovalBroker"
+                );
                 Some(Arc::new(tr))
             }
             Err(e) => {

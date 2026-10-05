@@ -152,8 +152,9 @@ impl DodoPaymentsClient {
     /// - `DODO_PAYMENTS_API_KEY`
     /// - `DODO_PAYMENTS_ENVIRONMENT` ("live" or "test", defaults to "test")
     pub fn from_env() -> Result<Self, DodoError> {
-        let key = std::env::var("DODO_PAYMENTS_API_KEY")
-            .map_err(|_| DodoError::Config("DODO_PAYMENTS_API_KEY not set in environment".into()))?;
+        let key = std::env::var("DODO_PAYMENTS_API_KEY").map_err(|_| {
+            DodoError::Config("DODO_PAYMENTS_API_KEY not set in environment".into())
+        })?;
         let env_mode = std::env::var("DODO_PAYMENTS_ENVIRONMENT")
             .unwrap_or_else(|_| "test".into())
             .to_lowercase();

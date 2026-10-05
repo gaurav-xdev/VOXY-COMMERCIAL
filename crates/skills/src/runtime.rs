@@ -113,7 +113,9 @@ impl SkillRuntime {
         if is_privileged_tool(tool_name) {
             if let Some(ref broker) = self.approval_broker {
                 let risk = match tool_name {
-                    "file_delete" | "process_kill" | "memory_forget" => ApprovalRiskLevel::Destructive,
+                    "file_delete" | "process_kill" | "memory_forget" => {
+                        ApprovalRiskLevel::Destructive
+                    }
                     _ => ApprovalRiskLevel::Privileged,
                 };
 
@@ -159,8 +161,15 @@ impl SkillRuntime {
 
         let tool_result = timeout(max_time, exec_future)
             .await
-            .map_err(|_| SkillsError::Timeout(format!("Skill execution exceeded {}s", manifest.timeout_seconds)))?
-            .map_err(|e| SkillsError::SkillExecutionFailed(format!("Tool execution error: {}", e)))?;
+            .map_err(|_| {
+                SkillsError::Timeout(format!(
+                    "Skill execution exceeded {}s",
+                    manifest.timeout_seconds
+                ))
+            })?
+            .map_err(|e| {
+                SkillsError::SkillExecutionFailed(format!("Tool execution error: {}", e))
+            })?;
 
         info!(
             "Skill '{}' executed tool '{}' successfully in {}ms",

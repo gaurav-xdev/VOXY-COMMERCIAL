@@ -71,12 +71,23 @@ impl PatchTransaction {
             let rel_str = rel.to_string_lossy();
 
             if rel.is_absolute()
-                || rel.components().any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir | std::path::Component::ParentDir))
+                || rel.components().any(|c| {
+                    matches!(
+                        c,
+                        std::path::Component::Prefix(_)
+                            | std::path::Component::RootDir
+                            | std::path::Component::ParentDir
+                    )
+                })
             {
                 return Err(PatchError::BoundaryViolation(rel.clone()));
             }
 
-            if rel_str.contains(".git") || rel_str == ".env" || rel_str.starts_with("target") || rel_str.contains(".ssh") {
+            if rel_str.contains(".git")
+                || rel_str == ".env"
+                || rel_str.starts_with("target")
+                || rel_str.contains(".ssh")
+            {
                 return Err(PatchError::ProtectedFile(rel.clone()));
             }
 
@@ -125,7 +136,11 @@ impl PatchTransaction {
                 return Err(PatchError::Io(e));
             }
 
-            let diff = PatchEngine::generate_diff(&original, &patch.new_content, &patch.relative_path.to_string_lossy());
+            let diff = PatchEngine::generate_diff(
+                &original,
+                &patch.new_content,
+                &patch.relative_path.to_string_lossy(),
+            );
             diffs.push(diff);
         }
 
@@ -197,13 +212,24 @@ impl PatchEngine {
         let rel_str = rel.to_string_lossy();
 
         if rel.is_absolute()
-            || rel.components().any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir | std::path::Component::ParentDir))
+            || rel.components().any(|c| {
+                matches!(
+                    c,
+                    std::path::Component::Prefix(_)
+                        | std::path::Component::RootDir
+                        | std::path::Component::ParentDir
+                )
+            })
         {
             return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
         }
 
         // Validate protected paths
-        if rel_str.contains(".git") || rel_str == ".env" || rel_str.starts_with("target") || rel_str.contains(".ssh") {
+        if rel_str.contains(".git")
+            || rel_str == ".env"
+            || rel_str.starts_with("target")
+            || rel_str.contains(".ssh")
+        {
             return Err(PatchError::ProtectedFile(rel.to_path_buf()));
         }
 

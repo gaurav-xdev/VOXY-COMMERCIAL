@@ -20,7 +20,8 @@ impl ContentExtractor {
     /// Strips HTML tags, comments, script and style elements, producing clean readable text.
     pub fn extract_text(raw_html_or_text: &str, url: &str) -> ExtractedDocument {
         let domain = Self::extract_domain(url);
-        let mut clean = String::with_capacity(raw_html_or_text.len().min(Self::MAX_EXTRACTED_BYTES));
+        let mut clean =
+            String::with_capacity(raw_html_or_text.len().min(Self::MAX_EXTRACTED_BYTES));
         let mut in_tag = false;
         let mut in_script = false;
         let mut in_style = false;
@@ -59,7 +60,11 @@ impl ContentExtractor {
                         capturing_title = true;
                     } else if tag_lower.starts_with("/title") {
                         capturing_title = false;
-                    } else if tag_lower == "p" || tag_lower == "br" || tag_lower == "div" || tag_lower == "li" {
+                    } else if tag_lower == "p"
+                        || tag_lower == "br"
+                        || tag_lower == "div"
+                        || tag_lower == "li"
+                    {
                         clean.push('\n');
                     }
                 } else {
@@ -102,9 +107,17 @@ impl ContentExtractor {
         }
 
         ExtractedDocument {
-            title: if title.trim().is_empty() { domain.clone() } else { title.trim().to_string() },
+            title: if title.trim().is_empty() {
+                domain.clone()
+            } else {
+                title.trim().to_string()
+            },
             domain,
-            content_type: if lower.contains("<html") { "html".to_string() } else { "text/plain".to_string() },
+            content_type: if lower.contains("<html") {
+                "html".to_string()
+            } else {
+                "text/plain".to_string()
+            },
             text_content: normalized.trim().to_string(),
             byte_size: raw_html_or_text.len(),
             is_truncated,

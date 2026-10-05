@@ -136,8 +136,12 @@ impl DiagnosticParser {
                         let file = trimmed[..paren_open].trim();
                         let loc_str = &trimmed[paren_open + 1..paren_close];
                         let loc_parts: Vec<&str> = loc_str.split(',').collect();
-                        let line = loc_parts.first().and_then(|s| s.trim().parse::<usize>().ok());
-                        let col = loc_parts.get(1).and_then(|s| s.trim().parse::<usize>().ok());
+                        let line = loc_parts
+                            .first()
+                            .and_then(|s| s.trim().parse::<usize>().ok());
+                        let col = loc_parts
+                            .get(1)
+                            .and_then(|s| s.trim().parse::<usize>().ok());
 
                         let after_paren = &trimmed[paren_close + 1..];
                         let code = if let Some(ts_idx) = after_paren.find("TS") {
@@ -195,10 +199,14 @@ impl DiagnosticParser {
                         });
                     }
                 }
-            } else if trimmed.ends_with("Error:") || (trimmed.contains("Error: ") && !trimmed.starts_with("-->")) {
+            } else if trimmed.ends_with("Error:")
+                || (trimmed.contains("Error: ") && !trimmed.starts_with("-->"))
+            {
                 // Python exception line e.g. "ValueError: invalid literal"
                 if let Some(last) = report.items.last_mut() {
-                    if last.code.as_deref() == Some("PythonTraceback") && last.message == "Exception traceback frame" {
+                    if last.code.as_deref() == Some("PythonTraceback")
+                        && last.message == "Exception traceback frame"
+                    {
                         last.message = trimmed.to_string();
                     }
                 }
@@ -243,7 +251,10 @@ warning: unused variable: `y`
         let report = DiagnosticParser::parse(output);
         assert_eq!(report.total_errors, 1);
         assert_eq!(report.items[0].code.as_deref(), Some("TS2322"));
-        assert_eq!(report.items[0].file_path, Some(PathBuf::from("src/components/Header.tsx")));
+        assert_eq!(
+            report.items[0].file_path,
+            Some(PathBuf::from("src/components/Header.tsx"))
+        );
         assert_eq!(report.items[0].line, Some(45));
         assert_eq!(report.items[0].column, Some(12));
     }
@@ -258,7 +269,10 @@ AssertionError: assert False == True
 "#;
         let report = DiagnosticParser::parse(output);
         assert_eq!(report.total_errors, 1);
-        assert_eq!(report.items[0].file_path, Some(PathBuf::from("test_runner.py")));
+        assert_eq!(
+            report.items[0].file_path,
+            Some(PathBuf::from("test_runner.py"))
+        );
         assert_eq!(report.items[0].line, Some(88));
         assert!(report.items[0].message.contains("AssertionError"));
     }

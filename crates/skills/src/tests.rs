@@ -338,7 +338,9 @@ async fn test_skill_manifest_validation_and_permission_enforcement() {
 #[tokio::test]
 async fn test_workflow_engine_end_to_end_execution() {
     use crate::runtime::SkillRuntime;
-    use crate::types::{SkillManifest, SkillPermission, SkillTrustLevel, WorkflowDefinition, WorkflowStep};
+    use crate::types::{
+        SkillManifest, SkillPermission, SkillTrustLevel, WorkflowDefinition, WorkflowStep,
+    };
     use crate::workflow::WorkflowEngine;
     use std::sync::Arc;
     use voxy_database::{CommercialStore, DatabaseConfig, SqliteDatabase, StorageProvider};

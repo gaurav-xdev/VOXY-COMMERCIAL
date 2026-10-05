@@ -71,7 +71,10 @@ impl RepositoryIndexer {
                     size_bytes: metadata.len(),
                 });
 
-                if matches!(ext.as_str(), "rs" | "toml" | "py" | "ts" | "js" | "tsx" | "jsx" | "go" | "ps1") {
+                if matches!(
+                    ext.as_str(),
+                    "rs" | "toml" | "py" | "ts" | "js" | "tsx" | "jsx" | "go" | "ps1"
+                ) {
                     self.extract_symbols(&path);
                 }
             }
@@ -94,13 +97,27 @@ impl RepositoryIndexer {
 
         for (idx, line) in content.lines().enumerate() {
             let line_trimmed = line.trim();
-            if line_trimmed.is_empty() || line_trimmed.starts_with("//") || line_trimmed.starts_with('#') {
+            if line_trimmed.is_empty()
+                || line_trimmed.starts_with("//")
+                || line_trimmed.starts_with('#')
+            {
                 continue;
             }
 
             match ext.as_str() {
                 "rs" => {
-                    let keywords = ["pub fn ", "fn ", "pub struct ", "struct ", "pub enum ", "enum ", "pub trait ", "trait ", "pub type ", "type "];
+                    let keywords = [
+                        "pub fn ",
+                        "fn ",
+                        "pub struct ",
+                        "struct ",
+                        "pub enum ",
+                        "enum ",
+                        "pub trait ",
+                        "trait ",
+                        "pub type ",
+                        "type ",
+                    ];
                     for kw in keywords {
                         if let Some(pos) = line_trimmed.find(kw) {
                             let after = &line_trimmed[pos + kw.len()..];
@@ -118,11 +135,16 @@ impl RepositoryIndexer {
                 }
                 "ts" | "js" | "tsx" | "jsx" => {
                     let keywords = [
-                        "export function ", "function ",
-                        "export class ", "class ",
-                        "export interface ", "interface ",
-                        "export type ", "type ",
-                        "export const ", "const ",
+                        "export function ",
+                        "function ",
+                        "export class ",
+                        "class ",
+                        "export interface ",
+                        "interface ",
+                        "export type ",
+                        "type ",
+                        "export const ",
+                        "const ",
                     ];
                     for kw in keywords {
                         if let Some(pos) = line_trimmed.find(kw) {
@@ -267,13 +289,15 @@ mod tests {
         std::fs::write(
             root.join("api.ts"),
             "export interface UserProfile { id: string; }\nexport function fetchUser() {}\n",
-        ).unwrap();
+        )
+        .unwrap();
 
         // Python file
         std::fs::write(
             root.join("worker.py"),
             "class TaskQueue:\n    pass\n\ndef process_job():\n    pass\n",
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut indexer = RepositoryIndexer::new(root);
         indexer.index_repository().unwrap();

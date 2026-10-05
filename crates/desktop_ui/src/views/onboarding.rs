@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::bridge::AppBridge;
+use dioxus::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum OnboardingStep {
@@ -75,10 +75,15 @@ pub fn OnboardingFlow(props: OnboardingFlowProps) -> Element {
                                         .collect();
                                     if !list.is_empty() {
                                         selected.set(list[0].clone());
-                                        status.set(format!("Found {} local Ollama models", list.len()));
+                                        status.set(format!(
+                                            "Found {} local Ollama models",
+                                            list.len()
+                                        ));
                                         models.set(list);
                                     } else {
-                                        status.set("Ollama running, but no models pulled yet".to_string());
+                                        status.set(
+                                            "Ollama running, but no models pulled yet".to_string(),
+                                        );
                                     }
                                 }
                             }
@@ -108,7 +113,11 @@ pub fn OnboardingFlow(props: OnboardingFlowProps) -> Element {
         move || {
             let mut snap = b.settings.get();
             let name = agent_name.read().trim().to_string();
-            snap.app_name = if name.is_empty() { "OSMOO".to_string() } else { name };
+            snap.app_name = if name.is_empty() {
+                "OSMOO".to_string()
+            } else {
+                name
+            };
             snap.onboarded = true;
 
             // Voice settings

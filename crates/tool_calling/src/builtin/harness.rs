@@ -443,14 +443,16 @@ impl Tool for HarnessApplyPatchTransactionTool {
             let content = patch_item
                 .get("modified_content")
                 .and_then(|v| v.as_str())
-                .ok_or_else(|| ToolError::InvalidParams("Patch item missing 'modified_content'".into()))?;
+                .ok_or_else(|| {
+                    ToolError::InvalidParams("Patch item missing 'modified_content'".into())
+                })?;
 
             tx.add_change(path_str, content);
         }
 
-        let diffs = tx
-            .apply()
-            .map_err(|e| ToolError::ExecutionFailed(format!("Patch transaction rejected: {}", e)))?;
+        let diffs = tx.apply().map_err(|e| {
+            ToolError::ExecutionFailed(format!("Patch transaction rejected: {}", e))
+        })?;
 
         // Commit transaction to lock in changes
         tx.commit();

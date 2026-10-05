@@ -80,7 +80,9 @@ impl WindowTracker {
             #[cfg(windows)]
             {
                 use windows::Win32::Foundation::HWND;
-                use windows::Win32::UI::WindowsAndMessaging::{ShowWindow, SetForegroundWindow, SW_RESTORE};
+                use windows::Win32::UI::WindowsAndMessaging::{
+                    SetForegroundWindow, ShowWindow, SW_RESTORE,
+                };
                 unsafe {
                     let h = HWND(hwnd as isize as *mut _);
                     let _ = ShowWindow(h, SW_RESTORE);
@@ -98,7 +100,7 @@ impl WindowTracker {
         {
             use windows::Win32::Foundation::RECT;
             use windows::Win32::UI::WindowsAndMessaging::{
-                GetForegroundWindow, GetWindowRect, GetDesktopWindow, GetShellWindow
+                GetDesktopWindow, GetForegroundWindow, GetShellWindow, GetWindowRect,
             };
             unsafe {
                 let fg = GetForegroundWindow();
@@ -113,7 +115,9 @@ impl WindowTracker {
 
                 let mut fg_rect = RECT::default();
                 let mut desk_rect = RECT::default();
-                if GetWindowRect(fg, &mut fg_rect).is_ok() && GetWindowRect(desktop, &mut desk_rect).is_ok() {
+                if GetWindowRect(fg, &mut fg_rect).is_ok()
+                    && GetWindowRect(desktop, &mut desk_rect).is_ok()
+                {
                     return fg_rect.left <= desk_rect.left
                         && fg_rect.top <= desk_rect.top
                         && fg_rect.right >= desk_rect.right

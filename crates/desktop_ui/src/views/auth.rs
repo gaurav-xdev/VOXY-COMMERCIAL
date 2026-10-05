@@ -33,7 +33,9 @@ pub fn AuthView(props: AuthViewProps) -> Element {
 
             if em.is_empty() || pass.is_empty() {
                 error_flag.set(true);
-                status.set(Some("Email and password credentials are required.".to_string()));
+                status.set(Some(
+                    "Email and password credentials are required.".to_string(),
+                ));
                 return;
             }
 
@@ -46,19 +48,22 @@ pub fn AuthView(props: AuthViewProps) -> Element {
             spawn(async move {
                 if is_reg {
                     match a.register(&em, &pass, None).await {
-                        Ok(_) => {
-                            match a.login(&em, &pass).await {
-                                Ok(sess) => {
-                                    error_flag.set(false);
-                                    status.set(Some(format!("Account created. Welcome, {}.", sess.email)));
-                                    on_done.call(());
-                                }
-                                Err(e) => {
-                                    error_flag.set(true);
-                                    status.set(Some(format!("Registration succeeded, but initial sign-in failed: {e}")));
-                                }
+                        Ok(_) => match a.login(&em, &pass).await {
+                            Ok(sess) => {
+                                error_flag.set(false);
+                                status.set(Some(format!(
+                                    "Account created. Welcome, {}.",
+                                    sess.email
+                                )));
+                                on_done.call(());
                             }
-                        }
+                            Err(e) => {
+                                error_flag.set(true);
+                                status.set(Some(format!(
+                                    "Registration succeeded, but initial sign-in failed: {e}"
+                                )));
+                            }
+                        },
                         Err(e) => {
                             error_flag.set(true);
                             status.set(Some(format!("{e}")));

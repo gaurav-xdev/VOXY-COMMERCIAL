@@ -65,8 +65,9 @@ impl ResendMailer {
     /// - `RESEND_API_KEY`: Required API key from Resend (e.g. `re_...`).
     /// - `RESEND_FROM_EMAIL`: Optional sender address (default: `OSMOO <noreply@osmoo.in>`).
     pub fn from_env() -> Result<Self, EmailError> {
-        let api_key = std::env::var("RESEND_API_KEY")
-            .map_err(|_| EmailError::NotConfigured("RESEND_API_KEY environment variable not set".into()))?;
+        let api_key = std::env::var("RESEND_API_KEY").map_err(|_| {
+            EmailError::NotConfigured("RESEND_API_KEY environment variable not set".into())
+        })?;
 
         if api_key.trim().is_empty() {
             return Err(EmailError::NotConfigured("RESEND_API_KEY is empty".into()));
@@ -116,7 +117,11 @@ impl ResendMailer {
     }
 
     /// Helper for sending an account verification or welcome email.
-    pub async fn send_welcome(&self, recipient_email: &str, user_name: Option<&str>) -> Result<SendEmailResponse, EmailError> {
+    pub async fn send_welcome(
+        &self,
+        recipient_email: &str,
+        user_name: Option<&str>,
+    ) -> Result<SendEmailResponse, EmailError> {
         let name = user_name.unwrap_or("Explorer");
         let subject = "Welcome to OSMOO by Osmiora";
         let html = format!(
@@ -127,7 +132,8 @@ impl ResendMailer {
             "Welcome to OSMOO, {}!\n\nYour OSMOO companion by Osmiora is ready. Open your OSMOO application on Windows to get started. Visit us at osmoo.in or follow @IamOSMOO.",
             name
         );
-        self.send(&[recipient_email], subject, Some(&html), Some(&text)).await
+        self.send(&[recipient_email], subject, Some(&html), Some(&text))
+            .await
     }
 }
 
@@ -142,7 +148,10 @@ mod tests {
         let _guard = ENV_LOCK.lock();
         std::env::remove_var("RESEND_API_KEY");
         let result = ResendMailer::from_env();
-        assert!(result.is_err(), "Expected error when RESEND_API_KEY is not set");
+        assert!(
+            result.is_err(),
+            "Expected error when RESEND_API_KEY is not set"
+        );
         match result {
             Err(EmailError::NotConfigured(msg)) => {
                 assert!(msg.contains("RESEND_API_KEY"));

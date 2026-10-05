@@ -73,7 +73,12 @@ impl IntentPreprocessor {
         }
         if matches!(
             v_target,
-            "volume up" | "turn volume up" | "turn the volume up" | "increase volume" | "louder" | "make it louder"
+            "volume up"
+                | "turn volume up"
+                | "turn the volume up"
+                | "increase volume"
+                | "louder"
+                | "make it louder"
         ) {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: 10 },
@@ -82,7 +87,13 @@ impl IntentPreprocessor {
         }
         if matches!(
             v_target,
-            "volume down" | "turn volume down" | "turn the volume down" | "decrease volume" | "quieter" | "lower volume" | "make it quieter"
+            "volume down"
+                | "turn volume down"
+                | "turn the volume down"
+                | "decrease volume"
+                | "quieter"
+                | "lower volume"
+                | "make it quieter"
         ) {
             return Some(FastIntentResult {
                 action: FastIntentAction::VolumeChange { delta: -10 },

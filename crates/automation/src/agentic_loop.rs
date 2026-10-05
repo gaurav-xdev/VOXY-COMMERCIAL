@@ -182,11 +182,7 @@ impl Default for OperationLoopConfig {
 #[async_trait]
 pub trait AgentPlanner: Send + Sync {
     /// Initial plan given task goal and observation.
-    async fn plan(
-        &self,
-        goal: &str,
-        observation: &DesktopObservation,
-    ) -> Result<Vec<PlannedStep>>;
+    async fn plan(&self, goal: &str, observation: &DesktopObservation) -> Result<Vec<PlannedStep>>;
 
     /// Replan given task goal, observation, failed step, and error reason.
     async fn replan(
@@ -558,7 +554,12 @@ impl AgenticOperationLoop {
         }
 
         self.set_state(LoopState::Completed);
-        self.emit_progress(steps.len(), steps.len(), "All steps completed successfully", "Completed");
+        self.emit_progress(
+            steps.len(),
+            steps.len(),
+            "All steps completed successfully",
+            "Completed",
+        );
         Ok(())
     }
 
@@ -572,10 +573,7 @@ impl AgenticOperationLoop {
             "Resolution: {}x{}, Active: {}, Visible Windows: {}",
             width,
             height,
-            active
-                .as_ref()
-                .map(|w| w.title.as_str())
-                .unwrap_or("None"),
+            active.as_ref().map(|w| w.title.as_str()).unwrap_or("None"),
             visible.len()
         );
 
@@ -613,7 +611,10 @@ impl AgenticOperationLoop {
                 format!("agent_step_{}", step.step_number),
                 &params,
                 risk_level,
-                format!("Computer-Use step requires authorization: {}", step.description),
+                format!(
+                    "Computer-Use step requires authorization: {}",
+                    step.description
+                ),
                 Duration::from_secs(45),
             );
 
@@ -631,19 +632,40 @@ impl AgenticOperationLoop {
         match action {
             AgentAction::Click { x, y, button } => {
                 if let Some(ref cc) = self.cursor_controller {
-                    let _ = cc.update_cursor(*x, *y, voxy_ipc::VoxyCursorState::Clicking, "Target", "Clicking", 1.0);
+                    let _ = cc.update_cursor(
+                        *x,
+                        *y,
+                        voxy_ipc::VoxyCursorState::Clicking,
+                        "Target",
+                        "Clicking",
+                        1.0,
+                    );
                 }
                 self.backend.click(*x, *y, *button).await
             }
             AgentAction::DoubleClick { x, y } => {
                 if let Some(ref cc) = self.cursor_controller {
-                    let _ = cc.update_cursor(*x, *y, voxy_ipc::VoxyCursorState::Clicking, "Target", "Double-Clicking", 1.0);
+                    let _ = cc.update_cursor(
+                        *x,
+                        *y,
+                        voxy_ipc::VoxyCursorState::Clicking,
+                        "Target",
+                        "Double-Clicking",
+                        1.0,
+                    );
                 }
                 self.backend.double_click(*x, *y).await
             }
             AgentAction::MoveMouse { x, y } => {
                 if let Some(ref cc) = self.cursor_controller {
-                    let _ = cc.update_cursor(*x, *y, voxy_ipc::VoxyCursorState::Moving, "Target", "Moving Mouse", 1.0);
+                    let _ = cc.update_cursor(
+                        *x,
+                        *y,
+                        voxy_ipc::VoxyCursorState::Moving,
+                        "Target",
+                        "Moving Mouse",
+                        1.0,
+                    );
                 }
                 self.backend.move_mouse(*x, *y).await
             }
@@ -652,30 +674,22 @@ impl AgenticOperationLoop {
                 from_y,
                 to_x,
                 to_y,
-            } => {
-                self.backend.drag(*from_x, *from_y, *to_x, *to_y).await
-            }
+            } => self.backend.drag(*from_x, *from_y, *to_x, *to_y).await,
             AgentAction::Scroll {
                 x,
                 y,
                 delta_x,
                 delta_y,
-            } => {
-                self.backend.scroll(*x, *y, *delta_x, *delta_y).await
-            }
+            } => self.backend.scroll(*x, *y, *delta_x, *delta_y).await,
             AgentAction::TypeText { text, interval_ms } => {
                 self.backend.type_text(text, *interval_ms).await
             }
-            AgentAction::KeyPress { key } => {
-                self.backend.key_press(key).await
-            }
+            AgentAction::KeyPress { key } => self.backend.key_press(key).await,
             AgentAction::KeyCombination { keys } => {
                 let key_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
                 self.backend.key_combination(&key_refs).await
             }
-            AgentAction::FocusWindow { window_id } => {
-                self.backend.focus_window(window_id).await
-            }
+            AgentAction::FocusWindow { window_id } => self.backend.focus_window(window_id).await,
             AgentAction::CustomTool { name, parameters } => {
                 info!("CustomTool action invoked: {} with {:?}", name, parameters);
                 Ok(())
@@ -809,7 +823,11 @@ mod tests {
                 is_focused: true,
             })
         }
-        async fn find_window(&self, _title: &str, _class: Option<&str>) -> Result<Vec<WindowTarget>> {
+        async fn find_window(
+            &self,
+            _title: &str,
+            _class: Option<&str>,
+        ) -> Result<Vec<WindowTarget>> {
             Ok(vec![])
         }
         async fn focus_window(&self, _window_id: &str) -> Result<()> {
@@ -836,7 +854,10 @@ mod tests {
         async fn restore_window(&self, _window_id: &str) -> Result<()> {
             Ok(())
         }
-        async fn find_element(&self, _selector: &ElementSelector) -> Result<Vec<voxy_orchestrator::automation::ElementInfo>> {
+        async fn find_element(
+            &self,
+            _selector: &ElementSelector,
+        ) -> Result<Vec<voxy_orchestrator::automation::ElementInfo>> {
             Ok(vec![])
         }
         async fn get_element_text(&self, _element_id: &str) -> Result<String> {
@@ -848,7 +869,11 @@ mod tests {
         async fn get_element_bounds(&self, _element_id: &str) -> Result<voxy_shared::types::Rect> {
             Ok(voxy_shared::types::Rect::new(0, 0, 100, 50))
         }
-        async fn wait_for_element(&self, _selector: &ElementSelector, _timeout_ms: u64) -> Result<voxy_orchestrator::automation::ElementInfo> {
+        async fn wait_for_element(
+            &self,
+            _selector: &ElementSelector,
+            _timeout_ms: u64,
+        ) -> Result<voxy_orchestrator::automation::ElementInfo> {
             Ok(voxy_orchestrator::automation::ElementInfo {
                 id: "elem-1".into(),
                 name: "Button".into(),
@@ -863,7 +888,11 @@ mod tests {
         async fn ocr_region(&self, _image: &[u8], _language: Option<&str>) -> Result<String> {
             Ok("Text".into())
         }
-        async fn find_text_on_screen(&self, _text: &str, _region: Option<voxy_shared::types::Rect>) -> Result<Vec<voxy_shared::types::Rect>> {
+        async fn find_text_on_screen(
+            &self,
+            _text: &str,
+            _region: Option<voxy_shared::types::Rect>,
+        ) -> Result<Vec<voxy_shared::types::Rect>> {
             Ok(vec![])
         }
         async fn verify_state(&self, _expected: &StateVerification) -> Result<bool> {
@@ -872,7 +901,9 @@ mod tests {
         async fn recover(&self, _error: &str) -> Result<bool> {
             Ok(true)
         }
-        async fn get_backend_capabilities(&self) -> Vec<voxy_orchestrator::automation::AutomationCapability> {
+        async fn get_backend_capabilities(
+            &self,
+        ) -> Vec<voxy_orchestrator::automation::AutomationCapability> {
             vec![]
         }
     }

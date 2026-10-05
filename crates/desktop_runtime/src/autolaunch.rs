@@ -23,7 +23,10 @@ impl AutoLauncher {
         {
             self.set_registry_value(&cmd)?;
         }
-        info!("Auto-launch enabled for {} with command: {}", self.app_name, cmd);
+        info!(
+            "Auto-launch enabled for {} with command: {}",
+            self.app_name, cmd
+        );
         Ok(())
     }
 
@@ -151,7 +154,10 @@ impl AutoLauncher {
             if result.is_err() {
                 return Ok(());
             }
-            let _ = RegDeleteValueW(hkey, windows::core::PCWSTR::from_raw(value_name_wide.as_ptr()));
+            let _ = RegDeleteValueW(
+                hkey,
+                windows::core::PCWSTR::from_raw(value_name_wide.as_ptr()),
+            );
             let _ = windows::Win32::System::Registry::RegCloseKey(hkey);
         }
         Ok(())
