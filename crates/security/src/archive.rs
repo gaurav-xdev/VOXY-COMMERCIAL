@@ -77,6 +77,9 @@ pub enum ArchiveSecurityError {
     #[error("NTFS Alternate Data Stream or colon detected in path: '{path}'")]
     IllegalStreamDetected { path: String },
 
+    #[error("Zip format error: {0}")]
+    ZipError(String),
+
     #[error("IO error during archive operation: {0}")]
     IoError(#[from] io::Error),
 }
@@ -162,9 +165,117 @@ pub fn ensure_within_root(root: &Path, rel_path: &Path) -> Result<PathBuf, Archi
     Ok(target)
 }
 
+/// Safely extracts a zip archive from a reader into a destination directory.
+/// Enforces all ArchiveSecurityLimits: max size, max entries, max entry size,
+/// compression ratios, path depth, and symlink prohibition.
+pub fn safe_extract_zip<R: io::Read + io::Seek>(
+    reader: R,
+    destination: &Path,
+    limits: &ArchiveSecurityLimits,
+) -> Result<usize, ArchiveSecurityError> {
+    let mut archive =
+        zip::ZipArchive::new(reader).map_err(|e| ArchiveSecurityError::ZipError(e.to_string()))?;
+
+    let entry_count = archive.len();
+    if entry_count > limits.max_entry_count {
+        return Err(ArchiveSecurityError::EntryCountExceeded {
+            count: entry_count,
+            max: limits.max_entry_count,
+        });
+    }
+
+    std::fs::create_dir_all(destination)?;
+    let canonical_dest = destination.canonicalize()?;
+
+    let mut total_extracted: u64 = 0;
+
+    for i in 0..entry_count {
+        let mut entry = archive
+            .by_index(i)
+            .map_err(|e| ArchiveSecurityError::ZipError(e.to_string()))?;
+
+        let raw_name = entry.name().to_string();
+
+        // 1. Validate relative path & prevent traversal
+        let safe_rel_path = validate_archive_path(&raw_name, limits)?;
+
+        // 2. Prohibit symlinks/hardlinks
+        if entry.is_symlink() {
+            return Err(ArchiveSecurityError::IllegalLinkDetected { path: raw_name });
+        }
+
+        // 3. Check declared entry size
+        let uncompressed_size = entry.size();
+        if uncompressed_size > limits.max_entry_uncompressed_bytes {
+            return Err(ArchiveSecurityError::EntrySizeExceeded {
+                entry_size: uncompressed_size,
+                max: limits.max_entry_uncompressed_bytes,
+            });
+        }
+
+        // 4. Check compression ratio for zip bomb defense
+        let compressed_size = entry.compressed_size();
+        if compressed_size > 0 && uncompressed_size > 1024 {
+            let ratio = uncompressed_size as f64 / compressed_size as f64;
+            if ratio > limits.max_compression_ratio {
+                return Err(ArchiveSecurityError::SuspiciousCompressionRatio {
+                    ratio,
+                    max: limits.max_compression_ratio,
+                });
+            }
+        }
+
+        // 5. Ensure path resolves inside destination directory
+        let target_path = ensure_within_root(&canonical_dest, &safe_rel_path)?;
+
+        if entry.is_dir() {
+            std::fs::create_dir_all(&target_path)?;
+        } else {
+            if let Some(parent) = target_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            let mut out_file = std::fs::File::create(&target_path)?;
+            let mut entry_extracted: u64 = 0;
+            let mut buffer = [0u8; 8192];
+
+            loop {
+                let n = io::Read::read(&mut entry, &mut buffer)?;
+                if n == 0 {
+                    break;
+                }
+                entry_extracted += n as u64;
+                total_extracted += n as u64;
+
+                if entry_extracted > limits.max_entry_uncompressed_bytes {
+                    let _ = std::fs::remove_file(&target_path);
+                    return Err(ArchiveSecurityError::EntrySizeExceeded {
+                        entry_size: entry_extracted,
+                        max: limits.max_entry_uncompressed_bytes,
+                    });
+                }
+
+                if total_extracted > limits.max_total_uncompressed_bytes {
+                    let _ = std::fs::remove_file(&target_path);
+                    return Err(ArchiveSecurityError::TotalDecompressedSizeExceeded {
+                        extracted: total_extracted,
+                        max: limits.max_total_uncompressed_bytes,
+                    });
+                }
+
+                io::Write::write_all(&mut out_file, &buffer[..n])?;
+            }
+        }
+    }
+
+    Ok(entry_count)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
 
     #[test]
     fn test_valid_archive_paths() {
@@ -209,5 +320,85 @@ mod tests {
             &limits
         )
         .is_err());
+    }
+
+    #[test]
+    fn test_safe_extract_zip_valid_archive() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip_path = dir.path().join("test.zip");
+        let dest = dir.path().join("extracted");
+
+        // Create a small valid zip
+        let file = std::fs::File::create(&zip_path).unwrap();
+        let mut zip_writer = zip::ZipWriter::new(file);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+        zip_writer.start_file("hello.txt", options).unwrap();
+        zip_writer.write_all(b"Hello from safe archive!").unwrap();
+
+        zip_writer.start_file("sub/world.txt", options).unwrap();
+        zip_writer.write_all(b"World nested").unwrap();
+        zip_writer.finish().unwrap();
+
+        let zip_file = std::fs::File::open(&zip_path).unwrap();
+        let limits = ArchiveSecurityLimits::default();
+        let count = safe_extract_zip(zip_file, &dest, &limits).unwrap();
+
+        assert_eq!(count, 2);
+        assert_eq!(
+            std::fs::read_to_string(dest.join("hello.txt")).unwrap(),
+            "Hello from safe archive!"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dest.join("sub").join("world.txt")).unwrap(),
+            "World nested"
+        );
+    }
+
+    #[test]
+    fn test_safe_extract_zip_rejects_zip_slip() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip_path = dir.path().join("evil.zip");
+        let dest = dir.path().join("extracted");
+
+        let file = std::fs::File::create(&zip_path).unwrap();
+        let mut zip_writer = zip::ZipWriter::new(file);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+        zip_writer.start_file("../evil.txt", options).unwrap();
+        zip_writer.write_all(b"PWNED").unwrap();
+        zip_writer.finish().unwrap();
+
+        let zip_file = std::fs::File::open(&zip_path).unwrap();
+        let limits = ArchiveSecurityLimits::default();
+        let res = safe_extract_zip(zip_file, &dest, &limits);
+
+        assert!(res.is_err());
+        assert!(!dest.join("../evil.txt").exists());
+    }
+
+    #[test]
+    fn test_safe_extract_zip_rejects_entry_size_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip_path = dir.path().join("oversized.zip");
+        let dest = dir.path().join("extracted");
+
+        let file = std::fs::File::create(&zip_path).unwrap();
+        let mut zip_writer = zip::ZipWriter::new(file);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+        zip_writer.start_file("large.bin", options).unwrap();
+        zip_writer.write_all(&vec![0u8; 10_000]).unwrap();
+        zip_writer.finish().unwrap();
+
+        let mut limits = ArchiveSecurityLimits::default();
+        limits.max_entry_uncompressed_bytes = 1000; // lower than 10_000
+
+        let zip_file = std::fs::File::open(&zip_path).unwrap();
+        let res = safe_extract_zip(zip_file, &dest, &limits);
+        assert!(res.is_err());
     }
 }

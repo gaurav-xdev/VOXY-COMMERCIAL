@@ -266,6 +266,22 @@ impl ApiRouter {
                 }
             }
 
+            // Admin Metrics Endpoint (Admin RBAC only)
+            ("GET", "/admin/metrics") => {
+                let auth_header = req.headers.get("authorization").map(|s| s.as_str());
+                let auth_ctx = match self.auth_middleware.authenticate(auth_header).await {
+                    Ok(ctx) => ctx,
+                    Err(e) => return ApiResponse::error(e, &req.request_id),
+                };
+                if let Err(e) = self.auth_middleware.require_admin(&auth_ctx) {
+                    return ApiResponse::error(e, &req.request_id);
+                }
+                match self.handlers.get_admin_metrics(&auth_ctx).await {
+                    Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
             _ => ApiResponse::error(
                 ApiError::NotFound(format!("Route '{method} {path}' not found")),
                 &req.request_id,

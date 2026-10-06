@@ -182,6 +182,9 @@ impl BrowserRuntime {
     }
 
     /// Validate whether a URL is permitted according to safety rules.
+    /// Validate whether a URL is permitted according to safety rules.
+    /// Checks scheme, host string, and performs DNS resolution to ensure public hostnames
+    /// do not resolve to private, loopback, link-local, or cloud metadata IP addresses.
     pub fn validate_url(&self, url_str: &str) -> Result<()> {
         let url = reqwest::Url::parse(url_str)
             .map_err(|e| ToolError::InvalidParams(format!("Invalid URL: {e}")))?;
@@ -202,12 +205,12 @@ impl BrowserRuntime {
                 || host_lower == "169.254.169.254" // Cloud instance metadata
                 || host_lower == "metadata.google.internal";
 
-            // Parse IP if host is an IP literal to prevent private network SSRF
-            if let Ok(ip) = host_lower.parse::<std::net::IpAddr>() {
+            // Helper to check if an IpAddr is private / restricted
+            let is_ip_restricted = |ip: std::net::IpAddr| -> bool {
                 match ip {
                     std::net::IpAddr::V4(v4) => {
                         let octets = v4.octets();
-                        if v4.is_loopback()
+                        v4.is_loopback()
                             || v4.is_link_local()
                             || octets[0] == 10 // 10.0.0.0/8
                             || (octets[0] == 172 && (16..=31).contains(&octets[1])) // 172.16.0.0/12
@@ -215,17 +218,29 @@ impl BrowserRuntime {
                             || (octets[0] == 100 && (64..=127).contains(&octets[1])) // 100.64.0.0/10 CGNAT
                             || v4.is_broadcast()
                             || v4.is_unspecified()
-                        {
-                            is_restricted = true;
-                        }
                     }
                     std::net::IpAddr::V6(v6) => {
-                        if v6.is_loopback()
+                        v6.is_loopback()
                             || v6.is_unspecified()
-                            || (v6.segments()[0] & 0xfe00) == 0xfc00
-                        {
-                            // Unique local IPv6 fc00::/7
+                            || (v6.segments()[0] & 0xfe00) == 0xfc00 // Unique local IPv6 fc00::/7
+                    }
+                }
+            };
+
+            // 1. Check IP literal
+            if let Ok(ip) = host_lower.parse::<std::net::IpAddr>() {
+                if is_ip_restricted(ip) {
+                    is_restricted = true;
+                }
+            } else if !is_restricted && !self.config.allow_loopback {
+                // 2. Resolve hostname to detect DNS Rebinding / Private IP resolution
+                use std::net::ToSocketAddrs;
+                let port = url.port_or_known_default().unwrap_or(80);
+                if let Ok(addrs) = format!("{}:{}", host, port).to_socket_addrs() {
+                    for addr in addrs {
+                        if is_ip_restricted(addr.ip()) {
                             is_restricted = true;
+                            break;
                         }
                     }
                 }

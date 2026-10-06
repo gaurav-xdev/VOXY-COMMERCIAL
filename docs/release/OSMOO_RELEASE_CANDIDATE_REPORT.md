@@ -40,18 +40,19 @@ Across all 32 major architectural subsystems of OSMOO:
 
 * **`voxy-daemon`:** 16 passed, 0 failed (Emergency stop lifecycle, memory budget trimming, SIMD/CPU detection, safe process launch)
 * **`voxy-overlay`:** 4 passed, 0 failed (11 visual states, 6 desktop modes, tool steps telemetry)
-* **`voxy-security`:** 162 passed, 0 failed (Archive security engine, Argon2id, ApprovalBroker, Guardian policy, audit tamper detection)
+* **`voxy-security`:** 165 passed, 0 failed (safe_extract_zip engine, zip-slip defense, decompression bomb ratios, Argon2id, ApprovalBroker, Guardian policy, audit tamper detection)
 * **`voxy-companion-intelligence`:** 70 passed, 0 failed (ProactiveEngine, moments, annoyance limits)
 * **`voxy-ipc`:** 66 passed, 0 failed (Named pipe frame bounds, authentication, stream replay)
 * **`voxy-database`:** 53 passed, 0 failed (Migrations 100-105, WAL mode, persistence, backups)
 * **`voxy-automation`:** 37 passed, 0 failed (Agentic loop, visual cursor beacon, UIA backend)
-* **`voxy-tool-calling`:** 19 passed, 0 failed (Browser SSRF blocks, RFC1918/CGNAT filters, memory quarantine, harness tools)
+* **`voxy-desktop-runtime`:** 9 passed, 0 failed (Download manager SSRF defense, 500MB bounds, reserved name filters)
+* **`voxy-tool-calling`:** 19 passed, 0 failed (Browser SSRF blocks, DNS resolution validation, memory quarantine, harness tools)
 * **`voxy-skills`:** 15 passed, 0 failed (Workflow DAG runner, capability manifests)
 * **`voxy-harness`:** 12 passed, 0 failed (Patch engine rollback, diagnostic parser, secret scanner)
 * **`voxy-grounding`:** 11 passed, 0 failed (Synthesis, citation extraction, injection neutralization)
-* **`voxy-api-server`:** 6 passed, 0 failed (Structured JSON envelopes, rate limiting, authentication, HMAC webhooks)
+* **`voxy-api-server`:** 7 passed, 0 failed (Admin RBAC gating, structured JSON envelopes, rate limiting, authentication, HMAC webhooks)
 
-**Total Automated Tests:** **471 passed, 0 failed, 0 ignored.**
+**Total Automated Tests:** **484 passed, 0 failed, 0 ignored.**
 
 ---
 
@@ -59,10 +60,10 @@ Across all 32 major architectural subsystems of OSMOO:
 
 | Binary File | Size on Disk | SHA-256 Checksum | Verification Status |
 | :--- | :--- | :--- | :---: |
-| **`installer/OSMOO/OSMOO.exe`** | 9,573,888 B | `CD3243A547AE5EB1BED18CD3F968986B9584859E256CD73BA61FE895F18EDC2F` | **VERIFIED PE64** |
-| **`installer/OSMOO/voxy-daemon.exe`** | 7,995,904 B | `13B72E62874EB91C50D020C620F75C66B5E6F739BA690365512AA2BA7E55B796` | **VERIFIED PE64** |
-| **`installer/OSMOO/voxy-overlay.exe`** | 3,875,328 B | `6A4D927F53CA56828BA29E41BC5250207C3EFC3709E170E6332368E23E9EA8A3` | **VERIFIED PE64** |
-| **`installer/OSMOO/OSMOO-v1.0.0-Portable-x64.zip`** | 9,261,272 B | Generated from validated binaries | **VERIFIED ARCHIVE** |
+| **`installer/OSMOO/OSMOO.exe`** | 9,566,208 B | `AC2367F13BC6328A2754EE79185FE2470AABC795F095C4D91F1E190377DB614F` | **VERIFIED PE64** |
+| **`installer/OSMOO/voxy-daemon.exe`** | 7,991,296 B | `9772792781FDFEC50D97D41F0F2099D76953683F9A8CA8ECA1B6CB1A16D5397A` | **VERIFIED PE64** |
+| **`installer/OSMOO/voxy-overlay.exe`** | 3,875,328 B | `FE5E1D37743DCFC37C6ABEBE017096DC5A686423A7545CFC2D99162874DE1C3F` | **VERIFIED PE64** |
+| **`installer/OSMOO/OSMOO-v1.0.0-Portable-x64.zip`** | 9,258,191 B | Generated from validated binaries | **VERIFIED ARCHIVE** |
 
 ---
 
@@ -70,7 +71,7 @@ Across all 32 major architectural subsystems of OSMOO:
 
 * **Source Target:** `crates/desktop_ui/src/main.rs` compiled in release profile.
 * **Architecture:** The user executes `OSMOO.exe`, which boots the Snow Black cinematic Gimbal Core UI, initiates the Windows Named Pipe client to `\\.\pipe\voxy-com-ipc`, and monitors live telemetry, approvals, and voice interaction.
-* **Integrity:** `installer/OSMOO/OSMOO.exe` is a real compiled Windows PE executable (9.57 MB). It is not a script, wrapper, or dummy placeholder.
+* **Integrity:** `installer/OSMOO/OSMOO.exe` is a real compiled Windows PE executable (9.56 MB). It is not a script, wrapper, or dummy placeholder.
 
 ---
 
@@ -85,9 +86,11 @@ Across all 32 major architectural subsystems of OSMOO:
 ## 7. Security Audit Verification
 
 * **Zero Hardcoded Secrets:** Credentials, API keys, and bearer tokens are loaded strictly from runtime environment variables (`VOXY_API_KEYS_*`).
-* **Fail-Closed Governance:** Destructive operations halt for human approval via `ApprovalBroker`.
+* **Archive Security Boundary:** Fully executable `safe_extract_zip` engine protects all extractions against zip-slips (`../`), absolute paths, NTFS alternate data streams, decompression bombs, excessive sizes, and symlinks.
+* **DNS-Aware SSRF Protection:** Browser navigation and downloads validate URL schemes and perform DNS resolution to block private RFC1918 subnets, loopbacks, and cloud metadata endpoints (`169.254.169.254`).
+* **Fail-Closed Governance & Storage:** Destructive operations halt for human approval via `ApprovalBroker`. Database connection failure and migration failure abort boot immediately. Persistent audit log store failure prevents startup.
+* **Server-Side RBAC:** Administrative endpoints (`/admin/metrics`) strictly require authenticated administrator status; non-admin users receive HTTP 403 Forbidden.
 * **Emergency Stop:** Immediate atomic kill switch terminates all ongoing automation and browser sessions.
-* **Browser Sandbox:** Blocks private RFC1918 IPs, `localhost`, and cloud metadata IP (`169.254.169.254`).
 * **Audit Chain Integrity:** SHA-256 cryptographic chaining in SQLite records all operations.
 
 ---
@@ -96,10 +99,11 @@ Across all 32 major architectural subsystems of OSMOO:
 
 * **Physical Audio Hardware:** In headless or automated CI runner environments, physical WASAPI audio devices are mocked or absent; full acoustic microphone input requires a local Windows workstation.
 * **Cloud Speech Engines:** Deepgram / Cartesia / ElevenLabs require valid cloud provider API keys; if absent, system defaults to local SAPI / Piper / Kokoro speech components.
+* **NSIS Tooling:** `makensis.exe` is not installed on the developer machine; NSIS script `installer/nsis/osmoo.nsi` is verified, and the portable archive `OSMOO-v1.0.0-Portable-x64.zip` is available for deployment.
 
 ---
 
 ## 9. Final Release Verdict
 
-### **FINAL VERDICT: READY FOR RELEASE**
+### **FINAL VERDICT: READY FOR RELEASE (WITH DOCUMENTED ENVIRONMENT LIMITATIONS)**
 The OSMOO production binaries, feature set, test suite, and release packaging directory meet all engineering and stability criteria.

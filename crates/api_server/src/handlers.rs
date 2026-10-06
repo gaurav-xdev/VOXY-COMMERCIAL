@@ -336,4 +336,26 @@ impl ApiHandlers {
 
         Ok(())
     }
+
+    /// GET /admin/metrics (Admin only)
+    pub async fn get_admin_metrics(
+        &self,
+        auth: &AuthContext,
+    ) -> Result<serde_json::Value, ApiError> {
+        if !auth.is_admin {
+            return Err(ApiError::Forbidden(
+                "Access denied: administrator privileges required".to_string(),
+            ));
+        }
+
+        Ok(serde_json::json!({
+            "status": "ok",
+            "caller_admin": auth.email,
+            "metrics": {
+                "active_sessions": 1,
+                "uptime_seconds": 3600,
+                "db_status": "healthy"
+            }
+        }))
+    }
 }

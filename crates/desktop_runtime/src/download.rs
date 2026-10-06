@@ -150,6 +150,29 @@ impl DownloadManager {
 }
 
 async fn do_download(url: &str, temp: &Path, dest: &Path, bytes: Arc<AtomicU64>) -> Result<u64> {
+    // 1. SSRF & Scheme Validation
+    let parsed_url = reqwest::Url::parse(url)
+        .map_err(|e| RuntimeError::Download(format!("Invalid download URL: {e}")))?;
+    if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
+        return Err(RuntimeError::Download(format!(
+            "Unsupported scheme '{}'. Only HTTP/HTTPS permitted.",
+            parsed_url.scheme()
+        )));
+    }
+    if let Some(host) = parsed_url.host_str() {
+        let host_lower = host.to_lowercase();
+        if host_lower == "localhost"
+            || host_lower == "127.0.0.1"
+            || host_lower == "::1"
+            || host_lower.starts_with("127.")
+            || host_lower == "169.254.169.254"
+        {
+            return Err(RuntimeError::Download(
+                "Downloads from loopback or cloud metadata IP addresses are prohibited".to_string(),
+            ));
+        }
+    }
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
@@ -167,14 +190,22 @@ async fn do_download(url: &str, temp: &Path, dest: &Path, bytes: Arc<AtomicU64>)
         .map_err(|e| RuntimeError::Download(format!("File create failed: {}", e)))?;
     let mut stream = resp.bytes_stream();
     let mut downloaded = 0u64;
+    const MAX_DOWNLOAD_BYTES: u64 = 500 * 1024 * 1024; // 500 MB hard limit
+
     use futures_util::StreamExt;
     use tokio::io::AsyncWriteExt;
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| RuntimeError::Download(format!("Stream error: {}", e)))?;
+        downloaded += chunk.len() as u64;
+        if downloaded > MAX_DOWNLOAD_BYTES {
+            let _ = tokio::fs::remove_file(temp).await;
+            return Err(RuntimeError::Download(format!(
+                "Download exceeds maximum security limit of {MAX_DOWNLOAD_BYTES} bytes"
+            )));
+        }
         file.write_all(&chunk)
             .await
             .map_err(|e| RuntimeError::Download(format!("Write error: {}", e)))?;
-        downloaded += chunk.len() as u64;
         bytes.store(downloaded, Ordering::Relaxed);
     }
     file.flush()

@@ -239,8 +239,15 @@ fn init_bridge() -> AppBridge {
                     Arc::new(store)
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to open audit DB, falling back to in-memory: {e}");
-                    Arc::new(voxy_database::InMemoryAuditLogStore::new())
+                    tracing::error!(
+                        path = %db_path.display(),
+                        error = %e,
+                        "FATAL: Failed to open persistent audit log store. Production compliance prohibits silent audit loss."
+                    );
+                    panic!(
+                        "CRITICAL: Failed to open persistent audit log store at {}: {e}",
+                        db_path.display()
+                    );
                 }
             }
         };
@@ -279,7 +286,11 @@ fn init_bridge() -> AppBridge {
 
         let commercial_store = Arc::new(voxy_database::CommercialStore::new(commercial_sqlite));
         if let Err(e) = commercial_store.initialize_schema().await {
-            tracing::warn!("Commercial schema migration warning: {e}");
+            tracing::error!(
+                error = %e,
+                "FATAL: Failed to run commercial schema migrations. Refusing to start with corrupt/incomplete schema."
+            );
+            panic!("CRITICAL: Commercial schema migrations failed: {e}");
         }
 
         let auth_middleware = Arc::new(voxy_api_server::middleware::AuthMiddleware::new(

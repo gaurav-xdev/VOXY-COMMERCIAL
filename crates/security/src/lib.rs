@@ -31,7 +31,8 @@ pub use approval::{
     ApprovalStatus,
 };
 pub use archive::{
-    ensure_within_root, validate_archive_path, ArchiveSecurityError, ArchiveSecurityLimits,
+    ensure_within_root, safe_extract_zip, validate_archive_path, ArchiveSecurityError,
+    ArchiveSecurityLimits,
 };
 pub use audit::{AuditEntry, AuditEventType, AuditLog};
 pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};

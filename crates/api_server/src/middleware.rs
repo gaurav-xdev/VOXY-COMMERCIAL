@@ -15,6 +15,7 @@ pub struct AuthContext {
     pub session_id: String,
     pub email: String,
     pub token_hash: String,
+    pub is_admin: bool,
 }
 
 /// Authentication middleware that validates bearer tokens against the commercial SQLite store.
@@ -90,12 +91,32 @@ impl AuthMiddleware {
             ));
         }
 
+        let is_admin = user.email.ends_with("@osmoo.in")
+            || user.email.ends_with("@osmiora.com")
+            || std::env::var("OSMOO_ADMIN_EMAILS")
+                .map(|e| {
+                    e.split(',')
+                        .any(|admin| admin.trim().eq_ignore_ascii_case(&user.email))
+                })
+                .unwrap_or(false);
+
         Ok(AuthContext {
             user_id: user.id,
             session_id: session.id,
             email: user.email,
             token_hash,
+            is_admin,
         })
+    }
+
+    /// Enforce admin role requirement on an authenticated context.
+    pub fn require_admin(&self, auth: &AuthContext) -> Result<(), ApiError> {
+        if !auth.is_admin {
+            return Err(ApiError::Forbidden(
+                "Access denied: administrator privileges required".to_string(),
+            ));
+        }
+        Ok(())
     }
 }
 

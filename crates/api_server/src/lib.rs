@@ -263,4 +263,74 @@ mod tests {
             "Webhook event must be marked processed in database"
         );
     }
+
+    #[tokio::test]
+    async fn test_admin_rbac_protection() {
+        let (_store, router) = setup_test_router().await;
+
+        // 1. Unauthenticated request to /admin/metrics returns 401
+        let req_unauth = ApiRequest::new("GET", "/admin/metrics", "10.0.0.1");
+        let resp_unauth = router.dispatch(req_unauth).await;
+        assert_eq!(resp_unauth.status_code, 401);
+
+        // 2. Register ordinary non-admin user
+        let reg_user = RegisterRequest {
+            email: "bob@standard-user.com".to_string(),
+            password: "StandardPassword123!".to_string(),
+            name: Some("Bob".to_string()),
+        };
+        let _ = router
+            .dispatch(ApiRequest::new("POST", "/auth/register", "10.0.0.1").with_json(&reg_user))
+            .await;
+
+        let login_user = LoginRequest {
+            email: "bob@standard-user.com".to_string(),
+            password: "StandardPassword123!".to_string(),
+        };
+        let login_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/login", "10.0.0.1").with_json(&login_user))
+            .await;
+        let env_user: ApiResponseEnvelope<LoginResponse> =
+            serde_json::from_slice(&login_resp.body).unwrap();
+        let user_token = env_user.data.unwrap().token;
+
+        // 3. Ordinary user attempting to call /admin/metrics is strictly DENIED with 403 Forbidden
+        let req_user = ApiRequest::new("GET", "/admin/metrics", "10.0.0.1")
+            .with_header("authorization", &format!("Bearer {user_token}"));
+        let resp_user = router.dispatch(req_user).await;
+        assert_eq!(
+            resp_user.status_code, 403,
+            "Standard user must be denied admin endpoints with 403"
+        );
+
+        // 4. Register official admin user (@osmoo.in)
+        let reg_admin = RegisterRequest {
+            email: "admin@osmoo.in".to_string(),
+            password: "AdminSecurePassword123!".to_string(),
+            name: Some("Osmoo Admin".to_string()),
+        };
+        let _ = router
+            .dispatch(ApiRequest::new("POST", "/auth/register", "10.0.0.1").with_json(&reg_admin))
+            .await;
+
+        let login_admin = LoginRequest {
+            email: "admin@osmoo.in".to_string(),
+            password: "AdminSecurePassword123!".to_string(),
+        };
+        let admin_login_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/login", "10.0.0.1").with_json(&login_admin))
+            .await;
+        let env_admin: ApiResponseEnvelope<LoginResponse> =
+            serde_json::from_slice(&admin_login_resp.body).unwrap();
+        let admin_token = env_admin.data.unwrap().token;
+
+        // 5. Admin user calling /admin/metrics is ALLOWED with 200 OK
+        let req_admin = ApiRequest::new("GET", "/admin/metrics", "10.0.0.1")
+            .with_header("authorization", &format!("Bearer {admin_token}"));
+        let resp_admin = router.dispatch(req_admin).await;
+        assert_eq!(
+            resp_admin.status_code, 200,
+            "Admin user must be permitted to access admin endpoints"
+        );
+    }
 }
