@@ -132,7 +132,8 @@ impl VadDetector for EnergyVadDetector {
 
 pub struct EnergyWakeWordDetector {
     name: String,
-    wake_word: String,
+    primary_wake_word: String,
+    keywords: Arc<Mutex<Vec<String>>>,
     threshold: f32,
     min_duration_frames: usize,
     cooldown_frames: usize,
@@ -143,13 +144,23 @@ pub struct EnergyWakeWordDetector {
 }
 
 impl EnergyWakeWordDetector {
+    pub const MAX_KEYWORDS: usize = 10;
+
     pub fn new(wake_word: &str, threshold: f32, sample_rate: u32) -> Self {
         let frame_ms = 30;
         let samples_per_frame = (sample_rate as usize * frame_ms / 1000).max(1);
         let max_buffer_samples = samples_per_frame * 20;
+        let primary = wake_word.trim().to_lowercase();
+        let initial_keywords = if primary.is_empty() {
+            vec!["osmoo".to_string()]
+        } else {
+            vec![primary.clone()]
+        };
+
         Self {
             name: "energy-wakeword".into(),
-            wake_word: wake_word.to_string(),
+            primary_wake_word: if primary.is_empty() { "osmoo".into() } else { primary },
+            keywords: Arc::new(Mutex::new(initial_keywords)),
             threshold,
             min_duration_frames: 5,
             cooldown_frames: (2000.0 / frame_ms as f64).ceil() as usize,
@@ -168,6 +179,56 @@ impl EnergyWakeWordDetector {
     pub fn with_cooldown_frames(mut self, frames: usize) -> Self {
         self.cooldown_frames = frames;
         self
+    }
+
+    pub fn add_keyword(&self, keyword: &str) -> bool {
+        let normalized = keyword.trim().to_lowercase();
+        if normalized.is_empty() {
+            return false;
+        }
+        let mut list = self.keywords.lock().unwrap_or_else(|e| e.into_inner());
+        if list.len() >= Self::MAX_KEYWORDS {
+            return false;
+        }
+        if !list.contains(&normalized) {
+            list.push(normalized);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn remove_keyword(&self, keyword: &str) -> bool {
+        let normalized = keyword.trim().to_lowercase();
+        let mut list = self.keywords.lock().unwrap_or_else(|e| e.into_inner());
+        let before = list.len();
+        list.retain(|k| k != &normalized);
+        list.len() < before
+    }
+
+    pub fn has_keyword(&self, keyword: &str) -> bool {
+        let normalized = keyword.trim().to_lowercase();
+        let list = self.keywords.lock().unwrap_or_else(|e| e.into_inner());
+        list.contains(&normalized)
+    }
+
+    pub fn keywords(&self) -> Vec<String> {
+        let list = self.keywords.lock().unwrap_or_else(|e| e.into_inner());
+        list.clone()
+    }
+
+    pub fn reload_keywords(&self, keywords: &[String]) {
+        let mut list = self.keywords.lock().unwrap_or_else(|e| e.into_inner());
+        list.clear();
+        for kw in keywords.iter().take(Self::MAX_KEYWORDS) {
+            let norm = kw.trim().to_lowercase();
+            if !norm.is_empty() && !list.contains(&norm) {
+                list.push(norm);
+            }
+        }
+        if list.is_empty() {
+            list.push("osmoo".to_string());
+        }
     }
 
     fn compute_energy(data: &[f32]) -> f64 {
@@ -194,7 +255,7 @@ impl WakeWordDetector for EnergyWakeWordDetector {
     }
 
     fn wake_word(&self) -> &str {
-        &self.wake_word
+        &self.primary_wake_word
     }
 
     async fn detect(
@@ -351,4 +412,42 @@ mod tests {
         assert!(detector.is_available());
         assert_eq!(detector.name(), "energy-wakeword");
     }
+
+    #[tokio::test]
+    async fn test_energy_wakeword_multi_keyword_management() {
+        let detector = EnergyWakeWordDetector::new("OSMOO", 0.01, 16000);
+        assert_eq!(detector.wake_word(), "osmoo");
+        assert!(detector.has_keyword("osmoo"));
+        assert!(detector.has_keyword("OSMOO"));
+
+        // Add keywords up to max
+        assert!(detector.add_keyword("Hey Osmoo"));
+        assert!(detector.add_keyword("Assistant"));
+        assert!(detector.add_keyword("Voxy"));
+        assert!(detector.has_keyword("hey osmoo"));
+        assert!(detector.has_keyword("assistant"));
+        assert!(detector.has_keyword("voxy"));
+
+        // Duplicates rejected
+        assert!(!detector.add_keyword("voxy"));
+        assert!(!detector.add_keyword("VOXY"));
+
+        // Max limit enforcement
+        for i in 0..10 {
+            let kw = format!("keyword{}", i);
+            let _ = detector.add_keyword(&kw);
+        }
+        assert!(detector.keywords().len() <= EnergyWakeWordDetector::MAX_KEYWORDS);
+        assert!(!detector.add_keyword("eleventh_keyword"));
+
+        // Remove keyword
+        assert!(detector.remove_keyword("assistant"));
+        assert!(!detector.has_keyword("assistant"));
+
+        // Dynamic reload
+        let new_list = vec!["osmoo".to_string(), "computer".to_string()];
+        detector.reload_keywords(&new_list);
+        assert_eq!(detector.keywords(), vec!["osmoo", "computer"]);
+    }
 }
+
