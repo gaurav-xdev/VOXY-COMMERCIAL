@@ -725,6 +725,7 @@ mod tests {
             backend: Arc::new(hybrid),
             emergency_stop: Arc::new(AtomicBool::new(false)),
             native_registry: Arc::new(voxy_tool_calling::ToolRegistry::with_builtins()),
+            approval_broker: None,
         };
 
         assert!(!registry.is_emergency_stopped());
