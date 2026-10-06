@@ -195,13 +195,43 @@ impl BrowserRuntime {
 
         if let Some(host) = url.host_str() {
             let host_lower = host.to_lowercase();
-            let is_loopback = host_lower == "localhost"
+            let mut is_restricted = host_lower == "localhost"
                 || host_lower == "127.0.0.1"
                 || host_lower == "::1"
                 || host_lower.starts_with("127.")
-                || host_lower == "169.254.169.254";
+                || host_lower == "169.254.169.254" // Cloud instance metadata
+                || host_lower == "metadata.google.internal";
 
-            if is_loopback && !self.config.allow_loopback {
+            // Parse IP if host is an IP literal to prevent private network SSRF
+            if let Ok(ip) = host_lower.parse::<std::net::IpAddr>() {
+                match ip {
+                    std::net::IpAddr::V4(v4) => {
+                        let octets = v4.octets();
+                        if v4.is_loopback()
+                            || v4.is_link_local()
+                            || octets[0] == 10 // 10.0.0.0/8
+                            || (octets[0] == 172 && (16..=31).contains(&octets[1])) // 172.16.0.0/12
+                            || (octets[0] == 192 && octets[1] == 168) // 192.168.0.0/16
+                            || (octets[0] == 100 && (64..=127).contains(&octets[1])) // 100.64.0.0/10 CGNAT
+                            || v4.is_broadcast()
+                            || v4.is_unspecified()
+                        {
+                            is_restricted = true;
+                        }
+                    }
+                    std::net::IpAddr::V6(v6) => {
+                        if v6.is_loopback()
+                            || v6.is_unspecified()
+                            || (v6.segments()[0] & 0xfe00) == 0xfc00
+                        {
+                            // Unique local IPv6 fc00::/7
+                            is_restricted = true;
+                        }
+                    }
+                }
+            }
+
+            if is_restricted && !self.config.allow_loopback {
                 return Err(ToolError::SecurityViolation(format!(
                     "Navigation to private/loopback endpoint '{host}' is prohibited by security policy"
                 )));

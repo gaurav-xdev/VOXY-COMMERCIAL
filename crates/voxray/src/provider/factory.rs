@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::provider::admin::{ProviderDescriptor, VoiceAdminApi};
 use crate::provider::cache::TTSCache;
@@ -13,7 +13,7 @@ use crate::provider::quota::ProviderQuotaManager;
 use crate::provider::router::{STTRouter, TTSRouter};
 use crate::provider::stt::{
     AssemblyAISTTProvider, AzureSTTProvider, DeepgramSTTProvider, ElevenLabsSTTProvider,
-    GoogleSTTProvider, GroqSTTProvider, LocalSapiSTTProvider, MockSTTProvider,
+    GoogleSTTProvider, GroqSTTProvider, LocalSapiSTTProvider,
 };
 use crate::provider::stt_service::CloudSTTService;
 use crate::provider::traits::{STTProvider, TTSProvider, VoiceMode};
@@ -380,11 +380,8 @@ impl VoiceSystem {
         }
 
         if stt_providers.is_empty() {
-            warn!(
-                "No cloud STT API keys configured. Using Mock STT provider for graceful operation."
-            );
-            let mock_stt = MockSTTProvider::new("mock-stt", "Mock STT Provider (Fallback)");
-            stt_providers.push(Box::new(mock_stt));
+            info!("No cloud STT API keys configured. Using local Windows speech engine as primary STT.");
+            stt_providers.push(Box::new(LocalSapiSTTProvider::new()));
         }
 
         // Emergency local fallback STT (Windows SAPI)

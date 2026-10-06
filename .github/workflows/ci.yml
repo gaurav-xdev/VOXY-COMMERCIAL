@@ -69,11 +69,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --bin voxy-daemon --bin voxy-overlay --release
+      - run: cargo build --bin voxy-daemon --bin voxy-overlay --bin voxy-desktop-ui --release
       - uses: actions/upload-artifact@v4
         with:
           name: voxy-windows-x86_64
           path: |
             target/release/voxy-daemon.exe
             target/release/voxy-overlay.exe
+            target/release/voxy-desktop-ui.exe
           retention-days: 30

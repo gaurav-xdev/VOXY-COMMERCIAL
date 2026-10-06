@@ -3,6 +3,7 @@
 //! system prompts, input sanitization, signed artifacts, monitoring, and auto-defense.
 
 pub mod approval;
+pub mod archive;
 pub mod audit;
 pub mod auth;
 pub mod capability;
@@ -28,6 +29,9 @@ pub mod trust;
 pub use approval::{
     redact_sensitive_values, ApprovalBroker, ApprovalDecision, ApprovalRequest, ApprovalRiskLevel,
     ApprovalStatus,
+};
+pub use archive::{
+    ensure_within_root, validate_archive_path, ArchiveSecurityError, ArchiveSecurityLimits,
 };
 pub use audit::{AuditEntry, AuditEventType, AuditLog};
 pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};

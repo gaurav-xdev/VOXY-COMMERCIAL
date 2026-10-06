@@ -266,15 +266,15 @@ fn init_bridge() -> AppBridge {
         };
         use voxy_database::StorageProvider;
         if let Err(e) = commercial_sqlite.connect(&db_cfg).await {
-            tracing::warn!(
-                "Failed to connect persistent commercial SQLite ({e}), using memory fallback"
+            tracing::error!(
+                path = %commercial_db_path.display(),
+                error = %e,
+                "FATAL: Failed to connect persistent commercial database. Production security prohibits ephemeral database fallback."
             );
-            let mem_cfg = voxy_database::DatabaseConfig {
-                kind: voxy_database::DatabaseKind::Sqlite,
-                path: Some(":memory:".to_string()),
-                ..Default::default()
-            };
-            let _ = commercial_sqlite.connect(&mem_cfg).await;
+            panic!(
+                "CRITICAL: Failed to connect persistent commercial database at {}. Refusing to proceed with an ephemeral database.",
+                commercial_db_path.display()
+            );
         }
 
         let commercial_store = Arc::new(voxy_database::CommercialStore::new(commercial_sqlite));

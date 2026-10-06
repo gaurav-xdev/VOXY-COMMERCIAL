@@ -40,17 +40,18 @@ Across all 32 major architectural subsystems of OSMOO:
 
 * **`voxy-daemon`:** 16 passed, 0 failed (Emergency stop lifecycle, memory budget trimming, SIMD/CPU detection, safe process launch)
 * **`voxy-overlay`:** 4 passed, 0 failed (11 visual states, 6 desktop modes, tool steps telemetry)
-* **`voxy-security`:** 157 passed, 0 failed (Argon2id, ApprovalBroker, Guardian policy, audit tamper detection)
+* **`voxy-security`:** 162 passed, 0 failed (Archive security engine, Argon2id, ApprovalBroker, Guardian policy, audit tamper detection)
 * **`voxy-companion-intelligence`:** 70 passed, 0 failed (ProactiveEngine, moments, annoyance limits)
 * **`voxy-ipc`:** 66 passed, 0 failed (Named pipe frame bounds, authentication, stream replay)
 * **`voxy-database`:** 53 passed, 0 failed (Migrations 100-105, WAL mode, persistence, backups)
 * **`voxy-automation`:** 37 passed, 0 failed (Agentic loop, visual cursor beacon, UIA backend)
-* **`voxy-tool-calling`:** 19 passed, 0 failed (Browser SSRF blocks, memory quarantine, harness tools)
+* **`voxy-tool-calling`:** 19 passed, 0 failed (Browser SSRF blocks, RFC1918/CGNAT filters, memory quarantine, harness tools)
 * **`voxy-skills`:** 15 passed, 0 failed (Workflow DAG runner, capability manifests)
 * **`voxy-harness`:** 12 passed, 0 failed (Patch engine rollback, diagnostic parser, secret scanner)
 * **`voxy-grounding`:** 11 passed, 0 failed (Synthesis, citation extraction, injection neutralization)
+* **`voxy-api-server`:** 6 passed, 0 failed (Structured JSON envelopes, rate limiting, authentication, HMAC webhooks)
 
-**Total Automated Tests:** **460 passed, 0 failed, 0 ignored.**
+**Total Automated Tests:** **471 passed, 0 failed, 0 ignored.**
 
 ---
 
