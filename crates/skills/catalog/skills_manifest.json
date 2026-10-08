@@ -1,0 +1,335 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-10-08T13:14:00Z",
+  "total_capabilities": 13,
+  "capabilities": [
+    {
+      "id": "general-eng:api-and-interface-design",
+      "name": "API and Interface Design",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Design clean, predictable, evolvable APIs across REST, GraphQL, and internal interfaces.",
+      "trigger_tags": [
+        "api",
+        "rest",
+        "graphql",
+        "endpoints",
+        "interface",
+        "contract",
+        "schema",
+        "types"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_api-and-interface-design.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:code-review-and-quality",
+      "name": "Code Review and Quality",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Production code quality audit, detecting antipatterns, security flaws, and performance regressions.",
+      "trigger_tags": [
+        "review",
+        "quality",
+        "audit",
+        "lint",
+        "static-analysis",
+        "pr",
+        "pull-request"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_code-review-and-quality.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:code-simplification",
+      "name": "Code Simplification and Refactoring",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Refactor complex code to eliminate dead paths, simplify control flow, and improve maintainability.",
+      "trigger_tags": [
+        "refactor",
+        "simplify",
+        "clean",
+        "dead-code",
+        "complexity"
+      ],
+      "required_permissions": [
+        "read_files",
+        "write_files"
+      ],
+      "network_required": false,
+      "risk_level": "modify",
+      "doc_path": "manifests/addyosmani_code-simplification.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:debugging-and-error-recovery",
+      "name": "Debugging and Error Recovery",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Systematic debugging, root-cause analysis, stack trace diagnosis, and error recovery protocols.",
+      "trigger_tags": [
+        "debug",
+        "error",
+        "panic",
+        "crash",
+        "stacktrace",
+        "root-cause",
+        "fix",
+        "bug"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_debugging-and-error-recovery.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:git-workflow-and-versioning",
+      "name": "Git Workflow and Versioning",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Atomic commit authoring, branch strategies, semver versioning, and changelog generation.",
+      "trigger_tags": [
+        "git",
+        "commit",
+        "branch",
+        "merge",
+        "version",
+        "semver",
+        "tag",
+        "changelog"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_git-workflow-and-versioning.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:performance-optimization",
+      "name": "Performance Optimization",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Profile, benchmark, and optimize CPU, memory, database queries, and async runtime performance.",
+      "trigger_tags": [
+        "performance",
+        "profile",
+        "benchmark",
+        "optimize",
+        "latency",
+        "memory",
+        "cpu",
+        "throughput"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_performance-optimization.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:planning-and-task-breakdown",
+      "name": "Planning and Task Breakdown",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Break down complex features into incremental, testable tasks with verification criteria.",
+      "trigger_tags": [
+        "plan",
+        "breakdown",
+        "tasks",
+        "roadmap",
+        "spec",
+        "design-doc",
+        "steps"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_planning-and-task-breakdown.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:security-and-hardening",
+      "name": "Security and Hardening",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Hardening guidelines, defense-in-depth, input sanitization, threat modeling, and OWASP alignment.",
+      "trigger_tags": [
+        "security",
+        "hardening",
+        "vulnerability",
+        "sanitize",
+        "auth",
+        "tokens",
+        "secret",
+        "rbac",
+        "injection"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addyosmani_security-and-hardening.md",
+      "enabled": true
+    },
+    {
+      "id": "general-eng:test-driven-development",
+      "name": "Test Driven Development",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
+      "description": "Unit, integration, and property testing strategies with test isolation and boundary verification.",
+      "trigger_tags": [
+        "test",
+        "tdd",
+        "unit-test",
+        "integration-test",
+        "coverage",
+        "mock",
+        "assert",
+        "regression"
+      ],
+      "required_permissions": [
+        "read_files",
+        "write_files"
+      ],
+      "network_required": false,
+      "risk_level": "modify",
+      "doc_path": "manifests/addyosmani_test-driven-development.md",
+      "enabled": true
+    },
+    {
+      "id": "frontend-ui:pmndrs-uikit",
+      "name": "PMNDRS UIKit 3D and Spatial UI",
+      "category": "frontend_ui",
+      "source_repo": "https://github.com/pmndrs/uikit.git",
+      "version_pinned": "7fbb8bb04478bfcf337274f42824ba004014a3e2",
+      "description": "3D and React Three Fiber UI kit components, layout engine, font glyph rendering, and glassmorphism themes.",
+      "trigger_tags": [
+        "frontend",
+        "ui",
+        "uikit",
+        "r3f",
+        "threejs",
+        "3d-ui",
+        "spatial",
+        "react-three-fiber",
+        "css-3d"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/pmndrs_uikit.md",
+      "enabled": true
+    },
+    {
+      "id": "workflow:temporal-orchestration",
+      "name": "Temporal Workflow Orchestration",
+      "category": "workflow_orchestration",
+      "source_repo": "https://github.com/temporalio/temporal.git",
+      "version_pinned": "d7f7d26196d21622bce2bb120b7d7d10998b9740",
+      "description": "Durable execution patterns, event history replay, activity retries, saga compensation, and stateful workflows.",
+      "trigger_tags": [
+        "workflow",
+        "temporal",
+        "orchestration",
+        "durable",
+        "saga",
+        "long-running",
+        "retry-policy",
+        "compensation"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/temporal_workflows.md",
+      "enabled": true
+    },
+    {
+      "id": "coding-tools:mcp-suite",
+      "name": "Coding Tools MCP Runtime Contract",
+      "category": "coding_tools",
+      "source_repo": "https://github.com/xyTom/coding-tools-mcp.git",
+      "version_pinned": "d7c2dda48bcedbd066c7dbc24a1b63205384d269",
+      "description": "Standardized coding primitives over MCP contract: patch application, AST search, diff verification, and process isolation.",
+      "trigger_tags": [
+        "coding",
+        "patch",
+        "ast",
+        "mcp",
+        "git-diff",
+        "code-harness",
+        "ripgrep",
+        "patch-engine"
+      ],
+      "required_permissions": [
+        "read_files",
+        "write_files",
+        "code_harness_access"
+      ],
+      "network_required": false,
+      "risk_level": "modify",
+      "doc_path": "manifests/coding_tools_mcp_spec.md",
+      "enabled": true
+    },
+    {
+      "id": "web-research:firecrawl-extraction",
+      "name": "Firecrawl Web Research and Extraction",
+      "category": "web_research",
+      "source_repo": "https://github.com/firecrawl/firecrawl.git",
+      "version_pinned": "7cca3edf968ebb40593d0fb92064d241bc89f8e3",
+      "description": "Intelligent web scraping, clean markdown extraction, sitemap crawling, and structured search data capture.",
+      "trigger_tags": [
+        "web-research",
+        "scrape",
+        "firecrawl",
+        "crawl",
+        "extract-markdown",
+        "url-fetch",
+        "web-search",
+        "documentation-crawl"
+      ],
+      "required_permissions": [
+        "read_files",
+        "network_access",
+        "research_access"
+      ],
+      "network_required": true,
+      "risk_level": "privileged",
+      "doc_path": "manifests/firecrawl_firecrawl-build-scrape.md",
+      "enabled": true
+    }
+  ]
+}

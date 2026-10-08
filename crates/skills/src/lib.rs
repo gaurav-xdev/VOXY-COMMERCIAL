@@ -1,3 +1,4 @@
+pub mod activation;
 pub mod capabilities;
 pub mod config;
 pub mod error;
@@ -9,6 +10,10 @@ pub mod traits;
 pub mod types;
 pub mod workflow;
 
+pub use activation::{
+    ActivationDecision, ActivationEngine, ActiveCapabilityContext, CapabilityRiskLevel,
+    ExternalCapability, ExternalCapabilityCatalog, ExternalCapabilityCategory, TaskContext,
+};
 pub use capabilities::{
     CapabilityDescriptor, CapabilityId, CapabilityRegistry, InMemoryCapabilityRegistry,
 };

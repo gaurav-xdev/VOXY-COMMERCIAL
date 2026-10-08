@@ -430,3 +430,108 @@ async fn test_workflow_engine_end_to_end_execution() {
     assert_eq!(result.get("status").unwrap().as_str().unwrap(), "completed");
     assert_eq!(result.get("steps_completed").unwrap().as_i64().unwrap(), 2);
 }
+
+#[tokio::test]
+async fn test_external_capability_catalog_loading_and_integrity() {
+    use crate::activation::{ActivationEngine, ExternalCapabilityCategory};
+
+    let engine = ActivationEngine::new_embedded();
+    assert_eq!(engine.total_available(), 13);
+
+    let caps = engine.list_available();
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::GeneralEngineering));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::FrontendUi));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WorkflowOrchestration));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::CodingTools));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WebResearch));
+
+    // Verify pinned commit hashes exist for all external capabilities
+    for cap in caps {
+        assert!(!cap.version_pinned.is_empty(), "Capability {} missing pinned version", cap.id);
+        assert!(!cap.source_repo.is_empty(), "Capability {} missing source repo", cap.id);
+    }
+}
+
+#[tokio::test]
+async fn test_activation_policy_available_not_equal_to_active() {
+    use crate::activation::{ActivationEngine, CapabilityRiskLevel, ExternalCapabilityCategory, TaskContext};
+    use crate::types::SkillPermission;
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+
+    // 1. Rust backend API task: should activate only relevant general engineering capabilities, NOT UI or Web research
+    let backend_task = TaskContext::new("t1", "Design and review public REST API schema and error types", PathBuf::from("."))
+        .with_tag("api")
+        .with_permission(SkillPermission::ReadFiles);
+
+    let result = engine.evaluate_task(&backend_task);
+    assert!(!result.active_capabilities.is_empty());
+    for cap in &result.active_capabilities {
+        assert_eq!(cap.category, ExternalCapabilityCategory::GeneralEngineering);
+    }
+    // Web research and UI kit must NOT be active
+    assert!(!result.active_capabilities.iter().any(|c| c.id == "web-research:firecrawl-extraction"));
+    assert!(!result.active_capabilities.iter().any(|c| c.id == "frontend-ui:pmndrs-uikit"));
+    assert!(!result.active_capabilities.iter().any(|c| c.id == "workflow:temporal-orchestration"));
+
+    // 2. Offline task trying to use web research: must be rejected due to network policy
+    let web_task_offline = TaskContext::new("t2", "Scrape documentation using firecrawl web-search", PathBuf::from("."))
+        .with_tag("scrape")
+        .with_permission(SkillPermission::ReadFiles)
+        .with_permission(SkillPermission::ResearchAccess)
+        .with_permission(SkillPermission::NetworkAccess)
+        .with_network(false); // OFFLINE
+
+    let result_offline = engine.evaluate_task(&web_task_offline);
+    assert!(result_offline.active_capabilities.is_empty(), "Firecrawl must not activate when offline");
+    let rejection = result_offline.rejected_capabilities.iter().find(|r| r.capability_id == "web-research:firecrawl-extraction");
+    assert!(rejection.is_some());
+    assert!(rejection.unwrap().reason.contains("offline"));
+
+    // 3. Online web research task with network and permissions granted: activates Firecrawl
+    let web_task_online = TaskContext::new("t3", "Crawl and scrape documentation site with firecrawl", PathBuf::from("."))
+        .with_tag("scrape")
+        .with_tag("web-research")
+        .with_permission(SkillPermission::ReadFiles)
+        .with_permission(SkillPermission::ResearchAccess)
+        .with_permission(SkillPermission::NetworkAccess)
+        .with_network(true)
+        .with_max_risk(CapabilityRiskLevel::Privileged);
+
+    let result_online = engine.evaluate_task(&web_task_online);
+    assert!(result_online.active_capabilities.iter().any(|c| c.id == "web-research:firecrawl-extraction"));
+
+    // 4. Temporal workflow task: activates Temporal orchestration reference
+    let workflow_task = TaskContext::new("t4", "Implement durable orchestration and saga retry-policy", PathBuf::from("."))
+        .with_tag("workflow")
+        .with_tag("temporal");
+
+    let result_wf = engine.evaluate_task(&workflow_task);
+    assert!(result_wf.active_capabilities.iter().any(|c| c.id == "workflow:temporal-orchestration"));
+
+    // 5. Frontend UI task: activates PMNDRS UIKit
+    let ui_task = TaskContext::new("t5", "Create a 3d-ui spatial widget in react-three-fiber using uikit", PathBuf::from("."))
+        .with_tag("uikit")
+        .with_tag("r3f");
+
+    let result_ui = engine.evaluate_task(&ui_task);
+    assert!(result_ui.active_capabilities.iter().any(|c| c.id == "frontend-ui:pmndrs-uikit"));
+
+    // 6. Coding Tools MCP task: requires write_files and code_harness_access
+    let coding_task_denied = TaskContext::new("t6", "Apply patch using code-harness patch-engine", PathBuf::from("."))
+        .with_tag("patch")
+        .with_max_risk(CapabilityRiskLevel::Modify); // missing permissions
+
+    let result_denied = engine.evaluate_task(&coding_task_denied);
+    assert!(!result_denied.active_capabilities.iter().any(|c| c.id == "coding-tools:mcp-suite"));
+
+    let coding_task_allowed = TaskContext::new("t7", "Apply patch using code-harness patch-engine", PathBuf::from("."))
+        .with_tag("patch")
+        .with_permission(SkillPermission::WriteFiles)
+        .with_permission(SkillPermission::CodeHarnessAccess)
+        .with_max_risk(CapabilityRiskLevel::Modify);
+
+    let result_allowed = engine.evaluate_task(&coding_task_allowed);
+    assert!(result_allowed.active_capabilities.iter().any(|c| c.id == "coding-tools:mcp-suite"));
+}

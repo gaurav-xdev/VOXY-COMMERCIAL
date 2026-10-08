@@ -2,6 +2,7 @@
 
 pub mod browser;
 pub mod browser_runtime;
+pub mod coding_mcp;
 pub mod filesystem;
 pub mod harness;
 pub mod memory;
@@ -22,6 +23,7 @@ pub use browser::{
 pub use browser_runtime::{
     BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, PageObservation,
 };
+pub use coding_mcp::{CodingGitDiffTool, CodingGitStatusTool, CodingSearchTextTool};
 pub use filesystem::{FileDeleteTool, FileListTool, FileReadTool, FileWriteTool};
 pub use harness::{
     HarnessApplyPatchTool, HarnessApplyPatchTransactionTool, HarnessIndexTool,

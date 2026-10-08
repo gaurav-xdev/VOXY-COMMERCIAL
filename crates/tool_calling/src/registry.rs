@@ -55,6 +55,9 @@ impl ToolRegistry {
         registry.register_builtin_sync(Arc::new(HarnessApplyPatchTool::new()));
         registry.register_builtin_sync(Arc::new(HarnessParseDiagnosticsTool::new()));
         registry.register_builtin_sync(Arc::new(HarnessApplyPatchTransactionTool::new()));
+        registry.register_builtin_sync(Arc::new(CodingGitStatusTool::new()));
+        registry.register_builtin_sync(Arc::new(CodingGitDiffTool::new()));
+        registry.register_builtin_sync(Arc::new(CodingSearchTextTool::new()));
         registry.register_builtin_sync(Arc::new(ResearchInvestigateTool::new()));
         registry.register_builtin_sync(Arc::new(TaskHistoryGetTool::new()));
         registry.register_builtin_sync(Arc::new(TaskArtifactsListTool::new()));

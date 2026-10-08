@@ -441,4 +441,44 @@ mod tests {
             .unwrap();
         assert!(res_art.success);
     }
+
+    #[tokio::test]
+    async fn test_coding_tools_mcp_git_status_diff_and_search() {
+        let registry = ToolRegistry::with_builtins();
+        let ctx = ToolContext::new("test-session");
+
+        assert!(registry.get("coding_git_status").await.is_some());
+        assert!(registry.get("coding_git_diff").await.is_some());
+        assert!(registry.get("coding_search_text").await.is_some());
+
+        // Test git status
+        let res_status = registry
+            .execute("coding_git_status", json!({}), &ctx)
+            .await
+            .unwrap();
+        assert!(res_status.success);
+
+        // Test git diff
+        let res_diff = registry
+            .execute("coding_git_diff", json!({ "staged": false }), &ctx)
+            .await
+            .unwrap();
+        assert!(res_diff.success);
+
+        // Test text search
+        let res_search = registry
+            .execute(
+                "coding_search_text",
+                json!({
+                    "pattern": "CodingGitStatusTool",
+                    "extension": "rs"
+                }),
+                &ctx,
+            )
+            .await
+            .unwrap();
+        assert!(res_search.success);
+        let count = res_search.data["count"].as_u64().unwrap();
+        assert!(count >= 1);
+    }
 }
