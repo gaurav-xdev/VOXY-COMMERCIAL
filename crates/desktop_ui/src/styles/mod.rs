@@ -617,82 +617,235 @@ html, body {
     margin-top: 2px;
 }
 
-.orb-container {
+/* ==========================================================================
+   OSMOO 3D Volumetric Dynamic Voice Orb & Presence System
+   ========================================================================== */
+
+.orb-volumetric-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex: 1;
     position: relative;
+    padding: 40px;
+    width: 320px;
+    height: 320px;
+    perspective: 1000px;
+}
+
+.orb-radiance-field {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: var(--radius-full);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.05) 50%, transparent 70%);
+    filter: blur(28px);
+    pointer-events: none;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+}
+
+.orb-orbit-ring {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border-radius: var(--radius-full);
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    pointer-events: none;
+    animation: rotate-orbit 28s linear infinite;
+    z-index: 2;
+}
+
+.orb-gyro-ring {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    animation: rotate-orbit-reverse 20s linear infinite;
+    z-index: 2;
 }
 
 .orb {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     border-radius: var(--radius-full);
-    background: var(--orb-idle);
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(108, 92, 231, 0.15);
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     cursor: pointer;
+    z-index: 5;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-style: preserve-3d;
+    box-shadow: 
+        inset 0 0 40px rgba(0, 0, 0, 0.9),
+        0 12px 32px rgba(0, 0, 0, 0.7),
+        0 0 48px rgba(99, 102, 241, 0.25);
 }
 
-.orb::before {
-    content: '';
+.orb:hover {
+    transform: scale(1.05);
+}
+
+/* Internal Volumetric Orb Components */
+.orb-plasma-core {
     position: absolute;
-    inset: -4px;
+    inset: 12px;
     border-radius: var(--radius-full);
-    background: conic-gradient(from 0deg, transparent, var(--accent-primary), transparent);
-    opacity: 0;
-    transition: opacity 0.6s ease;
-    z-index: -1;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.3) 0%, rgba(99, 102, 241, 0.4) 40%, rgba(15, 23, 42, 0.9) 100%);
+    filter: blur(4px);
+    transition: all 0.6s ease;
 }
 
-.orb.listening {
-    background: var(--orb-listening);
-    box-shadow: 0 0 50px rgba(0, 210, 211, 0.3), 0 0 100px rgba(0, 210, 211, 0.15);
-    animation: pulse-listening 2s ease-in-out infinite;
+.orb-inner-filament {
+    position: absolute;
+    inset: 2px;
+    border-radius: var(--radius-full);
+    background: conic-gradient(from 180deg at 50% 50%, rgba(99, 102, 241, 0.5) 0deg, rgba(16, 185, 129, 0.5) 120deg, rgba(245, 158, 11, 0.4) 240deg, rgba(99, 102, 241, 0.5) 360deg);
+    opacity: 0.35;
+    animation: filament-spin 12s linear infinite;
+    mix-blend-mode: screen;
 }
 
-.orb.speaking {
-    background: var(--orb-speaking);
-    box-shadow: 0 0 50px rgba(254, 202, 87, 0.3), 0 0 100px rgba(254, 202, 87, 0.15);
-    animation: pulse-speaking 0.8s ease-in-out infinite;
+.orb-specular-glint {
+    position: absolute;
+    top: 14px;
+    left: 24px;
+    width: 32px;
+    height: 18px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%);
+    transform: rotate(-28deg);
+    pointer-events: none;
 }
 
-.orb.thinking {
-    background: var(--orb-thinking);
-    box-shadow: 0 0 50px rgba(162, 155, 254, 0.3), 0 0 100px rgba(162, 155, 254, 0.15);
-    animation: spin-glow 3s linear infinite;
+/* Dynamic State Styling */
+.orb.state-idle {
+    background: radial-gradient(circle at 38% 38%, #27272a 0%, #18181b 60%, #09090b 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 35px rgba(255, 255, 255, 0.05);
 }
 
-.orb.error {
-    background: var(--orb-error);
-    box-shadow: 0 0 50px rgba(255, 107, 107, 0.3);
+.orb.state-listening {
+    background: radial-gradient(circle at 38% 38%, #34d399 0%, #059669 50%, #064e3b 100%);
+    border: 1px solid rgba(52, 211, 153, 0.6);
+    box-shadow: 0 0 60px rgba(16, 185, 129, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    animation: pulse-listening 1.8s ease-in-out infinite;
 }
 
-.orb.active::before {
-    opacity: 0.6;
-    animation: rotate-border 4s linear infinite;
+.orb.state-speaking {
+    background: radial-gradient(circle at 38% 38%, #38bdf8 0%, #0284c7 50%, #0c4a6e 100%);
+    border: 1px solid rgba(56, 189, 248, 0.7);
+    box-shadow: 0 0 65px rgba(14, 165, 233, 0.55), inset 0 0 24px rgba(255, 255, 255, 0.5);
+    animation: pulse-speaking 0.9s ease-in-out infinite;
+}
+
+.orb.state-thinking {
+    background: radial-gradient(circle at 38% 38%, #fbbf24 0%, #d97706 50%, #78350f 100%);
+    border: 1px solid rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 55px rgba(245, 158, 11, 0.45);
+    animation: thinking-resonance 2.4s ease-in-out infinite;
+}
+
+.orb.state-executing {
+    background: radial-gradient(circle at 38% 38%, #fb923c 0%, #ea580c 50%, #7c2d12 100%);
+    border: 1px solid rgba(251, 146, 60, 0.7);
+    box-shadow: 0 0 60px rgba(234, 88, 12, 0.5);
+    animation: executing-drive 1.4s linear infinite;
+}
+
+.orb.state-waiting {
+    background: radial-gradient(circle at 38% 38%, #a78bfa 0%, #7c3aed 50%, #4c1d95 100%);
+    border: 1px solid rgba(167, 139, 250, 0.7);
+    box-shadow: 0 0 50px rgba(124, 58, 237, 0.45);
+    animation: pulse-waiting 1.5s ease-in-out infinite;
+}
+
+.orb.state-error {
+    background: radial-gradient(circle at 38% 38%, #f87171 0%, #dc2626 50%, #7f1d1d 100%);
+    border: 1px solid rgba(248, 113, 113, 0.8);
+    box-shadow: 0 0 60px rgba(220, 38, 38, 0.6);
+}
+
+/* State Status Pill */
+.orb-status-pill-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+    z-index: 6;
+}
+
+.orb-state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--text-primary);
+    backdrop-filter: blur(12px);
+    transition: all var(--transition-fast);
+}
+
+.orb-state-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary);
+}
+
+.orb-state-subtext {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+
+@keyframes rotate-orbit {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-orbit-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+@keyframes filament-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 @keyframes pulse-listening {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.08); filter: brightness(1.25); }
 }
 
 @keyframes pulse-speaking {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.04); }
+    50% { transform: scale(1.05); }
 }
 
-@keyframes spin-glow {
-    0% { box-shadow: 0 0 50px rgba(162, 155, 254, 0.3) 0deg; }
-    100% { box-shadow: 0 0 50px rgba(162, 155, 254, 0.3) 360deg; }
+@keyframes thinking-resonance {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(8deg) scale(1.04); }
 }
 
-@keyframes rotate-border {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+@keyframes executing-drive {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulse-waiting {
+    0%, 100% { opacity: 0.85; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1.02); }
 }
 
 .empty-state {
