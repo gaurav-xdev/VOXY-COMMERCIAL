@@ -14,8 +14,10 @@ pub use email::{EmailError, ResendMailer, SendEmailRequest, SendEmailResponse};
 pub use error::{ApiError, ApiErrorBody, ApiResponseEnvelope};
 pub use handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
-    EntitlementCheckRequest, EntitlementCheckResponse, HealthResponse, LoginRequest, LoginResponse,
-    RegisterRequest, RegisterResponse,
+    EntitlementCheckRequest, EntitlementCheckResponse, GoogleAuthRequest, HealthResponse,
+    LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RequestOtpRequest,
+    RequestOtpResponse, ResetPasswordRequest, ResetPasswordResponse, VerifyOtpRequest,
+    VerifyOtpResponse,
 };
 pub use middleware::{AuthContext, AuthMiddleware, RateLimitMiddleware};
 pub use router::{ApiRequest, ApiResponse, ApiRouter};
@@ -332,5 +334,114 @@ mod tests {
             resp_admin.status_code, 200,
             "Admin user must be permitted to access admin endpoints"
         );
+    }
+
+    #[tokio::test]
+    async fn test_otp_flow_and_password_reset() {
+        let (store, router) = setup_test_router().await;
+
+        // 1. Register a test user
+        let user_email = "alice@example.com";
+        let initial_pwd = "OldPassword123!";
+        let reg_req = RegisterRequest {
+            email: user_email.to_string(),
+            password: initial_pwd.to_string(),
+            name: Some("Alice".to_string()),
+        };
+        let reg_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/register", "10.0.0.1").with_json(&reg_req))
+            .await;
+        assert_eq!(reg_resp.status_code, 201);
+
+        // 2. Request OTP for password reset
+        let otp_req = RequestOtpRequest {
+            email: user_email.to_string(),
+            purpose: "password_reset".to_string(),
+        };
+        let otp_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/otp/request", "10.0.0.1").with_json(&otp_req))
+            .await;
+        assert_eq!(otp_resp.status_code, 200);
+
+        // Immediate secondary request within 60s cooldown is rejected with 429
+        let otp_resp2 = router
+            .dispatch(ApiRequest::new("POST", "/auth/otp/request", "10.0.0.1").with_json(&otp_req))
+            .await;
+        assert_eq!(otp_resp2.status_code, 429);
+
+        // 3. Fetch active OTP from database to obtain code hash
+        let active_otp = store
+            .get_latest_active_otp(user_email, "password_reset")
+            .await
+            .unwrap()
+            .expect("OTP must be recorded in database");
+        assert_eq!(active_otp.attempts_count, 0);
+
+        // 4. Try wrong OTP code -> returns 401 and increments attempts
+        let wrong_verify = VerifyOtpRequest {
+            email: user_email.to_string(),
+            code: "000000".to_string(),
+            purpose: "password_reset".to_string(),
+        };
+        let verify_wrong_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/otp/verify", "10.0.0.1").with_json(&wrong_verify))
+            .await;
+        assert_eq!(verify_wrong_resp.status_code, 401);
+
+        let reloaded_otp = store
+            .get_latest_active_otp(user_email, "password_reset")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(reloaded_otp.attempts_count, 1);
+
+        // 5. Test password reset with invalid code -> returns 401
+        let bad_reset = ResetPasswordRequest {
+            email: user_email.to_string(),
+            code: "999999".to_string(),
+            new_password: "NewSuperSecretPassword123!".to_string(),
+        };
+        let bad_reset_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&bad_reset))
+            .await;
+        assert_eq!(bad_reset_resp.status_code, 401);
+
+        // 6. Test password reset with valid code: create a known OTP
+        let known_code = "654321";
+        let known_hash = voxy_security::SessionTokenManager::hash_token(known_code);
+        let exp = chrono::Utc::now() + chrono::Duration::minutes(10);
+        let _ = store
+            .create_otp_code(user_email, &known_hash, "password_reset", exp, 5)
+            .await
+            .unwrap();
+
+        let valid_reset = ResetPasswordRequest {
+            email: user_email.to_string(),
+            code: known_code.to_string(),
+            new_password: "NewSuperSecretPassword123!".to_string(),
+        };
+        let valid_reset_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&valid_reset))
+            .await;
+        assert_eq!(valid_reset_resp.status_code, 200);
+
+        // 7. Verify login succeeds with new password and fails with old password
+        let login_old = LoginRequest {
+            email: user_email.to_string(),
+            password: initial_pwd.to_string(),
+        };
+        let login_old_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/login", "10.0.0.1").with_json(&login_old))
+            .await;
+        assert_eq!(login_old_resp.status_code, 401);
+
+        let login_new = LoginRequest {
+            email: user_email.to_string(),
+            password: "NewSuperSecretPassword123!".to_string(),
+        };
+        let login_new_resp = router
+            .dispatch(ApiRequest::new("POST", "/auth/login", "10.0.0.1").with_json(&login_new))
+            .await;
+        assert_eq!(login_new_resp.status_code, 200);
     }
 }

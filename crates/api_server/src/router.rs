@@ -1,7 +1,8 @@
 use crate::error::{ApiError, ApiResponseEnvelope};
 use crate::handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
-    EntitlementCheckRequest, LoginRequest, RegisterRequest,
+    EntitlementCheckRequest, GoogleAuthRequest, LoginRequest, RegisterRequest,
+    RequestOtpRequest, ResetPasswordRequest, VerifyOtpRequest,
 };
 use crate::middleware::{AuthMiddleware, RateLimitMiddleware};
 use serde::Serialize;
@@ -139,6 +140,74 @@ impl ApiRouter {
                     }
                 };
                 match self.handlers.login(login_req).await {
+                    Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Google OAuth 2.0 / OpenID Connect (public)
+            ("POST", "/auth/google") => {
+                let google_req: GoogleAuthRequest = match serde_json::from_slice(&req.body) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        return ApiResponse::error(
+                            ApiError::BadRequest(format!("Malformed JSON: {e}")),
+                            &req.request_id,
+                        );
+                    }
+                };
+                match self.handlers.google_auth(google_req).await {
+                    Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Request OTP Code (public)
+            ("POST", "/auth/otp/request") => {
+                let otp_req: RequestOtpRequest = match serde_json::from_slice(&req.body) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        return ApiResponse::error(
+                            ApiError::BadRequest(format!("Malformed JSON: {e}")),
+                            &req.request_id,
+                        );
+                    }
+                };
+                match self.handlers.request_otp(otp_req).await {
+                    Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Verify OTP Code (public)
+            ("POST", "/auth/otp/verify") => {
+                let verify_req: VerifyOtpRequest = match serde_json::from_slice(&req.body) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        return ApiResponse::error(
+                            ApiError::BadRequest(format!("Malformed JSON: {e}")),
+                            &req.request_id,
+                        );
+                    }
+                };
+                match self.handlers.verify_otp(verify_req).await {
+                    Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
+                    Err(e) => ApiResponse::error(e, &req.request_id),
+                }
+            }
+
+            // Password Reset (public)
+            ("POST", "/auth/password/reset") => {
+                let reset_req: ResetPasswordRequest = match serde_json::from_slice(&req.body) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        return ApiResponse::error(
+                            ApiError::BadRequest(format!("Malformed JSON: {e}")),
+                            &req.request_id,
+                        );
+                    }
+                };
+                match self.handlers.reset_password(reset_req).await {
                     Ok(data) => ApiResponse::json(200, &ApiResponseEnvelope::ok(data)),
                     Err(e) => ApiResponse::error(e, &req.request_id),
                 }

@@ -135,6 +135,45 @@ impl ResendMailer {
         self.send(&[recipient_email], subject, Some(&html), Some(&text))
             .await
     }
+
+    /// Helper for sending a real 6-digit one-time password (OTP) verification email.
+    pub async fn send_otp(
+        &self,
+        recipient_email: &str,
+        otp_code: &str,
+        purpose: &str,
+    ) -> Result<SendEmailResponse, EmailError> {
+        let purpose_label = match purpose {
+            "password_reset" => "Password Reset",
+            "login" => "Account Login",
+            _ => "Account Verification",
+        };
+        let subject = format!("OSMOO - Your {} Code: {}", purpose_label, otp_code);
+        let html = format!(
+            "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 32px; border-radius: 12px; max-width: 500px; margin: auto;\">\
+                <h2 style=\"color: #00e5ff; margin-bottom: 8px; letter-spacing: -0.02em;\">OSMOO // SECURITY VERIFICATION</h2>\
+                <p style=\"color: #94a3b8; font-size: 14px; margin-bottom: 24px;\">Use the one-time code below to complete your {} for OSMOO Windows AI Operating Companion.</p>\
+                <div style=\"background: #111827; border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;\">\
+                    <span style=\"font-size: 36px; font-weight: 700; letter-spacing: 0.25em; color: #38bdf8; font-family: monospace;\">{}</span>\
+                </div>\
+                <p style=\"color: #64748b; font-size: 12px; margin-bottom: 4px;\">This code expires in 10 minutes and can only be used once.</p>\
+                <p style=\"color: #64748b; font-size: 12px; margin: 0;\">If you did not request this verification, please ignore this email or review your security settings.</p>\
+            </div>",
+            purpose_label,
+            otp_code
+        );
+        let text = format!(
+            "OSMOO // SECURITY VERIFICATION\n\n\
+            Your {} code is: {}\n\n\
+            This code expires in 10 minutes and can only be used once.\n\
+            If you did not request this code, please ignore this email.\n\n\
+            OSMOO by Osmiora - https://osmoo.in",
+            purpose_label,
+            otp_code
+        );
+        self.send(&[recipient_email], &subject, Some(&html), Some(&text))
+            .await
+    }
 }
 
 #[cfg(test)]

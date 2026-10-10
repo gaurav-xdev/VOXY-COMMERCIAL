@@ -289,6 +289,36 @@ pub fn get_commercial_migrations() -> Vec<Migration> {
                 CREATE INDEX IF NOT EXISTS idx_workflow_executions_status ON workflow_executions(status);
             ",
         },
+        Migration {
+            version: 106,
+            name: "create_otp_codes_and_expand_auth_identities",
+            sql: "
+                CREATE TABLE IF NOT EXISTS otp_codes (
+                    id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL,
+                    code_hash TEXT NOT NULL,
+                    purpose TEXT NOT NULL, -- 'email_verification', 'password_reset', 'login'
+                    expires_at TEXT NOT NULL,
+                    attempts_count INTEGER NOT NULL DEFAULT 0,
+                    max_attempts INTEGER NOT NULL DEFAULT 5,
+                    used_at TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_otp_email_purpose ON otp_codes(email, purpose);
+                CREATE INDEX IF NOT EXISTS idx_otp_expires ON otp_codes(expires_at);
+
+                -- Ensure user preferences / profile columns if missing
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    full_name TEXT,
+                    avatar_url TEXT,
+                    timezone TEXT DEFAULT 'UTC',
+                    locale TEXT DEFAULT 'en-US',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+            ",
+        },
     ]
 }
 
@@ -300,6 +330,40 @@ pub struct UserRecord {
     pub email: String,
     pub password_hash: String,
     pub status: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthIdentityRecord {
+    pub id: String,
+    pub user_id: String,
+    pub provider: String,
+    pub provider_user_id: String,
+    pub email: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OtpCodeRecord {
+    pub id: String,
+    pub email: String,
+    pub code_hash: String,
+    pub purpose: String,
+    pub expires_at: String,
+    pub attempts_count: i64,
+    pub max_attempts: i64,
+    pub used_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UserProfileRecord {
+    pub user_id: String,
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub timezone: String,
+    pub locale: String,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -640,6 +704,201 @@ impl CommercialStore {
             created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
             updated_at: r["updated_at"].as_str().unwrap_or_default().to_string(),
         }))
+    }
+
+    pub async fn update_user_password(&self, user_id: &str, password_hash: &str) -> Result<bool> {
+        let now = Utc::now().to_rfc3339();
+        let sql = "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?";
+        let rows = self
+            .db
+            .execute(
+                sql,
+                &[
+                    Value::String(password_hash.to_string()),
+                    Value::String(now),
+                    Value::String(user_id.to_string()),
+                ],
+            )
+            .await?;
+        Ok(rows > 0)
+    }
+
+    // ── Auth Identity (OAuth / Google) Operations ──
+
+    pub async fn link_auth_identity(
+        &self,
+        user_id: &str,
+        provider: &str,
+        provider_user_id: &str,
+        email: Option<&str>,
+    ) -> Result<AuthIdentityRecord> {
+        let id = Uuid::new_v4().to_string();
+        let now = Utc::now().to_rfc3339();
+        let sql = "INSERT OR REPLACE INTO auth_identities (id, user_id, provider, provider_user_id, email, created_at) VALUES (?, ?, ?, ?, ?, ?)";
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id.clone()),
+                    Value::String(user_id.to_string()),
+                    Value::String(provider.to_string()),
+                    Value::String(provider_user_id.to_string()),
+                    email
+                        .map(|s| Value::String(s.to_string()))
+                        .unwrap_or(Value::Null),
+                    Value::String(now.clone()),
+                ],
+            )
+            .await?;
+
+        Ok(AuthIdentityRecord {
+            id,
+            user_id: user_id.to_string(),
+            provider: provider.to_string(),
+            provider_user_id: provider_user_id.to_string(),
+            email: email.map(|s| s.to_string()),
+            created_at: now,
+        })
+    }
+
+    pub async fn get_auth_identity(
+        &self,
+        provider: &str,
+        provider_user_id: &str,
+    ) -> Result<Option<AuthIdentityRecord>> {
+        let sql = "SELECT id, user_id, provider, provider_user_id, email, created_at FROM auth_identities WHERE provider = ? AND provider_user_id = ? LIMIT 1";
+        let rows = self
+            .db
+            .query(
+                sql,
+                &[
+                    Value::String(provider.to_string()),
+                    Value::String(provider_user_id.to_string()),
+                ],
+            )
+            .await?;
+        if rows.is_empty() {
+            return Ok(None);
+        }
+        let r = &rows[0];
+        Ok(Some(AuthIdentityRecord {
+            id: r["id"].as_str().unwrap_or_default().to_string(),
+            user_id: r["user_id"].as_str().unwrap_or_default().to_string(),
+            provider: r["provider"].as_str().unwrap_or_default().to_string(),
+            provider_user_id: r["provider_user_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            email: r["email"].as_str().map(|s| s.to_string()),
+            created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
+        }))
+    }
+
+    // ── OTP Code Operations ──
+
+    pub async fn create_otp_code(
+        &self,
+        email: &str,
+        code_hash: &str,
+        purpose: &str,
+        expires_at: DateTime<Utc>,
+        max_attempts: i64,
+    ) -> Result<OtpCodeRecord> {
+        let id = Uuid::new_v4().to_string();
+        let now = Utc::now().to_rfc3339();
+        let exp = expires_at.to_rfc3339();
+
+        let sql = "INSERT INTO otp_codes (id, email, code_hash, purpose, expires_at, attempts_count, max_attempts, used_at, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?)";
+        self.db
+            .execute(
+                sql,
+                &[
+                    Value::String(id.clone()),
+                    Value::String(email.to_string()),
+                    Value::String(code_hash.to_string()),
+                    Value::String(purpose.to_string()),
+                    Value::String(exp.clone()),
+                    Value::I64(max_attempts),
+                    Value::String(now.clone()),
+                ],
+            )
+            .await?;
+
+        Ok(OtpCodeRecord {
+            id,
+            email: email.to_string(),
+            code_hash: code_hash.to_string(),
+            purpose: purpose.to_string(),
+            expires_at: exp,
+            attempts_count: 0,
+            max_attempts,
+            used_at: None,
+            created_at: now,
+        })
+    }
+
+    pub async fn get_latest_active_otp(
+        &self,
+        email: &str,
+        purpose: &str,
+    ) -> Result<Option<OtpCodeRecord>> {
+        let sql = "SELECT id, email, code_hash, purpose, expires_at, attempts_count, max_attempts, used_at, created_at FROM otp_codes WHERE email = ? AND purpose = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1";
+        let rows = self
+            .db
+            .query(
+                sql,
+                &[
+                    Value::String(email.to_string()),
+                    Value::String(purpose.to_string()),
+                ],
+            )
+            .await?;
+
+        if rows.is_empty() {
+            return Ok(None);
+        }
+        let r = &rows[0];
+        Ok(Some(OtpCodeRecord {
+            id: r["id"].as_str().unwrap_or_default().to_string(),
+            email: r["email"].as_str().unwrap_or_default().to_string(),
+            code_hash: r["code_hash"].as_str().unwrap_or_default().to_string(),
+            purpose: r["purpose"].as_str().unwrap_or_default().to_string(),
+            expires_at: r["expires_at"].as_str().unwrap_or_default().to_string(),
+            attempts_count: r["attempts_count"].as_i64().unwrap_or(0),
+            max_attempts: r["max_attempts"].as_i64().unwrap_or(5),
+            used_at: r["used_at"].as_str().map(|s| s.to_string()),
+            created_at: r["created_at"].as_str().unwrap_or_default().to_string(),
+        }))
+    }
+
+    pub async fn increment_otp_attempts(&self, otp_id: &str) -> Result<i64> {
+        let sql = "UPDATE otp_codes SET attempts_count = attempts_count + 1 WHERE id = ?";
+        self.db
+            .execute(sql, &[Value::String(otp_id.to_string())])
+            .await?;
+
+        let query_sql = "SELECT attempts_count FROM otp_codes WHERE id = ? LIMIT 1";
+        let rows = self
+            .db
+            .query(query_sql, &[Value::String(otp_id.to_string())])
+            .await?;
+        if rows.is_empty() {
+            return Ok(0);
+        }
+        Ok(rows[0]["attempts_count"].as_i64().unwrap_or(0))
+    }
+
+    pub async fn mark_otp_used(&self, otp_id: &str) -> Result<bool> {
+        let now = Utc::now().to_rfc3339();
+        let sql = "UPDATE otp_codes SET used_at = ? WHERE id = ? AND used_at IS NULL";
+        let rows = self
+            .db
+            .execute(
+                sql,
+                &[Value::String(now), Value::String(otp_id.to_string())],
+            )
+            .await?;
+        Ok(rows > 0)
     }
 
     // ── Session Operations ──

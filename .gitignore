@@ -55,3 +55,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# WebView2 user data directories
+*.WebView2/
+installer/**/*.WebView2/
+

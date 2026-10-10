@@ -225,6 +225,7 @@ pub struct SqliteMemoryEngine {
     conn: Mutex<Option<Connection>>,
     #[allow(dead_code)]
     config: MemoryConfig,
+    db_path: Option<std::path::PathBuf>,
 }
 
 impl SqliteMemoryEngine {
@@ -232,6 +233,15 @@ impl SqliteMemoryEngine {
         Self {
             conn: Mutex::new(None),
             config: MemoryConfig::default(),
+            db_path: None,
+        }
+    }
+
+    pub fn with_path(path: impl Into<std::path::PathBuf>) -> Self {
+        Self {
+            conn: Mutex::new(None),
+            config: MemoryConfig::default(),
+            db_path: Some(path.into()),
         }
     }
 
@@ -239,6 +249,7 @@ impl SqliteMemoryEngine {
         Self {
             conn: Mutex::new(None),
             config,
+            db_path: None,
         }
     }
 
@@ -422,12 +433,27 @@ impl Default for SqliteMemoryEngine {
 #[async_trait::async_trait]
 impl MemoryApi for SqliteMemoryEngine {
     async fn init(&self, _config: &MemoryConfig) -> Result<()> {
-        let conn = Connection::open(":memory:")
-            .map_err(|e| MemoryError::StoreError(format!("Failed to open database: {e}")))?;
+        let conn = match &self.db_path {
+            Some(path) => {
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                let c = Connection::open(path)
+                    .map_err(|e| MemoryError::StoreError(format!("Failed to open persistent SQLite at {}: {e}", path.display())))?;
+                let _ = c.execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
+                info!("SqliteMemoryEngine initialized persistent database at {}", path.display());
+                c
+            }
+            None => {
+                let c = Connection::open(":memory:")
+                    .map_err(|e| MemoryError::StoreError(format!("Failed to open database: {e}")))?;
+                info!("SqliteMemoryEngine initialized with in-memory database");
+                c
+            }
+        };
         Self::create_tables(&conn)?;
         let mut conn_guard = self.conn.lock().await;
         *conn_guard = Some(conn);
-        info!("SqliteMemoryEngine initialized with in-memory database");
         Ok(())
     }
 

@@ -145,6 +145,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
+
+[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1980,11 +1986,32 @@ dependencies = [
 
 [[package]]
 name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.4.6",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1995,7 +2022,7 @@ checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.5.2",
  "windows-sys 0.61.2",
 ]
 
@@ -5893,6 +5920,17 @@ dependencies = [
 
 [[package]]
 name = "redox_users"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
+dependencies = [
+ "getrandom 0.2.17",
+ "libredox",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "redox_users"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
@@ -7453,7 +7491,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eadd75f5002e2513eaa19b2365f533090cc3e93abd38788452d9ea85cff7b48a"
 dependencies = [
  "crossbeam-channel",
- "dirs",
+ "dirs 6.0.0",
  "libappindicator",
  "muda 0.15.3",
  "objc2 0.6.4",
@@ -7752,6 +7790,7 @@ dependencies = [
  "chrono",
  "hmac 0.12.1",
  "parking_lot",
+ "rand 0.8.7",
  "reqwest",
  "serde",
  "serde_json",
@@ -7962,7 +8001,7 @@ name = "voxy-config"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "dirs",
+ "dirs 6.0.0",
  "num_cpus",
  "serde",
  "serde_json",
@@ -8014,7 +8053,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
- "dirs",
+ "dirs 6.0.0",
  "dotenvy",
  "futures-util",
  "num_cpus",
@@ -8111,7 +8150,7 @@ name = "voxy-desktop-runtime"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "dirs",
+ "dirs 6.0.0",
  "futures-util",
  "notify",
  "parking_lot",
@@ -8128,6 +8167,45 @@ dependencies = [
  "voxy-event-bus",
  "voxy-shared",
  "windows 0.58.0",
+]
+
+[[package]]
+name = "voxy-desktop-ui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dioxus",
+ "dirs 5.0.1",
+ "dotenvy",
+ "num_cpus",
+ "parking_lot",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sysinfo 0.33.1",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "voxy-api-server",
+ "voxy-billing",
+ "voxy-cognition",
+ "voxy-companion-intelligence",
+ "voxy-config",
+ "voxy-database",
+ "voxy-desktop-runtime",
+ "voxy-event-bus",
+ "voxy-health",
+ "voxy-ipc",
+ "voxy-memory",
+ "voxy-personality",
+ "voxy-plugin-runtime",
+ "voxy-security",
+ "voxy-shared",
+ "voxy-voice",
 ]
 
 [[package]]
@@ -8259,7 +8337,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
- "dirs",
+ "dirs 6.0.0",
  "serde",
  "sysinfo 0.33.1",
  "thiserror 2.0.20",
@@ -8454,7 +8532,7 @@ name = "voxy-logging"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "dirs",
+ "dirs 6.0.0",
  "serde",
  "serde_json",
  "tempfile",
@@ -8526,7 +8604,7 @@ name = "voxy-observability"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "dirs",
+ "dirs 6.0.0",
  "serde",
  "serde_json",
  "sysinfo 0.33.1",
