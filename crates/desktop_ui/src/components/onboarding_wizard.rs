@@ -144,6 +144,18 @@ pub fn OnboardingWizard(
                             }
 
                             div {
+                                class: if *selected_llm.read() == "nvidia_nim" { "provider-card selected" } else { "provider-card" },
+                                onclick: move |_| selected_llm.set("nvidia_nim".to_string()),
+                                div { class: "provider-card-head",
+                                    span { class: "provider-name", "NVIDIA NIM (Accelerated Cloud)" }
+                                    if *selected_llm.read() == "nvidia_nim" {
+                                        IconCheck { size: 16 }
+                                    }
+                                }
+                                div { class: "provider-card-sub", "High-throughput cloud inference on NVIDIA TensorRT-LLM." }
+                            }
+
+                            div {
                                 class: if *selected_llm.read() == "cloud_hybrid" { "provider-card selected" } else { "provider-card" },
                                 onclick: move |_| selected_llm.set("cloud_hybrid".to_string()),
                                 div { class: "provider-card-head",

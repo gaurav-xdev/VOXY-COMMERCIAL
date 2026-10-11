@@ -75,6 +75,10 @@ impl OpenAIConfig {
     pub fn bedrock(_api_key: impl Into<String>) -> Self {
         Self::new("", "https://bedrock-runtime.us-east-1.amazonaws.com")
     }
+
+    pub fn nvidia_nim(api_key: impl Into<String>) -> Self {
+        Self::new(api_key, "https://integrate.api.nvidia.com")
+    }
 }
 
 impl std::fmt::Debug for OpenAIConfig {

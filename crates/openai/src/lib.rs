@@ -206,6 +206,13 @@ mod tests {
     }
 
     #[test]
+    fn test_openai_config_nvidia_nim() {
+        let config = OpenAIConfig::nvidia_nim("nvapi-test");
+        assert_eq!(*config.api_key, "nvapi-test");
+        assert_eq!(config.base_url, "https://integrate.api.nvidia.com");
+    }
+
+    #[test]
     fn test_openai_default_config() {
         let config = OpenAIConfig::default();
         assert_eq!(config.base_url, "http://127.0.0.1:1234");

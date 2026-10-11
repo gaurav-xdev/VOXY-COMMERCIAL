@@ -116,6 +116,21 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             tracing::info!("[PROVIDER] Using OpenRouter: model={}", model);
             Arc::new(OpenAIProvider::new(config).with_model(&model))
         }
+        "nvidia" | "nvidia_nim" | "nim" => {
+            let api_key = std::env::var("VOXY_API_KEYS_NVIDIA")
+                .or_else(|_| std::env::var("NVIDIA_API_KEY"))
+                .or_else(|_| std::env::var("VOXY_API_KEYS_OPENAI"))
+                .unwrap_or_default();
+            let model = std::env::var("VOXY_NVIDIA_MODEL")
+                .unwrap_or_else(|_| "meta/llama-3.3-70b-instruct".into());
+            if api_key.is_empty() {
+                tracing::warn!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set, falling back to Ollama");
+                return create_ollama_provider();
+            }
+            let config = OpenAIConfig::nvidia_nim(api_key);
+            tracing::info!("[PROVIDER] Using NVIDIA NIM: model={}", model);
+            Arc::new(OpenAIProvider::new(config).with_model(&model))
+        }
         _ => create_ollama_provider(),
     }
 }

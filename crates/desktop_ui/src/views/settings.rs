@@ -170,6 +170,7 @@ pub fn SettingsView(
                                     form.set(f);
                                 },
                                 option { value: "ollama", "Ollama (Local Private Inference)" }
+                                option { value: "nvidia_nim", "NVIDIA NIM (Cloud Accelerated)" }
                                 option { value: "cloud_hybrid", "Cloud Hybrid (Anthropic / OpenAI)" }
                             }
                         }

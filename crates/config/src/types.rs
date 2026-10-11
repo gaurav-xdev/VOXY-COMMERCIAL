@@ -183,6 +183,9 @@ impl AppConfig {
         if let Ok(val) = std::env::var("VOXY_API_KEYS_ELEVENLABS") {
             self.api_keys.elevenlabs = Some(val);
         }
+        if let Ok(val) = std::env::var("VOXY_API_KEYS_NVIDIA") {
+            self.api_keys.nvidia = Some(val);
+        }
         self
     }
 }
@@ -446,6 +449,9 @@ pub struct ApiKeysConfig {
     /// ElevenLabs API key (for TTS).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub elevenlabs: Option<String>,
+    /// NVIDIA NIM API key (for NVIDIA NIM hosted models).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nvidia: Option<String>,
     /// Custom provider base URLs.
     #[serde(default)]
     pub custom_endpoints: std::collections::HashMap<String, String>,
@@ -462,6 +468,7 @@ impl ApiKeysConfig {
             || self.anthropic.is_some()
             || self.gemini.is_some()
             || self.elevenlabs.is_some()
+            || self.nvidia.is_some()
     }
 
     /// Get a key by provider name.
@@ -471,6 +478,7 @@ impl ApiKeysConfig {
             "anthropic" => self.anthropic.as_deref(),
             "gemini" => self.gemini.as_deref(),
             "elevenlabs" => self.elevenlabs.as_deref(),
+            "nvidia" | "nvidia_nim" | "nim" => self.nvidia.as_deref(),
             _ => self.custom_endpoints.get(provider).map(|s| s.as_str()),
         }
     }
@@ -482,6 +490,7 @@ impl ApiKeysConfig {
             "anthropic" => self.anthropic = Some(key),
             "gemini" => self.gemini = Some(key),
             "elevenlabs" => self.elevenlabs = Some(key),
+            "nvidia" | "nvidia_nim" | "nim" => self.nvidia = Some(key),
             _ => {
                 self.custom_endpoints.insert(provider.to_string(), key);
             }
@@ -495,6 +504,7 @@ impl ApiKeysConfig {
             "anthropic" => self.anthropic = None,
             "gemini" => self.gemini = None,
             "elevenlabs" => self.elevenlabs = None,
+            "nvidia" | "nvidia_nim" | "nim" => self.nvidia = None,
             _ => {
                 self.custom_endpoints.remove(provider);
             }
@@ -515,6 +525,9 @@ impl ApiKeysConfig {
         }
         if self.elevenlabs.is_some() {
             providers.push("elevenlabs");
+        }
+        if self.nvidia.is_some() {
+            providers.push("nvidia");
         }
         providers
     }
