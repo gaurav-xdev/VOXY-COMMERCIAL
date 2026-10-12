@@ -91,6 +91,22 @@ impl PatchTransaction {
                 return Err(PatchError::ProtectedFile(rel.clone()));
             }
 
+            // Verify canonical path does not escape root (symlink/reparse defense)
+            let full_target = self.root_path.join(rel);
+            let check_path = if full_target.exists() {
+                full_target.clone()
+            } else if let Some(parent) = full_target.parent() {
+                parent.to_path_buf()
+            } else {
+                self.root_path.clone()
+            };
+
+            if let (Ok(canon_check), Ok(canon_root)) = (check_path.canonicalize(), self.root_path.canonicalize()) {
+                if !canon_check.starts_with(&canon_root) {
+                    return Err(PatchError::BoundaryViolation(rel.clone()));
+                }
+            }
+
             // Run secret scanner
             if let Err(detected) = SecretScanner::scan_patch(rel, &patch.new_content) {
                 return Err(PatchError::SecretDetected(detected));
@@ -104,9 +120,20 @@ impl PatchTransaction {
         self.validate()?;
 
         let mut diffs = Vec::new();
+        let patches = self.patches.clone();
 
-        for patch in &self.patches {
+        for patch in patches {
             let full_path = self.root_path.join(&patch.relative_path);
+
+            // Symlink / reparse boundary check on target
+            if let Some(parent) = full_path.parent() {
+                if let (Ok(canon_parent), Ok(canon_root)) = (parent.canonicalize(), self.root_path.canonicalize()) {
+                    if !canon_parent.starts_with(&canon_root) {
+                        self.rollback();
+                        return Err(PatchError::BoundaryViolation(patch.relative_path));
+                    }
+                }
+            }
 
             let original = if full_path.exists() {
                 match std::fs::read_to_string(&full_path) {
@@ -131,7 +158,16 @@ impl PatchTransaction {
                 }
             }
 
-            if let Err(e) = std::fs::write(&full_path, &patch.new_content) {
+            // Atomic file write via temporary file
+            let tmp_path = full_path.with_extension(format!("tmp_{}", uuid::Uuid::new_v4().simple()));
+            if let Err(e) = std::fs::write(&tmp_path, &patch.new_content) {
+                let _ = std::fs::remove_file(&tmp_path);
+                self.rollback();
+                return Err(PatchError::Io(e));
+            }
+
+            if let Err(e) = std::fs::rename(&tmp_path, &full_path) {
+                let _ = std::fs::remove_file(&tmp_path);
                 self.rollback();
                 return Err(PatchError::Io(e));
             }
@@ -233,12 +269,27 @@ impl PatchEngine {
             return Err(PatchError::ProtectedFile(rel.to_path_buf()));
         }
 
+        let full_path = self.root_path.join(rel);
+
+        // Symlink / reparse escape check
+        let check_path = if full_path.exists() {
+            full_path.clone()
+        } else if let Some(parent) = full_path.parent() {
+            parent.to_path_buf()
+        } else {
+            self.root_path.clone()
+        };
+
+        if let (Ok(canon_check), Ok(canon_root)) = (check_path.canonicalize(), self.root_path.canonicalize()) {
+            if !canon_check.starts_with(&canon_root) {
+                return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+            }
+        }
+
         // Secret scan
         if let Err(detected) = SecretScanner::scan_patch(rel, new_content) {
             return Err(PatchError::SecretDetected(detected));
         }
-
-        let full_path = self.root_path.join(rel);
 
         let original = if full_path.exists() {
             std::fs::read_to_string(&full_path)?
@@ -256,7 +307,17 @@ impl PatchEngine {
             std::fs::create_dir_all(parent)?;
         }
 
-        std::fs::write(&full_path, new_content)?;
+        // Atomic write via temporary file
+        let tmp_path = full_path.with_extension(format!("tmp_{}", uuid::Uuid::new_v4().simple()));
+        if let Err(e) = std::fs::write(&tmp_path, new_content) {
+            let _ = std::fs::remove_file(&tmp_path);
+            return Err(PatchError::Io(e));
+        }
+
+        if let Err(e) = std::fs::rename(&tmp_path, &full_path) {
+            let _ = std::fs::remove_file(&tmp_path);
+            return Err(PatchError::Io(e));
+        }
 
         let diff = Self::generate_diff(&original, new_content, &rel_str);
         Ok(diff)

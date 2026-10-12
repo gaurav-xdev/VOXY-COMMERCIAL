@@ -20,7 +20,18 @@ Validation of path traversal defense, protected configuration file guards, secre
 - **Observed Behavior:** `SecretScanner::scan_content` triggered detection on high-entropy credential patterns.
 - **Outcome:** `Err(PatchError::SecretDetected)`. **PASS**.
 
-### 4. Sandboxed Runner Emergency Stop
-- **Action:** Asserting `emergency_stop_token` during process execution in `SandboxedRunner`.
-- **Observed Behavior:** Process spawner halts and terminates subsequent child commands immediately.
-- **Outcome:** `Err(RunnerError::EmergencyStopAborted)`. **PASS**.
+### 4. Sandboxed Runner Emergency Stop & Process Tree Termination
+- **Action:** Asserting `emergency_stop_token` or triggering a timeout during process execution in `SandboxedRunner`.
+- **Observed Behavior:** On Windows, launching processes (such as `cargo test` which spawns rustc, test runners, and child executables) could leave orphaned child trees if only the root PID is terminated.
+- **Fix Implemented:** Introduced recursive process tree termination (`taskkill /F /T /PID`) to clean up all descendant child processes upon timeout or emergency abort.
+- **Outcome:** `Err(RunnerError::EmergencyStopAborted)`. Process trees cleanly terminated. **PASS**.
+
+### 5. Atomic File Writes & Partial Write Corruption Prevention
+- **Issue:** Direct stream writes into target source files during patch operations can leave corrupt, half-written files on unexpected panic or I/O error.
+- **Fix Implemented:** `PatchEngine::apply_modification` writes to a unique sibling temporary file (`tmp_{uuid}`) and commits atomically via `fs::rename`.
+- **Outcome:** Atomic write semantics verified. **PASS**.
+
+### 6. Symlink / Reparse-Point Workspace Boundary Enforcement
+- **Issue:** Windows junction points or symbolic links pointing outside the workspace directory could allow directory traversal escapes.
+- **Fix Implemented:** Enforced path canonicalization on both root and target paths with verbatim prefix normalization (`\\?\`) before checking `starts_with`.
+- **Outcome:** Reparse point escapes outside the workspace boundary are rejected. **PASS**.

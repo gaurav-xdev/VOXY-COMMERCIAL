@@ -44,7 +44,16 @@ async fn test_isolated_coding_harness_workflow() {
 
     // Phase 3: Diagnostic Parsing
     let diagnostics = DiagnosticParser::parse(&format!("{}\n{}", test_run_1.stdout, test_run_1.stderr));
-    let _ = diagnostics;
+    assert!(!diagnostics.items.is_empty(), "Must parse structured diagnostics from failure");
+    let has_panic_or_assertion = diagnostics.items.iter().any(|d| {
+        d.message.contains("assertion `left == right` failed")
+            || d.message.contains("test tests::test_add ... FAILED")
+            || d.message.contains("panicked at")
+    });
+    assert!(
+        has_panic_or_assertion,
+        "Diagnostics must capture test failure or assertion failure details"
+    );
 
     // Phase 4: Atomic Patch Application
     let fixed_content = "pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_add() {\n        assert_eq!(add(2, 3), 5);\n    }\n}\n";
@@ -93,4 +102,13 @@ async fn test_isolated_coding_harness_workflow() {
     // Phase 8: Protected File Modification Rejection
     let protected_err = patch_engine.apply_modification(".git/config", "malicious");
     assert!(protected_err.is_err(), "Patch engine must reject protected files");
+
+    // Phase 9: Secret Detection Blocking
+    let secret_payload = "pub const AWS_SECRET: &str = \"AKIAIOSFODNN7EXAMPLE1234567890\";";
+    let secret_err = patch_engine.apply_modification("src/lib.rs", secret_payload);
+    assert!(
+        secret_err.is_err(),
+        "Patch engine must reject changes introducing credentials"
+    );
+    assert!(matches!(secret_err.unwrap_err(), voxy_harness::PatchError::SecretDetected(_)));
 }

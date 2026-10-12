@@ -50,12 +50,14 @@ Executed against an isolated disposable Rust project containing an intentional a
 
 | Subsystem | Status | Scope | Evidence |
 | :--- | :---: | :--- | :--- |
-| **NVIDIA NIM Cloud Inference** | **PASS** | Live HTTPS Request | Model listing (`200 OK`) and bounded chat completion (65 tokens). |
-| **Autonomous Coding Harness** | **PASS** | Isolated Sandbox E2E | `crates/harness/tests/isolated_workflow_test.rs` passed in 5.19s. |
-| **Secret & Boundary Defense** | **PASS** | Automated Security Tests | Boundary escape rejection, protected files filter, high-entropy secret scanner. |
-| **Desktop Application Binary** | **PASS** | Windows Process Execution | `installer/OSMOO/OSMOO.exe` loads SQLite WAL memory, conversation stores, and launches cleanly (~42 MB RAM). |
-| **Windows NSIS Installer** | **PASS** | File Verification | `installer/OSMOO/OSMOO-Setup-x64.exe` (SHA-256 verified). |
-| **Audio STT/TTS Pipeline** | **SKIPPED** | Text-Only Session | Bypassed per explicit instruction to avoid TTS/STT APIs in this session. |
+| **NVIDIA NIM Cloud Inference** | **PASS** | Live HTTPS Request | Model listing (`200 OK`) and single bounded chat completion (65 tokens). Zero repeated requests. |
+| **Autonomous Coding Harness** | **PASS** | Scoped Directory E2E | `crates/harness/tests/isolated_workflow_test.rs` passed with verified panic extraction, diff assertion, clean re-test, rollback, and secret rejection. |
+| **Secret & Boundary Defense** | **PASS** | Automated Security Tests | Reparse-point & symlink canonicalization, atomic temporary writes, protected config filter, high-entropy secret scanner. |
+| **Process Lifecycle Management** | **PASS** | Hardened Process Tree Kill | Windows `taskkill /F /T /PID` integration to guarantee termination of child compiler/test trees on timeout or emergency abort. |
+| **Desktop Application Binary** | **PARTIALLY VERIFIED** | Windows Process Execution | `installer/OSMOO/OSMOO.exe` loads SQLite WAL memory, initializes conversation stores, and launches cleanly. Full graphical rendering and user interaction requires manual visual validation. |
+| **Windows NSIS Installer** | **PASS** | File & Hash Verification | `installer/OSMOO/OSMOO-Setup-x64.exe` built via NSIS 3.10 and verified. |
+| **OS-Level Process Sandbox** | **BLOCKED** | Environment Restriction | Bare host environment cannot enforce kernel-level isolation (e.g. Windows Sandbox / AppContainer / Hyper-V VM). Invasive system operations are BLOCKED from executing on the host. |
+| **Audio STT/TTS Pipeline** | **BLOCKED / SKIPPED** | Text-Only Session | Bypassed per explicit instruction to avoid TTS/STT APIs and live audio capture in this session. |
 
 ---
 

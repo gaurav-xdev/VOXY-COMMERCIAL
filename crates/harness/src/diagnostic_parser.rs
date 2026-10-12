@@ -211,6 +211,39 @@ impl DiagnosticParser {
                     }
                 }
             }
+            // 4. Rust test panics:
+            // e.g.: thread 'tests::test_add' panicked at src/lib.rs:11:9:
+            // assertion `left == right` failed
+            else if trimmed.contains("panicked at ") {
+                let mut file_path = None;
+                let mut line = None;
+                let mut col = None;
+                if let Some(idx) = trimmed.find("panicked at ") {
+                    let loc_str = trimmed[idx + 12..].trim_end_matches(':');
+                    let parts: Vec<&str> = loc_str.split(':').collect();
+                    if parts.len() >= 2 {
+                        file_path = Some(PathBuf::from(parts[0]));
+                        line = parts[1].parse::<usize>().ok();
+                        col = parts.get(2).and_then(|s| s.parse::<usize>().ok());
+                    }
+                }
+
+                report.add_item(DiagnosticItem {
+                    severity: DiagnosticSeverity::Error,
+                    code: Some("Panic".to_string()),
+                    message: trimmed.to_string(),
+                    file_path,
+                    line,
+                    column: col,
+                    context_snippet: None,
+                });
+            } else if trimmed.starts_with("assertion `") || trimmed.starts_with("assertion failed:") {
+                if let Some(last) = report.items.last_mut() {
+                    if last.code.as_deref() == Some("Panic") {
+                        last.context_snippet = Some(trimmed.to_string());
+                    }
+                }
+            }
         }
 
         report.success = report.total_errors == 0;

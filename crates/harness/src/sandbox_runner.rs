@@ -65,6 +65,21 @@ impl SandboxedRunner {
         self.emergency_stop.store(false, Ordering::SeqCst);
     }
 
+    /// Terminates the process and its child processes on Windows to prevent orphaned trees.
+    async fn kill_process_tree(child: &mut tokio::process::Child) {
+        if let Some(pid) = child.id() {
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/T", "/PID", &pid.to_string()])
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .status();
+            }
+        }
+        let _ = child.kill().await;
+    }
+
     /// Executes a command in the repository workspace with timeout and stop checks.
     pub async fn run_command(
         &self,
@@ -141,7 +156,7 @@ impl SandboxedRunner {
             // Periodic poll check for emergency stop
             loop {
                 if stop_token.load(Ordering::SeqCst) {
-                    let _ = child.kill().await;
+                    Self::kill_process_tree(&mut child).await;
                     return Err(RunnerError::EmergencyStopAborted);
                 }
 
@@ -158,7 +173,7 @@ impl SandboxedRunner {
         let status = match status_res {
             Ok(inner) => inner?,
             Err(_) => {
-                let _ = child.kill().await;
+                Self::kill_process_tree(&mut child).await;
                 return Err(RunnerError::Timeout(timeout_duration));
             }
         };
