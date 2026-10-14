@@ -1,10 +1,11 @@
-//! Hardened, secure zip archive extraction and validation engine.
+//! Hardened, secure zip and tar archive extraction and validation engine.
 //! Protects against:
-//! - Zip slips & Path traversal (`../`, absolute paths, drive letters, UNC paths)
+//! - Zip slips & Path traversal (`../`, absolute paths, drive letters, UNC paths, null bytes)
 //! - NTFS Alternate Data Streams (`:`)
-//! - Hardlinks and symlinks
-//! - Zip bombs (decompression bombs, extreme compression ratios)
-//! - Excessive entry count, path depth, and excessive cumulative file size.
+//! - Hardlinks and symlinks escaping extraction root
+//! - Zip bombs (decompression bombs, extreme compression ratios, falsified headers)
+//! - Excessive entry count, path depth, and excessive cumulative file size
+//! - Clean rollback of all partially extracted files and directories on any error.
 
 use std::io;
 use std::path::{Component, Path, PathBuf};
@@ -80,16 +81,134 @@ pub enum ArchiveSecurityError {
     #[error("Zip format error: {0}")]
     ZipError(String),
 
+    #[error("Tar format error: {0}")]
+    TarError(String),
+
     #[error("IO error during archive operation: {0}")]
     IoError(#[from] io::Error),
 }
 
+/// Tracks files and directories created during an archive extraction transaction.
+/// If an error occurs prior to commitment, clean rollback removes all partially
+/// created files and directories.
+#[derive(Debug)]
+pub struct ArchiveRollbackTracker {
+    created_files: Vec<PathBuf>,
+    created_dirs: Vec<PathBuf>,
+    committed: bool,
+}
+
+impl ArchiveRollbackTracker {
+    pub fn new() -> Self {
+        Self {
+            created_files: Vec::new(),
+            created_dirs: Vec::new(),
+            committed: false,
+        }
+    }
+
+    pub fn record_dir(&mut self, path: &Path) {
+        self.created_dirs.push(path.to_path_buf());
+    }
+
+    pub fn record_file(&mut self, path: &Path) {
+        self.created_files.push(path.to_path_buf());
+    }
+
+    pub fn commit(&mut self) {
+        self.committed = true;
+    }
+
+    pub fn rollback(&mut self) {
+        if self.committed {
+            return;
+        }
+
+        // 1. Delete all partially extracted files
+        for file in &self.created_files {
+            if file.exists() {
+                let _ = std::fs::remove_file(file);
+            }
+        }
+
+        // 2. Delete all created directories in reverse order (leaf to root)
+        for dir in self.created_dirs.iter().rev() {
+            if dir.exists() {
+                let _ = std::fs::remove_dir(dir);
+            }
+        }
+    }
+}
+
+impl Default for ArchiveRollbackTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for ArchiveRollbackTracker {
+    fn drop(&mut self) {
+        self.rollback();
+    }
+}
+
+/// Helper to create and track directories so rollback can clean them up.
+fn ensure_dir_tracked(
+    tracker: &mut ArchiveRollbackTracker,
+    dir: &Path,
+    dest_root: &Path,
+) -> Result<(), io::Error> {
+    if dir.exists() {
+        return Ok(());
+    }
+
+    // Collect chain of uncreated parent directories up to dest_root
+    let mut to_create = Vec::new();
+    let mut curr = dir;
+    while curr.starts_with(dest_root) && curr != dest_root {
+        if !curr.exists() {
+            to_create.push(curr.to_path_buf());
+        }
+        if let Some(parent) = curr.parent() {
+            curr = parent;
+        } else {
+            break;
+        }
+    }
+
+    // to_create has deepest dir first, reverse to create ancestors first
+    for d in to_create.into_iter().rev() {
+        if !d.exists() {
+            std::fs::create_dir(&d)?;
+            tracker.record_dir(&d);
+        }
+    }
+
+    Ok(())
+}
+
+fn strip_verbatim_prefix(path: &Path) -> PathBuf {
+    let s = path.to_string_lossy();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped)
+    } else {
+        path.to_path_buf()
+    }
+}
+
 /// Validates an entry's relative path before extraction.
-/// Ensures the path is strictly relative and contains no escapes or alternate streams.
+/// Ensures the path is strictly relative and contains no escapes, UNC shares,
+/// null bytes, or alternate data streams.
 pub fn validate_archive_path(
     raw_path: &str,
     limits: &ArchiveSecurityLimits,
 ) -> Result<PathBuf, ArchiveSecurityError> {
+    if raw_path.is_empty() {
+        return Err(ArchiveSecurityError::PathTraversalDetected {
+            path: raw_path.to_string(),
+        });
+    }
+
     if raw_path.len() > limits.max_path_length {
         return Err(ArchiveSecurityError::PathLengthExceeded {
             length: raw_path.len(),
@@ -97,8 +216,23 @@ pub fn validate_archive_path(
         });
     }
 
+    // Reject null bytes
+    if raw_path.contains('\0') {
+        return Err(ArchiveSecurityError::PathTraversalDetected {
+            path: raw_path.to_string(),
+        });
+    }
+
+    // Reject NTFS Alternate Data Streams and drive colons
     if raw_path.contains(':') {
         return Err(ArchiveSecurityError::IllegalStreamDetected {
+            path: raw_path.to_string(),
+        });
+    }
+
+    // Reject Windows UNC and network share paths
+    if raw_path.starts_with(r"\\") || raw_path.starts_with("//") {
+        return Err(ArchiveSecurityError::PathTraversalDetected {
             path: raw_path.to_string(),
         });
     }
@@ -115,17 +249,17 @@ pub fn validate_archive_path(
     let mut depth = 0;
     let mut sanitized = PathBuf::new();
 
+    // Check components across both forward and backward slashes
+    let normalized = raw_path.replace('\\', "/");
     for comp in path.components() {
         match comp {
             Component::Normal(c) => {
                 let name = c.to_string_lossy();
-                if name == ".." || name == "." || name.contains(':') {
+                if name == ".." || name == "." || name.contains(':') || name.contains('\0') {
                     return Err(ArchiveSecurityError::PathTraversalDetected {
                         path: raw_path.to_string(),
                     });
                 }
-                sanitized.push(c);
-                depth += 1;
             }
             Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
                 return Err(ArchiveSecurityError::PathTraversalDetected {
@@ -136,10 +270,29 @@ pub fn validate_archive_path(
         }
     }
 
+    for seg in normalized.split('/') {
+        if seg.is_empty() || seg == "." {
+            continue;
+        }
+        if seg == ".." || seg.contains(':') || seg.contains('\0') {
+            return Err(ArchiveSecurityError::PathTraversalDetected {
+                path: raw_path.to_string(),
+            });
+        }
+        sanitized.push(seg);
+        depth += 1;
+    }
+
     if depth > limits.max_path_depth {
         return Err(ArchiveSecurityError::PathDepthExceeded {
             depth,
             max: limits.max_path_depth,
+        });
+    }
+
+    if depth == 0 {
+        return Err(ArchiveSecurityError::PathTraversalDetected {
+            path: raw_path.to_string(),
         });
     }
 
@@ -156,7 +309,15 @@ pub fn ensure_within_root(root: &Path, rel_path: &Path) -> Result<PathBuf, Archi
         Err(_) => root.to_path_buf(),
     };
 
-    if !target.starts_with(root) && !target.starts_with(&canonical_root) {
+    let norm_target = strip_verbatim_prefix(&target);
+    let norm_root = strip_verbatim_prefix(root);
+    let norm_canon_root = strip_verbatim_prefix(&canonical_root);
+
+    if !target.starts_with(root)
+        && !target.starts_with(&canonical_root)
+        && !norm_target.starts_with(&norm_root)
+        && !norm_target.starts_with(&norm_canon_root)
+    {
         return Err(ArchiveSecurityError::PathTraversalDetected {
             path: target.to_string_lossy().to_string(),
         });
@@ -167,12 +328,23 @@ pub fn ensure_within_root(root: &Path, rel_path: &Path) -> Result<PathBuf, Archi
 
 /// Safely extracts a zip archive from a reader into a destination directory.
 /// Enforces all ArchiveSecurityLimits: max size, max entries, max entry size,
-/// compression ratios, path depth, and symlink prohibition.
+/// compression ratios, path depth, symlink prohibition, and atomic rollback on error.
 pub fn safe_extract_zip<R: io::Read + io::Seek>(
-    reader: R,
+    mut reader: R,
     destination: &Path,
     limits: &ArchiveSecurityLimits,
 ) -> Result<usize, ArchiveSecurityError> {
+    // 0. Verify compressed size if seekable
+    if let Ok(stream_len) = reader.seek(io::SeekFrom::End(0)) {
+        if stream_len > limits.max_compressed_bytes {
+            return Err(ArchiveSecurityError::CompressedSizeExceeded {
+                size: stream_len,
+                max: limits.max_compressed_bytes,
+            });
+        }
+        let _ = reader.seek(io::SeekFrom::Start(0));
+    }
+
     let mut archive =
         zip::ZipArchive::new(reader).map_err(|e| ArchiveSecurityError::ZipError(e.to_string()))?;
 
@@ -187,6 +359,7 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
     std::fs::create_dir_all(destination)?;
     let canonical_dest = destination.canonicalize()?;
 
+    let mut tracker = ArchiveRollbackTracker::new();
     let mut total_extracted: u64 = 0;
 
     for i in 0..entry_count {
@@ -200,7 +373,9 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
         let safe_rel_path = validate_archive_path(&raw_name, limits)?;
 
         // 2. Prohibit symlinks/hardlinks
-        if entry.is_symlink() {
+        let is_symlink = entry.is_symlink()
+            || entry.unix_mode().map_or(false, |m| (m & 0o170000) == 0o120000);
+        if is_symlink {
             return Err(ArchiveSecurityError::IllegalLinkDetected { path: raw_name });
         }
 
@@ -229,12 +404,13 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
         let target_path = ensure_within_root(&canonical_dest, &safe_rel_path)?;
 
         if entry.is_dir() {
-            std::fs::create_dir_all(&target_path)?;
+            ensure_dir_tracked(&mut tracker, &target_path, &canonical_dest)?;
         } else {
             if let Some(parent) = target_path.parent() {
-                std::fs::create_dir_all(parent)?;
+                ensure_dir_tracked(&mut tracker, parent, &canonical_dest)?;
             }
 
+            tracker.record_file(&target_path);
             let mut out_file = std::fs::File::create(&target_path)?;
             let mut entry_extracted: u64 = 0;
             let mut buffer = [0u8; 8192];
@@ -248,7 +424,6 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
                 total_extracted += n as u64;
 
                 if entry_extracted > limits.max_entry_uncompressed_bytes {
-                    let _ = std::fs::remove_file(&target_path);
                     return Err(ArchiveSecurityError::EntrySizeExceeded {
                         entry_size: entry_extracted,
                         max: limits.max_entry_uncompressed_bytes,
@@ -256,7 +431,122 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
                 }
 
                 if total_extracted > limits.max_total_uncompressed_bytes {
-                    let _ = std::fs::remove_file(&target_path);
+                    return Err(ArchiveSecurityError::TotalDecompressedSizeExceeded {
+                        extracted: total_extracted,
+                        max: limits.max_total_uncompressed_bytes,
+                    });
+                }
+
+                if compressed_size > 0 && entry_extracted > 1024 {
+                    let live_ratio = entry_extracted as f64 / compressed_size as f64;
+                    if live_ratio > limits.max_compression_ratio {
+                        return Err(ArchiveSecurityError::SuspiciousCompressionRatio {
+                            ratio: live_ratio,
+                            max: limits.max_compression_ratio,
+                        });
+                    }
+                }
+
+                io::Write::write_all(&mut out_file, &buffer[..n])?;
+            }
+        }
+    }
+
+    // Success: commit transaction to keep extracted files
+    tracker.commit();
+    Ok(entry_count)
+}
+
+/// Safely extracts a tar archive from a reader into a destination directory.
+/// Enforces all ArchiveSecurityLimits: max size, max entries, max entry size,
+/// symlink and device node rejection, path traversal prevention, and clean rollback on error.
+pub fn safe_extract_tar<R: io::Read>(
+    reader: R,
+    destination: &Path,
+    limits: &ArchiveSecurityLimits,
+) -> Result<usize, ArchiveSecurityError> {
+    std::fs::create_dir_all(destination)?;
+    let canonical_dest = destination.canonicalize()?;
+
+    let mut archive = tar::Archive::new(reader);
+    let entries = archive
+        .entries()
+        .map_err(|e| ArchiveSecurityError::TarError(e.to_string()))?;
+
+    let mut tracker = ArchiveRollbackTracker::new();
+    let mut entry_count: usize = 0;
+    let mut total_extracted: u64 = 0;
+
+    for entry_result in entries {
+        let mut entry = entry_result.map_err(|e| ArchiveSecurityError::TarError(e.to_string()))?;
+        entry_count += 1;
+        if entry_count > limits.max_entry_count {
+            return Err(ArchiveSecurityError::EntryCountExceeded {
+                count: entry_count,
+                max: limits.max_entry_count,
+            });
+        }
+
+        let raw_name = entry
+            .path()
+            .map_err(|e| ArchiveSecurityError::TarError(e.to_string()))?
+            .to_string_lossy()
+            .to_string();
+
+        let safe_rel_path = validate_archive_path(&raw_name, limits)?;
+
+        let entry_type = entry.header().entry_type();
+        if entry_type.is_symlink() || entry_type.is_hard_link() {
+            return Err(ArchiveSecurityError::IllegalLinkDetected { path: raw_name });
+        }
+        if entry_type.is_block_special()
+            || entry_type.is_character_special()
+            || entry_type.is_fifo()
+        {
+            return Err(ArchiveSecurityError::IllegalLinkDetected { path: raw_name });
+        }
+
+        let uncompressed_size = entry
+            .header()
+            .size()
+            .map_err(|e| ArchiveSecurityError::TarError(e.to_string()))?;
+        if uncompressed_size > limits.max_entry_uncompressed_bytes {
+            return Err(ArchiveSecurityError::EntrySizeExceeded {
+                entry_size: uncompressed_size,
+                max: limits.max_entry_uncompressed_bytes,
+            });
+        }
+
+        let target_path = ensure_within_root(&canonical_dest, &safe_rel_path)?;
+
+        if entry_type.is_dir() {
+            ensure_dir_tracked(&mut tracker, &target_path, &canonical_dest)?;
+        } else {
+            if let Some(parent) = target_path.parent() {
+                ensure_dir_tracked(&mut tracker, parent, &canonical_dest)?;
+            }
+
+            tracker.record_file(&target_path);
+            let mut out_file = std::fs::File::create(&target_path)?;
+            let mut entry_extracted: u64 = 0;
+            let mut buffer = [0u8; 8192];
+
+            loop {
+                let n = io::Read::read(&mut entry, &mut buffer)?;
+                if n == 0 {
+                    break;
+                }
+                entry_extracted += n as u64;
+                total_extracted += n as u64;
+
+                if entry_extracted > limits.max_entry_uncompressed_bytes {
+                    return Err(ArchiveSecurityError::EntrySizeExceeded {
+                        entry_size: entry_extracted,
+                        max: limits.max_entry_uncompressed_bytes,
+                    });
+                }
+
+                if total_extracted > limits.max_total_uncompressed_bytes {
                     return Err(ArchiveSecurityError::TotalDecompressedSizeExceeded {
                         extracted: total_extracted,
                         max: limits.max_total_uncompressed_bytes,
@@ -268,6 +558,8 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
         }
     }
 
+    // Success: commit transaction
+    tracker.commit();
     Ok(entry_count)
 }
 
@@ -291,6 +583,9 @@ mod tests {
         assert!(validate_archive_path("../secret.txt", &limits).is_err());
         assert!(validate_archive_path("dir/../../secret.txt", &limits).is_err());
         assert!(validate_archive_path("foo/bar/../../../etc/passwd", &limits).is_err());
+        assert!(validate_archive_path(r"foo\..\evil.txt", &limits).is_err());
+        assert!(validate_archive_path(r"\\server\share\evil.txt", &limits).is_err());
+        assert!(validate_archive_path("foo\0bar.txt", &limits).is_err());
     }
 
     #[test]
@@ -328,7 +623,6 @@ mod tests {
         let zip_path = dir.path().join("test.zip");
         let dest = dir.path().join("extracted");
 
-        // Create a small valid zip
         let file = std::fs::File::create(&zip_path).unwrap();
         let mut zip_writer = zip::ZipWriter::new(file);
         let options =
@@ -357,7 +651,7 @@ mod tests {
     }
 
     #[test]
-    fn test_safe_extract_zip_rejects_zip_slip() {
+    fn test_safe_extract_zip_rejects_zip_slip_and_rolls_back() {
         let dir = tempfile::tempdir().unwrap();
         let zip_path = dir.path().join("evil.zip");
         let dest = dir.path().join("extracted");
@@ -367,6 +661,11 @@ mod tests {
         let options =
             SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
+        // First a valid file
+        zip_writer.start_file("innocent.txt", options).unwrap();
+        zip_writer.write_all(b"innocent content").unwrap();
+
+        // Then a traversal file
         zip_writer.start_file("../evil.txt", options).unwrap();
         zip_writer.write_all(b"PWNED").unwrap();
         zip_writer.finish().unwrap();
@@ -376,11 +675,13 @@ mod tests {
         let res = safe_extract_zip(zip_file, &dest, &limits);
 
         assert!(res.is_err());
+        // Verify rollback: even innocent.txt must be cleaned up!
+        assert!(!dest.join("innocent.txt").exists());
         assert!(!dest.join("../evil.txt").exists());
     }
 
     #[test]
-    fn test_safe_extract_zip_rejects_entry_size_limit() {
+    fn test_safe_extract_zip_rejects_entry_size_limit_and_rolls_back() {
         let dir = tempfile::tempdir().unwrap();
         let zip_path = dir.path().join("oversized.zip");
         let dest = dir.path().join("extracted");
@@ -390,15 +691,154 @@ mod tests {
         let options =
             SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
+        // First valid file
+        zip_writer.start_file("small.txt", options).unwrap();
+        zip_writer.write_all(b"small").unwrap();
+
+        // Oversized file
         zip_writer.start_file("large.bin", options).unwrap();
         zip_writer.write_all(&vec![0u8; 10_000]).unwrap();
         zip_writer.finish().unwrap();
 
         let mut limits = ArchiveSecurityLimits::default();
-        limits.max_entry_uncompressed_bytes = 1000; // lower than 10_000
+        limits.max_entry_uncompressed_bytes = 1000;
 
         let zip_file = std::fs::File::open(&zip_path).unwrap();
         let res = safe_extract_zip(zip_file, &dest, &limits);
         assert!(res.is_err());
+
+        // Verify clean rollback of all files
+        assert!(!dest.join("small.txt").exists());
+        assert!(!dest.join("large.bin").exists());
+    }
+
+    #[test]
+    fn test_safe_extract_zip_rejects_compression_ratio_bomb() {
+        let dir = tempfile::tempdir().unwrap();
+        let zip_path = dir.path().join("bomb.zip");
+        let dest = dir.path().join("extracted");
+
+        let file = std::fs::File::create(&zip_path).unwrap();
+        let mut zip_writer = zip::ZipWriter::new(file);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        // Highly compressible data: 200 KB of zeros compresses to ~200 bytes (ratio ~1000x)
+        zip_writer.start_file("bomb.bin", options).unwrap();
+        zip_writer.write_all(&vec![0u8; 200_000]).unwrap();
+        zip_writer.finish().unwrap();
+
+        let mut limits = ArchiveSecurityLimits::default();
+        limits.max_compression_ratio = 10.0; // strict ratio limit
+
+        let zip_file = std::fs::File::open(&zip_path).unwrap();
+        let res = safe_extract_zip(zip_file, &dest, &limits);
+        assert!(res.is_err());
+        match res.unwrap_err() {
+            ArchiveSecurityError::SuspiciousCompressionRatio { ratio, max } => {
+                assert!(ratio > max);
+            }
+            other => panic!("Expected SuspiciousCompressionRatio, got {:?}", other),
+        }
+        assert!(!dest.join("bomb.bin").exists());
+    }
+
+    #[test]
+    fn test_safe_extract_tar_valid_archive() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("tar_extracted");
+
+        let mut tar_builder = tar::Builder::new(Vec::new());
+
+        let mut header1 = tar::Header::new_gnu();
+        header1.set_path("hello.txt").unwrap();
+        header1.set_size(12);
+        header1.set_mode(0o644);
+        header1.set_cksum();
+        tar_builder.append(&header1, &b"hello tar world"[..12]).unwrap();
+
+        let mut header2 = tar::Header::new_gnu();
+        header2.set_path("sub/nested.txt").unwrap();
+        header2.set_size(14);
+        header2.set_mode(0o644);
+        header2.set_cksum();
+        tar_builder.append(&header2, &b"nested tar file"[..14]).unwrap();
+
+        let tar_data = tar_builder.into_inner().unwrap();
+        let limits = ArchiveSecurityLimits::default();
+
+        let count = safe_extract_tar(&tar_data[..], &dest, &limits).unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(
+            std::fs::read_to_string(dest.join("hello.txt")).unwrap(),
+            "hello tar wo"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dest.join("sub").join("nested.txt")).unwrap(),
+            "nested tar fil"
+        );
+    }
+
+    #[test]
+    fn test_safe_extract_tar_rejects_path_traversal_and_rolls_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("tar_extracted");
+
+        let mut tar_builder = tar::Builder::new(Vec::new());
+
+        // File 1: Innocent
+        let mut header1 = tar::Header::new_gnu();
+        header1.set_path("innocent.txt").unwrap();
+        header1.set_size(8);
+        header1.set_mode(0o644);
+        header1.set_cksum();
+        tar_builder.append(&header1, &b"innocent"[..]).unwrap();
+
+        // File 2: Evil traversal (malicious archive crafted with raw traversal path)
+        let mut header2 = tar::Header::new_gnu();
+        let evil_path = b"../evil.txt\0";
+        header2.as_mut_bytes()[..evil_path.len()].copy_from_slice(evil_path);
+        header2.set_size(4);
+        header2.set_mode(0o644);
+        header2.set_cksum();
+        tar_builder.append(&header2, &b"evil"[..]).unwrap();
+
+        let tar_data = tar_builder.into_inner().unwrap();
+        let limits = ArchiveSecurityLimits::default();
+
+        let res = safe_extract_tar(&tar_data[..], &dest, &limits);
+        assert!(res.is_err());
+
+        // Verify rollback: innocent.txt must be deleted!
+        assert!(!dest.join("innocent.txt").exists());
+        assert!(!dest.join("../evil.txt").exists());
+    }
+
+    #[test]
+    fn test_safe_extract_tar_rejects_symlink() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("tar_extracted");
+
+        let mut tar_builder = tar::Builder::new(Vec::new());
+
+        let mut header = tar::Header::new_gnu();
+        header.set_path("link.txt").unwrap();
+        header.set_entry_type(tar::EntryType::Symlink);
+        header.set_link_name("/etc/passwd").unwrap();
+        header.set_size(0);
+        header.set_cksum();
+        tar_builder.append(&header, std::io::empty()).unwrap();
+
+        let tar_data = tar_builder.into_inner().unwrap();
+        let limits = ArchiveSecurityLimits::default();
+
+        let res = safe_extract_tar(&tar_data[..], &dest, &limits);
+        assert!(res.is_err());
+        match res.unwrap_err() {
+            ArchiveSecurityError::IllegalLinkDetected { path } => {
+                assert_eq!(path, "link.txt");
+            }
+            other => panic!("Expected IllegalLinkDetected, got {:?}", other),
+        }
     }
 }

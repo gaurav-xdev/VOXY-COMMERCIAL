@@ -29,6 +29,9 @@ pub enum SecurityError {
     PolicyError(String),
     // Approval
     ApprovalError(String),
+    // SSRF & Network Validation
+    SsrfBlocked(String),
+    InvalidDestination(String),
     Internal(String),
 }
 
@@ -56,6 +59,8 @@ impl fmt::Display for SecurityError {
             Self::IntegrityViolation(msg) => write!(f, "Integrity violation: {msg}"),
             Self::PolicyError(msg) => write!(f, "Policy error: {msg}"),
             Self::ApprovalError(msg) => write!(f, "Approval error: {msg}"),
+            Self::SsrfBlocked(msg) => write!(f, "SSRF blocked: {msg}"),
+            Self::InvalidDestination(msg) => write!(f, "Invalid destination: {msg}"),
             Self::Internal(msg) => write!(f, "Internal security error: {msg}"),
         }
     }

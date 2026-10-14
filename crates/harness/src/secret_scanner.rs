@@ -17,11 +17,10 @@ impl SecretScanner {
         let mut detected = Vec::new();
 
         // 1. Strict path exclusion: files that should never be written via patch engine
-        let path_str = file_path.to_string_lossy();
-        if path_str.ends_with(".env") || path_str.contains(".ssh") || path_str.ends_with("id_rsa") {
+        if crate::patch_engine::is_protected_file(file_path) {
             detected.push(DetectedSecret {
                 rule: "protected_secret_file",
-                description: "Modification of environment secret files or SSH keys is blocked",
+                description: "Modification of environment secret files, Cargo.lock, .git, or SSH keys is blocked",
                 line_number: 1,
             });
             return Err(detected);
@@ -31,10 +30,12 @@ impl SecretScanner {
         for (idx, line) in content.lines().enumerate() {
             let line_num = idx + 1;
 
-            // AWS Access Key ID
-            if line.contains("AKIA") && line.len() >= 20 {
-                if let Some(pos) = line.find("AKIA") {
-                    let candidate = &line[pos..];
+            // AWS Access Key ID (standard AKIA or temporary ASIA)
+            for prefix in &["AKIA", "ASIA"] {
+                let mut start = 0;
+                while let Some(pos) = line[start..].find(prefix) {
+                    let abs_pos = start + pos;
+                    let candidate = &line[abs_pos..];
                     let key_part: String = candidate.chars().take(20).collect();
                     if key_part.len() == 20 && key_part.chars().all(|c| c.is_ascii_alphanumeric()) {
                         detected.push(DetectedSecret {
@@ -42,23 +43,41 @@ impl SecretScanner {
                             description: "AWS Access Key pattern detected",
                             line_number: line_num,
                         });
+                        break;
                     }
+                    start = abs_pos + prefix.len();
                 }
             }
 
-            // Private Keys (RSA, EC, OpenSSH)
+            // Private Keys (RSA, EC, OpenSSH, DSA, PGP)
             if line.contains("-----BEGIN")
-                && (line.contains("PRIVATE KEY") || line.contains("RSA PRIVATE KEY"))
+                && (line.contains("PRIVATE KEY")
+                    || line.contains("RSA PRIVATE KEY")
+                    || line.contains("EC PRIVATE KEY")
+                    || line.contains("OPENSSH PRIVATE KEY")
+                    || line.contains("DSA PRIVATE KEY"))
             {
                 detected.push(DetectedSecret {
                     rule: "private_key",
                     description: "Private cryptographic key block detected",
                     line_number: line_num,
                 });
+            } else if line.contains("PuTTY-User-Key-File") {
+                detected.push(DetectedSecret {
+                    rule: "private_key",
+                    description: "PuTTY private key detected",
+                    line_number: line_num,
+                });
             }
 
             // GitHub personal access tokens
-            if line.contains("ghp_") || line.contains("gho_") || line.contains("github_pat_") {
+            if line.contains("ghp_")
+                || line.contains("gho_")
+                || line.contains("ghu_")
+                || line.contains("ghs_")
+                || line.contains("ghr_")
+                || line.contains("github_pat_")
+            {
                 detected.push(DetectedSecret {
                     rule: "github_token",
                     description: "GitHub personal access token detected",
@@ -66,22 +85,19 @@ impl SecretScanner {
                 });
             }
 
-            // OpenAI / Generic API keys (sk-...)
-            if line.contains("sk-") && line.len() > 25 {
-                if let Some(pos) = line.find("sk-") {
-                    let candidate = &line[pos..];
-                    let prefix_chars: String = candidate.chars().take(20).collect();
-                    if prefix_chars.len() >= 20
-                        && prefix_chars
-                            .chars()
-                            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-                    {
-                        detected.push(DetectedSecret {
-                            rule: "generic_api_key",
-                            description: "API secret token (sk-*) detected",
-                            line_number: line_num,
-                        });
-                    }
+            // OpenAI / Anthropic / Generic API keys (sk-...)
+            if let Some(pos) = line.find("sk-") {
+                let candidate = &line[pos..];
+                let prefix_chars: String = candidate
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+                    .collect();
+                if prefix_chars.len() >= 20 {
+                    detected.push(DetectedSecret {
+                        rule: "generic_api_key",
+                        description: "API secret token (sk-*) detected",
+                        line_number: line_num,
+                    });
                 }
             }
         }
@@ -107,9 +123,17 @@ mod tests {
         let errs = SecretScanner::scan_patch(Path::new("src/config.rs"), with_aws).unwrap_err();
         assert_eq!(errs[0].rule, "aws_access_key");
 
+        let with_aws_asia = "let temp_key = \"ASIATEMP1234567890AB\";\n";
+        let errs_asia = SecretScanner::scan_patch(Path::new("src/config.rs"), with_aws_asia).unwrap_err();
+        assert_eq!(errs_asia[0].rule, "aws_access_key");
+
         let with_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0\n";
         let errs2 = SecretScanner::scan_patch(Path::new("src/keys.rs"), with_key).unwrap_err();
         assert_eq!(errs2[0].rule, "private_key");
+
+        let with_ec_key = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEI...\n";
+        let errs3 = SecretScanner::scan_patch(Path::new("src/keys.rs"), with_ec_key).unwrap_err();
+        assert_eq!(errs3[0].rule, "private_key");
     }
 
     #[test]
@@ -118,8 +142,32 @@ mod tests {
         let errs = SecretScanner::scan_patch(Path::new("src/auth.ts"), with_gh).unwrap_err();
         assert_eq!(errs[0].rule, "github_token");
 
+        let with_gh_pat = "const token = 'github_pat_11AAAAAA_BBBBBBBBBBBBBBBBBBBB';\n";
+        let errs_pat = SecretScanner::scan_patch(Path::new("src/auth.ts"), with_gh_pat).unwrap_err();
+        assert_eq!(errs_pat[0].rule, "github_token");
+
         let with_sk = "OPENAI_API_KEY = 'sk-proj-1234567890abcdefghijklmnopqrstuvwxyz'\n";
         let errs2 = SecretScanner::scan_patch(Path::new("config.py"), with_sk).unwrap_err();
         assert_eq!(errs2[0].rule, "generic_api_key");
+
+        let with_anthropic = "ANTHROPIC_API_KEY = 'sk-ant-api03-abcdef1234567890uvwxyz'\n";
+        let errs3 = SecretScanner::scan_patch(Path::new("config.py"), with_anthropic).unwrap_err();
+        assert_eq!(errs3[0].rule, "generic_api_key");
+    }
+
+    #[test]
+    fn test_secret_detection_protected_files() {
+        let clean = "pub fn foo() {}\n";
+        let err_cargo_lock = SecretScanner::scan_patch(Path::new("Cargo.lock"), clean).unwrap_err();
+        assert_eq!(err_cargo_lock[0].rule, "protected_secret_file");
+
+        let err_git = SecretScanner::scan_patch(Path::new(".git/config"), clean).unwrap_err();
+        assert_eq!(err_git[0].rule, "protected_secret_file");
+
+        let err_env = SecretScanner::scan_patch(Path::new(".env.local"), clean).unwrap_err();
+        assert_eq!(err_env[0].rule, "protected_secret_file");
+
+        let err_ssh = SecretScanner::scan_patch(Path::new(".ssh/id_rsa"), clean).unwrap_err();
+        assert_eq!(err_ssh[0].rule, "protected_secret_file");
     }
 }

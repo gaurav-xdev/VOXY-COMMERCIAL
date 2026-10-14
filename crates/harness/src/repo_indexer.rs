@@ -164,8 +164,7 @@ impl RepositoryIndexer {
                 "py" => {
                     let keywords = ["def ", "async def ", "class "];
                     for kw in keywords {
-                        if line_trimmed.starts_with(kw) {
-                            let after = &line_trimmed[kw.len()..];
+                        if let Some(after) = line_trimmed.strip_prefix(kw) {
                             let sym_name = after
                                 .split(|c: char| !c.is_alphanumeric() && c != '_')
                                 .next()
@@ -180,8 +179,7 @@ impl RepositoryIndexer {
                 "go" => {
                     let keywords = ["func ", "type "];
                     for kw in keywords {
-                        if line_trimmed.starts_with(kw) {
-                            let after = &line_trimmed[kw.len()..];
+                        if let Some(after) = line_trimmed.strip_prefix(kw) {
                             let sym_name = after
                                 .split(|c: char| !c.is_alphanumeric() && c != '_')
                                 .next()

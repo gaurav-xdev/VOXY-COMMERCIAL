@@ -349,6 +349,11 @@ pub fn voice_event_to_stream(event: &voxy_voice::VoiceEvent) -> Vec<VoiceStreamE
             }]
         }
         voxy_voice::VoiceEvent::PipelineStateChanged { .. } => vec![],
+        voxy_voice::VoiceEvent::Interrupted { .. } => {
+            vec![VoiceStreamEvent::BargeInDetected {
+                tts_playback_ms: 0,
+            }]
+        }
     }
 }
 

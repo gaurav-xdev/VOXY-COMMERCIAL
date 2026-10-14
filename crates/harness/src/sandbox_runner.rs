@@ -65,17 +65,30 @@ impl SandboxedRunner {
         self.emergency_stop.store(false, Ordering::SeqCst);
     }
 
+    /// Terminates the process and all its descendants on Windows using taskkill /F /T /PID.
+    pub fn kill_pid_tree(pid: u32) {
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = std::process::Command::new("kill")
+                .args(["-9", &pid.to_string()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        }
+    }
+
     /// Terminates the process and its child processes on Windows to prevent orphaned trees.
-    async fn kill_process_tree(child: &mut tokio::process::Child) {
+    pub async fn kill_process_tree(child: &mut tokio::process::Child) {
         if let Some(pid) = child.id() {
-            #[cfg(target_os = "windows")]
-            {
-                let _ = std::process::Command::new("taskkill")
-                    .args(["/F", "/T", "/PID", &pid.to_string()])
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
-            }
+            Self::kill_pid_tree(pid);
         }
         let _ = child.kill().await;
     }
@@ -97,6 +110,10 @@ impl SandboxedRunner {
                 if rel.is_absolute() {
                     return Err(RunnerError::InvalidWorkingDir);
                 }
+                let rel_str = rel.to_string_lossy();
+                if rel_str.contains("..") {
+                    return Err(RunnerError::InvalidWorkingDir);
+                }
                 for comp in rel.components() {
                     match comp {
                         std::path::Component::Prefix(_)
@@ -107,14 +124,18 @@ impl SandboxedRunner {
                         _ => {}
                     }
                 }
+                if crate::patch_engine::contains_symlink_or_reparse(&self.repo_root, rel) {
+                    return Err(RunnerError::InvalidWorkingDir);
+                }
                 let full = self.repo_root.join(rel);
-                if let Ok(canon_full) = full.canonicalize() {
-                    if let Ok(canon_root) = self.repo_root.canonicalize() {
-                        if !canon_full.starts_with(&canon_root) {
-                            return Err(RunnerError::InvalidWorkingDir);
-                        }
+                if crate::patch_engine::is_symlink_or_reparse_point(&full) {
+                    return Err(RunnerError::InvalidWorkingDir);
+                }
+                if let (Ok(canon_full), Ok(canon_root)) = (full.canonicalize(), self.repo_root.canonicalize()) {
+                    if !crate::patch_engine::path_is_contained(&canon_full, &canon_root) {
+                        return Err(RunnerError::InvalidWorkingDir);
                     }
-                } else if !full.starts_with(&self.repo_root) {
+                } else if !crate::patch_engine::path_is_contained(&full, &self.repo_root) {
                     return Err(RunnerError::InvalidWorkingDir);
                 }
                 full
@@ -151,19 +172,57 @@ impl SandboxedRunner {
         });
 
         let stop_token = self.emergency_stop.clone();
+        let pid = child.id();
+
+        struct ChildProcessGuard<'a> {
+            child: &'a mut tokio::process::Child,
+            pid: Option<u32>,
+            completed: bool,
+        }
+
+        impl<'a> Drop for ChildProcessGuard<'a> {
+            fn drop(&mut self) {
+                if !self.completed {
+                    if let Some(pid) = self.pid {
+                        SandboxedRunner::kill_pid_tree(pid);
+                    }
+                    let _ = self.child.start_kill();
+                }
+            }
+        }
+
+        let mut guard = ChildProcessGuard {
+            child: &mut child,
+            pid,
+            completed: false,
+        };
 
         let wait_future = async {
             // Periodic poll check for emergency stop
             loop {
                 if stop_token.load(Ordering::SeqCst) {
-                    Self::kill_process_tree(&mut child).await;
+                    if let Some(p) = pid {
+                        Self::kill_pid_tree(p);
+                    }
+                    let _ = guard.child.kill().await;
+                    guard.completed = true;
                     return Err(RunnerError::EmergencyStopAborted);
                 }
 
-                match child.try_wait() {
-                    Ok(Some(status)) => return Ok(status),
+                match guard.child.try_wait() {
+                    Ok(Some(status)) => {
+                        guard.completed = true;
+                        return Ok(status);
+                    }
                     Ok(None) => tokio::time::sleep(Duration::from_millis(50)).await,
-                    Err(e) => return Err(RunnerError::ProcessFailed(e)),
+                    Err(e) => {
+                        if let Some(p) = pid {
+                            Self::kill_pid_tree(p);
+                        }
+                        let _ = guard.child.kill().await;
+                        guard.completed = true;
+                        return Err(RunnerError::ProcessFailed(e));
+                    }
                 }
             }
         };
@@ -173,7 +232,11 @@ impl SandboxedRunner {
         let status = match status_res {
             Ok(inner) => inner?,
             Err(_) => {
-                Self::kill_process_tree(&mut child).await;
+                if let Some(p) = pid {
+                    Self::kill_pid_tree(p);
+                }
+                let _ = guard.child.kill().await;
+                guard.completed = true;
                 return Err(RunnerError::Timeout(timeout_duration));
             }
         };
@@ -260,4 +323,57 @@ mod tests {
 
         assert!(unblocked.was_success);
     }
+
+    #[tokio::test]
+    async fn test_harness_timeout_terminates_process_tree() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path());
+
+        #[cfg(target_os = "windows")]
+        {
+            let res = runner
+                .run_command(
+                    "cmd.exe",
+                    &["/c", "ping -n 10 127.0.0.1 >nul"],
+                    None,
+                    Duration::from_millis(200),
+                )
+                .await;
+
+            assert!(matches!(res, Err(RunnerError::Timeout(_))));
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            let res = runner
+                .run_command("sleep", &["5"], None, Duration::from_millis(200))
+                .await;
+
+            assert!(matches!(res, Err(RunnerError::Timeout(_))));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_harness_invalid_working_dir_rejected() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path());
+
+        #[cfg(target_os = "windows")]
+        let res = runner
+            .run_command(
+                "cmd.exe",
+                &["/c", "echo test"],
+                Some(Path::new("../outside")),
+                Duration::from_secs(5),
+            )
+            .await;
+
+        #[cfg(not(target_os = "windows"))]
+        let res = runner
+            .run_command("echo", &["test"], Some(Path::new("../outside")), Duration::from_secs(5))
+            .await;
+
+        assert!(matches!(res, Err(RunnerError::InvalidWorkingDir)));
+    }
 }
+

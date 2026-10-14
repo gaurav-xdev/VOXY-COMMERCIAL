@@ -52,6 +52,52 @@ impl LocalModelDiscovery {
         }
         false
     }
+
+    /// Discovers configured NVIDIA NIM models if API key is present in environment.
+    pub async fn fetch_nim_models() -> Result<Vec<String>, String> {
+        let api_key = std::env::var("VOXY_API_KEYS_NVIDIA")
+            .or_else(|_| std::env::var("NVIDIA_API_KEY"))
+            .map_err(|_| "NVIDIA NIM API key not configured".to_string())?;
+
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .map_err(|e| format!("HTTP client init failed: {e}"))?;
+
+        let resp = client
+            .get("https://integrate.api.nvidia.com/v1/models")
+            .bearer_auth(api_key)
+            .send()
+            .await
+            .map_err(|e| format!("NVIDIA NIM unreachable: {e}"))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("NVIDIA NIM API returned HTTP {}", resp.status()));
+        }
+
+        let body: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse NVIDIA NIM JSON: {e}"))?;
+
+        let mut models = Vec::new();
+        if let Some(arr) = body.get("data").and_then(|d| d.as_array()) {
+            for item in arr {
+                if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
+                    models.push(id.to_string());
+                }
+            }
+        }
+        Ok(models)
+    }
+
+    /// Checks whether NVIDIA NIM is configured.
+    pub fn is_nim_configured() -> bool {
+        std::env::var("VOXY_API_KEYS_NVIDIA")
+            .or_else(|_| std::env::var("NVIDIA_API_KEY"))
+            .map(|k| !k.trim().is_empty())
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]

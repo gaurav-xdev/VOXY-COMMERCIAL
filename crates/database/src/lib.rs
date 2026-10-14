@@ -28,7 +28,7 @@ pub use conversation::{
     MessageRole,
 };
 pub use error::{DatabaseError, Result};
-pub use migration::MigrationRunner;
+pub use migration::{get_all_migrations, get_core_migrations, MigrationRunner};
 pub use persistent_audit::{AuditLogEntry, AuditLogStore, InMemoryAuditLogStore};
 pub use query::QueryBuilder;
 pub use storage::{

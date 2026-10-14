@@ -106,6 +106,12 @@ pub trait StorageProvider: Send + Sync + Debug {
     async fn restore(&self, path: &str) -> Result<()>;
 
     async fn health_check(&self) -> Result<HealthStatus>;
+
+    async fn execute_batch_transaction(&self, _queries: &[(&str, Vec<Value>)]) -> Result<Vec<u64>> {
+        Err(DatabaseError::UnsupportedOperation(
+            "Batch transactions not implemented for this provider".into(),
+        ))
+    }
 }
 
 pub async fn create_storage_provider(kind: DatabaseKind) -> Result<Box<dyn StorageProvider>> {

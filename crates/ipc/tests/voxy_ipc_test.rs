@@ -269,3 +269,120 @@ async fn test_windows_named_pipe_auth_enforcement_and_privileged_command_rejecti
     good_client.stop();
     server.stop();
 }
+
+#[test]
+fn test_client_shutdown_command_is_privileged() {
+    let cmd = ClientCommand::Shutdown {
+        reason: "User requested supervisor termination".to_string(),
+    };
+    assert!(cmd.is_privileged());
+
+    let serialized = serde_json::to_string(&cmd).unwrap();
+    let deserialized: ClientCommand = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(cmd, deserialized);
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn test_windows_named_pipe_heartbeat_and_pong() {
+    let pipe_name = format!(r"\\.\pipe\voxy-test-hb-{}", uuid::Uuid::new_v4());
+    let server = VoxyIpcServer::with_pipe_name(&pipe_name);
+    server.start();
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let client = VoxyIpcClient::with_pipe_name(&pipe_name);
+    let mut event_rx = client.subscribe();
+    client.start();
+
+    // Wait for connection
+    let mut conn_watch = client.watch_connected();
+    for _ in 0..20 {
+        if *conn_watch.borrow() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let _ = conn_watch.changed().await;
+    }
+    assert!(client.is_connected());
+
+    // Drain initial handshake on server
+    let _ = tokio::time::timeout(Duration::from_secs(2), server.recv_command()).await;
+
+    // Server broadcasts a Heartbeat
+    server.broadcast(DaemonMessage::Heartbeat { uptime_secs: 42 });
+
+    // Client receives Heartbeat
+    let mut got_hb = false;
+    for _ in 0..5 {
+        if let Ok(Ok(msg)) = tokio::time::timeout(Duration::from_secs(2), event_rx.recv()).await {
+            if matches!(msg, DaemonMessage::Heartbeat { uptime_secs: 42 }) {
+                got_hb = true;
+                break;
+            }
+        }
+    }
+    assert!(got_hb, "Client should receive heartbeat message from server");
+
+    // Client should automatically reply with HeartbeatPong
+    let pong_cmd = tokio::time::timeout(Duration::from_secs(2), server.recv_command())
+        .await
+        .expect("Timeout waiting for HeartbeatPong")
+        .expect("Server closed");
+    assert_eq!(pong_cmd, ClientCommand::HeartbeatPong);
+
+    client.stop();
+    server.stop();
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn test_windows_named_pipe_reconnect_on_server_restart() {
+    let pipe_name = format!(r"\\.\pipe\voxy-test-rec-{}", uuid::Uuid::new_v4());
+
+    // 1. Start Server 1
+    let server1 = VoxyIpcServer::with_pipe_name(&pipe_name);
+    server1.start();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    // 2. Start Client
+    let client = VoxyIpcClient::with_pipe_name(&pipe_name);
+    let mut conn_watch = client.watch_connected();
+    client.start();
+
+    for _ in 0..20 {
+        if *conn_watch.borrow() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let _ = conn_watch.changed().await;
+    }
+    assert!(client.is_connected());
+
+    // Drain handshake
+    let _ = tokio::time::timeout(Duration::from_secs(2), server1.recv_command()).await;
+
+    // 3. Stop Server 1
+    server1.stop();
+    tokio::time::sleep(Duration::from_millis(150)).await;
+
+    // 4. Start Server 2 on the same pipe name
+    let server2 = VoxyIpcServer::with_pipe_name(&pipe_name);
+    server2.start();
+
+    // 5. Client should automatically reconnect
+    let mut reconnected = false;
+    for _ in 0..40 {
+        if *conn_watch.borrow() {
+            reconnected = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        let _ = conn_watch.changed().await;
+    }
+    assert!(reconnected, "Client should automatically reconnect after server restart");
+
+    client.stop();
+    server2.stop();
+}
+

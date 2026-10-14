@@ -13,7 +13,7 @@ pub use pipeline::VoicePipeline;
 pub use session::SpeechSession;
 pub use stubs::{StableStubSttEngine, StableStubTtsEngine};
 pub use voxray_adapter::{SingleChunkAudioStream, VoxraySttEngine, VoxrayTtsEngine};
-pub use voxy_voice_orchestrator::VoiceEvent;
+pub use voxy_voice_orchestrator::{InterruptionSignal, VoiceEvent};
 
 #[cfg(test)]
 mod tests {
@@ -256,5 +256,32 @@ mod tests {
         let data: Vec<f32> = vec![];
         let result = VoicePipeline::resample_speed(&data, 1.5);
         assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn pipeline_interrupt_emits_event_and_updates_metrics() {
+        let pipeline = VoicePipeline::new(VoiceConfig::default());
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
+        pipeline.on_event(Box::new(move |event| {
+            let _ = tx.try_send(event);
+        })).await.unwrap();
+
+        let signal = InterruptionSignal::new("test_barge_in")
+            .with_cancelled_tokens(true)
+            .with_cleared_audio_frames(480);
+        pipeline.interrupt(signal.clone()).await.unwrap();
+
+        let event = rx.try_recv().expect("Expected VoiceEvent::Interrupted");
+        match event {
+            VoiceEvent::Interrupted { signal: sig } => {
+                assert_eq!(sig.reason, "test_barge_in");
+                assert!(sig.cancelled_tokens);
+                assert_eq!(sig.cleared_audio_frames, 480);
+            }
+            other => panic!("Unexpected event: {other:?}"),
+        }
+
+        let metrics = pipeline.streaming_metrics().await;
+        assert_eq!(metrics.interruption_count, 1);
     }
 }

@@ -1,5 +1,40 @@
 use std::fmt;
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InterruptionSignal {
+    pub reason: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub cancelled_tokens: bool,
+    pub cleared_audio_frames: usize,
+}
+
+impl InterruptionSignal {
+    pub fn new(reason: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+            timestamp: chrono::Utc::now(),
+            cancelled_tokens: true,
+            cleared_audio_frames: 0,
+        }
+    }
+
+    pub fn with_cancelled_tokens(mut self, cancelled: bool) -> Self {
+        self.cancelled_tokens = cancelled;
+        self
+    }
+
+    pub fn with_cleared_frames(mut self, frames: usize) -> Self {
+        self.cleared_audio_frames = frames;
+        self
+    }
+
+    pub fn with_cleared_audio_frames(mut self, frames: usize) -> Self {
+        self.cleared_audio_frames = frames;
+        self
+    }
+}
+
+#[derive(Clone)]
 pub enum VoiceEvent {
     WakeWordDetected {
         confidence: f32,
@@ -27,6 +62,9 @@ pub enum VoiceEvent {
     },
     PipelineStateChanged {
         state: String,
+    },
+    Interrupted {
+        signal: InterruptionSignal,
     },
 }
 
@@ -66,12 +104,15 @@ impl fmt::Display for VoiceEvent {
             Self::PipelineStateChanged { state } => {
                 write!(f, "Pipeline state changed: {}", state)
             }
+            Self::Interrupted { signal } => {
+                write!(f, "Interrupted: {} (cleared {} frames)", signal.reason, signal.cleared_audio_frames)
+            }
         }
     }
 }
 
-impl fmt::Debug for VoiceEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Debug for VoiceEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::WakeWordDetected { confidence } => f
                 .debug_struct("WakeWordDetected")
@@ -111,6 +152,10 @@ impl fmt::Debug for VoiceEvent {
             Self::PipelineStateChanged { state } => f
                 .debug_struct("PipelineStateChanged")
                 .field("state", state)
+                .finish(),
+            Self::Interrupted { signal } => f
+                .debug_struct("Interrupted")
+                .field("signal", signal)
                 .finish(),
         }
     }

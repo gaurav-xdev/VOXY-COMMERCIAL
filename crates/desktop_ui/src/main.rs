@@ -2,7 +2,10 @@ mod app;
 mod bridge;
 mod components;
 mod styles;
+pub mod supervisor;
 mod views;
+
+pub use supervisor::{Supervisor, SupervisorConfig, SupervisorStatus, WindowsJobObject};
 
 use std::sync::{Arc, OnceLock};
 use tracing_subscriber::EnvFilter;
@@ -316,6 +319,12 @@ fn init_bridge() -> AppBridge {
     })
 }
 
+static SUPERVISOR: OnceLock<Arc<Supervisor>> = OnceLock::new();
+
+pub fn get_supervisor() -> Option<Arc<Supervisor>> {
+    SUPERVISOR.get().cloned()
+}
+
 fn main() {
     match dotenvy::dotenv() {
         Ok(path) => println!("Loaded .env from {}", path.display()),
@@ -328,13 +337,74 @@ fn main() {
         )
         .init();
 
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.iter().any(|arg| arg == "--version" || arg == "-v") {
+        println!("OSMOO — Windows AI Operating Companion v{}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
+    if args.iter().any(|arg| arg == "--help" || arg == "-h") {
+        println!("OSMOO — Windows AI Operating Companion v{}", env!("CARGO_PKG_VERSION"));
+        println!("Usage: OSMOO.exe [OPTIONS]");
+        println!();
+        println!("Options:");
+        println!("  -h, --help           Show this help message");
+        println!("  -v, --version        Show application version");
+        println!("  --status             Display supervisor and component status");
+        println!("  --daemon-only        Run background daemon under supervision without GUI");
+        println!("  --no-daemon          Launch UI without auto-spawning background daemon");
+        println!("  --no-overlay         Launch without auto-spawning overlay");
+        println!("  -a, --autostart      Start minimized to system tray");
+        return;
+    }
+
     tracing::info!("Starting OSMOO Desktop UI v{}", env!("CARGO_PKG_VERSION"));
+
+    let no_daemon = args.iter().any(|arg| arg == "--no-daemon");
+    let no_overlay = args.iter().any(|arg| arg == "--no-overlay");
+    let daemon_only = args.iter().any(|arg| arg == "--daemon-only" || arg == "--headless");
+    let is_autostart = args.iter().any(|arg| arg == "--autostart" || arg == "-a");
+
+    let supervisor_config = SupervisorConfig {
+        autostart_daemon: !no_daemon,
+        autostart_overlay: !no_overlay && !daemon_only,
+        ..Default::default()
+    };
+
+    let supervisor = match Supervisor::new(supervisor_config) {
+        Ok(sup) => {
+            let sup = Arc::new(sup);
+            let _ = SUPERVISOR.set(sup.clone());
+            sup
+        }
+        Err(e) => {
+            tracing::warn!("Failed to initialize supervisor: {e}");
+            return;
+        }
+    };
+
+    if args.iter().any(|arg| arg == "--status") {
+        let status = supervisor.status();
+        println!("{}", serde_json::to_string_pretty(&status).unwrap_or_default());
+        return;
+    }
+
+    let _ = supervisor.start_all();
+
+    if daemon_only {
+        tracing::info!("Running OSMOO in daemon-only supervisor mode. Press Ctrl+C to terminate.");
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+        rt.block_on(async {
+            let _ = tokio::signal::ctrl_c().await;
+            tracing::info!("Shutdown signal received");
+            let _ = supervisor.shutdown().await;
+        });
+        return;
+    }
 
     let bridge = init_bridge();
     BRIDGE.set(bridge).ok();
-
-    let args: Vec<String> = std::env::args().collect();
-    let is_autostart = args.iter().any(|arg| arg == "--autostart" || arg == "-a");
 
     let mut window_builder = dioxus::desktop::WindowBuilder::new()
         .with_title("OSMOO — Windows AI Operating Companion")
@@ -357,4 +427,11 @@ fn main() {
     dioxus::LaunchBuilder::desktop()
         .with_cfg(cfg)
         .launch(app::App);
+
+    // Clean shutdown of supervisor and all supervised children when UI exits
+    tracing::info!("OSMOO main window closed; initiating supervisor shutdown");
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    rt.block_on(async {
+        let _ = supervisor.shutdown().await;
+    });
 }

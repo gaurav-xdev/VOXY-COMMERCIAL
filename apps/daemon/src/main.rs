@@ -1985,6 +1985,14 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 "[IPC] Human confirmation decision received"
                             );
                         }
+                        Some(voxy_ipc::ClientCommand::Shutdown { reason }) => {
+                            tracing::info!(
+                                reason = %reason,
+                                "[IPC] Graceful shutdown command received from supervisor"
+                            );
+                            running_flag.store(false, Ordering::Relaxed);
+                            break;
+                        }
                         Some(voxy_ipc::ClientCommand::HeartbeatPong) => {}
                         None => {
                             tokio::time::sleep(Duration::from_millis(50)).await;

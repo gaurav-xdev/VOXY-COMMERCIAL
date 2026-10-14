@@ -284,6 +284,24 @@ impl VoxyIpcServer {
         let command_tx = self.command_tx.clone();
         let is_running = Arc::clone(&self.is_running);
 
+        // Heartbeat broadcaster: ping clients every 5 seconds with uptime telemetry
+        let hb_broadcast_tx = broadcast_tx.clone();
+        let hb_running = Arc::clone(&is_running);
+        tokio::spawn(async move {
+            let start = std::time::Instant::now();
+            let mut ticker = tokio::time::interval(Duration::from_secs(5));
+            ticker.tick().await; // skip initial immediate tick
+            while hb_running.load(Ordering::SeqCst) {
+                ticker.tick().await;
+                if !hb_running.load(Ordering::SeqCst) {
+                    break;
+                }
+                let uptime_secs = start.elapsed().as_secs();
+                let env = IpcEnvelope::new(DaemonMessage::Heartbeat { uptime_secs });
+                let _ = hb_broadcast_tx.send(env);
+            }
+        });
+
         tokio::spawn(async move {
             info!(pipe = %pipe_name, "VOXY COM Named Pipe Server listening");
 
@@ -575,6 +593,11 @@ impl VoxyIpcClient {
             .map_err(|e| format!("Command sender error: {e}"))
     }
 
+    /// Check if client is currently connected to the named pipe.
+    pub fn is_connected(&self) -> bool {
+        *self.is_connected.borrow()
+    }
+
     /// Start the background connection and auto-reconnect loop.
     pub fn start(&self) {
         if self.running.swap(true, Ordering::SeqCst) {
@@ -586,6 +609,7 @@ impl VoxyIpcClient {
         let is_connected = Arc::clone(&self.is_connected);
         let event_tx = self.event_tx.clone();
         let out_cmd_rx = Arc::clone(&self.out_cmd_rx);
+        let out_cmd_tx = self.out_cmd_tx.clone();
         let running = Arc::clone(&self.running);
 
         tokio::spawn(async move {
@@ -633,17 +657,32 @@ impl VoxyIpcClient {
                             let _ = write_framed_message(&mut writer, &handshake).await;
 
                             let event_tx_clone = event_tx.clone();
+                            let out_cmd_tx_reply = out_cmd_tx.clone();
 
-                            // Read loop
+                            // Read loop with 15-second heartbeat timeout
                             let reader_handle = tokio::spawn(async move {
                                 loop {
-                                    match read_framed_message::<_, DaemonMessage>(&mut reader).await
+                                    match tokio::time::timeout(
+                                        Duration::from_secs(15),
+                                        read_framed_message::<_, DaemonMessage>(&mut reader),
+                                    )
+                                    .await
                                     {
-                                        Ok(env) => {
+                                        Ok(Ok(env)) => {
+                                            // If heartbeat ping received from daemon, respond with HeartbeatPong
+                                            if matches!(env.payload, DaemonMessage::Heartbeat { .. }) {
+                                                let _ = out_cmd_tx_reply
+                                                    .send(ClientCommand::HeartbeatPong)
+                                                    .await;
+                                            }
                                             let _ = event_tx_clone.send(env.payload);
                                         }
-                                        Err(e) => {
+                                        Ok(Err(e)) => {
                                             debug!(error = %e, "Overlay pipe read stream ended");
+                                            break;
+                                        }
+                                        Err(_) => {
+                                            warn!("Named Pipe read timeout: no heartbeat or message received for 15s; reconnecting");
                                             break;
                                         }
                                     }
@@ -694,7 +733,13 @@ impl VoxyIpcClient {
                     tokio::time::sleep(Duration::from_secs(1)).await;
                 }
 
+                if !running.load(Ordering::SeqCst) {
+                    break;
+                }
                 tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+                if !running.load(Ordering::SeqCst) {
+                    break;
+                }
                 backoff_ms = (backoff_ms * 2).min(3000);
             }
         });
@@ -703,6 +748,7 @@ impl VoxyIpcClient {
     /// Stop the client.
     pub fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
+        let _ = self.is_connected.send(false);
     }
 }
 

@@ -4,6 +4,12 @@ pub enum AudioError {
     DeviceNotFound(String),
     #[error("Device busy: {0}")]
     DeviceBusy(String),
+    #[error("Device disconnected: {0}")]
+    DeviceDisconnected(String),
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+    #[error("Buffer underrun: {0}")]
+    BufferUnderrun(String),
     #[error("Stream error: {0}")]
     StreamError(String),
     #[error("Buffer overflow")]
@@ -28,6 +34,29 @@ pub enum AudioError {
     Hardware(#[from] voxy_hardware::HardwareError),
 }
 
+impl Clone for AudioError {
+    fn clone(&self) -> Self {
+        match self {
+            Self::DeviceNotFound(s) => Self::DeviceNotFound(s.clone()),
+            Self::DeviceBusy(s) => Self::DeviceBusy(s.clone()),
+            Self::DeviceDisconnected(s) => Self::DeviceDisconnected(s.clone()),
+            Self::PermissionDenied(s) => Self::PermissionDenied(s.clone()),
+            Self::BufferUnderrun(s) => Self::BufferUnderrun(s.clone()),
+            Self::StreamError(s) => Self::StreamError(s.clone()),
+            Self::BufferOverflow => Self::BufferOverflow,
+            Self::BufferUnderflow => Self::BufferUnderflow,
+            Self::UnsupportedSampleRate(r) => Self::UnsupportedSampleRate(*r),
+            Self::UnsupportedChannels(c) => Self::UnsupportedChannels(*c),
+            Self::DspError(s) => Self::DspError(s.clone()),
+            Self::PlatformError(s) => Self::PlatformError(s.clone()),
+            Self::NotInitialized => Self::NotInitialized,
+            Self::AlreadyInitialized => Self::AlreadyInitialized,
+            Self::ConfigError(s) => Self::ConfigError(s.clone()),
+            Self::Hardware(h) => Self::PlatformError(format!("Hardware error: {h}")),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, AudioError>;
 
 #[cfg(test)]
@@ -44,6 +73,24 @@ mod tests {
     fn test_error_display_device_busy() {
         let err = AudioError::DeviceBusy("spk1".to_string());
         assert_eq!(format!("{}", err), "Device busy: spk1");
+    }
+
+    #[test]
+    fn test_error_display_device_disconnected() {
+        let err = AudioError::DeviceDisconnected("usb_mic".to_string());
+        assert_eq!(format!("{}", err), "Device disconnected: usb_mic");
+    }
+
+    #[test]
+    fn test_error_display_permission_denied() {
+        let err = AudioError::PermissionDenied("Microphone access blocked".to_string());
+        assert_eq!(format!("{}", err), "Permission denied: Microphone access blocked");
+    }
+
+    #[test]
+    fn test_error_display_buffer_underrun() {
+        let err = AudioError::BufferUnderrun("Output stream drained".to_string());
+        assert_eq!(format!("{}", err), "Buffer underrun: Output stream drained");
     }
 
     #[test]
@@ -124,5 +171,16 @@ mod tests {
     fn test_result_type() {
         let ok: Result<i32> = Ok(42);
         assert!(ok.is_ok());
+    }
+
+    #[test]
+    fn test_audio_error_clone() {
+        let err = AudioError::DeviceDisconnected("usb_mic".to_string());
+        let cloned = err.clone();
+        assert_eq!(format!("{}", err), format!("{}", cloned));
+
+        let perm = AudioError::PermissionDenied("mic_access".to_string());
+        let perm_cloned = perm.clone();
+        assert_eq!(format!("{}", perm), format!("{}", perm_cloned));
     }
 }

@@ -78,6 +78,9 @@ impl Tool for BrowserOpenTool {
             ));
         }
 
+        let runtime = get_or_create_runtime();
+        runtime.validate_url(url)?;
+
         #[cfg(windows)]
         {
             tokio::process::Command::new("cmd")
@@ -145,6 +148,9 @@ impl Tool for BrowserFetchTool {
                 "Only http:// and https:// URLs are supported".into(),
             ));
         }
+
+        let runtime = get_or_create_runtime();
+        runtime.validate_url(url)?;
 
         let max_bytes = params
             .get("max_bytes")

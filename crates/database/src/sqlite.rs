@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use rusqlite::{params, Connection};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::config::DatabaseConfig;
@@ -11,16 +12,122 @@ use crate::storage::{
 
 #[derive(Debug)]
 pub struct SqliteDatabase {
-    conn: Mutex<Option<Connection>>,
+    writer: Mutex<Option<Connection>>,
+    readers: Mutex<Vec<Connection>>,
+    reader_semaphore: parking_lot::RwLock<Arc<tokio::sync::Semaphore>>,
+    db_path: parking_lot::RwLock<Option<String>>,
     connected: AtomicBool,
+    is_memory: AtomicBool,
+    pool_size: AtomicUsize,
 }
 
 impl SqliteDatabase {
     pub fn new() -> Self {
         Self {
-            conn: Mutex::new(None),
+            writer: Mutex::new(None),
+            readers: Mutex::new(Vec::new()),
+            reader_semaphore: parking_lot::RwLock::new(Arc::new(tokio::sync::Semaphore::new(0))),
+            db_path: parking_lot::RwLock::new(None),
             connected: AtomicBool::new(false),
+            is_memory: AtomicBool::new(false),
+            pool_size: AtomicUsize::new(4),
         }
+    }
+
+    pub fn pool_size(&self) -> usize {
+        self.pool_size.load(Ordering::SeqCst)
+    }
+
+    pub async fn is_wal_mode(&self) -> Result<bool> {
+        self.with_reader(|conn| {
+            let mode: String = conn.query_row("PRAGMA journal_mode;", [], |r| r.get(0))?;
+            Ok(mode.eq_ignore_ascii_case("wal"))
+        })
+        .await
+    }
+
+    async fn with_reader<F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&Connection) -> Result<R> + Send + 'static,
+        R: Send + 'static,
+    {
+        if !self.is_connected() {
+            return Err(DatabaseError::ConnectionFailed("Not connected".into()));
+        }
+
+        if self.is_memory.load(Ordering::SeqCst) {
+            let guard = self.writer.lock().await;
+            let conn = guard
+                .as_ref()
+                .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
+            return f(conn);
+        }
+
+        let sem = self.reader_semaphore.read().clone();
+        let permit = sem
+            .acquire_owned()
+            .await
+            .map_err(|e| DatabaseError::ConnectionFailed(format!("Pool semaphore error: {e}")))?;
+
+        let conn = {
+            let mut pool = self.readers.lock().await;
+            pool.pop()
+        };
+
+        let conn = match conn {
+            Some(c) => c,
+            None => {
+                let path_opt = self.db_path.read().clone();
+                let path = path_opt.ok_or_else(|| {
+                    DatabaseError::ConnectionFailed("Database path is missing".into())
+                })?;
+                let c = Connection::open(&path)?;
+                c.busy_timeout(std::time::Duration::from_millis(5000))?;
+                c.execute_batch(
+                    "PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA query_only=ON;",
+                )?;
+                c
+            }
+        };
+
+        let result = f(&conn);
+
+        {
+            let mut pool = self.readers.lock().await;
+            pool.push(conn);
+        }
+        drop(permit);
+
+        result
+    }
+
+    async fn with_writer<F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&mut Connection) -> Result<R> + Send + 'static,
+        R: Send + 'static,
+    {
+        if !self.is_connected() {
+            return Err(DatabaseError::ConnectionFailed("Not connected".into()));
+        }
+        let mut guard = self.writer.lock().await;
+        let conn = guard
+            .as_mut()
+            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
+        f(conn)
+    }
+
+    pub async fn transaction<F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&rusqlite::Transaction) -> Result<R> + Send + 'static,
+        R: Send + 'static,
+    {
+        self.with_writer(|conn| {
+            let tx = conn.transaction()?;
+            let res = f(&tx)?;
+            tx.commit()?;
+            Ok(res)
+        })
+        .await
     }
 }
 
@@ -72,17 +179,42 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
 #[async_trait]
 impl StorageProvider for SqliteDatabase {
     async fn connect(&self, config: &DatabaseConfig) -> Result<()> {
-        let path = config.path.as_deref().unwrap_or(":memory:");
-        let conn = Connection::open(path)?;
+        let path = match config.path.as_deref() {
+            Some(p) if !p.trim().is_empty() => p.trim(),
+            _ => {
+                return Err(DatabaseError::ConnectionFailed(
+                    "Database path is required; silent fallback to volatile in-memory storage is prohibited".into(),
+                ))
+            }
+        };
 
-        // Set busy timeout to prevent immediate SQLITE_BUSY failures under concurrent access
-        conn.busy_timeout(std::time::Duration::from_millis(5000))?;
+        let is_mem = path == ":memory:";
+        self.is_memory.store(is_mem, Ordering::SeqCst);
 
-        if path != ":memory:" {
-            conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")?;
-        }
+        let writer_conn = if !is_mem {
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent)?;
+                }
+            }
+            let conn = Connection::open(path)?;
+            conn.busy_timeout(std::time::Duration::from_millis(5000))?;
+            conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;")?;
+            let jm: String = conn.query_row("PRAGMA journal_mode;", [], |r| r.get(0))?;
+            if !jm.eq_ignore_ascii_case("wal") {
+                return Err(DatabaseError::ConnectionFailed(format!(
+                    "Failed to set WAL journal mode, obtained mode: {jm}"
+                )));
+            }
+            conn
+        } else {
+            let conn = Connection::open(path)?;
+            conn.busy_timeout(std::time::Duration::from_millis(5000))?;
+            conn.execute_batch("PRAGMA foreign_keys=ON;")?;
+            conn
+        };
 
-        conn.execute_batch(
+        writer_conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS kv_store (
                 key TEXT PRIMARY KEY,
                 value BLOB NOT NULL,
@@ -101,17 +233,56 @@ impl StorageProvider for SqliteDatabase {
             );",
         )?;
 
-        let mut guard = self.conn.lock().await;
-        *guard = Some(conn);
+        let pool_size = if is_mem { 1 } else { config.pool_size.max(1) as usize };
+        let mut readers_vec = Vec::with_capacity(pool_size);
+        if !is_mem {
+            for _ in 0..pool_size {
+                let rconn = Connection::open(path)?;
+                rconn.busy_timeout(std::time::Duration::from_millis(5000))?;
+                rconn.execute_batch(
+                    "PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA query_only=ON;",
+                )?;
+                readers_vec.push(rconn);
+            }
+        }
+
+        {
+            let mut wguard = self.writer.lock().await;
+            *wguard = Some(writer_conn);
+        }
+        {
+            let mut rguard = self.readers.lock().await;
+            *rguard = readers_vec;
+        }
+
+        *self.reader_semaphore.write() = Arc::new(tokio::sync::Semaphore::new(pool_size));
+        self.pool_size.store(pool_size, Ordering::SeqCst);
+        *self.db_path.write() = Some(path.to_string());
         self.connected.store(true, Ordering::SeqCst);
-        tracing::info!(path = %path, "SQLite database connected");
+
+        tracing::info!(path = %path, pool_size = %pool_size, is_wal = %(!is_mem), "SQLite database connected");
+
+        if config.auto_migrate {
+            let all_migs = crate::migration::get_all_migrations();
+            self.run_migrations(&all_migs).await?;
+        }
+
         Ok(())
     }
 
     async fn disconnect(&self) -> Result<()> {
-        let mut guard = self.conn.lock().await;
-        *guard = None;
+        {
+            let mut wguard = self.writer.lock().await;
+            *wguard = None;
+        }
+        {
+            let mut rguard = self.readers.lock().await;
+            rguard.clear();
+        }
+        *self.reader_semaphore.write() = Arc::new(tokio::sync::Semaphore::new(0));
+        *self.db_path.write() = None;
         self.connected.store(false, Ordering::SeqCst);
+        self.is_memory.store(false, Ordering::SeqCst);
         tracing::info!("SQLite database disconnected");
         Ok(())
     }
@@ -121,128 +292,129 @@ impl StorageProvider for SqliteDatabase {
     }
 
     async fn execute(&self, query: &str, params: &[Value]) -> Result<u64> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
         let values = to_rusqlite_values(params);
-        let refs: Vec<&dyn rusqlite::types::ToSql> = values
-            .iter()
-            .map(|v| v as &dyn rusqlite::types::ToSql)
-            .collect();
-        let count = conn.execute(query, refs.as_slice())?;
-        Ok(count as u64)
+        let q = query.to_string();
+        self.with_writer(move |conn| {
+            let refs: Vec<&dyn rusqlite::types::ToSql> = values
+                .iter()
+                .map(|v| v as &dyn rusqlite::types::ToSql)
+                .collect();
+            let count = conn.execute(&q, refs.as_slice())?;
+            Ok(count as u64)
+        })
+        .await
     }
 
     async fn query(&self, query: &str, params: &[Value]) -> Result<Vec<serde_json::Value>> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
         let values = to_rusqlite_values(params);
-        let refs: Vec<&dyn rusqlite::types::ToSql> = values
-            .iter()
-            .map(|v| v as &dyn rusqlite::types::ToSql)
-            .collect();
-        let mut stmt = conn.prepare(query)?;
-        let column_count = stmt.column_count();
-        let column_names: Vec<String> = (0..column_count)
-            .map(|i| stmt.column_name(i).unwrap_or("unknown").to_string())
-            .collect();
-        let rows = stmt.query_map(refs.as_slice(), |row| {
-            let mut map = serde_json::Map::new();
-            for (i, name) in column_names.iter().enumerate() {
-                let value: rusqlite::types::Value = row.get(i)?;
-                map.insert(name.clone(), rusqlite_value_to_json(value));
+        let q = query.to_string();
+        self.with_reader(move |conn| {
+            let refs: Vec<&dyn rusqlite::types::ToSql> = values
+                .iter()
+                .map(|v| v as &dyn rusqlite::types::ToSql)
+                .collect();
+            let mut stmt = conn.prepare(&q)?;
+            let column_count = stmt.column_count();
+            let column_names: Vec<String> = (0..column_count)
+                .map(|i| stmt.column_name(i).unwrap_or("unknown").to_string())
+                .collect();
+            let rows = stmt.query_map(refs.as_slice(), |row| {
+                let mut map = serde_json::Map::new();
+                for (i, name) in column_names.iter().enumerate() {
+                    let value: rusqlite::types::Value = row.get(i)?;
+                    map.insert(name.clone(), rusqlite_value_to_json(value));
+                }
+                Ok(serde_json::Value::Object(map))
+            })?;
+            let mut result = Vec::new();
+            for row in rows {
+                result.push(row?);
             }
-            Ok(serde_json::Value::Object(map))
-        })?;
-        let mut result = Vec::new();
-        for row in rows {
-            result.push(row?);
-        }
-        Ok(result)
+            Ok(result)
+        })
+        .await
     }
 
     async fn set(&self, key: &str, value: &[u8]) -> Result<()> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        conn.execute(
-            "INSERT OR REPLACE INTO kv_store (key, value) VALUES (?1, ?2)",
-            params![key, value],
-        )?;
-        Ok(())
+        let k = key.to_string();
+        let val = value.to_vec();
+        self.with_writer(move |conn| {
+            conn.execute(
+                "INSERT OR REPLACE INTO kv_store (key, value) VALUES (?1, ?2)",
+                params![k, val],
+            )?;
+            Ok(())
+        })
+        .await
     }
 
     async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let result = conn.query_row(
-            "SELECT value FROM kv_store WHERE key = ?1",
-            params![key],
-            |row| row.get::<_, Vec<u8>>(0),
-        );
-        match result {
-            Ok(value) => Ok(Some(value)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        let k = key.to_string();
+        self.with_reader(move |conn| {
+            let result = conn.query_row(
+                "SELECT value FROM kv_store WHERE key = ?1",
+                params![k],
+                |row| row.get::<_, Vec<u8>>(0),
+            );
+            match result {
+                Ok(value) => Ok(Some(value)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(e.into()),
+            }
+        })
+        .await
     }
 
     async fn delete(&self, key: &str) -> Result<()> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        conn.execute("DELETE FROM kv_store WHERE key = ?1", params![key])?;
-        Ok(())
+        let k = key.to_string();
+        self.with_writer(move |conn| {
+            conn.execute("DELETE FROM kv_store WHERE key = ?1", params![k])?;
+            Ok(())
+        })
+        .await
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM kv_store WHERE key = ?1",
-            params![key],
-            |row| row.get(0),
-        )?;
-        Ok(count > 0)
+        let k = key.to_string();
+        self.with_reader(move |conn| {
+            let count: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM kv_store WHERE key = ?1",
+                params![k],
+                |row| row.get(0),
+            )?;
+            Ok(count > 0)
+        })
+        .await
     }
 
     async fn list_keys(&self, prefix: &str) -> Result<Vec<String>> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
         let escaped_prefix = prefix
             .replace('\\', "\\\\")
             .replace('%', "\\%")
             .replace('_', "\\_");
         let pattern = format!("{}%", escaped_prefix);
-        let mut stmt = conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1 ESCAPE '\\'")?;
-        let keys = stmt
-            .query_map(params![pattern], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        Ok(keys)
+        self.with_reader(move |conn| {
+            let mut stmt = conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1 ESCAPE '\\'")?;
+            let keys = stmt
+                .query_map(params![pattern], |row| row.get::<_, String>(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(keys)
+        })
+        .await
     }
 
     async fn store_embedding(&self, id: &str, embedding: &[f32], metadata: &str) -> Result<()> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
+        let id_s = id.to_string();
         let embedding_bytes: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
-        conn.execute(
-            "INSERT OR REPLACE INTO embeddings (id, embedding, metadata) VALUES (?1, ?2, ?3)",
-            params![id, embedding_bytes, metadata],
-        )?;
-        Ok(())
+        let meta = metadata.to_string();
+        self.with_writer(move |conn| {
+            conn.execute(
+                "INSERT OR REPLACE INTO embeddings (id, embedding, metadata) VALUES (?1, ?2, ?3)",
+                params![id_s, embedding_bytes, meta],
+            )?;
+            Ok(())
+        })
+        .await
     }
 
     async fn search_similar(
@@ -250,56 +422,56 @@ impl StorageProvider for SqliteDatabase {
         query_embedding: &[f32],
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let mut stmt = conn.prepare("SELECT id, embedding, metadata FROM embeddings")?;
-        let rows = stmt.query_map([], |row| {
-            let id: String = row.get(0)?;
-            let blob: Vec<u8> = row.get(1)?;
-            let metadata: String = row.get(2)?;
-            Ok((id, blob, metadata))
-        })?;
+        let q_emb = query_embedding.to_vec();
+        self.with_reader(move |conn| {
+            let mut stmt = conn.prepare("SELECT id, embedding, metadata FROM embeddings")?;
+            let rows = stmt.query_map([], |row| {
+                let id: String = row.get(0)?;
+                let blob: Vec<u8> = row.get(1)?;
+                let metadata: String = row.get(2)?;
+                Ok((id, blob, metadata))
+            })?;
 
-        let mut results: Vec<SearchResult> = rows
-            .filter_map(|r| r.ok())
-            .filter_map(|(id, blob, metadata)| {
-                let embedding: Vec<f32> = blob
-                    .chunks_exact(4)
-                    .filter_map(|chunk| {
-                        let arr: [u8; 4] = chunk.try_into().ok()?;
-                        Some(f32::from_le_bytes(arr))
+            let mut results: Vec<SearchResult> = rows
+                .filter_map(|r| r.ok())
+                .filter_map(|(id, blob, metadata)| {
+                    let embedding: Vec<f32> = blob
+                        .chunks_exact(4)
+                        .filter_map(|chunk| {
+                            let arr: [u8; 4] = chunk.try_into().ok()?;
+                            Some(f32::from_le_bytes(arr))
+                        })
+                        .collect();
+                    if embedding.is_empty() {
+                        return None;
+                    }
+                    let score = cosine_similarity(&q_emb, &embedding);
+                    Some(SearchResult {
+                        id,
+                        score,
+                        metadata,
                     })
-                    .collect();
-                if embedding.is_empty() {
-                    return None;
-                }
-                let score = cosine_similarity(query_embedding, &embedding);
-                Some(SearchResult {
-                    id,
-                    score,
-                    metadata,
                 })
-            })
-            .collect();
+                .collect();
 
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        results.truncate(limit);
-        Ok(results)
+            results.sort_by(|a, b| {
+                b.score
+                    .partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            results.truncate(limit);
+            Ok(results)
+        })
+        .await
     }
 
     async fn delete_embedding(&self, id: &str) -> Result<()> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        conn.execute("DELETE FROM embeddings WHERE id = ?1", params![id])?;
-        Ok(())
+        let id_s = id.to_string();
+        self.with_writer(move |conn| {
+            conn.execute("DELETE FROM embeddings WHERE id = ?1", params![id_s])?;
+            Ok(())
+        })
+        .await
     }
 
     async fn run_migrations(&self, migrations: &[Migration]) -> Result<()> {
@@ -307,93 +479,117 @@ impl StorageProvider for SqliteDatabase {
         let applied_versions: std::collections::HashSet<i64> =
             applied.iter().map(|m| m.version).collect();
 
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-
-        for migration in migrations {
-            if !applied_versions.contains(&migration.version) {
-                let now = chrono::Utc::now().to_rfc3339();
-                conn.execute("BEGIN", [])
-                    .map_err(|e| DatabaseError::MigrationFailed(e.to_string()))?;
-                match conn.execute_batch(migration.sql) {
-                    Ok(_) => {
-                        conn.execute(
-                            "INSERT INTO _migrations (version, name, applied_at) VALUES (?1, ?2, ?3)",
-                            params![migration.version, migration.name, now],
-                        )
+        let migs = migrations.to_vec();
+        self.with_writer(move |conn| {
+            for migration in migs {
+                if !applied_versions.contains(&migration.version) {
+                    let now = chrono::Utc::now().to_rfc3339();
+                    conn.execute("BEGIN", [])
                         .map_err(|e| DatabaseError::MigrationFailed(e.to_string()))?;
-                        conn.execute("COMMIT", [])
+                    match conn.execute_batch(migration.sql) {
+                        Ok(_) => {
+                            conn.execute(
+                                "INSERT INTO _migrations (version, name, applied_at) VALUES (?1, ?2, ?3)",
+                                params![migration.version, migration.name, now],
+                            )
                             .map_err(|e| DatabaseError::MigrationFailed(e.to_string()))?;
-                    }
-                    Err(e) => {
-                        conn.execute("ROLLBACK", []).ok();
-                        return Err(DatabaseError::MigrationFailed(e.to_string()));
+                            conn.execute("COMMIT", [])
+                                .map_err(|e| DatabaseError::MigrationFailed(e.to_string()))?;
+                        }
+                        Err(e) => {
+                            conn.execute("ROLLBACK", []).ok();
+                            return Err(DatabaseError::MigrationFailed(format!(
+                                "Migration {} ('{}') failed: {e}",
+                                migration.version, migration.name
+                            )));
+                        }
                     }
                 }
             }
-        }
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
     async fn applied_migrations(&self) -> Result<Vec<AppliedMigration>> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
+        self.with_reader(|conn| {
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS _migrations (
+                    version INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    applied_at TEXT NOT NULL
+                )",
+                [],
+            )?;
 
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS _migrations (
-                version INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                applied_at TEXT NOT NULL
-            )",
-            [],
-        )?;
+            let mut stmt =
+                conn.prepare("SELECT version, name, applied_at FROM _migrations ORDER BY version")?;
+            let rows = stmt.query_map([], |row| {
+                let version: i64 = row.get(0)?;
+                let name: String = row.get(1)?;
+                let applied_at_str: String = row.get(2)?;
+                let applied_at = applied_at_str
+                    .parse::<chrono::DateTime<chrono::Utc>>()
+                    .unwrap_or(chrono::DateTime::UNIX_EPOCH);
+                Ok(AppliedMigration {
+                    version,
+                    name,
+                    applied_at,
+                })
+            })?;
+            let mut result = Vec::new();
+            for row in rows {
+                result.push(row?);
+            }
+            Ok(result)
+        })
+        .await
+    }
 
-        let mut stmt =
-            conn.prepare("SELECT version, name, applied_at FROM _migrations ORDER BY version")?;
-        let rows = stmt.query_map([], |row| {
-            let version: i64 = row.get(0)?;
-            let name: String = row.get(1)?;
-            let applied_at_str: String = row.get(2)?;
-            let applied_at = applied_at_str
-                .parse::<chrono::DateTime<chrono::Utc>>()
-                .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-            Ok(AppliedMigration {
-                version,
-                name,
-                applied_at,
-            })
-        })?;
-        let mut result = Vec::new();
-        for row in rows {
-            result.push(row?);
-        }
-        Ok(result)
+    async fn execute_batch_transaction(&self, queries: &[(&str, Vec<Value>)]) -> Result<Vec<u64>> {
+        let items: Vec<(String, Vec<Value>)> = queries
+            .iter()
+            .map(|(q, params)| (q.to_string(), params.clone()))
+            .collect();
+
+        self.with_writer(move |conn| {
+            let tx = conn.transaction()?;
+            let mut counts = Vec::with_capacity(items.len());
+            for (sql, params) in items {
+                let values = to_rusqlite_values(&params);
+                let refs: Vec<&dyn rusqlite::types::ToSql> = values
+                    .iter()
+                    .map(|v| v as &dyn rusqlite::types::ToSql)
+                    .collect();
+                let count = tx.execute(&sql, refs.as_slice())?;
+                counts.push(count as u64);
+            }
+            tx.commit()?;
+            Ok(counts)
+        })
+        .await
     }
 
     async fn backup(&self, path: &str) -> Result<()> {
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let mut dst = Connection::open(path)?;
-        let backup = rusqlite::backup::Backup::new(conn, &mut dst)?;
-        backup.run_to_completion(100, std::time::Duration::from_millis(250), None)?;
-        Ok(())
+        let p = path.to_string();
+        self.with_writer(move |conn| {
+            let mut dst = Connection::open(&p)?;
+            let backup = rusqlite::backup::Backup::new(conn, &mut dst)?;
+            backup.run_to_completion(100, std::time::Duration::from_millis(250), None)?;
+            Ok(())
+        })
+        .await
     }
 
     async fn restore(&self, path: &str) -> Result<()> {
-        let mut guard = self.conn.lock().await;
-        let conn = guard
-            .as_mut()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let src = Connection::open(path)?;
-        let backup = rusqlite::backup::Backup::new(&src, conn)?;
-        backup.run_to_completion(100, std::time::Duration::from_millis(250), None)?;
-        Ok(())
+        let p = path.to_string();
+        self.with_writer(move |conn| {
+            let src = Connection::open(&p)?;
+            let backup = rusqlite::backup::Backup::new(&src, conn)?;
+            backup.run_to_completion(100, std::time::Duration::from_millis(250), None)?;
+            Ok(())
+        })
+        .await
     }
 
     async fn health_check(&self) -> Result<HealthStatus> {
@@ -406,27 +602,27 @@ impl StorageProvider for SqliteDatabase {
                 storage_usage_bytes: None,
             });
         }
-        let guard = self.conn.lock().await;
-        let conn = guard
-            .as_ref()
-            .ok_or_else(|| DatabaseError::ConnectionFailed("Not connected".into()))?;
-        let version: String = conn.query_row("SELECT sqlite_version()", [], |row| row.get(0))?;
-        let latency = start.elapsed().as_millis() as u64;
-        let size: Option<u64> = conn
-            .query_row(
-                "SELECT page_count * page_size FROM pragma_page_count, pragma_page_size",
-                [],
-                |row| row.get(0),
-            )
-            .ok();
-        Ok(HealthStatus {
-            connected: true,
-            latency_ms: latency,
-            version: Some(version),
-            storage_usage_bytes: size,
+        self.with_reader(move |conn| {
+            let version: String = conn.query_row("SELECT sqlite_version()", [], |row| row.get(0))?;
+            let latency = start.elapsed().as_millis() as u64;
+            let size: Option<u64> = conn
+                .query_row(
+                    "SELECT page_count * page_size FROM pragma_page_count, pragma_page_size",
+                    [],
+                    |row| row.get(0),
+                )
+                .ok();
+            Ok(HealthStatus {
+                connected: true,
+                latency_ms: latency,
+                version: Some(version),
+                storage_usage_bytes: size,
+            })
         })
+        .await
     }
 }
+
 
 // ============================================================================
 // SQLite-backed ConversationStore + AuditLogStore
@@ -436,7 +632,6 @@ use crate::conversation::{
     Conversation, ConversationStats, ConversationStore, Message, MessageRole,
 };
 use crate::persistent_audit::{AuditLogEntry, AuditLogStore};
-use std::sync::Arc;
 
 type StdResult<T, E> = std::result::Result<T, E>;
 
@@ -506,15 +701,49 @@ fn row_to_audit_entry(row: &rusqlite::Row) -> rusqlite::Result<AuditLogEntry> {
 // ============================================================================
 
 pub struct SqliteConversationStore {
-    conn: Arc<Mutex<rusqlite::Connection>>,
+    writer: Arc<Mutex<rusqlite::Connection>>,
+    readers: Arc<Mutex<Vec<rusqlite::Connection>>>,
+    reader_semaphore: Arc<tokio::sync::Semaphore>,
+    path: String,
+    is_memory: bool,
 }
 
 impl SqliteConversationStore {
     pub fn new(path: &str) -> StdResult<Self, String> {
+        if path.trim().is_empty() {
+            return Err("Database path is required; silent fallback to in-memory storage is prohibited".to_string());
+        }
+
+        let is_mem = path == ":memory:";
+        if !is_mem {
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+            }
+        }
+
         let conn =
             rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
         conn.busy_timeout(std::time::Duration::from_millis(5000))
             .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
+
+        if !is_mem {
+            conn.execute_batch(
+                "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
+            )
+            .map_err(|e| format!("Failed to set WAL mode: {e}"))?;
+            let jm: String = conn
+                .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
+                .map_err(|e| format!("Failed to read journal mode: {e}"))?;
+            if !jm.eq_ignore_ascii_case("wal") {
+                return Err(format!("Expected WAL journal mode, obtained {jm}"));
+            }
+        } else {
+            conn.execute_batch("PRAGMA foreign_keys=ON;")
+                .map_err(|e| format!("Failed to set foreign keys: {e}"))?;
+        }
+
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS conversations (
                 id TEXT PRIMARY KEY,
@@ -541,17 +770,116 @@ impl SqliteConversationStore {
             CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
             CREATE INDEX IF NOT EXISTS idx_msg_ts ON messages(timestamp);
 
-            PRAGMA journal_mode=WAL;
-            PRAGMA foreign_keys=ON;",
+            CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                content,
+                conversation_id UNINDEXED,
+                message_id UNINDEXED
+            );
+
+            CREATE TRIGGER IF NOT EXISTS trg_messages_fts_insert AFTER INSERT ON messages BEGIN
+                INSERT INTO messages_fts(content, conversation_id, message_id)
+                VALUES (new.content, new.conversation_id, new.id);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS trg_messages_fts_delete AFTER DELETE ON messages BEGIN
+                DELETE FROM messages_fts WHERE message_id = old.id;
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS trg_messages_fts_update AFTER UPDATE ON messages BEGIN
+                DELETE FROM messages_fts WHERE message_id = old.id;
+                INSERT INTO messages_fts(content, conversation_id, message_id)
+                VALUES(new.content, new.conversation_id, new.id);
+            END;",
         )
         .map_err(|e| format!("Failed to create tables: {e}"))?;
+
+        let pool_size = if is_mem { 1 } else { 4 };
+        let mut readers_vec = Vec::with_capacity(pool_size);
+        if !is_mem {
+            for _ in 0..pool_size {
+                let rconn = rusqlite::Connection::open(path)
+                    .map_err(|e| format!("Reader open: {e}"))?;
+                rconn
+                    .busy_timeout(std::time::Duration::from_millis(5000))
+                    .map_err(|e| format!("Reader timeout: {e}"))?;
+                rconn
+                    .execute_batch(
+                        "PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA query_only=ON;",
+                    )
+                    .map_err(|e| format!("Reader pragmas: {e}"))?;
+                readers_vec.push(rconn);
+            }
+        }
+
         Ok(Self {
-            conn: Arc::new(Mutex::new(conn)),
+            writer: Arc::new(Mutex::new(conn)),
+            readers: Arc::new(Mutex::new(readers_vec)),
+            reader_semaphore: Arc::new(tokio::sync::Semaphore::new(pool_size)),
+            path: path.to_string(),
+            is_memory: is_mem,
         })
     }
 
     pub fn new_in_memory() -> StdResult<Self, String> {
         Self::new(":memory:")
+    }
+
+    async fn with_reader<F, R>(&self, f: F) -> StdResult<R, String>
+    where
+        F: FnOnce(&rusqlite::Connection) -> StdResult<R, String> + Send + 'static,
+        R: Send + 'static,
+    {
+        if self.is_memory {
+            let guard = self.writer.lock().await;
+            return f(&guard);
+        }
+
+        let permit = self
+            .reader_semaphore
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|e| format!("Reader pool acquire failed: {e}"))?;
+
+        let conn = {
+            let mut pool = self.readers.lock().await;
+            pool.pop()
+        };
+
+        let conn = match conn {
+            Some(c) => c,
+            None => {
+                let c = rusqlite::Connection::open(&self.path)
+                    .map_err(|e| format!("Open reader: {e}"))?;
+                c.busy_timeout(std::time::Duration::from_millis(5000))
+                    .map_err(|e| format!("Timeout: {e}"))?;
+                c.execute_batch(
+                    "PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA query_only=ON;",
+                )
+                .map_err(|e| format!("Pragmas: {e}"))?;
+                c
+            }
+        };
+
+        let result = f(&conn);
+
+        {
+            let mut pool = self.readers.lock().await;
+            pool.push(conn);
+        }
+        drop(permit);
+
+        result
+    }
+
+    pub async fn is_wal_mode(&self) -> StdResult<bool, String> {
+        self.with_reader(|conn| {
+            let mode: String = conn
+                .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
+                .map_err(|e| format!("Query mode: {e}"))?;
+            Ok(mode.eq_ignore_ascii_case("wal"))
+        })
+        .await
     }
 }
 
@@ -564,7 +892,7 @@ impl ConversationStore for SqliteConversationStore {
     ) -> StdResult<Conversation, String> {
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
-        let conn = self.conn.lock().await;
+        let conn = self.writer.lock().await;
         conn.execute(
             "INSERT INTO conversations (id, user_id, title, created_at, updated_at, is_active) VALUES (?1, ?2, ?3, ?4, ?5, 1)",
             rusqlite::params![id, user_id, title, now, now],
@@ -584,17 +912,20 @@ impl ConversationStore for SqliteConversationStore {
         &self,
         conversation_id: &str,
     ) -> StdResult<Option<Conversation>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE id = ?1");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let mut rows = stmt
-            .query_map(rusqlite::params![conversation_id], row_to_conversation)
-            .map_err(|e| format!("Query: {e}"))?;
-        match rows.next() {
-            Some(Ok(c)) => Ok(Some(c)),
-            Some(Err(e)) => Err(format!("Row: {e}")),
-            None => Ok(None),
-        }
+        let cid = conversation_id.to_string();
+        self.with_reader(move |conn| {
+            let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE id = ?1");
+            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+            let mut rows = stmt
+                .query_map(rusqlite::params![cid], row_to_conversation)
+                .map_err(|e| format!("Query: {e}"))?;
+            match rows.next() {
+                Some(Ok(c)) => Ok(Some(c)),
+                Some(Err(e)) => Err(format!("Row: {e}")),
+                None => Ok(None),
+            }
+        })
+        .await
     }
 
     async fn list_conversations(
@@ -603,21 +934,24 @@ impl ConversationStore for SqliteConversationStore {
         limit: usize,
         offset: usize,
     ) -> StdResult<Vec<Conversation>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE user_id = ?1 ORDER BY updated_at DESC LIMIT ?2 OFFSET ?3");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![user_id, limit as i64, offset as i64],
-                row_to_conversation,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
+        let uid = user_id.to_string();
+        self.with_reader(move |conn| {
+            let sql = format!("SELECT {CONV_COLUMNS} FROM conversations WHERE user_id = ?1 ORDER BY updated_at DESC LIMIT ?2 OFFSET ?3");
+            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+            let rows = stmt
+                .query_map(
+                    rusqlite::params![uid, limit as i64, offset as i64],
+                    row_to_conversation,
+                )
+                .map_err(|e| format!("Query: {e}"))?;
+            rows.collect::<StdResult<Vec<_>, _>>()
+                .map_err(|e| format!("Row: {e}"))
+        })
+        .await
     }
 
     async fn delete_conversation(&self, conversation_id: &str) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
+        let conn = self.writer.lock().await;
         conn.execute(
             "DELETE FROM messages WHERE conversation_id = ?1",
             rusqlite::params![conversation_id],
@@ -636,7 +970,7 @@ impl ConversationStore for SqliteConversationStore {
         conversation_id: &str,
         title: &str,
     ) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
+        let conn = self.writer.lock().await;
         let now = chrono::Utc::now().to_rfc3339();
         let affected = conn
             .execute(
@@ -661,7 +995,7 @@ impl ConversationStore for SqliteConversationStore {
     ) -> StdResult<Message, String> {
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
-        let conn = self.conn.lock().await;
+        let conn = self.writer.lock().await;
         conn.execute(
             "INSERT INTO messages (id, conversation_id, role, content, timestamp, token_count, metadata) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             rusqlite::params![id, conversation_id, role_to_str(&role), content, now, token_count, metadata],
@@ -688,33 +1022,39 @@ impl ConversationStore for SqliteConversationStore {
         limit: usize,
         offset: usize,
     ) -> StdResult<Vec<Message>, String> {
-        let conn = self.conn.lock().await;
-        let sql = format!("SELECT {MSG_COLUMNS} FROM messages WHERE conversation_id = ?1 ORDER BY timestamp ASC LIMIT ?2 OFFSET ?3");
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
-        let rows = stmt
-            .query_map(
-                rusqlite::params![conversation_id, limit as i64, offset as i64],
-                row_to_message,
-            )
-            .map_err(|e| format!("Query: {e}"))?;
-        rows.collect::<StdResult<Vec<_>, _>>()
-            .map_err(|e| format!("Row: {e}"))
+        let cid = conversation_id.to_string();
+        self.with_reader(move |conn| {
+            let sql = format!("SELECT {MSG_COLUMNS} FROM messages WHERE conversation_id = ?1 ORDER BY timestamp ASC LIMIT ?2 OFFSET ?3");
+            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {e}"))?;
+            let rows = stmt
+                .query_map(
+                    rusqlite::params![cid, limit as i64, offset as i64],
+                    row_to_message,
+                )
+                .map_err(|e| format!("Query: {e}"))?;
+            rows.collect::<StdResult<Vec<_>, _>>()
+                .map_err(|e| format!("Row: {e}"))
+        })
+        .await
     }
 
     async fn get_message_count(&self, conversation_id: &str) -> StdResult<usize, String> {
-        let conn = self.conn.lock().await;
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM messages WHERE conversation_id = ?1",
-                rusqlite::params![conversation_id],
-                |row| row.get(0),
-            )
-            .map_err(|e| format!("Count: {e}"))?;
-        Ok(count as usize)
+        let cid = conversation_id.to_string();
+        self.with_reader(move |conn| {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM messages WHERE conversation_id = ?1",
+                    rusqlite::params![cid],
+                    |row| row.get(0),
+                )
+                .map_err(|e| format!("Count: {e}"))?;
+            Ok(count as usize)
+        })
+        .await
     }
 
     async fn delete_message(&self, message_id: &str) -> StdResult<(), String> {
-        let conn = self.conn.lock().await;
+        let conn = self.writer.lock().await;
         conn.execute(
             "DELETE FROM messages WHERE id = ?1",
             rusqlite::params![message_id],
@@ -724,30 +1064,95 @@ impl ConversationStore for SqliteConversationStore {
     }
 
     async fn stats(&self, user_id: &str) -> StdResult<ConversationStats, String> {
-        let conn = self.conn.lock().await;
-        let total_conversations: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1",
-                rusqlite::params![user_id],
-                |r| r.get(0),
-            )
-            .map_err(|e| format!("Stats conv: {e}"))?;
-        let active_conversations: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM conversations WHERE user_id = ?1 AND is_active = 1",
-                rusqlite::params![user_id],
-                |r| r.get(0),
-            )
-            .map_err(|e| format!("Stats active: {e}"))?;
-        let total_messages: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM messages m JOIN conversations c ON m.conversation_id = c.id WHERE c.user_id = ?1",
-            rusqlite::params![user_id], |r| r.get(0),
-        ).map_err(|e| format!("Stats msg: {e}"))?;
-        Ok(ConversationStats {
-            total_conversations: total_conversations as usize,
-            total_messages: total_messages as usize,
-            active_conversations: active_conversations as usize,
+        let uid = user_id.to_string();
+        self.with_reader(move |conn| {
+            let total_conversations: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM conversations WHERE user_id = ?1",
+                    rusqlite::params![uid],
+                    |r| r.get(0),
+                )
+                .map_err(|e| format!("Stats conv: {e}"))?;
+            let active_conversations: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM conversations WHERE user_id = ?1 AND is_active = 1",
+                    rusqlite::params![uid],
+                    |r| r.get(0),
+                )
+                .map_err(|e| format!("Stats active: {e}"))?;
+            let total_messages: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM messages m JOIN conversations c ON m.conversation_id = c.id WHERE c.user_id = ?1",
+                rusqlite::params![uid], |r| r.get(0),
+            ).map_err(|e| format!("Stats msg: {e}"))?;
+            Ok(ConversationStats {
+                total_conversations: total_conversations as usize,
+                total_messages: total_messages as usize,
+                active_conversations: active_conversations as usize,
+            })
         })
+        .await
+    }
+
+    async fn search_messages(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> StdResult<Vec<Message>, String> {
+        let q = query.to_string();
+        self.with_reader(move |conn| {
+            let clean_q = q.replace('"', "\"\"");
+            let match_pattern = format!("\"{}\"", clean_q);
+            let sql = format!(
+                "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
+                 FROM messages m
+                 JOIN messages_fts fts ON m.rowid = fts.rowid
+                 WHERE messages_fts MATCH ?1
+                 ORDER BY fts.rank
+                 LIMIT ?2"
+            );
+            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare FTS: {e}"))?;
+            let rows = stmt
+                .query_map(
+                    rusqlite::params![match_pattern, limit as i64],
+                    row_to_message,
+                )
+                .map_err(|e| format!("Query FTS: {e}"))?;
+            rows.collect::<StdResult<Vec<_>, _>>()
+                .map_err(|e| format!("Row FTS: {e}"))
+        })
+        .await
+    }
+
+    async fn search_conversation_messages(
+        &self,
+        conversation_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> StdResult<Vec<Message>, String> {
+        let q = query.to_string();
+        let cid = conversation_id.to_string();
+        self.with_reader(move |conn| {
+            let clean_q = q.replace('"', "\"\"");
+            let match_pattern = format!("\"{}\"", clean_q);
+            let sql = format!(
+                "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
+                 FROM messages m
+                 JOIN messages_fts fts ON m.rowid = fts.rowid
+                 WHERE m.conversation_id = ?1 AND messages_fts MATCH ?2
+                 ORDER BY fts.rank
+                 LIMIT ?3"
+            );
+            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare FTS: {e}"))?;
+            let rows = stmt
+                .query_map(
+                    rusqlite::params![cid, match_pattern, limit as i64],
+                    row_to_message,
+                )
+                .map_err(|e| format!("Query FTS: {e}"))?;
+            rows.collect::<StdResult<Vec<_>, _>>()
+                .map_err(|e| format!("Row FTS: {e}"))
+        })
+        .await
     }
 }
 
@@ -761,10 +1166,40 @@ pub struct SqliteAuditLogStore {
 
 impl SqliteAuditLogStore {
     pub fn new(path: &str) -> StdResult<Self, String> {
+        if path.trim().is_empty() {
+            return Err("Database path is required; silent fallback to in-memory storage is prohibited".to_string());
+        }
+
+        let is_mem = path == ":memory:";
+        if !is_mem {
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+            }
+        }
+
         let conn =
             rusqlite::Connection::open(path).map_err(|e| format!("Failed to open SQLite: {e}"))?;
         conn.busy_timeout(std::time::Duration::from_millis(5000))
             .map_err(|e| format!("Failed to set busy timeout: {e}"))?;
+
+        if !is_mem {
+            conn.execute_batch(
+                "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
+            )
+            .map_err(|e| format!("Failed to set WAL mode: {e}"))?;
+            let jm: String = conn
+                .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
+                .map_err(|e| format!("Failed to check journal mode: {e}"))?;
+            if !jm.eq_ignore_ascii_case("wal") {
+                return Err(format!("Expected WAL journal mode, obtained {jm}"));
+            }
+        } else {
+            conn.execute_batch("PRAGMA foreign_keys=ON;")
+                .map_err(|e| format!("Failed to set foreign keys: {e}"))?;
+        }
+
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS audit_log (
                 id TEXT PRIMARY KEY,
@@ -783,10 +1218,10 @@ impl SqliteAuditLogStore {
             );
             CREATE INDEX IF NOT EXISTS idx_audit_subject ON audit_log(subject);
             CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
-            CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp);
-            PRAGMA journal_mode=WAL;",
+            CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp);",
         )
         .map_err(|e| format!("Failed to create audit_log table: {e}"))?;
+
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
@@ -795,7 +1230,16 @@ impl SqliteAuditLogStore {
     pub fn new_in_memory() -> StdResult<Self, String> {
         Self::new(":memory:")
     }
+
+    pub async fn is_wal_mode(&self) -> StdResult<bool, String> {
+        let conn = self.conn.lock().await;
+        let mode: String = conn
+            .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
+            .map_err(|e| format!("Query mode: {e}"))?;
+        Ok(mode.eq_ignore_ascii_case("wal"))
+    }
 }
+
 
 #[async_trait::async_trait]
 impl AuditLogStore for SqliteAuditLogStore {
@@ -923,6 +1367,7 @@ impl AuditLogStore for SqliteAuditLogStore {
 mod tests {
     use super::*;
     use crate::config::{DatabaseConfig, DatabaseKind};
+    use crate::conversation::{ConversationStore, MessageRole};
     use crate::storage::Value;
 
     #[tokio::test]
@@ -1249,6 +1694,7 @@ mod tests {
         let config = DatabaseConfig {
             kind: DatabaseKind::Sqlite,
             path: Some(":memory:".into()),
+            auto_migrate: false,
             ..Default::default()
         };
         db.connect(&config).await.unwrap();
@@ -1272,6 +1718,7 @@ mod tests {
         let config = DatabaseConfig {
             kind: DatabaseKind::Sqlite,
             path: Some(":memory:".into()),
+            auto_migrate: false,
             ..Default::default()
         };
         db.connect(&config).await.unwrap();
@@ -1286,6 +1733,7 @@ mod tests {
         let config = DatabaseConfig {
             kind: DatabaseKind::Sqlite,
             path: Some(":memory:".into()),
+            auto_migrate: false,
             ..Default::default()
         };
         db.connect(&config).await.unwrap();
@@ -1309,6 +1757,7 @@ mod tests {
         let config = DatabaseConfig {
             kind: DatabaseKind::Sqlite,
             path: Some(":memory:".into()),
+            auto_migrate: false,
             ..Default::default()
         };
         db.connect(&config).await.unwrap();
@@ -1437,4 +1886,186 @@ mod tests {
         assert_eq!(retrieved.len(), 10_000);
         assert_eq!(retrieved, large_val);
     }
+
+    #[test]
+    fn test_fts5_support() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE VIRTUAL TABLE test_fts USING fts5(content, title);
+             INSERT INTO test_fts (content, title) VALUES ('hello world', 'greeting');",
+        )
+        .unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM test_fts WHERE test_fts MATCH 'hello'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn test_auto_migrate_applies_all_migrations() {
+        let db = SqliteDatabase::new();
+        let config = DatabaseConfig {
+            kind: DatabaseKind::Sqlite,
+            path: Some(":memory:".into()),
+            auto_migrate: true,
+            ..Default::default()
+        };
+        db.connect(&config).await.unwrap();
+
+        let applied = db.applied_migrations().await.unwrap();
+        assert!(applied.len() >= 10);
+        assert!(applied.iter().any(|m| m.version == 10 && m.name == "core_conversations_and_messages"));
+        assert!(applied.iter().any(|m| m.version == 11 && m.name == "core_messages_fts5_indexing"));
+        assert!(applied.iter().any(|m| m.version == 12 && m.name == "core_audit_log"));
+    }
+
+    #[tokio::test]
+    async fn test_empty_or_whitespace_path_rejected() {
+        let db = SqliteDatabase::new();
+        let config_none = DatabaseConfig {
+            kind: DatabaseKind::Sqlite,
+            path: None,
+            ..Default::default()
+        };
+        assert!(db.connect(&config_none).await.is_err());
+
+        let config_empty = DatabaseConfig {
+            kind: DatabaseKind::Sqlite,
+            path: Some("   ".to_string()),
+            ..Default::default()
+        };
+        assert!(db.connect(&config_empty).await.is_err());
+
+        assert!(SqliteConversationStore::new("").is_err());
+        assert!(SqliteConversationStore::new("   ").is_err());
+
+        assert!(SqliteAuditLogStore::new("").is_err());
+        assert!(SqliteAuditLogStore::new("   ").is_err());
+    }
+
+    #[tokio::test]
+    async fn test_wal_mode_on_disk() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let db_path = tmp_dir.path().join("wal_test.db");
+        let path_str = db_path.to_str().unwrap().to_string();
+
+        let db = SqliteDatabase::new();
+        let config = DatabaseConfig {
+            kind: DatabaseKind::Sqlite,
+            path: Some(path_str.clone()),
+            pool_size: 4,
+            auto_migrate: false,
+            ..Default::default()
+        };
+        db.connect(&config).await.unwrap();
+
+        assert!(db.is_wal_mode().await.unwrap());
+
+        let conv_store = SqliteConversationStore::new(&path_str).unwrap();
+        assert!(conv_store.is_wal_mode().await.unwrap());
+
+        let audit_store = SqliteAuditLogStore::new(&path_str).unwrap();
+        assert!(audit_store.is_wal_mode().await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_execute_batch_transaction_atomic_rollback() {
+        let db = SqliteDatabase::new();
+        let config = DatabaseConfig {
+            kind: DatabaseKind::Sqlite,
+            path: Some(":memory:".into()),
+            auto_migrate: false,
+            ..Default::default()
+        };
+        db.connect(&config).await.unwrap();
+
+        // 1. Successful batch transaction
+        let ops = vec![
+            (
+                "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
+                vec![Value::String("k1".into()), Value::Bytes(b"v1".to_vec())],
+            ),
+            (
+                "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
+                vec![Value::String("k2".into()), Value::Bytes(b"v2".to_vec())],
+            ),
+        ];
+        let counts = db.execute_batch_transaction(&ops).await.unwrap();
+        assert_eq!(counts, vec![1, 1]);
+        assert_eq!(db.get("k1").await.unwrap(), Some(b"v1".to_vec()));
+        assert_eq!(db.get("k2").await.unwrap(), Some(b"v2".to_vec()));
+
+        // 2. Failing batch transaction should roll back completely
+        let failing_ops = vec![
+            (
+                "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
+                vec![Value::String("k3".into()), Value::Bytes(b"v3".to_vec())],
+            ),
+            (
+                "INSERT INTO non_existent_table (x) VALUES (?1)",
+                vec![Value::String("fail".into())],
+            ),
+        ];
+        let err = db.execute_batch_transaction(&failing_ops).await;
+        assert!(err.is_err());
+        assert_eq!(db.get("k3").await.unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn test_conversation_store_fts5_search_and_triggers() {
+        let store = SqliteConversationStore::new(":memory:").unwrap();
+
+        let conv = store
+            .create_conversation("user-1", Some("Rust SQLite Discussion"))
+            .await
+            .unwrap();
+
+        let msg1 = store
+            .add_message(
+                &conv.id,
+                MessageRole::User,
+                "How does SQLite WAL mode improve concurrency?",
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let msg2 = store
+            .add_message(
+                &conv.id,
+                MessageRole::Assistant,
+                "WAL mode separates readers and writers using a write-ahead log.",
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        // Search across all conversations
+        let results = store.search_messages("concurrency", 10).await.unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, msg1.id);
+
+        let results_wal = store.search_messages("write-ahead", 10).await.unwrap();
+        assert_eq!(results_wal.len(), 1);
+        assert_eq!(results_wal[0].id, msg2.id);
+
+        // Search scoped to conversation
+        let conv_results = store
+            .search_conversation_messages(&conv.id, "readers", 10)
+            .await
+            .unwrap();
+        assert_eq!(conv_results.len(), 1);
+        assert_eq!(conv_results[0].id, msg2.id);
+
+        // Verify delete removes message and triggers delete from FTS
+        store.delete_message(&msg2.id).await.unwrap();
+        let results_after_del = store.search_messages("write-ahead", 10).await.unwrap();
+        assert_eq!(results_after_del.len(), 0);
+    }
 }
+

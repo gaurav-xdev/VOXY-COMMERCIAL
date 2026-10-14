@@ -122,6 +122,10 @@ pub trait AudioOutputStream: Send + Sync {
     async fn write(&mut self, packet: &AudioPacket) -> Result<()>;
     async fn play(&mut self, stream: Box<dyn AudioPacketStream>) -> Result<()>;
     async fn flush(&mut self) -> Result<()>;
+    /// Immediately clear and drain any buffered pending audio samples.
+    async fn clear(&mut self) -> Result<()> {
+        Ok(())
+    }
     fn sample_rate(&self) -> u32;
     fn channels(&self) -> u8;
     fn latency_ms(&self) -> f64;

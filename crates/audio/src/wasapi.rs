@@ -340,6 +340,33 @@ impl AudioBackend for WasapiBackend {
     }
 }
 
+fn classify_cpal_error<E: std::fmt::Display>(err: &E) -> AudioError {
+    let msg = err.to_string();
+    let lower = msg.to_lowercase();
+    if lower.contains("device not available")
+        || lower.contains("device invalidated")
+        || lower.contains("disconnected")
+        || lower.contains("unplugged")
+        || lower.contains("removed")
+        || lower.contains("not found")
+    {
+        AudioError::DeviceDisconnected(msg)
+    } else if lower.contains("access denied")
+        || lower.contains("permission")
+        || lower.contains("unauthorized")
+    {
+        AudioError::PermissionDenied(msg)
+    } else if lower.contains("buffer underrun")
+        || lower.contains("glitch")
+        || lower.contains("overflow")
+        || lower.contains("underflow")
+    {
+        AudioError::BufferUnderrun(msg)
+    } else {
+        AudioError::PlatformError(msg)
+    }
+}
+
 struct CpalInputStreamInner {
     _device: cpal::Device,
     stream: Mutex<Option<cpal::Stream>>,
@@ -348,6 +375,7 @@ struct CpalInputStreamInner {
     ring: Arc<SpscRingBuffer>,
     open: AtomicBool,
     packet_seq: AtomicU64,
+    last_error: Arc<Mutex<Option<AudioError>>>,
 }
 
 pub struct CpalInputStream {
@@ -362,6 +390,9 @@ impl CpalInputStream {
 
         let ring = Arc::new(SpscRingBuffer::new(131072));
         let ring_cb = ring.clone();
+        let ring_err = ring.clone();
+        let last_error = Arc::new(Mutex::new(None));
+        let last_error_cb = last_error.clone();
 
         let stream = cpal_helpers::build_input_stream(
             &device,
@@ -370,7 +401,10 @@ impl CpalInputStream {
                 ring_cb.write(data);
             },
             move |err| {
-                warn!("Input stream error: {}", err);
+                let classified = classify_cpal_error(&err);
+                warn!("Input stream error: {err} -> {classified}");
+                *last_error_cb.lock() = Some(classified);
+                ring_err.close();
             },
         )
         .map_err(|e| AudioError::PlatformError(format!("Failed to build input stream: {e}")))?;
@@ -390,6 +424,7 @@ impl CpalInputStream {
                 ring,
                 open: AtomicBool::new(true),
                 packet_seq: AtomicU64::new(0),
+                last_error,
             }),
         })
     }
@@ -410,6 +445,9 @@ impl AudioInputStream for CpalInputStream {
     }
 
     async fn read(&mut self, frames: usize) -> Result<AudioPacket> {
+        if let Some(err) = self.inner.last_error.lock().clone() {
+            return Err(err);
+        }
         if !self.inner.open.load(Ordering::SeqCst) {
             return Err(AudioError::NotInitialized);
         }
@@ -420,6 +458,18 @@ impl AudioInputStream for CpalInputStream {
         let start = std::time::Instant::now();
 
         loop {
+            if let Some(err) = self.inner.last_error.lock().clone() {
+                return Err(err);
+            }
+            if !self.inner.open.load(Ordering::SeqCst) || self.inner.ring.is_closed() {
+                if let Some(err) = self.inner.last_error.lock().clone() {
+                    return Err(err);
+                }
+                return Err(AudioError::DeviceDisconnected(
+                    "Input audio stream closed or device disconnected".into(),
+                ));
+            }
+
             let read = self.inner.ring.read(&mut data);
             if read >= samples_needed {
                 data.truncate(read);
@@ -479,7 +529,7 @@ struct CpalCaptureStream {
 #[async_trait]
 impl AudioPacketStream for CpalCaptureStream {
     async fn next(&mut self) -> Option<AudioPacket> {
-        if self.stopped || !self.inner.open.load(Ordering::SeqCst) {
+        if self.stopped || !self.inner.open.load(Ordering::SeqCst) || self.inner.ring.is_closed() {
             return None;
         }
 
@@ -487,6 +537,10 @@ impl AudioPacketStream for CpalCaptureStream {
         let samples_needed = frames * self.inner.channels as usize;
 
         loop {
+            if self.stopped || !self.inner.open.load(Ordering::SeqCst) || self.inner.ring.is_closed() {
+                return None;
+            }
+
             let mut data = vec![0.0f32; samples_needed];
             let read = self.inner.ring.read(&mut data);
             if read >= samples_needed {
@@ -496,10 +550,6 @@ impl AudioPacketStream for CpalCaptureStream {
                     AudioPacket::new(data, self.inner.sample_rate, self.inner.channels);
                 packet.sequence = seq;
                 return Some(packet);
-            }
-
-            if self.inner.ring.is_closed() {
-                return None;
             }
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
@@ -524,6 +574,7 @@ struct CpalOutputStreamInner {
     ring: Arc<SpscRingBuffer>,
     open: AtomicBool,
     packet_seq: AtomicU64,
+    last_error: Arc<Mutex<Option<AudioError>>>,
 }
 
 pub struct CpalOutputStream {
@@ -534,27 +585,28 @@ impl CpalOutputStream {
     pub fn new(device: cpal::Device, config: &AudioStreamConfig) -> Result<Self> {
         let stream_config = negotiate_output_config(&device, config);
         let ring = Arc::new(SpscRingBuffer::new(262144));
+        let last_error = Arc::new(Mutex::new(None));
 
         // Try negotiated config first, fall back to device default if it fails
-        let (stream, sample_rate, channels) = match Self::try_build(&device, &stream_config, &ring)
-        {
-            Ok(s) => (s, stream_config.sample_rate, stream_config.channels as u8),
-            Err(e) => {
-                warn!(
-                    "Negotiated output config {}Hz {}ch rejected by WASAPI; falling back to device default: {}",
-                    stream_config.sample_rate, stream_config.channels, e
-                );
-                use cpal::traits::DeviceTrait;
-                let default_config = device.default_output_config().map_err(|e| {
-                    AudioError::PlatformError(format!("Failed to get default output config: {e}"))
-                })?;
-                let fallback_config: cpal::StreamConfig = default_config.into();
-                let sr = fallback_config.sample_rate;
-                let ch = fallback_config.channels;
-                let s = Self::try_build(&device, &fallback_config, &ring)?;
-                (s, sr, ch as u8)
-            }
-        };
+        let (stream, sample_rate, channels) =
+            match Self::try_build(&device, &stream_config, &ring, &last_error) {
+                Ok(s) => (s, stream_config.sample_rate, stream_config.channels as u8),
+                Err(e) => {
+                    warn!(
+                        "Negotiated output config {}Hz {}ch rejected by WASAPI; falling back to device default: {}",
+                        stream_config.sample_rate, stream_config.channels, e
+                    );
+                    use cpal::traits::DeviceTrait;
+                    let default_config = device.default_output_config().map_err(|e| {
+                        AudioError::PlatformError(format!("Failed to get default output config: {e}"))
+                    })?;
+                    let fallback_config: cpal::StreamConfig = default_config.into();
+                    let sr = fallback_config.sample_rate;
+                    let ch = fallback_config.channels;
+                    let s = Self::try_build(&device, &fallback_config, &ring, &last_error)?;
+                    (s, sr, ch as u8)
+                }
+            };
 
         stream.play().map_err(|e| {
             AudioError::PlatformError(format!("Failed to start output stream: {e}"))
@@ -571,6 +623,7 @@ impl CpalOutputStream {
                 ring,
                 open: AtomicBool::new(true),
                 packet_seq: AtomicU64::new(0),
+                last_error,
             }),
         })
     }
@@ -579,8 +632,11 @@ impl CpalOutputStream {
         device: &cpal::Device,
         config: &cpal::StreamConfig,
         ring: &Arc<SpscRingBuffer>,
+        last_error: &Arc<Mutex<Option<AudioError>>>,
     ) -> Result<cpal::Stream> {
         let ring_cb = ring.clone();
+        let ring_err = ring.clone();
+        let last_error_cb = last_error.clone();
         cpal_helpers::build_output_stream(
             device,
             *config,
@@ -591,7 +647,10 @@ impl CpalOutputStream {
                 }
             },
             move |err| {
-                warn!("Output stream error: {}", err);
+                let classified = classify_cpal_error(&err);
+                warn!("Output stream error: {err} -> {classified}");
+                *last_error_cb.lock() = Some(classified);
+                ring_err.close();
             },
         )
         .map_err(|e| AudioError::PlatformError(format!("Failed to build output stream: {e}")))
@@ -613,7 +672,10 @@ impl AudioOutputStream for CpalOutputStream {
     }
 
     async fn write(&mut self, packet: &AudioPacket) -> Result<()> {
-        if !self.inner.open.load(Ordering::SeqCst) {
+        if let Some(err) = self.inner.last_error.lock().clone() {
+            return Err(err);
+        }
+        if !self.inner.open.load(Ordering::SeqCst) || self.inner.ring.is_closed() {
             return Err(AudioError::NotInitialized);
         }
 
@@ -624,6 +686,15 @@ impl AudioOutputStream for CpalOutputStream {
         let start = std::time::Instant::now();
 
         while !remaining.is_empty() {
+            if let Some(err) = self.inner.last_error.lock().clone() {
+                return Err(err);
+            }
+            if !self.inner.open.load(Ordering::SeqCst) || self.inner.ring.is_closed() {
+                return Err(AudioError::DeviceDisconnected(
+                    "Output audio stream closed or device disconnected".into(),
+                ));
+            }
+
             let written = self.inner.ring.write(remaining);
             remaining = &remaining[written..];
 
@@ -654,8 +725,28 @@ impl AudioOutputStream for CpalOutputStream {
         Ok(())
     }
 
+    async fn clear(&mut self) -> Result<()> {
+        self.inner.ring.clear();
+        Ok(())
+    }
+
     async fn flush(&mut self) -> Result<()> {
+        let timeout = tokio::time::Duration::from_millis(1000);
+        let start = std::time::Instant::now();
         while !self.inner.ring.is_empty() && self.inner.open.load(Ordering::SeqCst) {
+            if let Some(err) = self.inner.last_error.lock().clone() {
+                self.inner.ring.clear();
+                return Err(err);
+            }
+            if self.inner.ring.is_closed() {
+                self.inner.ring.clear();
+                return Ok(());
+            }
+            if start.elapsed() > timeout {
+                warn!("Output flush timed out (1000ms), clearing remaining samples in buffer");
+                self.inner.ring.clear();
+                break;
+            }
             tokio::time::sleep(tokio::time::Duration::from_millis(5)).await;
         }
         Ok(())

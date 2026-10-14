@@ -70,6 +70,100 @@ pub struct MigrationStatus {
     pub applied_versions: Vec<i64>,
 }
 
+/// Core schema migrations ensuring conversation indexing, full-text search (FTS5),
+/// and persistent audit logging.
+pub fn get_core_migrations() -> Vec<Migration> {
+    vec![
+        Migration {
+            version: 10,
+            name: "core_conversations_and_messages",
+            sql: "
+                CREATE TABLE IF NOT EXISTS conversations (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    title TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    metadata TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
+                CREATE INDEX IF NOT EXISTS idx_conv_updated ON conversations(updated_at);
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    id TEXT PRIMARY KEY,
+                    conversation_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    token_count INTEGER,
+                    metadata TEXT,
+                    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
+                CREATE INDEX IF NOT EXISTS idx_msg_ts ON messages(timestamp);
+            ",
+        },
+        Migration {
+            version: 11,
+            name: "core_messages_fts5_indexing",
+            sql: "
+                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                    content,
+                    conversation_id UNINDEXED,
+                    message_id UNINDEXED
+                );
+
+                CREATE TRIGGER IF NOT EXISTS trg_messages_fts_insert AFTER INSERT ON messages BEGIN
+                    INSERT INTO messages_fts(content, conversation_id, message_id)
+                    VALUES (new.content, new.conversation_id, new.id);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS trg_messages_fts_delete AFTER DELETE ON messages BEGIN
+                    DELETE FROM messages_fts WHERE message_id = old.id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS trg_messages_fts_update AFTER UPDATE ON messages BEGIN
+                    DELETE FROM messages_fts WHERE message_id = old.id;
+                    INSERT INTO messages_fts(content, conversation_id, message_id)
+                    VALUES(new.content, new.conversation_id, new.id);
+                END;
+            ",
+        },
+        Migration {
+            version: 12,
+            name: "core_audit_log",
+            sql: "
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    resource TEXT,
+                    result TEXT NOT NULL,
+                    reason TEXT,
+                    risk_level TEXT NOT NULL,
+                    trust_level TEXT NOT NULL,
+                    previous_hash TEXT NOT NULL,
+                    hash TEXT NOT NULL,
+                    audit_level TEXT NOT NULL,
+                    metadata TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_audit_subject ON audit_log(subject);
+                CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+                CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(timestamp);
+            ",
+        },
+    ]
+}
+
+/// Returns all default system migrations (core migrations + commercial migrations).
+pub fn get_all_migrations() -> Vec<Migration> {
+    let mut migrations = get_core_migrations();
+    migrations.extend(crate::commercial::get_commercial_migrations());
+    migrations
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,6 +207,7 @@ mod tests {
         let config = DatabaseConfig {
             kind: DatabaseKind::Sqlite,
             path: Some(":memory:".into()),
+            auto_migrate: false,
             ..Default::default()
         };
         db.connect(&config).await.unwrap();

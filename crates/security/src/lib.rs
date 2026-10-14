@@ -22,6 +22,7 @@ pub mod rollback;
 pub mod sanitizer;
 pub mod secrets;
 pub mod signed;
+pub mod ssrf;
 pub mod threat;
 pub mod token;
 pub mod trust;
@@ -31,8 +32,8 @@ pub use approval::{
     ApprovalStatus,
 };
 pub use archive::{
-    ensure_within_root, safe_extract_zip, validate_archive_path, ArchiveSecurityError,
-    ArchiveSecurityLimits,
+    ensure_within_root, safe_extract_tar, safe_extract_zip, validate_archive_path,
+    ArchiveRollbackTracker, ArchiveSecurityError, ArchiveSecurityLimits,
 };
 pub use audit::{AuditEntry, AuditEventType, AuditLog};
 pub use auth::{AuthPasswordHasher, AuthRateLimiter, SessionTokenManager};
@@ -52,6 +53,11 @@ pub use rollback::{RollbackManager, RollbackResult, RollbackStrategy};
 pub use sanitizer::{sanitize_context, sanitize_llm_output, sanitize_user_input, SanitizedInput};
 pub use secrets::SecretVault;
 pub use signed::{ArtifactType, SignatureVerdict, SignatureVerifier, SignedArtifact};
+pub use ssrf::{
+    is_host_restricted, is_ip_restricted, is_ipv4_restricted, is_ipv6_restricted,
+    safe_connect_tcp, safe_resolve_destination, validate_destination_url,
+    validate_destination_url_str, validate_socket_addr,
+};
 pub use threat::{ThreatDetector, ThreatSeverity};
 pub use token::{CapabilityToken, PermissionGrant};
 pub use trust::{TrustLevel, TrustManager};

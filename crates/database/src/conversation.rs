@@ -101,6 +101,19 @@ pub trait ConversationStore: Send + Sync {
     async fn delete_message(&self, message_id: &str) -> Result<(), String>;
 
     async fn stats(&self, user_id: &str) -> Result<ConversationStats, String>;
+
+    async fn search_messages(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<Message>, String>;
+
+    async fn search_conversation_messages(
+        &self,
+        conversation_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<Message>, String>;
 }
 
 pub struct InMemoryConversationStore {
@@ -256,6 +269,49 @@ impl ConversationStore for InMemoryConversationStore {
             active_conversations: user_convs.iter().filter(|c| c.is_active).count(),
         })
     }
+
+    async fn search_messages(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<Message>, String> {
+        let msgs = self.messages.read();
+        let q = query.to_lowercase();
+        let mut results = Vec::new();
+        for list in msgs.values() {
+            for m in list {
+                if m.content.to_lowercase().contains(&q) {
+                    results.push(m.clone());
+                    if results.len() >= limit {
+                        return Ok(results);
+                    }
+                }
+            }
+        }
+        Ok(results)
+    }
+
+    async fn search_conversation_messages(
+        &self,
+        conversation_id: &str,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<Message>, String> {
+        let msgs = self.messages.read();
+        let q = query.to_lowercase();
+        let mut results = Vec::new();
+        if let Some(list) = msgs.get(conversation_id) {
+            for m in list {
+                if m.content.to_lowercase().contains(&q) {
+                    results.push(m.clone());
+                    if results.len() >= limit {
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(results)
+    }
 }
 
 #[cfg(test)]
@@ -308,4 +364,26 @@ mod tests {
             .unwrap()
             .is_empty());
     }
+
+    #[tokio::test]
+    async fn test_in_memory_search_messages() {
+        let store = InMemoryConversationStore::new();
+        let conv1 = store.create_conversation("u1", None).await.unwrap();
+        let conv2 = store.create_conversation("u1", None).await.unwrap();
+
+        store.add_message(&conv1.id, MessageRole::User, "Rust programming is fun", None, None).await.unwrap();
+        store.add_message(&conv1.id, MessageRole::Assistant, "Yes, Rust is safe and fast", None, None).await.unwrap();
+        store.add_message(&conv2.id, MessageRole::User, "Python is also nice", None, None).await.unwrap();
+
+        let results = store.search_messages("rust", 10).await.unwrap();
+        assert_eq!(results.len(), 2);
+
+        let conv1_results = store.search_conversation_messages(&conv1.id, "safe", 10).await.unwrap();
+        assert_eq!(conv1_results.len(), 1);
+        assert_eq!(conv1_results[0].content, "Yes, Rust is safe and fast");
+
+        let conv2_results = store.search_conversation_messages(&conv2.id, "rust", 10).await.unwrap();
+        assert!(conv2_results.is_empty());
+    }
 }
+

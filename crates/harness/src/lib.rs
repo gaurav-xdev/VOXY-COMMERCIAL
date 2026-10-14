@@ -14,7 +14,11 @@ pub use diagnostic_parser::{
     DiagnosticItem, DiagnosticParser, DiagnosticReport, DiagnosticSeverity,
 };
 pub use ide_launcher::{IdeError, IdeLauncher, SupportedIde};
-pub use patch_engine::{FilePatch, PatchEngine, PatchError, PatchSnapshot, PatchTransaction};
+pub use patch_engine::{
+    contains_symlink_or_reparse, is_protected_file, is_symlink_or_reparse_point,
+    path_is_contained, validate_path, FilePatch, PatchEngine, PatchError, PatchSnapshot,
+    PatchTransaction,
+};
 pub use repo_indexer::{FileMetadata, RepositoryIndexer, SymbolInfo};
 pub use sandbox_runner::{CommandOutput, RunnerError, SandboxedRunner};
 pub use secret_scanner::{DetectedSecret, SecretScanner};

@@ -1,0 +1,60 @@
+[package]
+name = "osmoo-e2e-tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["OSMOO Test Team"]
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+voxy-shared = { path = "../../crates/shared" }
+voxy-ipc = { path = "../../crates/ipc" }
+voxy-security = { path = "../../crates/security" }
+voxy-database = { path = "../../crates/database" }
+voxy-harness = { path = "../../crates/harness" }
+voxy-audio = { path = "../../crates/audio" }
+voxy-voice = { path = "../../crates/voice" }
+voxy-voice-orchestrator = { path = "../../crates/voice_orchestrator" }
+voxy-voice-stream = { path = "../../crates/voice_stream" }
+voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
+voxy-config = { path = "../../crates/config" }
+voxy-memory = { path = "../../crates/memory" }
+voxy-runtime-guard = { path = "../../crates/runtime_guard" }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+zip = "2"
+tar = "0.4"
+rusqlite = { version = "0.31", features = ["bundled"] }
+url = "2"
+tracing = "0.1"
+async-trait = "0.1"
+
+[[test]]
+name = "tier1_feature_coverage"
+path = "tests/tier1_feature_coverage.rs"
+
+[[test]]
+name = "tier2_boundary_corner"
+path = "tests/tier2_boundary_corner.rs"
+
+[[test]]
+name = "tier3_cross_feature"
+path = "tests/tier3_cross_feature.rs"
+
+[[test]]
+name = "tier4_real_world"
+path = "tests/tier4_real_world.rs"
+
+[[test]]
+name = "e2e_acceptance_all"
+path = "tests/e2e_acceptance_all.rs"
+
+[profile.test]
+debug = 0
+strip = "debuginfo"

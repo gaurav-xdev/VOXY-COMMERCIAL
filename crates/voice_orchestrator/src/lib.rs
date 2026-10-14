@@ -5,5 +5,5 @@ pub mod traits;
 
 pub use config::VoiceOrchestratorConfig;
 pub use error::{Result, VoiceOrchestratorError};
-pub use event::VoiceEvent;
+pub use event::{InterruptionSignal, VoiceEvent};
 pub use traits::*;

@@ -60,15 +60,9 @@ impl DiagnosticParser {
             // e.g.: error[E0308]: mismatched types
             //  --> src/main.rs:12:5
             if trimmed.starts_with("error[") || trimmed.starts_with("error:") {
-                let code = if let Some(start) = trimmed.find('[') {
-                    if let Some(end) = trimmed.find(']') {
-                        Some(trimmed[start + 1..end].to_string())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
+                let code = trimmed
+                    .find('[')
+                    .and_then(|start| trimmed.find(']').map(|end| trimmed[start + 1..end].to_string()));
 
                 let msg = if let Some(colon_pos) = trimmed.find(':') {
                     trimmed[colon_pos + 1..].trim().to_string()
@@ -86,15 +80,9 @@ impl DiagnosticParser {
                     context_snippet: None,
                 });
             } else if trimmed.starts_with("warning[") || trimmed.starts_with("warning:") {
-                let code = if let Some(start) = trimmed.find('[') {
-                    if let Some(end) = trimmed.find(']') {
-                        Some(trimmed[start + 1..end].to_string())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
+                let code = trimmed
+                    .find('[')
+                    .and_then(|start| trimmed.find(']').map(|end| trimmed[start + 1..end].to_string()));
 
                 let msg = if let Some(colon_pos) = trimmed.find(':') {
                     trimmed[colon_pos + 1..].trim().to_string()
@@ -111,9 +99,8 @@ impl DiagnosticParser {
                     column: None,
                     context_snippet: None,
                 });
-            } else if trimmed.starts_with("--> ") {
+            } else if let Some(loc_str) = trimmed.strip_prefix("--> ") {
                 // Associates file location with the most recent item
-                let loc_str = &trimmed[4..];
                 let parts: Vec<&str> = loc_str.split(':').collect();
                 if parts.len() >= 2 {
                     let file_path = PathBuf::from(parts[0]);

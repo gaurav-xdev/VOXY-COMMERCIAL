@@ -194,6 +194,22 @@ mod tests {
     }
 
     #[test]
+    fn test_voice_event_interrupted() {
+        let signal = crate::event::InterruptionSignal::new("user_speech").with_cleared_frames(480);
+        assert_eq!(signal.reason, "user_speech");
+        assert!(signal.cancelled_tokens);
+        assert_eq!(signal.cleared_audio_frames, 480);
+
+        let event = VoiceEvent::Interrupted { signal };
+        let s = format!("{}", event);
+        assert!(s.contains("Interrupted: user_speech"));
+        assert!(s.contains("480 frames"));
+
+        let dbg = format!("{:?}", event);
+        assert!(dbg.contains("Interrupted"));
+    }
+
+    #[test]
     fn test_orchestrator_error_display() {
         let err = VoiceOrchestratorError::NoWakeWordDetector;
         assert_eq!(format!("{}", err), "No wake word detector available");

@@ -8206,6 +8206,7 @@ dependencies = [
  "voxy-security",
  "voxy-shared",
  "voxy-voice",
+ "windows 0.58.0",
 ]
 
 [[package]]
@@ -8959,10 +8960,12 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "tar",
  "tempfile",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
+ "url",
  "uuid",
  "voxy-shared",
  "zeroize",

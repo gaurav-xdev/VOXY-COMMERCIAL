@@ -283,11 +283,17 @@ pub enum ClientCommand {
 
     /// Client heartbeat pong response.
     HeartbeatPong,
+
+    /// Graceful shutdown requested by primary executable supervisor or client.
+    Shutdown {
+        #[serde(default)]
+        reason: String,
+    },
 }
 
 impl ClientCommand {
     /// Returns true if this command performs a privileged system action
-    /// (e.g. aborting tools, changing AI routing, approving actions, or sending user input).
+    /// (e.g. aborting tools, changing AI routing, approving actions, shutdown, or sending user input).
     pub fn is_privileged(&self) -> bool {
         matches!(
             self,
@@ -297,6 +303,7 @@ impl ClientCommand {
                 | ClientCommand::RespondApproval { .. }
                 | ClientCommand::SendTextInput { .. }
                 | ClientCommand::SetRoutingMode { .. }
+                | ClientCommand::Shutdown { .. }
         )
     }
 }

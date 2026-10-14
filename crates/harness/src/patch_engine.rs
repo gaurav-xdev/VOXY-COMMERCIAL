@@ -40,6 +40,212 @@ pub struct FilePatch {
     pub new_content: String,
 }
 
+/// Determines if a path targets a protected system or configuration file.
+pub fn is_protected_file(path: &Path) -> bool {
+    let path_str = path.to_string_lossy().replace('\\', "/");
+    let lower = path_str.to_ascii_lowercase();
+
+    for comp in path.components() {
+        let comp_str = comp.as_os_str().to_string_lossy().to_ascii_lowercase();
+        if comp_str == ".git" || comp_str == ".ssh" || comp_str == "target" {
+            return true;
+        }
+        if comp_str == "cargo.lock" {
+            return true;
+        }
+        if comp_str == ".env" || comp_str.starts_with(".env.") || comp_str.ends_with(".env") {
+            return true;
+        }
+        if comp_str == "id_rsa"
+            || comp_str == "id_ed25519"
+            || comp_str == "id_ecdsa"
+            || comp_str == "id_dsa"
+            || comp_str == "authorized_keys"
+            || comp_str == "known_hosts"
+            || comp_str.starts_with("id_rsa")
+            || comp_str.starts_with("id_ed25519")
+            || comp_str.starts_with("id_ecdsa")
+            || comp_str.starts_with("id_dsa")
+        {
+            return true;
+        }
+    }
+
+    if let Some(file_name) = path.file_name() {
+        let name = file_name.to_string_lossy().to_ascii_lowercase();
+        if name == "cargo.lock" {
+            return true;
+        }
+        if name == ".env" || name.starts_with(".env.") || name.ends_with(".env") {
+            return true;
+        }
+        if name == "id_rsa"
+            || name == "id_ed25519"
+            || name == "id_ecdsa"
+            || name == "id_dsa"
+            || name == "authorized_keys"
+            || name == "known_hosts"
+            || name.starts_with("id_rsa")
+            || name.starts_with("id_ed25519")
+            || name.starts_with("id_ecdsa")
+            || name.starts_with("id_dsa")
+        {
+            return true;
+        }
+    }
+
+    for seg in lower.split('/') {
+        if seg == ".git" || seg == ".ssh" || seg == "target" || seg == "cargo.lock" {
+            return true;
+        }
+        if seg == ".env" || seg.starts_with(".env.") || seg.ends_with(".env") {
+            return true;
+        }
+        if seg == "id_rsa"
+            || seg == "id_ed25519"
+            || seg == "id_ecdsa"
+            || seg == "id_dsa"
+            || seg == "authorized_keys"
+            || seg == "known_hosts"
+            || seg.starts_with("id_rsa")
+            || seg.starts_with("id_ed25519")
+            || seg.starts_with("id_ecdsa")
+            || seg.starts_with("id_dsa")
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Checks if a file or directory is a symbolic link or Windows reparse point (junction).
+pub fn is_symlink_or_reparse_point(path: &Path) -> bool {
+    if let Ok(meta) = path.symlink_metadata() {
+        if meta.file_type().is_symlink() {
+            return true;
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+            if (meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT) != 0 {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Verifies whether any ancestor or component along the path from root to target is a symlink or reparse point.
+pub fn contains_symlink_or_reparse(root: &Path, rel: &Path) -> bool {
+    let mut current = root.to_path_buf();
+    for comp in rel.components() {
+        if let std::path::Component::Normal(c) = comp {
+            current.push(c);
+            if is_symlink_or_reparse_point(&current) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn strip_verbatim_prefix(path: &Path) -> PathBuf {
+    let s = path.to_string_lossy();
+    if let Some(stripped) = s.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{}", stripped))
+    } else if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/// Checks whether `child` is contained inside `parent` (case-insensitively on Windows, case-sensitively on Unix).
+pub fn path_is_contained(child: &Path, parent: &Path) -> bool {
+    let norm_child = strip_verbatim_prefix(child);
+    let norm_parent = strip_verbatim_prefix(parent);
+
+    #[cfg(windows)]
+    {
+        let child_comps: Vec<_> = norm_child
+            .components()
+            .map(|c| c.as_os_str().to_string_lossy().to_ascii_lowercase())
+            .collect();
+        let parent_comps: Vec<_> = norm_parent
+            .components()
+            .map(|c| c.as_os_str().to_string_lossy().to_ascii_lowercase())
+            .collect();
+
+        if child_comps.len() < parent_comps.len() {
+            return false;
+        }
+        child_comps[..parent_comps.len()] == parent_comps[..]
+    }
+
+    #[cfg(not(windows))]
+    {
+        norm_child.starts_with(&norm_parent)
+    }
+}
+
+/// Validates that a relative path does not escape the repository root, does not target protected files,
+/// and contains no symlinks or Windows reparse points.
+pub fn validate_path(root: &Path, rel: &Path) -> Result<(), PatchError> {
+    if rel.is_absolute() {
+        return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+    }
+
+    let rel_str = rel.to_string_lossy();
+    if rel_str.contains("..") {
+        return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+    }
+
+    for comp in rel.components() {
+        match comp {
+            std::path::Component::Prefix(_)
+            | std::path::Component::RootDir
+            | std::path::Component::ParentDir => {
+                return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+            }
+            _ => {}
+        }
+    }
+
+    if is_protected_file(rel) {
+        return Err(PatchError::ProtectedFile(rel.to_path_buf()));
+    }
+
+    if contains_symlink_or_reparse(root, rel) {
+        return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+    }
+
+    let full_target = root.join(rel);
+    if is_symlink_or_reparse_point(&full_target) {
+        return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+    }
+
+    let mut check_path = full_target.clone();
+    while !check_path.exists() {
+        if let Some(parent) = check_path.parent() {
+            check_path = parent.to_path_buf();
+        } else {
+            break;
+        }
+    }
+
+    if let (Ok(canon_check), Ok(canon_root)) = (check_path.canonicalize(), root.canonicalize()) {
+        if !path_is_contained(&canon_check, &canon_root) {
+            return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+        }
+    } else if !path_is_contained(&check_path, root) {
+        return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
+    }
+
+    Ok(())
+}
+
 pub struct PatchTransaction {
     root_path: PathBuf,
     patches: Vec<FilePatch>,
@@ -68,44 +274,7 @@ impl PatchTransaction {
     pub fn validate(&self) -> Result<(), PatchError> {
         for patch in &self.patches {
             let rel = &patch.relative_path;
-            let rel_str = rel.to_string_lossy();
-
-            if rel.is_absolute()
-                || rel.components().any(|c| {
-                    matches!(
-                        c,
-                        std::path::Component::Prefix(_)
-                            | std::path::Component::RootDir
-                            | std::path::Component::ParentDir
-                    )
-                })
-            {
-                return Err(PatchError::BoundaryViolation(rel.clone()));
-            }
-
-            if rel_str.contains(".git")
-                || rel_str == ".env"
-                || rel_str.starts_with("target")
-                || rel_str.contains(".ssh")
-            {
-                return Err(PatchError::ProtectedFile(rel.clone()));
-            }
-
-            // Verify canonical path does not escape root (symlink/reparse defense)
-            let full_target = self.root_path.join(rel);
-            let check_path = if full_target.exists() {
-                full_target.clone()
-            } else if let Some(parent) = full_target.parent() {
-                parent.to_path_buf()
-            } else {
-                self.root_path.clone()
-            };
-
-            if let (Ok(canon_check), Ok(canon_root)) = (check_path.canonicalize(), self.root_path.canonicalize()) {
-                if !canon_check.starts_with(&canon_root) {
-                    return Err(PatchError::BoundaryViolation(rel.clone()));
-                }
-            }
+            validate_path(&self.root_path, rel)?;
 
             // Run secret scanner
             if let Err(detected) = SecretScanner::scan_patch(rel, &patch.new_content) {
@@ -123,17 +292,12 @@ impl PatchTransaction {
         let patches = self.patches.clone();
 
         for patch in patches {
-            let full_path = self.root_path.join(&patch.relative_path);
-
-            // Symlink / reparse boundary check on target
-            if let Some(parent) = full_path.parent() {
-                if let (Ok(canon_parent), Ok(canon_root)) = (parent.canonicalize(), self.root_path.canonicalize()) {
-                    if !canon_parent.starts_with(&canon_root) {
-                        self.rollback();
-                        return Err(PatchError::BoundaryViolation(patch.relative_path));
-                    }
-                }
+            if let Err(e) = validate_path(&self.root_path, &patch.relative_path) {
+                self.rollback();
+                return Err(e);
             }
+
+            let full_path = self.root_path.join(&patch.relative_path);
 
             let original = if full_path.exists() {
                 match std::fs::read_to_string(&full_path) {
@@ -246,50 +410,14 @@ impl PatchEngine {
     ) -> Result<String, PatchError> {
         let rel = relative_path.as_ref();
         let rel_str = rel.to_string_lossy();
-
-        if rel.is_absolute()
-            || rel.components().any(|c| {
-                matches!(
-                    c,
-                    std::path::Component::Prefix(_)
-                        | std::path::Component::RootDir
-                        | std::path::Component::ParentDir
-                )
-            })
-        {
-            return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
-        }
-
-        // Validate protected paths
-        if rel_str.contains(".git")
-            || rel_str == ".env"
-            || rel_str.starts_with("target")
-            || rel_str.contains(".ssh")
-        {
-            return Err(PatchError::ProtectedFile(rel.to_path_buf()));
-        }
-
-        let full_path = self.root_path.join(rel);
-
-        // Symlink / reparse escape check
-        let check_path = if full_path.exists() {
-            full_path.clone()
-        } else if let Some(parent) = full_path.parent() {
-            parent.to_path_buf()
-        } else {
-            self.root_path.clone()
-        };
-
-        if let (Ok(canon_check), Ok(canon_root)) = (check_path.canonicalize(), self.root_path.canonicalize()) {
-            if !canon_check.starts_with(&canon_root) {
-                return Err(PatchError::BoundaryViolation(rel.to_path_buf()));
-            }
-        }
+        validate_path(&self.root_path, rel)?;
 
         // Secret scan
         if let Err(detected) = SecretScanner::scan_patch(rel, new_content) {
             return Err(PatchError::SecretDetected(detected));
         }
+
+        let full_path = self.root_path.join(rel);
 
         let original = if full_path.exists() {
             std::fs::read_to_string(&full_path)?
@@ -426,4 +554,88 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&f1).unwrap(), "initial1");
         assert_eq!(std::fs::read_to_string(&f2).unwrap(), "initial2");
     }
+
+    #[test]
+    fn test_cargo_lock_and_env_and_ssh_rejection() {
+        let dir = tempdir().unwrap();
+        let mut engine = PatchEngine::new(dir.path());
+
+        // Cargo.lock rejection
+        let res_lock = engine.apply_modification("Cargo.lock", "# lockfile");
+        assert!(matches!(res_lock, Err(PatchError::ProtectedFile(_))));
+
+        let res_lock_nested = engine.apply_modification("crates/foo/Cargo.lock", "# nested lockfile");
+        assert!(matches!(res_lock_nested, Err(PatchError::ProtectedFile(_))));
+
+        // .env variations
+        let res_env_local = engine.apply_modification(".env.local", "FOO=BAR");
+        assert!(matches!(res_env_local, Err(PatchError::ProtectedFile(_))));
+
+        let res_env_prod = engine.apply_modification("config/.env.production", "FOO=BAR");
+        assert!(matches!(res_env_prod, Err(PatchError::ProtectedFile(_))));
+
+        // SSH keys
+        let res_ssh_dir = engine.apply_modification(".ssh/id_rsa", "fake_key");
+        assert!(matches!(res_ssh_dir, Err(PatchError::ProtectedFile(_))));
+
+        let res_id_rsa = engine.apply_modification("id_rsa", "fake_key");
+        assert!(matches!(res_id_rsa, Err(PatchError::ProtectedFile(_))));
+
+        let res_id_ed25519 = engine.apply_modification("id_ed25519", "fake_key");
+        assert!(matches!(res_id_ed25519, Err(PatchError::ProtectedFile(_))));
+
+        let res_auth_keys = engine.apply_modification("authorized_keys", "ssh-rsa ...");
+        assert!(matches!(res_auth_keys, Err(PatchError::ProtectedFile(_))));
+
+        // .git directory
+        let res_git = engine.apply_modification(".git/config", "[core]");
+        assert!(matches!(res_git, Err(PatchError::ProtectedFile(_))));
+
+        let res_git_nested = engine.apply_modification("sub/.git/HEAD", "ref: refs/heads/main");
+        assert!(matches!(res_git_nested, Err(PatchError::ProtectedFile(_))));
+    }
+
+    #[test]
+    fn test_path_traversal_rejection() {
+        let dir = tempdir().unwrap();
+        let mut engine = PatchEngine::new(dir.path());
+
+        let res1 = engine.apply_modification("../escape.rs", "fn evil() {}");
+        assert!(matches!(res1, Err(PatchError::BoundaryViolation(_))));
+
+        let res2 = engine.apply_modification("sub/../../escape.rs", "fn evil() {}");
+        assert!(matches!(res2, Err(PatchError::BoundaryViolation(_))));
+
+        let mut tx = PatchTransaction::new(dir.path());
+        tx.add_change("../escape.rs", "fn evil() {}");
+        assert!(matches!(tx.apply(), Err(PatchError::BoundaryViolation(_))));
+    }
+
+    #[test]
+    fn test_symlink_or_reparse_point_rejection() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // Check if Windows junction creation is supported in this environment
+        #[cfg(windows)]
+        {
+            let target_dir = root.join("target_folder");
+            let junction_dir = root.join("junc_link");
+            std::fs::create_dir_all(&target_dir).unwrap();
+            let status = std::process::Command::new("cmd")
+                .args(["/c", "mklink", "/J", &junction_dir.to_string_lossy(), &target_dir.to_string_lossy()])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+
+            if let Ok(st) = status {
+                if st.success() {
+                    let mut engine = PatchEngine::new(root);
+                    let res = engine.apply_modification("junc_link/evil.rs", "fn exploit() {}");
+                    assert!(matches!(res, Err(PatchError::BoundaryViolation(_))));
+                }
+            }
+        }
+    }
 }
+

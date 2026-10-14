@@ -86,6 +86,7 @@ pub struct VoicePipeline {
     streaming_response_handler: StreamingResponseHandler,
     listening_task: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>>,
     tts_task: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>>,
+    llm_task: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>>,
     tts_stop: Arc<Notify>,
     stop_signal: Arc<Notify>,
     is_running: Arc<AtomicBool>,
@@ -141,6 +142,7 @@ impl VoicePipeline {
             streaming_response_handler: Arc::new(RwLock::new(None)),
             listening_task: Arc::new(RwLock::new(None)),
             tts_task: Arc::new(RwLock::new(None)),
+            llm_task: Arc::new(RwLock::new(None)),
             tts_stop: Arc::new(Notify::new()),
             stop_signal: Arc::new(Notify::new()),
             is_running: Arc::new(AtomicBool::new(false)),
@@ -200,6 +202,7 @@ impl VoicePipeline {
             streaming_response_handler: Arc::new(RwLock::new(None)),
             listening_task: Arc::new(RwLock::new(None)),
             tts_task: Arc::new(RwLock::new(None)),
+            llm_task: Arc::new(RwLock::new(None)),
             tts_stop: Arc::new(Notify::new()),
             stop_signal: Arc::new(Notify::new()),
             is_running: Arc::new(AtomicBool::new(false)),
@@ -367,6 +370,10 @@ impl VoicePipeline {
             m.interruption_count += 1;
         }
 
+        if let Some(task) = self.llm_task.write().await.take() {
+            task.abort();
+        }
+
         if let Some(task) = self.tts_task.write().await.take() {
             task.abort();
             let _ = tokio::time::timeout(
@@ -375,9 +382,13 @@ impl VoicePipeline {
             )
             .await;
         }
+
+        if let Some(ref mut output) = *self.audio_output.write().await {
+            let _ = output.clear().await;
+        }
     }
 
-    /// Fast barge-in: fade TTS in <100ms and resume STT instantly.
+    /// Fast barge-in: fade TTS in <100ms, abort streaming LLM tokens, drain output queue, and emit Interrupted event.
     pub async fn barge_in(&self) {
         if !self.is_speaking.load(Ordering::Relaxed) {
             return;
@@ -389,17 +400,23 @@ impl VoicePipeline {
         self.is_speaking.store(false, Ordering::Relaxed);
         self.tts_stop.notify_one();
 
+        // Abort in-flight streaming LLM tokens
+        let cancelled_tokens = if let Some(task) = self.llm_task.write().await.take() {
+            task.abort();
+            true
+        } else {
+            false
+        };
+
         // Abort TTS task
         if let Some(task) = self.tts_task.write().await.take() {
             task.abort();
             let _ = tokio::time::timeout(tokio::time::Duration::from_millis(50), task).await;
         }
 
-        // Write silence to output to achieve instant fade
+        // Drain audio output queue immediately
         if let Some(ref mut output) = *self.audio_output.write().await {
-            let silence =
-                voxy_audio::AudioPacket::silence(480, self.config.audio.output.sample_rate, 1);
-            let _ = output.write(&silence).await;
+            let _ = output.clear().await;
         }
 
         let elapsed = barge_start.elapsed().as_millis() as f64;
@@ -409,7 +426,47 @@ impl VoicePipeline {
             m.interruption_count += 1;
         }
 
+        let signal = voxy_voice_orchestrator::InterruptionSignal::new("barge_in")
+            .with_cancelled_tokens(cancelled_tokens);
+
+        if let Some(ref handler) = *self.event_handler.read().await {
+            handler(VoiceEvent::Interrupted { signal });
+        }
+
         tracing::info!("Barge-in completed in {:.1}ms", elapsed);
+    }
+
+    /// Explicitly interrupt pipeline: halts TTS playback and streaming LLM tokens, drains audio queue, and emits Interrupted event.
+    pub async fn interrupt(&self, signal: voxy_voice_orchestrator::InterruptionSignal) -> Result<()> {
+        self.is_speaking.store(false, Ordering::Relaxed);
+        self.tts_stop.notify_one();
+
+        let mut cancelled_tokens = signal.cancelled_tokens;
+        if let Some(task) = self.llm_task.write().await.take() {
+            task.abort();
+            cancelled_tokens = true;
+        }
+
+        if let Some(task) = self.tts_task.write().await.take() {
+            task.abort();
+            let _ = tokio::time::timeout(tokio::time::Duration::from_millis(50), task).await;
+        }
+
+        if let Some(ref mut output) = *self.audio_output.write().await {
+            let _ = output.clear().await;
+        }
+
+        {
+            let mut m = self.metrics.write().await;
+            m.interruption_count += 1;
+        }
+
+        let updated_signal = signal.with_cancelled_tokens(cancelled_tokens);
+        if let Some(ref handler) = *self.event_handler.read().await {
+            handler(VoiceEvent::Interrupted { signal: updated_signal });
+        }
+
+        Ok(())
     }
 
     pub async fn wake(&self) {
@@ -515,8 +572,7 @@ impl VoicePipeline {
         let latest_partial: Arc<std::sync::Mutex<String>> =
             Arc::new(std::sync::Mutex::new(String::new()));
         let partial_paused: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-        let llm_task_handle: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>> =
-            Arc::new(RwLock::new(None));
+        let llm_task_handle = self.llm_task.clone();
         let (utt_tx, mut utt_rx) = mpsc::channel::<voxy_voice_orchestrator::AudioChunk>(16);
 
         if speculative_enabled {
@@ -811,6 +867,12 @@ impl VoicePipeline {
                             is_speaking.store(false, Ordering::Relaxed);
                             tts_stop.notify_one();
 
+                            let mut cancelled_tokens = false;
+                            if let Some(task) = llm_task_handle.write().await.take() {
+                                task.abort();
+                                cancelled_tokens = true;
+                            }
+
                             if let Some(task) = tts_task_handle.write().await.take() {
                                 task.abort();
                                 let _ = tokio::time::timeout(
@@ -820,33 +882,20 @@ impl VoicePipeline {
                                 .await;
                             }
 
-                            // Write fade-out silence to output for smooth transition
+                            // Immediately drain audio output buffer
                             if let Some(ref mut output) = *audio_output.write().await {
-                                let fade_frames = (config.audio.output.sample_rate as u64
-                                    * BARGE_IN_CROSSFADE_MS as u64
-                                    / 1000)
-                                    as usize;
-                                let fade_samples =
-                                    fade_frames * config.audio.output.channels as usize;
-                                let mut fade_buf: Vec<f32> = Vec::with_capacity(fade_samples);
-                                for i in 0..fade_frames {
-                                    let progress = i as f32 / fade_frames.max(1) as f32;
-                                    let sample = (1.0 - progress) * 0.0;
-                                    for _ in 0..config.audio.output.channels {
-                                        fade_buf.push(sample);
-                                    }
-                                }
-                                let pkt = voxy_audio::AudioPacket::new(
-                                    fade_buf,
-                                    config.audio.output.sample_rate,
-                                    config.audio.output.channels,
-                                );
-                                let _ = output.write(&pkt).await;
+                                let _ = output.clear().await;
                             }
 
                             let mut m = streaming_metrics.write().await;
                             m.interruption_count += 1;
                             m.barge_in_latency_ms = 0.0;
+
+                            let signal = voxy_voice_orchestrator::InterruptionSignal::new("user_speech")
+                                .with_cancelled_tokens(cancelled_tokens);
+                            if let Some(ref handler) = *event_handler.read().await {
+                                handler(VoiceEvent::Interrupted { signal });
+                            }
 
                             voice_frames_during_tts = 0;
                         }
