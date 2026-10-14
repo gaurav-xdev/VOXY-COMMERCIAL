@@ -5,13 +5,10 @@
 //! - Scenario 2: Full Voice Interaction & Interruption Loop (Capture -> VAD -> STT -> Streaming -> Playback -> Barge-in)
 //! - Scenario 3: Production Release Packaging & Deployment Verification (NSIS, SHA-256, Binaries)
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use osmoo_e2e_tests::*;
-use tempfile::TempDir;
 use tokio::time::timeout;
 
 use voxy_harness::diagnostic_parser::{DiagnosticParser, DiagnosticSeverity};
@@ -96,8 +93,35 @@ async fn test_tier4_scenario2_voice_interaction_and_interruption_loop() {
 
     // 2. Connect Overlay Client
     let client = VoxyIpcClient::with_pipe_name_and_auth(&pipe_name, Some(auth_token.clone()));
+    let mut conn_watcher = client.watch_connected();
     let mut event_rx = client.subscribe();
     client.start();
+
+    // Await authenticated connection
+    let connected = timeout(Duration::from_secs(5), async {
+        while !*conn_watcher.borrow_and_update() {
+            if conn_watcher.changed().await.is_err() {
+                break;
+            }
+        }
+        true
+    })
+    .await
+    .unwrap_or(false);
+    assert!(connected, "Client must connect to server successfully");
+
+    // Await initial snapshot to confirm full pipe handshake and subscription
+    let got_snapshot = timeout(Duration::from_secs(3), async {
+        while let Ok(msg) = event_rx.recv().await {
+            if matches!(msg, DaemonMessage::StateSnapshot { .. }) {
+                return true;
+            }
+        }
+        false
+    })
+    .await
+    .unwrap_or(false);
+    assert!(got_snapshot, "Client must receive initial StateSnapshot from server");
 
     // 3. User Speech Audio Ingestion -> VAD Trigger
     let vad = EnergyVadDetector::new(0.01, 16000).with_min_speech_frames(1);
