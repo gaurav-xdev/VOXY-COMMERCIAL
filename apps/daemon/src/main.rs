@@ -658,6 +658,11 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 srv.set_voice_state(voxy_ipc::VoiceState::Error, None).await;
                             });
                         }
+                        voxy_voice::VoiceEvent::Interrupted { signal } => {
+                            tokio::spawn(async move {
+                                srv.set_voice_state(voxy_ipc::VoiceState::Interrupted, Some(signal.reason)).await;
+                            });
+                        }
                         voxy_voice::VoiceEvent::PipelineStateChanged { state } => {
                             let st = match state.to_lowercase().as_str() {
                                 "idle" => voxy_ipc::VoiceState::Idle,
