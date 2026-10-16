@@ -57,12 +57,23 @@ pub fn OnboardingWizard(
                 div { class: "wizard-header",
                     div { class: "wizard-step-pills",
                         for s in 1..=3 {
-                            div {
-                                class: format!("{}", if s == step_num { "step-pill active" } else if s < step_num { "step-pill completed" } else { "step-pill" }),
-                                if s < step_num {
-                                    IconCheck { size: 14 }
+                            {
+                                let pill_class = if s == step_num {
+                                    "step-pill active"
+                                } else if s < step_num {
+                                    "step-pill completed"
                                 } else {
-                                    span { "{s}" }
+                                    "step-pill"
+                                };
+                                rsx! {
+                                    div {
+                                        class: "{pill_class}",
+                                        if s < step_num {
+                                            IconCheck { size: 14 }
+                                        } else {
+                                            span { "{s}" }
+                                        }
+                                    }
                                 }
                             }
                         }
