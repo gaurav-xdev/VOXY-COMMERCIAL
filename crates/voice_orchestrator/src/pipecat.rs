@@ -7,12 +7,12 @@
 //!   guaranteed to be terminated by the Windows kernel without leaving orphan processes.
 //! - Monitors health, readiness handshake, and provides exponential backoff crash recovery.
 
+use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[cfg(windows)]
@@ -61,8 +61,9 @@ impl WindowsJobObject {
     pub fn new() -> Result<Self, SupervisorError> {
         #[cfg(windows)]
         unsafe {
-            let handle = CreateJobObjectW(None, None)
-                .map_err(|e| SupervisorError::JobObjectInitFailed(format!("CreateJobObjectW failed: {e}")))?;
+            let handle = CreateJobObjectW(None, None).map_err(|e| {
+                SupervisorError::JobObjectInitFailed(format!("CreateJobObjectW failed: {e}"))
+            })?;
 
             let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -78,7 +79,9 @@ impl WindowsJobObject {
                 SupervisorError::JobObjectInitFailed(format!("SetInformationJobObject failed: {e}"))
             })?;
 
-            tracing::info!("[PIPECAT-SUPERVISOR] Windows Job Object created with KILL_ON_JOB_CLOSE");
+            tracing::info!(
+                "[PIPECAT-SUPERVISOR] Windows Job Object created with KILL_ON_JOB_CLOSE"
+            );
             Ok(Self { handle })
         }
 
@@ -93,16 +96,24 @@ impl WindowsJobObject {
         #[cfg(windows)]
         unsafe {
             let proc_handle = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, false, pid)
-                .map_err(|e| SupervisorError::AssignProcessFailed(pid, format!("OpenProcess failed: {e}")))?;
+                .map_err(|e| {
+                    SupervisorError::AssignProcessFailed(pid, format!("OpenProcess failed: {e}"))
+                })?;
 
             let assign_res = AssignProcessToJobObject(self.handle, proc_handle);
             let _ = CloseHandle(proc_handle);
 
             assign_res.map_err(|e| {
-                SupervisorError::AssignProcessFailed(pid, format!("AssignProcessToJobObject failed: {e}"))
+                SupervisorError::AssignProcessFailed(
+                    pid,
+                    format!("AssignProcessToJobObject failed: {e}"),
+                )
             })?;
 
-            tracing::info!(pid, "[PIPECAT-SUPERVISOR] Assigned child process to Windows Job Object");
+            tracing::info!(
+                pid,
+                "[PIPECAT-SUPERVISOR] Assigned child process to Windows Job Object"
+            );
             Ok(())
         }
 
@@ -326,7 +337,10 @@ impl PipecatSupervisor {
         *self.state.lock() = PipecatState::Ready;
         self.is_ready.store(true, Ordering::SeqCst);
 
-        tracing::info!(pid, "[PIPECAT-SUPERVISOR] Pipecat sidecar running and ready");
+        tracing::info!(
+            pid,
+            "[PIPECAT-SUPERVISOR] Pipecat sidecar running and ready"
+        );
         Ok(())
     }
 
@@ -348,7 +362,11 @@ impl PipecatSupervisor {
             loop {
                 match child.try_wait() {
                     Ok(Some(status)) => {
-                        tracing::info!(pid, ?status, "[PIPECAT-SUPERVISOR] Sidecar process exited cleanly");
+                        tracing::info!(
+                            pid,
+                            ?status,
+                            "[PIPECAT-SUPERVISOR] Sidecar process exited cleanly"
+                        );
                         return Ok(());
                     }
                     Ok(None) => {

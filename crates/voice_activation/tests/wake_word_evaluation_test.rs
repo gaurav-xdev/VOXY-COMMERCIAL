@@ -12,7 +12,10 @@ fn test_wake_word_evaluation_against_noise_silence_and_speech() {
             silence_activations += 1;
         }
     }
-    assert_eq!(silence_activations, 0, "Silence should never trigger wake word");
+    assert_eq!(
+        silence_activations, 0,
+        "Silence should never trigger wake word"
+    );
 
     // 2. Test Low-Level Background Noise (100 frames of random noise with RMS < 0.02)
     let noise_frame: Vec<f32> = (0..320).map(|i| ((i % 7) as f32 - 3.0) * 0.002).collect();
@@ -22,7 +25,10 @@ fn test_wake_word_evaluation_against_noise_silence_and_speech() {
             noise_activations += 1;
         }
     }
-    assert_eq!(noise_activations, 0, "Background noise below threshold should never trigger wake word");
+    assert_eq!(
+        noise_activations, 0,
+        "Background noise below threshold should never trigger wake word"
+    );
 
     // 3. Test Unrelated Monotone Speech / Hum (constant sine wave 200Hz, no syllable rhythm)
     let hum_frame: Vec<f32> = (0..320)
@@ -81,5 +87,8 @@ fn test_wake_word_evaluation_against_noise_silence_and_speech() {
     }
 
     println!("Target cadence activations: {}", target_activations);
-    assert!(target_activations > 0, "Target 3-syllable cadence should trigger wake word");
+    assert!(
+        target_activations > 0,
+        "Target 3-syllable cadence should trigger wake word"
+    );
 }

@@ -39,7 +39,10 @@ async fn test_sqlite_wal_mode_enforced_and_verified() {
     assert!(conv_store.is_wal_mode().await.expect("conv store wal mode"));
 
     let audit_store = SqliteAuditLogStore::new(&path_str).expect("SqliteAuditLogStore new");
-    assert!(audit_store.is_wal_mode().await.expect("audit store wal mode"));
+    assert!(audit_store
+        .is_wal_mode()
+        .await
+        .expect("audit store wal mode"));
 }
 
 #[tokio::test]
@@ -70,8 +73,7 @@ async fn test_data_persists_across_simulated_process_restart() {
             .expect("set config");
 
         // Populate conversations and messages with FTS5 indexing
-        let conv_store =
-            SqliteConversationStore::new(&path_str).expect("Phase 1 conv_store new");
+        let conv_store = SqliteConversationStore::new(&path_str).expect("Phase 1 conv_store new");
         let conv = conv_store
             .create_conversation("user-persist-42", Some("Persistent Session"))
             .await
@@ -100,8 +102,7 @@ async fn test_data_persists_across_simulated_process_restart() {
             .expect("add assistant message");
 
         // Record persistent audit logs
-        let audit_store =
-            SqliteAuditLogStore::new(&path_str).expect("Phase 1 audit_store new");
+        let audit_store = SqliteAuditLogStore::new(&path_str).expect("Phase 1 audit_store new");
         let audit_entry = AuditLogEntry {
             id: "audit-evt-001".to_string(),
             timestamp: chrono::Utc::now(),
@@ -155,8 +156,7 @@ async fn test_data_persists_across_simulated_process_restart() {
         assert_eq!(val2, b"production");
 
         // Verify conversations and messages survived restart
-        let conv_store2 =
-            SqliteConversationStore::new(&path_str).expect("Phase 2 conv_store new");
+        let conv_store2 = SqliteConversationStore::new(&path_str).expect("Phase 2 conv_store new");
         let convs = conv_store2
             .list_conversations("user-persist-42", 10, 0)
             .await
@@ -188,8 +188,7 @@ async fn test_data_persists_across_simulated_process_restart() {
         assert_eq!(raft_results[0].id, messages[1].id);
 
         // Verify audit log survived restart
-        let audit_store2 =
-            SqliteAuditLogStore::new(&path_str).expect("Phase 2 audit_store new");
+        let audit_store2 = SqliteAuditLogStore::new(&path_str).expect("Phase 2 audit_store new");
         let entries = audit_store2
             .get_entries(10, 0)
             .await
@@ -235,7 +234,11 @@ async fn test_concurrent_reader_pool_under_load() {
                 let key_idx = (reader_id + round) % 20;
                 let key = format!("concurrent_key_{key_idx}");
                 let expected = format!("val_{key_idx}").into_bytes();
-                let retrieved = db_clone.get(&key).await.expect("read get").expect("key exists");
+                let retrieved = db_clone
+                    .get(&key)
+                    .await
+                    .expect("read get")
+                    .expect("key exists");
                 assert_eq!(retrieved, expected);
             }
         });
@@ -269,11 +272,17 @@ async fn test_transaction_atomic_rollback_on_failure() {
     let good_batch = vec![
         (
             "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
-            vec![Value::String("tx_key_1".into()), Value::Bytes(b"val1".to_vec())],
+            vec![
+                Value::String("tx_key_1".into()),
+                Value::Bytes(b"val1".to_vec()),
+            ],
         ),
         (
             "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
-            vec![Value::String("tx_key_2".into()), Value::Bytes(b"val2".to_vec())],
+            vec![
+                Value::String("tx_key_2".into()),
+                Value::Bytes(b"val2".to_vec()),
+            ],
         ),
     ];
     let counts = db
@@ -288,7 +297,10 @@ async fn test_transaction_atomic_rollback_on_failure() {
     let failing_batch = vec![
         (
             "INSERT INTO kv_store (key, value) VALUES (?1, ?2)",
-            vec![Value::String("tx_key_3".into()), Value::Bytes(b"val3".to_vec())],
+            vec![
+                Value::String("tx_key_3".into()),
+                Value::Bytes(b"val3".to_vec()),
+            ],
         ),
         (
             "INSERT INTO non_existent_table_xyz (col) VALUES (?1)",

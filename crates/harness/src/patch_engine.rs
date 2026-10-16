@@ -323,7 +323,8 @@ impl PatchTransaction {
             }
 
             // Atomic file write via temporary file
-            let tmp_path = full_path.with_extension(format!("tmp_{}", uuid::Uuid::new_v4().simple()));
+            let tmp_path =
+                full_path.with_extension(format!("tmp_{}", uuid::Uuid::new_v4().simple()));
             if let Err(e) = std::fs::write(&tmp_path, &patch.new_content) {
                 let _ = std::fs::remove_file(&tmp_path);
                 self.rollback();
@@ -564,7 +565,8 @@ mod tests {
         let res_lock = engine.apply_modification("Cargo.lock", "# lockfile");
         assert!(matches!(res_lock, Err(PatchError::ProtectedFile(_))));
 
-        let res_lock_nested = engine.apply_modification("crates/foo/Cargo.lock", "# nested lockfile");
+        let res_lock_nested =
+            engine.apply_modification("crates/foo/Cargo.lock", "# nested lockfile");
         assert!(matches!(res_lock_nested, Err(PatchError::ProtectedFile(_))));
 
         // .env variations
@@ -623,7 +625,13 @@ mod tests {
             let junction_dir = root.join("junc_link");
             std::fs::create_dir_all(&target_dir).unwrap();
             let status = std::process::Command::new("cmd")
-                .args(["/c", "mklink", "/J", &junction_dir.to_string_lossy(), &target_dir.to_string_lossy()])
+                .args([
+                    "/c",
+                    "mklink",
+                    "/J",
+                    &junction_dir.to_string_lossy(),
+                    &target_dir.to_string_lossy(),
+                ])
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status();
@@ -638,4 +646,3 @@ mod tests {
         }
     }
 }
-

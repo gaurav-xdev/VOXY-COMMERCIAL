@@ -54,9 +54,9 @@ pub use sanitizer::{sanitize_context, sanitize_llm_output, sanitize_user_input, 
 pub use secrets::SecretVault;
 pub use signed::{ArtifactType, SignatureVerdict, SignatureVerifier, SignedArtifact};
 pub use ssrf::{
-    is_host_restricted, is_ip_restricted, is_ipv4_restricted, is_ipv6_restricted,
-    safe_connect_tcp, safe_resolve_destination, validate_destination_url,
-    validate_destination_url_str, validate_socket_addr,
+    is_host_restricted, is_ip_restricted, is_ipv4_restricted, is_ipv6_restricted, safe_connect_tcp,
+    safe_resolve_destination, validate_destination_url, validate_destination_url_str,
+    validate_socket_addr,
 };
 pub use threat::{ThreatDetector, ThreatSeverity};
 pub use token::{CapabilityToken, PermissionGrant};

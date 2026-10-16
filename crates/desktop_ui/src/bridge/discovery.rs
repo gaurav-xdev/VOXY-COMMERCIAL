@@ -119,9 +119,15 @@ mod tests {
     #[test]
     fn test_parse_empty_or_malformed_models() {
         let empty = serde_json::json!({ "models": [] });
-        assert_eq!(LocalModelDiscovery::parse_model_names(&empty), Vec::<String>::new());
+        assert_eq!(
+            LocalModelDiscovery::parse_model_names(&empty),
+            Vec::<String>::new()
+        );
 
         let malformed = serde_json::json!({ "error": "unknown model" });
-        assert_eq!(LocalModelDiscovery::parse_model_names(&malformed), Vec::<String>::new());
+        assert_eq!(
+            LocalModelDiscovery::parse_model_names(&malformed),
+            Vec::<String>::new()
+        );
     }
 }

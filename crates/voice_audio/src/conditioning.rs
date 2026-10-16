@@ -107,7 +107,10 @@ impl AudioConditioner {
                 self.noise_floor_est = 0.95 * self.noise_floor_est + 0.05 * chunk_rms;
             }
 
-            let threshold = self.config.noise_gate_threshold.max(self.noise_floor_est * 1.5);
+            let threshold = self
+                .config
+                .noise_gate_threshold
+                .max(self.noise_floor_est * 1.5);
             if chunk_rms < threshold {
                 let gain = self.config.noise_attenuation;
                 for sample in samples.iter_mut() {
@@ -174,7 +177,11 @@ mod tests {
 
         // After initial transient, high-pass filter must decay DC offset towards zero
         let tail_val = dc_samples[dc_samples.len() - 1].abs();
-        assert!(tail_val < 0.05, "DC offset must be eliminated: got {}", tail_val);
+        assert!(
+            tail_val < 0.05,
+            "DC offset must be eliminated: got {}",
+            tail_val
+        );
     }
 
     #[test]
@@ -195,7 +202,11 @@ mod tests {
 
         // Should be attenuated by ~0.1
         let max_val = noise_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
-        assert!(max_val <= 0.001, "Low noise should be attenuated by noise gate: got {}", max_val);
+        assert!(
+            max_val <= 0.001,
+            "Low noise should be attenuated by noise gate: got {}",
+            max_val
+        );
     }
 
     #[test]
@@ -213,7 +224,11 @@ mod tests {
         conditioner.process(&mut loud_samples);
 
         for &s in &loud_samples {
-            assert!(s.abs() <= 1.0, "Samples must be clamped within [-1.0, 1.0]: got {}", s);
+            assert!(
+                s.abs() <= 1.0,
+                "Samples must be clamped within [-1.0, 1.0]: got {}",
+                s
+            );
         }
     }
 }

@@ -143,7 +143,8 @@ impl CloudTtsEngine {
     ) -> Self {
         Self {
             api_key: api_key.into(),
-            endpoint: endpoint.unwrap_or_else(|| "https://api.openai.com/v1/audio/speech".to_string()),
+            endpoint: endpoint
+                .unwrap_or_else(|| "https://api.openai.com/v1/audio/speech".to_string()),
             model: model.unwrap_or_else(|| "tts-1".to_string()),
             voice: voice.unwrap_or_else(|| "alloy".to_string()),
             client: reqwest::Client::builder()
@@ -156,7 +157,9 @@ impl CloudTtsEngine {
     pub fn from_env() -> Result<Self, TtsError> {
         let key = std::env::var("OPENAI_API_KEY")
             .or_else(|_| std::env::var("VOXY_TTS_API_KEY"))
-            .map_err(|_| TtsError::MissingApiKey("No OPENAI_API_KEY or VOXY_TTS_API_KEY set".into()))?;
+            .map_err(|_| {
+                TtsError::MissingApiKey("No OPENAI_API_KEY or VOXY_TTS_API_KEY set".into())
+            })?;
         let endpoint = std::env::var("VOXY_TTS_ENDPOINT").ok();
         let model = std::env::var("VOXY_TTS_MODEL").ok();
         let voice = std::env::var("VOXY_TTS_VOICE").ok();
@@ -462,4 +465,3 @@ mod tests {
         assert!(matches!(err, TtsError::EmptyText));
     }
 }
-

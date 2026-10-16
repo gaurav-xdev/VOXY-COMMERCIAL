@@ -242,9 +242,7 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
 "##;
 
 #[component]
-pub fn AssistantCore(
-    state: CoreState,
-) -> Element {
+pub fn AssistantCore(state: CoreState) -> Element {
     let state_str = state.as_str();
     let state_label = state.label();
     let color = state.color_hex();

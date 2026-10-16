@@ -10,8 +10,8 @@ use voxy_conversation::{
     ConversationError, ConversationEvent, ConversationSession, HookEvent, InMemoryBargeInManager,
     InMemoryContextTracker, InMemoryHookRegistry, InMemorySession, InMemorySessionManager,
     InMemoryTurnManager, InMemoryWakeStateManager, PersonalityHook, PersonalityHookRegistry,
-    SessionId, SessionManager, SessionMetadata, SessionState, SignalPacket, TurnManager, TurnSource,
-    WakeState, WakeStateManager,
+    SessionId, SessionManager, SessionMetadata, SessionState, SignalPacket, TurnManager,
+    TurnSource, WakeState, WakeStateManager,
 };
 
 // ---------------------------------------------------------------------------

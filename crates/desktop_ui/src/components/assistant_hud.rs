@@ -1,8 +1,5 @@
+use crate::components::icons::{IconMessageSquare, IconSend, IconSettings, IconStopCircle};
 use dioxus::prelude::*;
-use crate::components::icons::{
-    IconAlertCircle, IconCheck, IconLayers, IconMessageSquare,
-    IconRefresh, IconSend, IconSettings, IconShield, IconStopCircle,
-};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChatTurn {
@@ -30,7 +27,11 @@ pub fn AssistantHud(
     let mut drawer_open = use_signal(|| false);
     let mut prompt_input = use_signal(String::new);
 
-    let daemon_color = if telemetry.daemon_connected { "#10b981" } else { "#f59e0b" };
+    let daemon_color = if telemetry.daemon_connected {
+        "#10b981"
+    } else {
+        "#f59e0b"
+    };
 
     rsx! {
         div { class: "hud-root-layer",

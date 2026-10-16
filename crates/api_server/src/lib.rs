@@ -384,7 +384,9 @@ mod tests {
             purpose: "password_reset".to_string(),
         };
         let verify_wrong_resp = router
-            .dispatch(ApiRequest::new("POST", "/auth/otp/verify", "10.0.0.1").with_json(&wrong_verify))
+            .dispatch(
+                ApiRequest::new("POST", "/auth/otp/verify", "10.0.0.1").with_json(&wrong_verify),
+            )
             .await;
         assert_eq!(verify_wrong_resp.status_code, 401);
 
@@ -402,7 +404,9 @@ mod tests {
             new_password: "NewSuperSecretPassword123!".to_string(),
         };
         let bad_reset_resp = router
-            .dispatch(ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&bad_reset))
+            .dispatch(
+                ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&bad_reset),
+            )
             .await;
         assert_eq!(bad_reset_resp.status_code, 401);
 
@@ -421,7 +425,9 @@ mod tests {
             new_password: "NewSuperSecretPassword123!".to_string(),
         };
         let valid_reset_resp = router
-            .dispatch(ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&valid_reset))
+            .dispatch(
+                ApiRequest::new("POST", "/auth/password/reset", "10.0.0.1").with_json(&valid_reset),
+            )
             .await;
         assert_eq!(valid_reset_resp.status_code, 200);
 

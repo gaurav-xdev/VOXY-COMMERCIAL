@@ -242,8 +242,7 @@ fn init_bridge() -> AppBridge {
         };
 
         let intelligence_config = IntelligenceConfig::default();
-        let (exp_bridge, exp_input_tx, _exp_output_rx) =
-            ExperienceBridge::new(intelligence_config);
+        let (exp_bridge, exp_input_tx, _exp_output_rx) = ExperienceBridge::new(intelligence_config);
         exp_bridge.start().await;
         let exp_bridge = Arc::new(exp_bridge);
 
@@ -329,12 +328,18 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.iter().any(|arg| arg == "--version" || arg == "-v") {
-        println!("OSMOO — Windows AI Operating Companion v{}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "OSMOO — Windows AI Operating Companion v{}",
+            env!("CARGO_PKG_VERSION")
+        );
         return;
     }
 
     if args.iter().any(|arg| arg == "--help" || arg == "-h") {
-        println!("OSMOO — Windows AI Operating Companion v{}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "OSMOO — Windows AI Operating Companion v{}",
+            env!("CARGO_PKG_VERSION")
+        );
         println!("Usage: OSMOO.exe [OPTIONS]");
         println!();
         println!("Options:");
@@ -352,7 +357,9 @@ fn main() {
 
     let no_daemon = args.iter().any(|arg| arg == "--no-daemon");
     let no_overlay = args.iter().any(|arg| arg == "--no-overlay");
-    let daemon_only = args.iter().any(|arg| arg == "--daemon-only" || arg == "--headless");
+    let daemon_only = args
+        .iter()
+        .any(|arg| arg == "--daemon-only" || arg == "--headless");
     let is_autostart = args.iter().any(|arg| arg == "--autostart" || arg == "-a");
 
     let supervisor_config = SupervisorConfig {
@@ -375,7 +382,10 @@ fn main() {
 
     if args.iter().any(|arg| arg == "--status") {
         let status = supervisor.status();
-        println!("{}", serde_json::to_string_pretty(&status).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&status).unwrap_or_default()
+        );
         return;
     }
 
@@ -404,10 +414,7 @@ fn main() {
         window_builder = window_builder.with_visible(false);
     }
 
-    let head_content = format!(
-        "<style>{}</style>\n{}",
-        APP_CSS, THREE_JS_CORE_SCRIPT
-    );
+    let head_content = format!("<style>{}</style>\n{}", APP_CSS, THREE_JS_CORE_SCRIPT);
 
     let cfg = dioxus::desktop::Config::new()
         .with_window(window_builder)

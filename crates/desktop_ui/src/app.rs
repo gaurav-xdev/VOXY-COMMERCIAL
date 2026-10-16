@@ -17,8 +17,8 @@ pub enum AppScreen {
 #[component]
 pub fn App() -> Element {
     let mut screen = use_signal(|| AppScreen::Splash);
-    let mut splash_progress = use_signal(|| 0.15f32);
-    let mut splash_status = use_signal(|| "INITIALIZING HARDWARE SUBSYSTEMS...".to_string());
+    let splash_progress = use_signal(|| 0.15f32);
+    let splash_status = use_signal(|| "INITIALIZING HARDWARE SUBSYSTEMS...".to_string());
 
     let mut core_state = use_signal(|| CoreState::Idle);
     let mut show_settings = use_signal(|| false);
@@ -27,19 +27,18 @@ pub fn App() -> Element {
         vec![ChatTurn {
             id: 1,
             sender: "OSMOO Core".to_string(),
-            text: "OSMOO Windows AI Operating Companion online. Ready for interaction."
-                .to_string(),
+            text: "OSMOO Windows AI Operating Companion online. Ready for interaction.".to_string(),
             timestamp: "System Init".to_string(),
             is_user: false,
         }]
     });
 
-    let mut telemetry = use_signal(|| TelemetryStats {
+    let telemetry = use_signal(|| TelemetryStats {
         daemon_connected: false,
         active_llm: "Ollama (Local)".to_string(),
     });
 
-    let mut discovered_models = use_signal(Vec::new);
+    let discovered_models = use_signal(Vec::new);
 
     // Initial Startup Splash Telemetry Task
     use_effect(move || {

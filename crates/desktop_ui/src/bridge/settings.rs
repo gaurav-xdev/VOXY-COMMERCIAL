@@ -16,7 +16,10 @@ impl SettingsBridge {
         self.manager.get()
     }
 
-    pub fn update(&self, settings: voxy_desktop_runtime::settings::SettingsSnapshot) -> Result<(), String> {
+    pub fn update(
+        &self,
+        settings: voxy_desktop_runtime::settings::SettingsSnapshot,
+    ) -> Result<(), String> {
         self.manager
             .update(settings)
             .map_err(|e| format!("Update failed: {}", e))
@@ -28,7 +31,9 @@ impl SettingsBridge {
             .map_err(|e| format!("Rollback failed: {}", e))
     }
 
-    pub fn subscribe(&self) -> tokio::sync::watch::Receiver<voxy_desktop_runtime::settings::SettingsSnapshot> {
+    pub fn subscribe(
+        &self,
+    ) -> tokio::sync::watch::Receiver<voxy_desktop_runtime::settings::SettingsSnapshot> {
         self.manager.subscribe()
     }
 }

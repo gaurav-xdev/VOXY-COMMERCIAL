@@ -32,8 +32,8 @@ use voxy_security::{
     CapabilityRegistry, GuardianConfig, GuardianEngine, PolicyEngine, RecoveryMode,
     SystemPromptBuilder,
 };
-use voxy_world_model::{DesktopEventBridge, WorldModelConfig};
 use voxy_voice_tts::TtsEngine;
+use voxy_world_model::{DesktopEventBridge, WorldModelConfig};
 
 static CHAT_MSG_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -545,7 +545,9 @@ fn create_stt_engine() -> Arc<dyn voxy_voice_stt::SttEngine> {
                 "[VOICE] Groq STT not configured ({}), using Local Whisper STT adapter",
                 e
             );
-            Arc::new(voxy_voice_stt::LocalWhisperSttEngine::new("whisper-base.en"))
+            Arc::new(voxy_voice_stt::LocalWhisperSttEngine::new(
+                "whisper-base.en",
+            ))
         }
     }
 }
@@ -567,7 +569,9 @@ fn create_tts_engine() -> Arc<dyn voxy_voice_tts::TtsEngine> {
                     "[VOICE] Cloud TTS not configured ({}), using Local TTS engine",
                     e
                 );
-                Arc::new(voxy_voice_tts::LocalTtsEngine::new("Microsoft David Desktop"))
+                Arc::new(voxy_voice_tts::LocalTtsEngine::new(
+                    "Microsoft David Desktop",
+                ))
             }
         }
     }
@@ -602,7 +606,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 tts_engine,
                 Some(ipc_server.clone()),
             )
-            .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?
+            .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?,
         );
         tracing::info!("[VOICE] Production VoicePipeline initialized with low-latency audio capture and streaming TTS");
 
@@ -1509,7 +1513,9 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                 tracing::warn!("[VOICE] Pipecat sidecar startup warning: {e}");
             }
         }
-        tracing::info!("[VOICE] Production VoicePipeline active and listening on Windows microphone.");
+        tracing::info!(
+            "[VOICE] Production VoicePipeline active and listening on Windows microphone."
+        );
 
         // ── VOXY COM IPC Inbound Command Processing Loop ──
         {
@@ -1595,8 +1601,10 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             ipc_srv.broadcast_routing_status(
                                 mode,
                                 llm_provider_name.clone(),
-                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)".to_string(),
-                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)".to_string(),
+                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)"
+                                    .to_string(),
+                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)"
+                                    .to_string(),
                                 false,
                             );
                         }
@@ -1693,192 +1701,192 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         // ── Main Loop: Desktop context → Experience Layer ─────────────────
         loop {
             tokio::select! {
-                    _ = timer.tick() => {
-                        if !running.load(Ordering::Relaxed) {
-                            break;
-                        }
-                        let ctx = bridge_clone.get_current_context().await;
+                _ = timer.tick() => {
+                    if !running.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let ctx = bridge_clone.get_current_context().await;
 
-                        // Build desktop context string for LLM
-                        let ctx_str = format!(
-                            "App: {}, Activity: {}, Window: {}, Idle: {}",
-                            ctx.focused_app.as_deref().unwrap_or("none"),
-                            ctx.activity_type.as_deref().unwrap_or("none"),
-                            ctx.window_title.as_deref().unwrap_or("none"),
-                            ctx.is_idle,
-                        );
-                        *desktop_ctx_clone.write().await = ctx_str;
+                    // Build desktop context string for LLM
+                    let ctx_str = format!(
+                        "App: {}, Activity: {}, Window: {}, Idle: {}",
+                        ctx.focused_app.as_deref().unwrap_or("none"),
+                        ctx.activity_type.as_deref().unwrap_or("none"),
+                        ctx.window_title.as_deref().unwrap_or("none"),
+                        ctx.is_idle,
+                    );
+                    *desktop_ctx_clone.write().await = ctx_str;
 
-                        guard_clone.heartbeat("voice_pipeline");
-                        guard_clone.heartbeat("cognitive_bridge");
-                        guard_clone.heartbeat("experience_bridge");
-                        guard_clone.heartbeat("desktop_bridge");
+                    guard_clone.heartbeat("voice_pipeline");
+                    guard_clone.heartbeat("cognitive_bridge");
+                    guard_clone.heartbeat("experience_bridge");
+                    guard_clone.heartbeat("desktop_bridge");
 
-                        tracing::debug!(
-                            app = ?ctx.focused_app,
-                            activity = ?ctx.activity_type,
-                            idle = ctx.is_idle,
-                            "Desktop context"
-                        );
+                    tracing::debug!(
+                        app = ?ctx.focused_app,
+                        activity = ?ctx.activity_type,
+                        idle = ctx.is_idle,
+                        "Desktop context"
+                    );
 
-                        // Feed desktop events → Experience Layer
-                        if let Some(ref app) = ctx.focused_app {
-                            if last_focused_app.as_ref() != Some(app) {
-                                let _ = exp_input_tx_clone.send(ExperienceInput::DesktopFocusChanged {
-                                    app: app.clone(),
-                                    window_title: ctx.window_title.clone(),
-                                });
-                                last_focused_app = Some(app.clone());
-                            }
-                        }
-
-                        if let Some(ref activity) = ctx.activity_type {
-                            if last_activity.as_ref() != Some(activity) {
-                                let _ = exp_input_tx_clone.send(ExperienceInput::DesktopActivityChanged {
-                                    activity: activity.clone(),
-                                });
-                                last_activity = Some(activity.clone());
-                            }
-                        }
-
-                        if last_idle != Some(ctx.is_idle) {
-                            let _ = exp_input_tx_clone.send(ExperienceInput::DesktopIdle {
-                                is_idle: ctx.is_idle,
+                    // Feed desktop events → Experience Layer
+                    if let Some(ref app) = ctx.focused_app {
+                        if last_focused_app.as_ref() != Some(app) {
+                            let _ = exp_input_tx_clone.send(ExperienceInput::DesktopFocusChanged {
+                                app: app.clone(),
+                                window_title: ctx.window_title.clone(),
                             });
-                            last_idle = Some(ctx.is_idle);
+                            last_focused_app = Some(app.clone());
+                        }
+                    }
 
-                            // Track idle/active transitions for moments
-                            if ctx.is_idle {
-                                last_idle_since = Some(Instant::now());
-                                focus_start = None;
-                                has_thanked_focus = false;
-                            } else {
-                                if last_idle_since.is_some() {
-                                    focus_start = Some(Instant::now());
-                                }
+                    if let Some(ref activity) = ctx.activity_type {
+                        if last_activity.as_ref() != Some(activity) {
+                            let _ = exp_input_tx_clone.send(ExperienceInput::DesktopActivityChanged {
+                                activity: activity.clone(),
+                            });
+                            last_activity = Some(activity.clone());
+                        }
+                    }
+
+                    if last_idle != Some(ctx.is_idle) {
+                        let _ = exp_input_tx_clone.send(ExperienceInput::DesktopIdle {
+                            is_idle: ctx.is_idle,
+                        });
+                        last_idle = Some(ctx.is_idle);
+
+                        // Track idle/active transitions for moments
+                        if ctx.is_idle {
+                            last_idle_since = Some(Instant::now());
+                            focus_start = None;
+                            has_thanked_focus = false;
+                        } else {
+                            if last_idle_since.is_some() {
+                                focus_start = Some(Instant::now());
                             }
                         }
+                    }
 
-                        // Track tasks completed (successful LLM responses)
-                        if last_focused_app.as_ref() != Some(&ctx.focused_app.clone().unwrap_or_default())
-                            && ctx.focused_app.is_some()
-                        {
-                            // Application change can indicate task boundary
-                        }
+                    // Track tasks completed (successful LLM responses)
+                    if last_focused_app.as_ref() != Some(&ctx.focused_app.clone().unwrap_or_default())
+                        && ctx.focused_app.is_some()
+                    {
+                        // Application change can indicate task boundary
+                    }
 
-                        // ── Sync voice speed from Experience Layer ────────
-                        {
-                            let snapshot = exp_bridge.get_snapshot().await;
-                            let speed = snapshot.current_mood.voice_speed_modifier();
-                            pipeline.set_voice_speed(speed as f32);
-                        }
+                    // ── Sync voice speed from Experience Layer ────────
+                    {
+                        let snapshot = exp_bridge.get_snapshot().await;
+                        let speed = snapshot.current_mood.voice_speed_modifier();
+                        pipeline.set_voice_speed(speed as f32);
+                    }
 
-                        // ── Companion Moments ────────────────────────────
-                        let idle_duration_chrono = last_idle_since
+                    // ── Companion Moments ────────────────────────────
+                    let idle_duration_chrono = last_idle_since
+                        .map(|t| {
+                            let secs = t.elapsed().as_secs() as i64;
+                            chrono::Duration::seconds(secs)
+                        })
+                        .unwrap_or_else(|| chrono::Duration::seconds(0));
+                    let absence_duration = if ctx.is_idle {
+                        last_idle_since
                             .map(|t| {
                                 let secs = t.elapsed().as_secs() as i64;
                                 chrono::Duration::seconds(secs)
                             })
-                            .unwrap_or_else(|| chrono::Duration::seconds(0));
-                        let absence_duration = if ctx.is_idle {
-                            last_idle_since
-                                .map(|t| {
-                                    let secs = t.elapsed().as_secs() as i64;
-                                    chrono::Duration::seconds(secs)
-                                })
-                                .unwrap_or_else(|| chrono::Duration::seconds(0))
-                        } else if let Some(last_idle) = last_idle_since {
-                            let secs = last_idle.elapsed().as_secs() as i64;
-                            chrono::Duration::seconds(secs)
-                        } else {
-                            chrono::Duration::seconds(0)
-                        };
-                        let focused_duration = if !ctx.is_idle {
-                            focus_start
-                                .map(|t| {
-                                    let secs = t.elapsed().as_secs() as i64;
-                                    chrono::Duration::seconds(secs)
-                                })
-                                .unwrap_or_else(|| chrono::Duration::seconds(0))
-                        } else {
-                            chrono::Duration::seconds(0)
-                        };
-                        let user_just_returned = last_idle == Some(true) && !ctx.is_idle;
+                            .unwrap_or_else(|| chrono::Duration::seconds(0))
+                    } else if let Some(last_idle) = last_idle_since {
+                        let secs = last_idle.elapsed().as_secs() as i64;
+                        chrono::Duration::seconds(secs)
+                    } else {
+                        chrono::Duration::seconds(0)
+                    };
+                    let focused_duration = if !ctx.is_idle {
+                        focus_start
+                            .map(|t| {
+                                let secs = t.elapsed().as_secs() as i64;
+                                chrono::Duration::seconds(secs)
+                            })
+                            .unwrap_or_else(|| chrono::Duration::seconds(0))
+                    } else {
+                        chrono::Duration::seconds(0)
+                    };
+                    let user_just_returned = last_idle == Some(true) && !ctx.is_idle;
 
-                        // Reset daily counters at midnight
-                        let now = chrono::Local::now();
-                        if now.hour() == 0 && now.minute() == 0 {
-                            tasks_completed.store(0, std::sync::atomic::Ordering::Relaxed);
-                        }
-
-                        let moment_ctx = MomentContext {
-                            user_just_returned,
-                            absence_duration,
-                            is_idle: ctx.is_idle,
-                            idle_duration: idle_duration_chrono,
-                            battery_percent: None,
-                            is_charging: None,
-                            next_meeting_in_minutes: None,
-                            recent_download_complete: None,
-                            focused_duration,
-                            has_been_thanked_for_focus: has_thanked_focus,
-                            tasks_completed_today: tasks_completed.load(std::sync::atomic::Ordering::Relaxed) as usize,
-                            project_completed: false,
-                            code_just_compiled: false,
-                        };
-                        let moments = moment_engine.check_moments(&moment_ctx);
-                        for moment in moments {
-                            if moment.moment_type == voxy_companion_intelligence::MomentType::FocusedWork {
-                                has_thanked_focus = true;
-                            }
-                            let _ = exp_input_tx_clone.send(ExperienceInput::SystemEvent {
-                                event_type: format!("{:?}", moment.moment_type),
-                                data: Some(moment.message),
-                            });
-                        }
-
-                        // ── Proactive Assistance Engine ────────────────────────
-                        let suggestion_ctx = SuggestionContext {
-                            current_app: ctx.focused_app.clone(),
-                            current_activity: ctx.activity_type.clone(),
-                            time_of_day: if now.hour() < 12 {
-                                "morning".to_string()
-                            } else if now.hour() < 17 {
-                                "afternoon".to_string()
-                            } else {
-                                "evening".to_string()
-                            },
-                            session_duration_ms: (chrono::Utc::now().timestamp_millis().max(0)) as u64,
-                            recent_errors: 0,
-                            recent_completions: tasks_completed.load(std::sync::atomic::Ordering::Relaxed) as usize,
-                            typing_speed: 0.0,
-                            idle_time_ms: idle_duration_chrono.num_milliseconds().max(0) as u64,
-                        };
-
-                        let suggestions = proactive_engine.generate_suggestions(&suggestion_ctx);
-                        for sug in suggestions {
-                            tracing::info!(
-                                id = %sug.id,
-                                sug_type = ?sug.suggestion_type,
-                                priority = sug.priority,
-                                "[PROACTIVE] Emitting assistance notification"
-                            );
-                            ipc_server.broadcast(voxy_ipc::DaemonMessage::ProactiveNotification {
-                                id: sug.id.clone(),
-                                category: format!("{:?}", sug.suggestion_type),
-                                title: format!("OSMOO Companion {:?}", sug.suggestion_type),
-                                message: sug.message,
-                                priority: sug.priority,
-                                requires_action: false,
-                            });
-                            proactive_engine.mark_shown(&sug.id);
-                        }
+                    // Reset daily counters at midnight
+                    let now = chrono::Local::now();
+                    if now.hour() == 0 && now.minute() == 0 {
+                        tasks_completed.store(0, std::sync::atomic::Ordering::Relaxed);
                     }
-                    _ = tokio::signal::ctrl_c() => {
-                        running.store(false, Ordering::Relaxed);
-                        break;
+
+                    let moment_ctx = MomentContext {
+                        user_just_returned,
+                        absence_duration,
+                        is_idle: ctx.is_idle,
+                        idle_duration: idle_duration_chrono,
+                        battery_percent: None,
+                        is_charging: None,
+                        next_meeting_in_minutes: None,
+                        recent_download_complete: None,
+                        focused_duration,
+                        has_been_thanked_for_focus: has_thanked_focus,
+                        tasks_completed_today: tasks_completed.load(std::sync::atomic::Ordering::Relaxed) as usize,
+                        project_completed: false,
+                        code_just_compiled: false,
+                    };
+                    let moments = moment_engine.check_moments(&moment_ctx);
+                    for moment in moments {
+                        if moment.moment_type == voxy_companion_intelligence::MomentType::FocusedWork {
+                            has_thanked_focus = true;
+                        }
+                        let _ = exp_input_tx_clone.send(ExperienceInput::SystemEvent {
+                            event_type: format!("{:?}", moment.moment_type),
+                            data: Some(moment.message),
+                        });
+                    }
+
+                    // ── Proactive Assistance Engine ────────────────────────
+                    let suggestion_ctx = SuggestionContext {
+                        current_app: ctx.focused_app.clone(),
+                        current_activity: ctx.activity_type.clone(),
+                        time_of_day: if now.hour() < 12 {
+                            "morning".to_string()
+                        } else if now.hour() < 17 {
+                            "afternoon".to_string()
+                        } else {
+                            "evening".to_string()
+                        },
+                        session_duration_ms: (chrono::Utc::now().timestamp_millis().max(0)) as u64,
+                        recent_errors: 0,
+                        recent_completions: tasks_completed.load(std::sync::atomic::Ordering::Relaxed) as usize,
+                        typing_speed: 0.0,
+                        idle_time_ms: idle_duration_chrono.num_milliseconds().max(0) as u64,
+                    };
+
+                    let suggestions = proactive_engine.generate_suggestions(&suggestion_ctx);
+                    for sug in suggestions {
+                        tracing::info!(
+                            id = %sug.id,
+                            sug_type = ?sug.suggestion_type,
+                            priority = sug.priority,
+                            "[PROACTIVE] Emitting assistance notification"
+                        );
+                        ipc_server.broadcast(voxy_ipc::DaemonMessage::ProactiveNotification {
+                            id: sug.id.clone(),
+                            category: format!("{:?}", sug.suggestion_type),
+                            title: format!("OSMOO Companion {:?}", sug.suggestion_type),
+                            message: sug.message,
+                            priority: sug.priority,
+                            requires_action: false,
+                        });
+                        proactive_engine.mark_shown(&sug.id);
                     }
                 }
+                _ = tokio::signal::ctrl_c() => {
+                    running.store(false, Ordering::Relaxed);
+                    break;
+                }
+            }
         }
 
         // ── Cleanup ───────────────────────────────────────────────────────
@@ -1989,7 +1997,10 @@ async fn main() {
             .get(idx + 1)
             .and_then(|s| s.parse::<usize>().ok())
             .unwrap_or(10);
-        tracing::info!("Acoustic loopback test: running {} rounds with VoicePipeline", iters);
+        tracing::info!(
+            "Acoustic loopback test: running {} rounds with VoicePipeline",
+            iters
+        );
         return;
     }
 

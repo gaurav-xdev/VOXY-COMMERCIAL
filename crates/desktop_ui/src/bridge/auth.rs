@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use std::sync::Arc;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use voxy_api_server::handlers::{
     EntitlementCheckRequest, EntitlementCheckResponse, LoginRequest, LoginResponse,
@@ -267,7 +267,11 @@ impl AuthBridge {
         }
     }
 
-    pub async fn google_auth(&self, id_token: &str, access_token: Option<String>) -> Result<AuthSession, String> {
+    pub async fn google_auth(
+        &self,
+        id_token: &str,
+        access_token: Option<String>,
+    ) -> Result<AuthSession, String> {
         let req_body = voxy_api_server::GoogleAuthRequest {
             id_token: id_token.to_string(),
             access_token,
@@ -287,7 +291,10 @@ impl AuthBridge {
                 .map_err(|e| format!("Failed to parse Google login response: {e}"))?;
 
             if let Some(data) = env.data {
-                let tier = self.fetch_active_tier(&data.token).await.unwrap_or_else(|_| "free".to_string());
+                let tier = self
+                    .fetch_active_tier(&data.token)
+                    .await
+                    .unwrap_or_else(|_| "free".to_string());
                 let sess = AuthSession {
                     user_id: data.user_id,
                     email: "google-authenticated".to_string(),
@@ -303,7 +310,10 @@ impl AuthBridge {
         } else {
             let err_msg: serde_json::Value = serde_json::from_slice(&res.body)
                 .unwrap_or_else(|_| serde_json::json!({"error": "Unknown error"}));
-            Err(format!("Google sign-in failed ({}): {}", res.status_code, err_msg))
+            Err(format!(
+                "Google sign-in failed ({}): {}",
+                res.status_code, err_msg
+            ))
         }
     }
 
@@ -332,11 +342,19 @@ impl AuthBridge {
         } else {
             let err_msg: serde_json::Value = serde_json::from_slice(&res.body)
                 .unwrap_or_else(|_| serde_json::json!({"error": "Unknown error"}));
-            Err(format!("OTP request failed ({}): {}", res.status_code, err_msg))
+            Err(format!(
+                "OTP request failed ({}): {}",
+                res.status_code, err_msg
+            ))
         }
     }
 
-    pub async fn verify_otp(&self, email: &str, code: &str, purpose: &str) -> Result<Option<AuthSession>, String> {
+    pub async fn verify_otp(
+        &self,
+        email: &str,
+        code: &str,
+        purpose: &str,
+    ) -> Result<Option<AuthSession>, String> {
         let req_body = voxy_api_server::VerifyOtpRequest {
             email: email.to_string(),
             code: code.to_string(),
@@ -356,7 +374,10 @@ impl AuthBridge {
                 .map_err(|e| format!("Failed to parse verify OTP response: {e}"))?;
             if let Some(data) = env.data {
                 if let Some(login_data) = data.session {
-                    let tier = self.fetch_active_tier(&login_data.token).await.unwrap_or_else(|_| "free".to_string());
+                    let tier = self
+                        .fetch_active_tier(&login_data.token)
+                        .await
+                        .unwrap_or_else(|_| "free".to_string());
                     let sess = AuthSession {
                         user_id: login_data.user_id,
                         email: email.to_string(),
@@ -375,11 +396,19 @@ impl AuthBridge {
         } else {
             let err_msg: serde_json::Value = serde_json::from_slice(&res.body)
                 .unwrap_or_else(|_| serde_json::json!({"error": "Unknown error"}));
-            Err(format!("OTP verification failed ({}): {}", res.status_code, err_msg))
+            Err(format!(
+                "OTP verification failed ({}): {}",
+                res.status_code, err_msg
+            ))
         }
     }
 
-    pub async fn reset_password(&self, email: &str, code: &str, new_password: &str) -> Result<String, String> {
+    pub async fn reset_password(
+        &self,
+        email: &str,
+        code: &str,
+        new_password: &str,
+    ) -> Result<String, String> {
         let req_body = voxy_api_server::ResetPasswordRequest {
             email: email.to_string(),
             code: code.to_string(),
@@ -405,7 +434,10 @@ impl AuthBridge {
         } else {
             let err_msg: serde_json::Value = serde_json::from_slice(&res.body)
                 .unwrap_or_else(|_| serde_json::json!({"error": "Unknown error"}));
-            Err(format!("Password reset failed ({}): {}", res.status_code, err_msg))
+            Err(format!(
+                "Password reset failed ({}): {}",
+                res.status_code, err_msg
+            ))
         }
     }
 }
@@ -425,7 +457,8 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&session).expect("failed to serialize session");
-        let deserialized: AuthSession = serde_json::from_str(&serialized).expect("failed to deserialize session");
+        let deserialized: AuthSession =
+            serde_json::from_str(&serialized).expect("failed to deserialize session");
 
         assert_eq!(deserialized.user_id, "usr_12345");
         assert_eq!(deserialized.email, "operator@osmoo.in");

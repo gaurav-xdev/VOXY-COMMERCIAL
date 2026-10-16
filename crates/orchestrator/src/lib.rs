@@ -523,8 +523,6 @@ mod tests {
         assert!(s.contains("3"));
     }
 
-
-
     #[test]
     fn test_orchestrator_event_display_emergency_override() {
         let event = OrchestratorEvent::EmergencyOverride {
@@ -1057,8 +1055,6 @@ mod tests {
             assert!(coordinator.is_system_paused().await);
         });
     }
-
-
 
     #[test]
     fn test_default_system_coordinator_snapshot() {

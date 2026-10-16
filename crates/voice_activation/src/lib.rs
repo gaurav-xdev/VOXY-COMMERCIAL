@@ -6,8 +6,8 @@
 //! - Real-time energy telemetry
 //! - Push-to-talk manual override and microphone mute state
 
-use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 /// Configuration for Voice Activity Detection and endpointing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,10 +52,7 @@ pub enum VadEvent {
     /// In-progress speech frame.
     SpeechFrame { rms: f32 },
     /// User finished speaking and utterance is ready for STT.
-    UtteranceComplete {
-        audio: Vec<f32>,
-        duration_ms: u64,
-    },
+    UtteranceComplete { audio: Vec<f32>, duration_ms: u64 },
 }
 
 /// Operational activation modes for the voice companion.
@@ -267,8 +264,9 @@ impl VadDetector {
                     {
                         // Endpoint reached!
                         let final_audio = std::mem::take(&mut self.accumulated_audio);
-                        let duration_ms =
-                            (final_audio.len() as f64 / self.config.sample_rate as f64 * 1000.0) as u64;
+                        let duration_ms = (final_audio.len() as f64
+                            / self.config.sample_rate as f64
+                            * 1000.0) as u64;
 
                         self.state = VadState::Silence;
                         self.silence_frames_count = 0;
@@ -314,7 +312,10 @@ mod tests {
         assert_eq!(vad.process_frame(&speech_frame), None);
 
         // 3. Onset 2 -> SpeechStarted!
-        assert_eq!(vad.process_frame(&speech_frame), Some(VadEvent::SpeechStarted));
+        assert_eq!(
+            vad.process_frame(&speech_frame),
+            Some(VadEvent::SpeechStarted)
+        );
 
         // 4. Continued speech
         match vad.process_frame(&speech_frame) {
@@ -325,7 +326,10 @@ mod tests {
         // 5. Silence frame 1
         match vad.process_frame(&silence_frame) {
             Some(VadEvent::SpeechFrame { .. }) => {}
-            other => panic!("Expected SpeechFrame during silence window, got {:?}", other),
+            other => panic!(
+                "Expected SpeechFrame during silence window, got {:?}",
+                other
+            ),
         }
 
         // 6. Silence frame 2 -> UtteranceComplete!
@@ -354,7 +358,10 @@ mod tests {
 
         // Press PTT
         vad.set_push_to_talk(true);
-        assert_eq!(vad.process_frame(&quiet_frame), Some(VadEvent::SpeechStarted));
+        assert_eq!(
+            vad.process_frame(&quiet_frame),
+            Some(VadEvent::SpeechStarted)
+        );
 
         // Release PTT
         vad.set_push_to_talk(false);

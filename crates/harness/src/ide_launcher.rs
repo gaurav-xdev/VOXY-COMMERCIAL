@@ -84,7 +84,9 @@ impl IdeLauncher {
                     SupportedIde::VSCode => local.join("Programs\\Microsoft VS Code\\Code.exe"),
                     SupportedIde::Cursor => local.join("Programs\\cursor\\Cursor.exe"),
                     SupportedIde::Windsurf => local.join("Programs\\Windsurf\\Windsurf.exe"),
-                    SupportedIde::IntelliJ => local.join("Programs\\IntelliJ IDEA Ultimate\\bin\\idea64.exe"),
+                    SupportedIde::IntelliJ => {
+                        local.join("Programs\\IntelliJ IDEA Ultimate\\bin\\idea64.exe")
+                    }
                 };
                 if check_path.exists() {
                     return true;
@@ -115,9 +117,7 @@ impl IdeLauncher {
         }
         #[cfg(not(windows))]
         {
-            Command::new(ide.executable_name())
-                .arg(&path_str)
-                .spawn()?;
+            Command::new(ide.executable_name()).arg(&path_str).spawn()?;
         }
 
         Ok(ide)

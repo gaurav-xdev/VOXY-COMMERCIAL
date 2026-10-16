@@ -469,33 +469,50 @@ impl MemoryApi for SqliteMemoryEngine {
         let conn = match &self.db_path {
             Some(path) => {
                 if path.as_os_str().is_empty() || path.to_string_lossy().trim().is_empty() {
-                    return Err(MemoryError::InvalidConfig("Database path cannot be empty".into()));
+                    return Err(MemoryError::InvalidConfig(
+                        "Database path cannot be empty".into(),
+                    ));
                 }
                 if let Some(parent) = path.parent() {
                     if !parent.as_os_str().is_empty() {
                         let _ = std::fs::create_dir_all(parent);
                     }
                 }
-                let c = Connection::open(path)
-                    .map_err(|e| MemoryError::StoreError(format!("Failed to open persistent SQLite at {}: {e}", path.display())))?;
+                let c = Connection::open(path).map_err(|e| {
+                    MemoryError::StoreError(format!(
+                        "Failed to open persistent SQLite at {}: {e}",
+                        path.display()
+                    ))
+                })?;
                 c.busy_timeout(std::time::Duration::from_millis(5000))
-                    .map_err(|e| MemoryError::StoreError(format!("Failed to set busy timeout: {e}")))?;
+                    .map_err(|e| {
+                        MemoryError::StoreError(format!("Failed to set busy timeout: {e}"))
+                    })?;
                 c.execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON;")
                     .map_err(|e| MemoryError::StoreError(format!("Failed to configure WAL mode: {e}")))?;
                 let jm: String = c
                     .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
-                    .map_err(|e| MemoryError::StoreError(format!("Failed to read journal_mode: {e}")))?;
+                    .map_err(|e| {
+                        MemoryError::StoreError(format!("Failed to read journal_mode: {e}"))
+                    })?;
                 if !jm.eq_ignore_ascii_case("wal") {
-                    return Err(MemoryError::StoreError(format!("Expected WAL mode, got {jm}")));
+                    return Err(MemoryError::StoreError(format!(
+                        "Expected WAL mode, got {jm}"
+                    )));
                 }
-                info!("SqliteMemoryEngine initialized persistent database at {}", path.display());
+                info!(
+                    "SqliteMemoryEngine initialized persistent database at {}",
+                    path.display()
+                );
                 c
             }
             None => {
-                let c = Connection::open(":memory:")
-                    .map_err(|e| MemoryError::StoreError(format!("Failed to open database: {e}")))?;
-                c.execute_batch("PRAGMA foreign_keys = ON;")
-                    .map_err(|e| MemoryError::StoreError(format!("Failed to configure in-memory database: {e}")))?;
+                let c = Connection::open(":memory:").map_err(|e| {
+                    MemoryError::StoreError(format!("Failed to open database: {e}"))
+                })?;
+                c.execute_batch("PRAGMA foreign_keys = ON;").map_err(|e| {
+                    MemoryError::StoreError(format!("Failed to configure in-memory database: {e}"))
+                })?;
                 info!("SqliteMemoryEngine initialized with in-memory database");
                 c
             }
@@ -950,7 +967,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_memory_wal_mode_and_persistence_across_restart() {
-        let db_path = std::env::temp_dir().join(format!("memory_persist_{}.db", uuid::Uuid::new_v4()));
+        let db_path =
+            std::env::temp_dir().join(format!("memory_persist_{}.db", uuid::Uuid::new_v4()));
 
         // 1. First process run: initialize, store memory items, check WAL mode
         {
@@ -1012,18 +1030,27 @@ mod tests {
             assert!(engine2.is_wal_mode().await.unwrap());
 
             // Retrieve memories and verify exact content and state preserved
-            let loaded1 = engine2.retrieve(&MemoryId("mem-persist-1".to_string())).await.unwrap();
+            let loaded1 = engine2
+                .retrieve(&MemoryId("mem-persist-1".to_string()))
+                .await
+                .unwrap();
             assert_eq!(loaded1.id.0, "mem-persist-1");
             assert_eq!(loaded1.memory_type, MemoryType::Episodic);
             assert_eq!(loaded1.importance, 0.85);
             assert_eq!(loaded1.context_tags, vec!["devops", "staging"]);
             assert_eq!(loaded1.content["text"], "Deploy to staging");
 
-            let loaded2 = engine2.retrieve(&MemoryId("mem-persist-2".to_string())).await.unwrap();
+            let loaded2 = engine2
+                .retrieve(&MemoryId("mem-persist-2".to_string()))
+                .await
+                .unwrap();
             assert_eq!(loaded2.id.0, "mem-persist-2");
             assert_eq!(loaded2.memory_type, MemoryType::Semantic);
             assert_eq!(loaded2.importance, 0.95);
-            assert_eq!(loaded2.content["fact"], "SQLite WAL mode enables concurrent reading");
+            assert_eq!(
+                loaded2.content["fact"],
+                "SQLite WAL mode enables concurrent reading"
+            );
 
             let stats = engine2.stats().await.unwrap();
             assert_eq!(stats.total_items, 2);
@@ -1065,26 +1092,35 @@ mod tests {
         engine.store(item).await.unwrap();
 
         // Verify FTS table was populated via trigger
-        let fts_count: i64 = engine.with_conn(|conn| {
-            let cnt: i64 = conn.query_row(
-                "SELECT count(*) FROM memories_fts WHERE memories_fts MATCH 'cryptographic'",
-                [],
-                |r| r.get(0),
-            )?;
-            Ok(cnt)
-        }).await.unwrap();
+        let fts_count: i64 = engine
+            .with_conn(|conn| {
+                let cnt: i64 = conn.query_row(
+                    "SELECT count(*) FROM memories_fts WHERE memories_fts MATCH 'cryptographic'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                Ok(cnt)
+            })
+            .await
+            .unwrap();
         assert_eq!(fts_count, 1);
 
         // Delete memory and verify trigger removes from memories_fts
-        engine.delete(&MemoryId("fts-mem-1".to_string())).await.unwrap();
-        let fts_count_after: i64 = engine.with_conn(|conn| {
-            let cnt: i64 = conn.query_row(
-                "SELECT count(*) FROM memories_fts WHERE memories_fts MATCH 'cryptographic'",
-                [],
-                |r| r.get(0),
-            )?;
-            Ok(cnt)
-        }).await.unwrap();
+        engine
+            .delete(&MemoryId("fts-mem-1".to_string()))
+            .await
+            .unwrap();
+        let fts_count_after: i64 = engine
+            .with_conn(|conn| {
+                let cnt: i64 = conn.query_row(
+                    "SELECT count(*) FROM memories_fts WHERE memories_fts MATCH 'cryptographic'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                Ok(cnt)
+            })
+            .await
+            .unwrap();
         assert_eq!(fts_count_after, 0);
     }
 }

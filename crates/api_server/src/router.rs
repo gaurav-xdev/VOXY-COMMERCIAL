@@ -1,8 +1,8 @@
 use crate::error::{ApiError, ApiResponseEnvelope};
 use crate::handlers::{
     ApiHandlers, ConsentRequest, CreateCheckoutRequest, CreateCheckoutResponse,
-    EntitlementCheckRequest, GoogleAuthRequest, LoginRequest, RegisterRequest,
-    RequestOtpRequest, ResetPasswordRequest, VerifyOtpRequest,
+    EntitlementCheckRequest, GoogleAuthRequest, LoginRequest, RegisterRequest, RequestOtpRequest,
+    ResetPasswordRequest, VerifyOtpRequest,
 };
 use crate::middleware::{AuthMiddleware, RateLimitMiddleware};
 use serde::Serialize;

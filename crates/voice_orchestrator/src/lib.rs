@@ -271,10 +271,20 @@ impl VoicePipeline {
         let vad_event = self.vad.lock().process_frame(&frame);
 
         match vad_event {
-            Some(VadEvent::WakeWordDetected { keyword, confidence }) => {
-                tracing::info!(keyword, confidence, "[VOICE] Wake word detected; activating listening session");
+            Some(VadEvent::WakeWordDetected {
+                keyword,
+                confidence,
+            }) => {
+                tracing::info!(
+                    keyword,
+                    confidence,
+                    "[VOICE] Wake word detected; activating listening session"
+                );
                 self.trigger_barge_in("Wake word activation");
-                self.set_state(CompanionState::Listening, Some(format!("Wake word: {keyword}")));
+                self.set_state(
+                    CompanionState::Listening,
+                    Some(format!("Wake word: {keyword}")),
+                );
             }
             Some(VadEvent::SpeechStarted) => {
                 // If user speaks while assistant is speaking or thinking -> BARGE-IN!
@@ -286,7 +296,10 @@ impl VoicePipeline {
                     self.set_state(CompanionState::Listening, None);
                 }
             }
-            Some(VadEvent::UtteranceComplete { audio, duration_ms: _ }) => {
+            Some(VadEvent::UtteranceComplete {
+                audio,
+                duration_ms: _,
+            }) => {
                 self.set_state(CompanionState::Thinking, Some("Transcribing".into()));
 
                 let stt_res = self.stt.transcribe(&audio, None).await;
@@ -344,15 +357,13 @@ impl VoicePipeline {
             tokio::select! {
                 _ = cancel_token.cancelled() => {
                     tracing::info!("[VOICE] LLM turn cancelled by barge-in");
-                    return;
                 }
                 res = response_future => {
                     match res {
                         Ok(reply_text) => {
-                            if cancel_token.is_cancelled() {
-                                return;
+                            if !cancel_token.is_cancelled() {
+                                self.play_tts_stream(&reply_text, cancel_token).await;
                             }
-                            self.play_tts_stream(&reply_text, cancel_token).await;
                         }
                         Err(err) => {
                             tracing::error!("[VOICE] LLM generation error: {}", err);
@@ -363,7 +374,8 @@ impl VoicePipeline {
             }
         } else {
             // Default echo fallback if no external router wired
-            self.play_tts_stream(&format!("I heard you say: {}", text), cancel_token).await;
+            self.play_tts_stream(&format!("I heard you say: {}", text), cancel_token)
+                .await;
         }
     }
 

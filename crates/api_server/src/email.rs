@@ -168,8 +168,7 @@ impl ResendMailer {
             This code expires in 10 minutes and can only be used once.\n\
             If you did not request this code, please ignore this email.\n\n\
             OSMOO by Osmiora - https://osmoo.in",
-            purpose_label,
-            otp_code
+            purpose_label, otp_code
         );
         self.send(&[recipient_email], &subject, Some(&html), Some(&text))
             .await

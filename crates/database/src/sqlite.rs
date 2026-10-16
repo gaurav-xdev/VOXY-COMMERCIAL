@@ -199,7 +199,9 @@ impl StorageProvider for SqliteDatabase {
             }
             let conn = Connection::open(path)?;
             conn.busy_timeout(std::time::Duration::from_millis(5000))?;
-            conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;")?;
+            conn.execute_batch(
+                "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
+            )?;
             let jm: String = conn.query_row("PRAGMA journal_mode;", [], |r| r.get(0))?;
             if !jm.eq_ignore_ascii_case("wal") {
                 return Err(DatabaseError::ConnectionFailed(format!(
@@ -233,7 +235,11 @@ impl StorageProvider for SqliteDatabase {
             );",
         )?;
 
-        let pool_size = if is_mem { 1 } else { config.pool_size.max(1) as usize };
+        let pool_size = if is_mem {
+            1
+        } else {
+            config.pool_size.max(1) as usize
+        };
         let mut readers_vec = Vec::with_capacity(pool_size);
         if !is_mem {
             for _ in 0..pool_size {
@@ -394,7 +400,8 @@ impl StorageProvider for SqliteDatabase {
             .replace('_', "\\_");
         let pattern = format!("{}%", escaped_prefix);
         self.with_reader(move |conn| {
-            let mut stmt = conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1 ESCAPE '\\'")?;
+            let mut stmt =
+                conn.prepare("SELECT key FROM kv_store WHERE key LIKE ?1 ESCAPE '\\'")?;
             let keys = stmt
                 .query_map(params![pattern], |row| row.get::<_, String>(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -603,7 +610,8 @@ impl StorageProvider for SqliteDatabase {
             });
         }
         self.with_reader(move |conn| {
-            let version: String = conn.query_row("SELECT sqlite_version()", [], |row| row.get(0))?;
+            let version: String =
+                conn.query_row("SELECT sqlite_version()", [], |row| row.get(0))?;
             let latency = start.elapsed().as_millis() as u64;
             let size: Option<u64> = conn
                 .query_row(
@@ -622,7 +630,6 @@ impl StorageProvider for SqliteDatabase {
         .await
     }
 }
-
 
 // ============================================================================
 // SQLite-backed ConversationStore + AuditLogStore
@@ -711,7 +718,10 @@ pub struct SqliteConversationStore {
 impl SqliteConversationStore {
     pub fn new(path: &str) -> StdResult<Self, String> {
         if path.trim().is_empty() {
-            return Err("Database path is required; silent fallback to in-memory storage is prohibited".to_string());
+            return Err(
+                "Database path is required; silent fallback to in-memory storage is prohibited"
+                    .to_string(),
+            );
         }
 
         let is_mem = path == ":memory:";
@@ -797,8 +807,8 @@ impl SqliteConversationStore {
         let mut readers_vec = Vec::with_capacity(pool_size);
         if !is_mem {
             for _ in 0..pool_size {
-                let rconn = rusqlite::Connection::open(path)
-                    .map_err(|e| format!("Reader open: {e}"))?;
+                let rconn =
+                    rusqlite::Connection::open(path).map_err(|e| format!("Reader open: {e}"))?;
                 rconn
                     .busy_timeout(std::time::Duration::from_millis(5000))
                     .map_err(|e| format!("Reader timeout: {e}"))?;
@@ -1093,24 +1103,18 @@ impl ConversationStore for SqliteConversationStore {
         .await
     }
 
-    async fn search_messages(
-        &self,
-        query: &str,
-        limit: usize,
-    ) -> StdResult<Vec<Message>, String> {
+    async fn search_messages(&self, query: &str, limit: usize) -> StdResult<Vec<Message>, String> {
         let q = query.to_string();
         self.with_reader(move |conn| {
             let clean_q = q.replace('"', "\"\"");
             let match_pattern = format!("\"{}\"", clean_q);
-            let sql = format!(
-                "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
+            let sql = "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
                  FROM messages m
                  JOIN messages_fts fts ON m.rowid = fts.rowid
                  WHERE messages_fts MATCH ?1
                  ORDER BY fts.rank
-                 LIMIT ?2"
-            );
-            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare FTS: {e}"))?;
+                 LIMIT ?2";
+            let mut stmt = conn.prepare(sql).map_err(|e| format!("Prepare FTS: {e}"))?;
             let rows = stmt
                 .query_map(
                     rusqlite::params![match_pattern, limit as i64],
@@ -1134,15 +1138,13 @@ impl ConversationStore for SqliteConversationStore {
         self.with_reader(move |conn| {
             let clean_q = q.replace('"', "\"\"");
             let match_pattern = format!("\"{}\"", clean_q);
-            let sql = format!(
-                "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
+            let sql = "SELECT m.id, m.conversation_id, m.role, m.content, m.timestamp, m.token_count, m.metadata
                  FROM messages m
                  JOIN messages_fts fts ON m.rowid = fts.rowid
                  WHERE m.conversation_id = ?1 AND messages_fts MATCH ?2
                  ORDER BY fts.rank
-                 LIMIT ?3"
-            );
-            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare FTS: {e}"))?;
+                 LIMIT ?3";
+            let mut stmt = conn.prepare(sql).map_err(|e| format!("Prepare FTS: {e}"))?;
             let rows = stmt
                 .query_map(
                     rusqlite::params![cid, match_pattern, limit as i64],
@@ -1167,7 +1169,10 @@ pub struct SqliteAuditLogStore {
 impl SqliteAuditLogStore {
     pub fn new(path: &str) -> StdResult<Self, String> {
         if path.trim().is_empty() {
-            return Err("Database path is required; silent fallback to in-memory storage is prohibited".to_string());
+            return Err(
+                "Database path is required; silent fallback to in-memory storage is prohibited"
+                    .to_string(),
+            );
         }
 
         let is_mem = path == ":memory:";
@@ -1239,7 +1244,6 @@ impl SqliteAuditLogStore {
         Ok(mode.eq_ignore_ascii_case("wal"))
     }
 }
-
 
 #[async_trait::async_trait]
 impl AuditLogStore for SqliteAuditLogStore {
@@ -1918,9 +1922,15 @@ mod tests {
 
         let applied = db.applied_migrations().await.unwrap();
         assert!(applied.len() >= 10);
-        assert!(applied.iter().any(|m| m.version == 10 && m.name == "core_conversations_and_messages"));
-        assert!(applied.iter().any(|m| m.version == 11 && m.name == "core_messages_fts5_indexing"));
-        assert!(applied.iter().any(|m| m.version == 12 && m.name == "core_audit_log"));
+        assert!(applied
+            .iter()
+            .any(|m| m.version == 10 && m.name == "core_conversations_and_messages"));
+        assert!(applied
+            .iter()
+            .any(|m| m.version == 11 && m.name == "core_messages_fts5_indexing"));
+        assert!(applied
+            .iter()
+            .any(|m| m.version == 12 && m.name == "core_audit_log"));
     }
 
     #[tokio::test]
@@ -2068,4 +2078,3 @@ mod tests {
         assert_eq!(results_after_del.len(), 0);
     }
 }
-

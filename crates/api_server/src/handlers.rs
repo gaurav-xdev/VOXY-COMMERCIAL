@@ -266,7 +266,9 @@ impl ApiHandlers {
     pub async fn google_auth(&self, req: GoogleAuthRequest) -> Result<LoginResponse, ApiError> {
         let token = req.id_token.trim();
         if token.is_empty() {
-            return Err(ApiError::BadRequest("Google id_token must not be empty".to_string()));
+            return Err(ApiError::BadRequest(
+                "Google id_token must not be empty".to_string(),
+            ));
         }
 
         // Validate Google ID Token via Google's tokeninfo endpoint with strict timeouts
@@ -276,14 +278,14 @@ impl ApiHandlers {
             .map_err(|e| ApiError::Internal(format!("HTTP client build failed: {e}")))?;
 
         let tokeninfo_url = format!("https://oauth2.googleapis.com/tokeninfo?id_token={}", token);
-        let resp = client
-            .get(&tokeninfo_url)
-            .send()
-            .await
-            .map_err(|e| ApiError::Unauthorized(format!("Failed to contact Google identity provider: {e}")))?;
+        let resp = client.get(&tokeninfo_url).send().await.map_err(|e| {
+            ApiError::Unauthorized(format!("Failed to contact Google identity provider: {e}"))
+        })?;
 
         if !resp.status().is_success() {
-            return Err(ApiError::Unauthorized("Invalid or expired Google ID token".to_string()));
+            return Err(ApiError::Unauthorized(
+                "Invalid or expired Google ID token".to_string(),
+            ));
         }
 
         let claims: serde_json::Value = resp
@@ -291,16 +293,17 @@ impl ApiHandlers {
             .await
             .map_err(|e| ApiError::Unauthorized(format!("Malformed Google token claims: {e}")))?;
 
-        let google_sub = claims
-            .get("sub")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| ApiError::Unauthorized("Google token missing 'sub' subject claim".to_string()))?;
+        let google_sub = claims.get("sub").and_then(|v| v.as_str()).ok_or_else(|| {
+            ApiError::Unauthorized("Google token missing 'sub' subject claim".to_string())
+        })?;
 
         let email = claims
             .get("email")
             .and_then(|v| v.as_str())
             .map(|s| s.trim().to_lowercase())
-            .ok_or_else(|| ApiError::Unauthorized("Google token missing 'email' claim".to_string()))?;
+            .ok_or_else(|| {
+                ApiError::Unauthorized("Google token missing 'email' claim".to_string())
+            })?;
 
         let email_verified = claims
             .get("email_verified")
@@ -312,27 +315,33 @@ impl ApiHandlers {
             .unwrap_or(false);
 
         if !email_verified {
-            return Err(ApiError::Forbidden("Google account email is not verified".to_string()));
+            return Err(ApiError::Forbidden(
+                "Google account email is not verified".to_string(),
+            ));
         }
 
         // Verify audience if GOOGLE_CLIENT_ID is configured in environment
         if let Ok(expected_aud) = std::env::var("GOOGLE_CLIENT_ID") {
             if !expected_aud.trim().is_empty() {
-                let aud = claims.get("aud").and_then(|v| v.as_str()).unwrap_or_default();
+                let aud = claims
+                    .get("aud")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
                 if aud != expected_aud.trim() {
-                    return Err(ApiError::Unauthorized("Google token audience mismatch".to_string()));
+                    return Err(ApiError::Unauthorized(
+                        "Google token audience mismatch".to_string(),
+                    ));
                 }
             }
         }
 
         // Check if an existing account exists by email or provider link
         let user = match self.store.get_auth_identity("google", google_sub).await {
-            Ok(Some(identity)) => {
-                self.store
-                    .get_user_by_id(&identity.user_id)
-                    .await
-                    .map_err(|e| ApiError::Internal(e.to_string()))?
-            }
+            Ok(Some(identity)) => self
+                .store
+                .get_user_by_id(&identity.user_id)
+                .await
+                .map_err(|e| ApiError::Internal(e.to_string()))?,
             _ => None,
         };
 
@@ -345,20 +354,25 @@ impl ApiHandlers {
                         // Link Google identity to existing account
                         let _ = self
                             .store
-                            .link_auth_identity(&existing_user.id, "google", google_sub, Some(&email))
+                            .link_auth_identity(
+                                &existing_user.id,
+                                "google",
+                                google_sub,
+                                Some(&email),
+                            )
                             .await;
                         existing_user
                     }
                     _ => {
                         // Auto-create new account for verified Google user
-                        let dummy_pwd = format!("oauth2_google_{}_{}", google_sub, uuid::Uuid::new_v4());
+                        let dummy_pwd =
+                            format!("oauth2_google_{}_{}", google_sub, uuid::Uuid::new_v4());
                         let hash = AuthPasswordHasher::hash_password(&dummy_pwd)
                             .map_err(|e| ApiError::Internal(format!("Hash error: {e}")))?;
-                        let new_user = self
-                            .store
-                            .create_user(&email, &hash)
-                            .await
-                            .map_err(|e| ApiError::Internal(format!("Failed to register Google user: {e}")))?;
+                        let new_user =
+                            self.store.create_user(&email, &hash).await.map_err(|e| {
+                                ApiError::Internal(format!("Failed to register Google user: {e}"))
+                            })?;
 
                         let _ = self
                             .store
@@ -372,7 +386,9 @@ impl ApiHandlers {
         };
 
         if user.status != "active" {
-            return Err(ApiError::Forbidden("User account is deactivated".to_string()));
+            return Err(ApiError::Forbidden(
+                "User account is deactivated".to_string(),
+            ));
         }
 
         // Issue 256-bit cryptographically secure session
@@ -381,7 +397,13 @@ impl ApiHandlers {
         let expires_at = Utc::now() + Duration::days(7);
 
         self.store
-            .create_session(&user.id, &token_hash, expires_at, None, Some("Google OAuth 2.0".to_string()))
+            .create_session(
+                &user.id,
+                &token_hash,
+                expires_at,
+                None,
+                Some("Google OAuth 2.0".to_string()),
+            )
             .await
             .map_err(|e| ApiError::Internal(format!("Failed to record session: {e}")))?;
 
@@ -394,7 +416,10 @@ impl ApiHandlers {
 
     /// POST /auth/otp/request
     /// Issues a cryptographically secure 6-digit OTP code and dispatches via Resend.
-    pub async fn request_otp(&self, req: RequestOtpRequest) -> Result<RequestOtpResponse, ApiError> {
+    pub async fn request_otp(
+        &self,
+        req: RequestOtpRequest,
+    ) -> Result<RequestOtpResponse, ApiError> {
         let email = req.email.trim().to_lowercase();
         if email.is_empty() || !email.contains('@') {
             return Err(ApiError::BadRequest("Invalid email address".to_string()));
@@ -437,12 +462,17 @@ impl ApiHandlers {
             let purpose_clone = purpose.clone();
             let mailer_clone = mailer.clone();
             tokio::spawn(async move {
-                if let Err(e) = mailer_clone.send_otp(&email_clone, &code_str, &purpose_clone).await {
+                if let Err(e) = mailer_clone
+                    .send_otp(&email_clone, &code_str, &purpose_clone)
+                    .await
+                {
                     tracing::warn!("Failed to deliver OTP email: {e}");
                 }
             });
         } else {
-            tracing::info!("Transactional mailer unconfigured; OTP generated for verification pipeline");
+            tracing::info!(
+                "Transactional mailer unconfigured; OTP generated for verification pipeline"
+            );
         }
 
         Ok(RequestOtpResponse {
@@ -457,7 +487,9 @@ impl ApiHandlers {
         let code = req.code.trim();
 
         if code.len() != 6 {
-            return Err(ApiError::BadRequest("OTP code must be 6 digits".to_string()));
+            return Err(ApiError::BadRequest(
+                "OTP code must be 6 digits".to_string(),
+            ));
         }
 
         let otp = self
@@ -465,24 +497,32 @@ impl ApiHandlers {
             .get_latest_active_otp(&email, &req.purpose)
             .await
             .map_err(|e| ApiError::Internal(e.to_string()))?
-            .ok_or_else(|| ApiError::BadRequest("No active OTP request found for this email".to_string()))?;
+            .ok_or_else(|| {
+                ApiError::BadRequest("No active OTP request found for this email".to_string())
+            })?;
 
         // Check expiration
         if let Ok(exp_dt) = chrono::DateTime::parse_from_rfc3339(&otp.expires_at) {
             if Utc::now() > exp_dt.with_timezone(&Utc) {
-                return Err(ApiError::BadRequest("Verification code has expired".to_string()));
+                return Err(ApiError::BadRequest(
+                    "Verification code has expired".to_string(),
+                ));
             }
         }
 
         // Check attempts limit
         if otp.attempts_count >= otp.max_attempts {
-            return Err(ApiError::RateLimitExceeded("Maximum verification attempts exceeded. Request a new code.".to_string()));
+            return Err(ApiError::RateLimitExceeded(
+                "Maximum verification attempts exceeded. Request a new code.".to_string(),
+            ));
         }
 
         let input_hash = SessionTokenManager::hash_token(code);
         if input_hash != otp.code_hash {
             let _ = self.store.increment_otp_attempts(&otp.id).await;
-            return Err(ApiError::Unauthorized("Invalid verification code".to_string()));
+            return Err(ApiError::Unauthorized(
+                "Invalid verification code".to_string(),
+            ));
         }
 
         // Mark OTP as used
@@ -506,7 +546,13 @@ impl ApiHandlers {
             let expires_at = Utc::now() + Duration::days(7);
 
             self.store
-                .create_session(&user.id, &token_hash, expires_at, None, Some("OTP Login".to_string()))
+                .create_session(
+                    &user.id,
+                    &token_hash,
+                    expires_at,
+                    None,
+                    Some("OTP Login".to_string()),
+                )
                 .await
                 .map_err(|e| ApiError::Internal(e.to_string()))?;
 
@@ -527,12 +573,17 @@ impl ApiHandlers {
     }
 
     /// POST /auth/password/reset
-    pub async fn reset_password(&self, req: ResetPasswordRequest) -> Result<ResetPasswordResponse, ApiError> {
+    pub async fn reset_password(
+        &self,
+        req: ResetPasswordRequest,
+    ) -> Result<ResetPasswordResponse, ApiError> {
         let email = req.email.trim().to_lowercase();
         let code = req.code.trim();
 
         if req.new_password.len() < 8 {
-            return Err(ApiError::BadRequest("Password must be at least 8 characters long".to_string()));
+            return Err(ApiError::BadRequest(
+                "Password must be at least 8 characters long".to_string(),
+            ));
         }
 
         let otp = self
@@ -540,17 +591,23 @@ impl ApiHandlers {
             .get_latest_active_otp(&email, "password_reset")
             .await
             .map_err(|e| ApiError::Internal(e.to_string()))?
-            .ok_or_else(|| ApiError::BadRequest("No active password reset request found".to_string()))?;
+            .ok_or_else(|| {
+                ApiError::BadRequest("No active password reset request found".to_string())
+            })?;
 
         // Check expiration
         if let Ok(exp_dt) = chrono::DateTime::parse_from_rfc3339(&otp.expires_at) {
             if Utc::now() > exp_dt.with_timezone(&Utc) {
-                return Err(ApiError::BadRequest("Password reset code has expired".to_string()));
+                return Err(ApiError::BadRequest(
+                    "Password reset code has expired".to_string(),
+                ));
             }
         }
 
         if otp.attempts_count >= otp.max_attempts {
-            return Err(ApiError::RateLimitExceeded("Maximum reset attempts exceeded. Request a new code.".to_string()));
+            return Err(ApiError::RateLimitExceeded(
+                "Maximum reset attempts exceeded. Request a new code.".to_string(),
+            ));
         }
 
         let input_hash = SessionTokenManager::hash_token(code);
@@ -583,7 +640,8 @@ impl ApiHandlers {
 
         Ok(ResetPasswordResponse {
             success: true,
-            message: "Password reset successfully. Please log in with your new password.".to_string(),
+            message: "Password reset successfully. Please log in with your new password."
+                .to_string(),
         })
     }
 

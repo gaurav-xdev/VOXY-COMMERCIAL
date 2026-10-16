@@ -97,7 +97,11 @@ impl Default for ModelSettings {
             max_tokens: 4096,
             temperature: 0.7,
             local_only: true,
-            fallback_providers: vec!["nvidia".to_string(), "groq".to_string(), "openai".to_string()],
+            fallback_providers: vec![
+                "nvidia".to_string(),
+                "groq".to_string(),
+                "openai".to_string(),
+            ],
         }
     }
 }

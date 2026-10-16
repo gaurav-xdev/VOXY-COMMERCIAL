@@ -374,7 +374,9 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
 
         // 2. Prohibit symlinks/hardlinks
         let is_symlink = entry.is_symlink()
-            || entry.unix_mode().map_or(false, |m| (m & 0o170000) == 0o120000);
+            || entry
+                .unix_mode()
+                .is_some_and(|m| (m & 0o170000) == 0o120000);
         if is_symlink {
             return Err(ArchiveSecurityError::IllegalLinkDetected { path: raw_name });
         }
@@ -605,9 +607,11 @@ mod tests {
 
     #[test]
     fn test_blocks_excessive_path_length_and_depth() {
-        let mut limits = ArchiveSecurityLimits::default();
-        limits.max_path_depth = 3;
-        limits.max_path_length = 20;
+        let limits = ArchiveSecurityLimits {
+            max_path_depth: 3,
+            max_path_length: 20,
+            ..Default::default()
+        };
 
         assert!(validate_archive_path("a/b/c/d/e/file.txt", &limits).is_err());
         assert!(validate_archive_path(
@@ -700,8 +704,10 @@ mod tests {
         zip_writer.write_all(&vec![0u8; 10_000]).unwrap();
         zip_writer.finish().unwrap();
 
-        let mut limits = ArchiveSecurityLimits::default();
-        limits.max_entry_uncompressed_bytes = 1000;
+        let limits = ArchiveSecurityLimits {
+            max_entry_uncompressed_bytes: 1000,
+            ..Default::default()
+        };
 
         let zip_file = std::fs::File::open(&zip_path).unwrap();
         let res = safe_extract_zip(zip_file, &dest, &limits);
@@ -728,8 +734,10 @@ mod tests {
         zip_writer.write_all(&vec![0u8; 200_000]).unwrap();
         zip_writer.finish().unwrap();
 
-        let mut limits = ArchiveSecurityLimits::default();
-        limits.max_compression_ratio = 10.0; // strict ratio limit
+        let limits = ArchiveSecurityLimits {
+            max_compression_ratio: 10.0, // strict ratio limit
+            ..Default::default()
+        };
 
         let zip_file = std::fs::File::open(&zip_path).unwrap();
         let res = safe_extract_zip(zip_file, &dest, &limits);
@@ -755,14 +763,18 @@ mod tests {
         header1.set_size(12);
         header1.set_mode(0o644);
         header1.set_cksum();
-        tar_builder.append(&header1, &b"hello tar world"[..12]).unwrap();
+        tar_builder
+            .append(&header1, &b"hello tar world"[..12])
+            .unwrap();
 
         let mut header2 = tar::Header::new_gnu();
         header2.set_path("sub/nested.txt").unwrap();
         header2.set_size(14);
         header2.set_mode(0o644);
         header2.set_cksum();
-        tar_builder.append(&header2, &b"nested tar file"[..14]).unwrap();
+        tar_builder
+            .append(&header2, &b"nested tar file"[..14])
+            .unwrap();
 
         let tar_data = tar_builder.into_inner().unwrap();
         let limits = ArchiveSecurityLimits::default();

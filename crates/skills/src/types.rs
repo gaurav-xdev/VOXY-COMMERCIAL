@@ -32,21 +32,26 @@ impl fmt::Display for InvocationId {
 
 /// Trust classification tier for skills.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTrustLevel {
     System,
     Verified,
     Published,
+    #[default]
     Untrusted,
     Blocked,
-}
-
-impl Default for SkillTrustLevel {
-    fn default() -> Self {
-        Self::Untrusted
-    }
 }
 
 /// Explicit permission categories required by skills.

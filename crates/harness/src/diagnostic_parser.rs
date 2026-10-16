@@ -60,9 +60,11 @@ impl DiagnosticParser {
             // e.g.: error[E0308]: mismatched types
             //  --> src/main.rs:12:5
             if trimmed.starts_with("error[") || trimmed.starts_with("error:") {
-                let code = trimmed
-                    .find('[')
-                    .and_then(|start| trimmed.find(']').map(|end| trimmed[start + 1..end].to_string()));
+                let code = trimmed.find('[').and_then(|start| {
+                    trimmed
+                        .find(']')
+                        .map(|end| trimmed[start + 1..end].to_string())
+                });
 
                 let msg = if let Some(colon_pos) = trimmed.find(':') {
                     trimmed[colon_pos + 1..].trim().to_string()
@@ -80,9 +82,11 @@ impl DiagnosticParser {
                     context_snippet: None,
                 });
             } else if trimmed.starts_with("warning[") || trimmed.starts_with("warning:") {
-                let code = trimmed
-                    .find('[')
-                    .and_then(|start| trimmed.find(']').map(|end| trimmed[start + 1..end].to_string()));
+                let code = trimmed.find('[').and_then(|start| {
+                    trimmed
+                        .find(']')
+                        .map(|end| trimmed[start + 1..end].to_string())
+                });
 
                 let msg = if let Some(colon_pos) = trimmed.find(':') {
                     trimmed[colon_pos + 1..].trim().to_string()
@@ -224,7 +228,8 @@ impl DiagnosticParser {
                     column: col,
                     context_snippet: None,
                 });
-            } else if trimmed.starts_with("assertion `") || trimmed.starts_with("assertion failed:") {
+            } else if trimmed.starts_with("assertion `") || trimmed.starts_with("assertion failed:")
+            {
                 if let Some(last) = report.items.last_mut() {
                     if last.code.as_deref() == Some("Panic") {
                         last.context_snippet = Some(trimmed.to_string());

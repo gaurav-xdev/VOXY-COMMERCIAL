@@ -7,11 +7,11 @@
 //! - High-speed playback queue with immediate barge-in purge capability (`clear_playback`)
 //! - Thread-safe bounded ring buffers
 
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use parking_lot::Mutex;
 use thiserror::Error;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 pub mod conditioning;
 pub use conditioning::{AudioConditioner, ConditioningConfig};
@@ -305,10 +305,7 @@ impl AudioRuntime {
     }
 
     /// Starts microphone capture and streams normalized 16kHz mono frames into `frame_tx`.
-    pub fn start_capture<F>(
-        &self,
-        on_frame: F,
-    ) -> Result<AudioCaptureHandle, AudioError>
+    pub fn start_capture<F>(&self, on_frame: F) -> Result<AudioCaptureHandle, AudioError>
     where
         F: Fn(Vec<f32>, f32) + Send + Sync + 'static,
     {
@@ -350,7 +347,7 @@ impl AudioRuntime {
         let mut conditioner_f32 = AudioConditioner::new(self.config.conditioning.clone());
         let mut conditioner_i16 = AudioConditioner::new(self.config.conditioning.clone());
 
-        let stream_config: cpal::StreamConfig = supported_config.clone().into();
+        let stream_config: cpal::StreamConfig = supported_config.into();
         let stream_result = match supported_config.sample_format() {
             cpal::SampleFormat::F32 => {
                 let active_err = active_clone.clone();
@@ -363,13 +360,16 @@ impl AudioRuntime {
                         if muted_clone.load(Ordering::SeqCst) {
                             return;
                         }
-                        let mut mono_16k = normalize_to_mono_16k(data, sample_rate, channels, target_sr);
+                        let mut mono_16k =
+                            normalize_to_mono_16k(data, sample_rate, channels, target_sr);
                         conditioner_f32.process(&mut mono_16k);
                         let rms = calculate_rms(&mono_16k);
                         on_frame(mono_16k, rms);
                     },
                     move |err| {
-                        tracing::error!("Audio capture error (device disconnected/interrupted): {err}");
+                        tracing::error!(
+                            "Audio capture error (device disconnected/interrupted): {err}"
+                        );
                         active_err.store(false, Ordering::SeqCst);
                     },
                     None,
@@ -386,17 +386,18 @@ impl AudioRuntime {
                         if muted_clone.load(Ordering::SeqCst) {
                             return;
                         }
-                        let f32_data: Vec<f32> = data
-                            .iter()
-                            .map(|&s| (s as f32) / 32768.0)
-                            .collect();
-                        let mut mono_16k = normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr);
+                        let f32_data: Vec<f32> =
+                            data.iter().map(|&s| (s as f32) / 32768.0).collect();
+                        let mut mono_16k =
+                            normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr);
                         conditioner_i16.process(&mut mono_16k);
                         let rms = calculate_rms(&mono_16k);
                         on_frame(mono_16k, rms);
                     },
                     move |err| {
-                        tracing::error!("Audio capture error (device disconnected/interrupted): {err}");
+                        tracing::error!(
+                            "Audio capture error (device disconnected/interrupted): {err}"
+                        );
                         active_err.store(false, Ordering::SeqCst);
                     },
                     None,
@@ -476,8 +477,7 @@ impl AudioRuntime {
                 }
 
                 // Interleave into channels
-                let mut s_idx = 0;
-                for frame in data.chunks_mut(channels as usize) {
+                for (s_idx, frame) in data.chunks_mut(channels as usize).enumerate() {
                     let val = if s_idx < samples.len() {
                         samples[s_idx]
                     } else {
@@ -486,7 +486,6 @@ impl AudioRuntime {
                     for sample in frame.iter_mut() {
                         *sample = val;
                     }
-                    s_idx += 1;
                 }
             },
             move |err| {

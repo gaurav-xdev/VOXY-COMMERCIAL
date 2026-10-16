@@ -124,7 +124,8 @@ mod tests {
         assert_eq!(errs[0].rule, "aws_access_key");
 
         let with_aws_asia = "let temp_key = \"ASIATEMP1234567890AB\";\n";
-        let errs_asia = SecretScanner::scan_patch(Path::new("src/config.rs"), with_aws_asia).unwrap_err();
+        let errs_asia =
+            SecretScanner::scan_patch(Path::new("src/config.rs"), with_aws_asia).unwrap_err();
         assert_eq!(errs_asia[0].rule, "aws_access_key");
 
         let with_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0\n";
@@ -143,7 +144,8 @@ mod tests {
         assert_eq!(errs[0].rule, "github_token");
 
         let with_gh_pat = "const token = 'github_pat_11AAAAAA_BBBBBBBBBBBBBBBBBBBB';\n";
-        let errs_pat = SecretScanner::scan_patch(Path::new("src/auth.ts"), with_gh_pat).unwrap_err();
+        let errs_pat =
+            SecretScanner::scan_patch(Path::new("src/auth.ts"), with_gh_pat).unwrap_err();
         assert_eq!(errs_pat[0].rule, "github_token");
 
         let with_sk = "OPENAI_API_KEY = 'sk-proj-1234567890abcdefghijklmnopqrstuvwxyz'\n";

@@ -102,11 +102,7 @@ pub trait ConversationStore: Send + Sync {
 
     async fn stats(&self, user_id: &str) -> Result<ConversationStats, String>;
 
-    async fn search_messages(
-        &self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<Message>, String>;
+    async fn search_messages(&self, query: &str, limit: usize) -> Result<Vec<Message>, String>;
 
     async fn search_conversation_messages(
         &self,
@@ -270,11 +266,7 @@ impl ConversationStore for InMemoryConversationStore {
         })
     }
 
-    async fn search_messages(
-        &self,
-        query: &str,
-        limit: usize,
-    ) -> Result<Vec<Message>, String> {
+    async fn search_messages(&self, query: &str, limit: usize) -> Result<Vec<Message>, String> {
         let msgs = self.messages.read();
         let q = query.to_lowercase();
         let mut results = Vec::new();
@@ -371,19 +363,51 @@ mod tests {
         let conv1 = store.create_conversation("u1", None).await.unwrap();
         let conv2 = store.create_conversation("u1", None).await.unwrap();
 
-        store.add_message(&conv1.id, MessageRole::User, "Rust programming is fun", None, None).await.unwrap();
-        store.add_message(&conv1.id, MessageRole::Assistant, "Yes, Rust is safe and fast", None, None).await.unwrap();
-        store.add_message(&conv2.id, MessageRole::User, "Python is also nice", None, None).await.unwrap();
+        store
+            .add_message(
+                &conv1.id,
+                MessageRole::User,
+                "Rust programming is fun",
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        store
+            .add_message(
+                &conv1.id,
+                MessageRole::Assistant,
+                "Yes, Rust is safe and fast",
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        store
+            .add_message(
+                &conv2.id,
+                MessageRole::User,
+                "Python is also nice",
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let results = store.search_messages("rust", 10).await.unwrap();
         assert_eq!(results.len(), 2);
 
-        let conv1_results = store.search_conversation_messages(&conv1.id, "safe", 10).await.unwrap();
+        let conv1_results = store
+            .search_conversation_messages(&conv1.id, "safe", 10)
+            .await
+            .unwrap();
         assert_eq!(conv1_results.len(), 1);
         assert_eq!(conv1_results[0].content, "Yes, Rust is safe and fast");
 
-        let conv2_results = store.search_conversation_messages(&conv2.id, "rust", 10).await.unwrap();
+        let conv2_results = store
+            .search_conversation_messages(&conv2.id, "rust", 10)
+            .await
+            .unwrap();
         assert!(conv2_results.is_empty());
     }
 }
-

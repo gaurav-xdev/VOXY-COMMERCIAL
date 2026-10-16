@@ -41,9 +41,7 @@ impl SkillRuntime {
 
     /// Validates and registers a skill manifest in the database.
     pub async fn install_skill(&self, manifest: SkillManifest) -> Result<()> {
-        manifest
-            .validate()
-            .map_err(|e| SkillsError::ManifestInvalid(e))?;
+        manifest.validate().map_err(SkillsError::ManifestInvalid)?;
 
         if let Some(ref store) = self.store {
             let manifest_json = serde_json::to_string(&manifest)

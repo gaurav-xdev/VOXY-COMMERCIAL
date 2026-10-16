@@ -9,14 +9,14 @@
 //!    - Phase 1: IPC shutdown signal (`ClientCommand::Shutdown`) over named pipe.
 //!    - Phase 2: Up to 5-second drainage wait, with fallback recursive `taskkill /F /T /PID`.
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use parking_lot::Mutex;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 #[cfg(windows)]
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
@@ -42,10 +42,17 @@ pub enum SupervisorError {
 impl std::fmt::Display for SupervisorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::JobObjectInitFailed(msg) => write!(f, "Failed to initialize Windows Job Object: {msg}"),
-            Self::AssignProcessFailed(pid, msg) => write!(f, "Failed to assign process (PID {pid}) to Job Object: {msg}"),
+            Self::JobObjectInitFailed(msg) => {
+                write!(f, "Failed to initialize Windows Job Object: {msg}")
+            }
+            Self::AssignProcessFailed(pid, msg) => write!(
+                f,
+                "Failed to assign process (PID {pid}) to Job Object: {msg}"
+            ),
             Self::LaunchFailed(name, err) => write!(f, "Process launch failed for '{name}': {err}"),
-            Self::BinaryNotFound(name) => write!(f, "Process '{name}' not found in executable search paths"),
+            Self::BinaryNotFound(name) => {
+                write!(f, "Process '{name}' not found in executable search paths")
+            }
             Self::ShutdownError(msg) => write!(f, "Supervisor shutdown error: {msg}"),
         }
     }
@@ -71,8 +78,9 @@ impl WindowsJobObject {
     pub fn new() -> Result<Self, SupervisorError> {
         #[cfg(windows)]
         unsafe {
-            let handle = CreateJobObjectW(None, None)
-                .map_err(|e| SupervisorError::JobObjectInitFailed(format!("CreateJobObjectW failed: {e}")))?;
+            let handle = CreateJobObjectW(None, None).map_err(|e| {
+                SupervisorError::JobObjectInitFailed(format!("CreateJobObjectW failed: {e}"))
+            })?;
 
             let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -103,16 +111,24 @@ impl WindowsJobObject {
         #[cfg(windows)]
         unsafe {
             let proc_handle = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, false, pid)
-                .map_err(|e| SupervisorError::AssignProcessFailed(pid, format!("OpenProcess failed: {e}")))?;
+                .map_err(|e| {
+                    SupervisorError::AssignProcessFailed(pid, format!("OpenProcess failed: {e}"))
+                })?;
 
             let assign_res = AssignProcessToJobObject(self.handle, proc_handle);
             let _ = CloseHandle(proc_handle);
 
             assign_res.map_err(|e| {
-                SupervisorError::AssignProcessFailed(pid, format!("AssignProcessToJobObject failed: {e}"))
+                SupervisorError::AssignProcessFailed(
+                    pid,
+                    format!("AssignProcessToJobObject failed: {e}"),
+                )
             })?;
 
-            info!(pid, "Successfully assigned child process to Windows Job Object");
+            info!(
+                pid,
+                "Successfully assigned child process to Windows Job Object"
+            );
             Ok(())
         }
 
@@ -263,7 +279,12 @@ impl Supervisor {
     }
 
     /// Spawns a tracked child process and registers it with the Windows Job Object.
-    fn spawn_child(&self, name: &str, bin_path: &Path, args: &[&str]) -> Result<u32, SupervisorError> {
+    fn spawn_child(
+        &self,
+        name: &str,
+        bin_path: &Path,
+        args: &[&str],
+    ) -> Result<u32, SupervisorError> {
         let mut cmd = Command::new(bin_path);
         cmd.args(args);
         cmd.stdout(Stdio::inherit());
@@ -335,7 +356,9 @@ impl Supervisor {
             match self.start_daemon() {
                 Ok(Some(pid)) => info!(pid, "Supervised daemon online"),
                 Ok(None) => {}
-                Err(e) => warn!(error = %e, "Could not start supervised daemon; continuing in standalone mode"),
+                Err(e) => {
+                    warn!(error = %e, "Could not start supervised daemon; continuing in standalone mode")
+                }
             }
         }
 
@@ -343,7 +366,9 @@ impl Supervisor {
             match self.start_overlay() {
                 Ok(Some(pid)) => info!(pid, "Supervised overlay online"),
                 Ok(None) => {}
-                Err(e) => warn!(error = %e, "Could not start supervised overlay; continuing without overlay"),
+                Err(e) => {
+                    warn!(error = %e, "Could not start supervised overlay; continuing without overlay")
+                }
             }
         }
 
@@ -548,7 +573,10 @@ mod tests {
 
         // Assign to Job Object
         let assign_res = job.assign_pid(pid);
-        assert!(assign_res.is_ok(), "Should successfully assign process to Job Object");
+        assert!(
+            assign_res.is_ok(),
+            "Should successfully assign process to Job Object"
+        );
 
         // Kill process tree
         Supervisor::kill_pid_tree(pid);
@@ -558,4 +586,3 @@ mod tests {
         assert!(wait_res.is_ok());
     }
 }
-

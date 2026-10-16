@@ -3,11 +3,9 @@
 
 use std::io::Write;
 use std::net::{IpAddr, SocketAddr};
-use std::path::Path;
 use voxy_security::{
-    is_host_restricted, is_ip_restricted, is_ipv4_restricted, is_ipv6_restricted,
-    safe_extract_tar, safe_extract_zip, validate_archive_path, validate_destination_url,
-    validate_destination_url_str, validate_socket_addr, ArchiveSecurityError,
+    is_host_restricted, is_ip_restricted, safe_extract_tar, safe_extract_zip,
+    validate_archive_path, validate_destination_url_str, validate_socket_addr,
     ArchiveSecurityLimits,
 };
 use zip::write::SimpleFileOptions;
@@ -28,7 +26,11 @@ fn test_ssrf_rejects_loopback_destinations() {
 
     for ip_str in loopbacks {
         let ip: IpAddr = ip_str.parse().unwrap();
-        assert!(is_ip_restricted(ip), "Loopback IP {} must be restricted", ip_str);
+        assert!(
+            is_ip_restricted(ip),
+            "Loopback IP {} must be restricted",
+            ip_str
+        );
         assert!(validate_socket_addr(&SocketAddr::new(ip, 80)).is_err());
         assert!(validate_destination_url_str(&format!("http://{ip_str}:8080/admin")).is_err());
     }
@@ -55,9 +57,15 @@ fn test_ssrf_rejects_cloud_metadata_destinations() {
 
     for ip_str in metadata_targets {
         let ip: IpAddr = ip_str.parse().unwrap();
-        assert!(is_ip_restricted(ip), "Metadata IP {} must be restricted", ip_str);
+        assert!(
+            is_ip_restricted(ip),
+            "Metadata IP {} must be restricted",
+            ip_str
+        );
         assert!(validate_socket_addr(&SocketAddr::new(ip, 80)).is_err());
-        assert!(validate_destination_url_str(&format!("http://{ip_str}/latest/meta-data/")).is_err());
+        assert!(
+            validate_destination_url_str(&format!("http://{ip_str}/latest/meta-data/")).is_err()
+        );
     }
 
     // AWS IPv6 IMDS
@@ -68,7 +76,10 @@ fn test_ssrf_rejects_cloud_metadata_destinations() {
     // Hostnames
     assert!(is_host_restricted("metadata.google.internal"));
     assert!(is_host_restricted("instance-data"));
-    assert!(validate_destination_url_str("http://metadata.google.internal/computeMetadata/v1/").is_err());
+    assert!(
+        validate_destination_url_str("http://metadata.google.internal/computeMetadata/v1/")
+            .is_err()
+    );
     assert!(validate_destination_url_str("http://instance-data/latest/meta-data").is_err());
 }
 
@@ -94,7 +105,11 @@ fn test_ssrf_rejects_all_rfc1918_private_subnets() {
 
     for ip_str in private_ips {
         let ip: IpAddr = ip_str.parse().unwrap();
-        assert!(is_ip_restricted(ip), "RFC1918 IP {} must be restricted", ip_str);
+        assert!(
+            is_ip_restricted(ip),
+            "RFC1918 IP {} must be restricted",
+            ip_str
+        );
         assert!(validate_socket_addr(&SocketAddr::new(ip, 443)).is_err());
         assert!(validate_destination_url_str(&format!("http://{ip_str}:8080/internal")).is_err());
     }
@@ -106,11 +121,7 @@ fn test_ssrf_rejects_all_rfc1918_private_subnets() {
 
 #[test]
 fn test_ssrf_rejects_link_local_and_reserved_subnets() {
-    let link_locals = [
-        "169.254.0.1",
-        "169.254.10.20",
-        "169.254.255.254",
-    ];
+    let link_locals = ["169.254.0.1", "169.254.10.20", "169.254.255.254"];
 
     for ip_str in link_locals {
         let ip: IpAddr = ip_str.parse().unwrap();
@@ -228,14 +239,19 @@ fn test_zip_extraction_clean_rollback_on_entry_quota() {
     zip.write_all(&vec![1u8; 15_000]).unwrap();
     zip.finish().unwrap();
 
-    let mut limits = ArchiveSecurityLimits::default();
-    limits.max_entry_uncompressed_bytes = 1000; // 1KB limit
+    let limits = ArchiveSecurityLimits {
+        max_entry_uncompressed_bytes: 1000, // 1KB limit
+        ..Default::default()
+    };
 
     let reader = std::fs::File::open(&zip_file_path).unwrap();
     let result = safe_extract_zip(reader, &extract_dir, &limits);
 
     assert!(result.is_err());
-    assert!(!extract_dir.join("first.txt").exists(), "Rollback failed for first.txt");
+    assert!(
+        !extract_dir.join("first.txt").exists(),
+        "Rollback failed for first.txt"
+    );
     assert!(!extract_dir.join("second_oversized.bin").exists());
 }
 
@@ -255,9 +271,11 @@ fn test_zip_extraction_clean_rollback_on_total_quota() {
     }
     zip.finish().unwrap();
 
-    let mut limits = ArchiveSecurityLimits::default();
-    limits.max_entry_uncompressed_bytes = 5000;
-    limits.max_total_uncompressed_bytes = 4500; // Will fail after 2 files
+    let limits = ArchiveSecurityLimits {
+        max_entry_uncompressed_bytes: 5000,
+        max_total_uncompressed_bytes: 4500, // Will fail after 2 files
+        ..Default::default()
+    };
 
     let reader = std::fs::File::open(&zip_file_path).unwrap();
     let result = safe_extract_zip(reader, &extract_dir, &limits);
@@ -281,21 +299,30 @@ fn test_zip_extraction_clean_rollback_on_compression_bomb() {
     let mut zip = zip::ZipWriter::new(file);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-    zip.start_file("good.txt", SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored)).unwrap();
+    zip.start_file(
+        "good.txt",
+        SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
+    )
+    .unwrap();
     zip.write_all(b"good").unwrap();
 
     zip.start_file("bomb.bin", options).unwrap();
     zip.write_all(&vec![0u8; 100_000]).unwrap(); // Compresses down to tiny size
     zip.finish().unwrap();
 
-    let mut limits = ArchiveSecurityLimits::default();
-    limits.max_compression_ratio = 5.0; // Very strict ratio
+    let limits = ArchiveSecurityLimits {
+        max_compression_ratio: 5.0, // Very strict ratio
+        ..Default::default()
+    };
 
     let reader = std::fs::File::open(&zip_file_path).unwrap();
     let result = safe_extract_zip(reader, &extract_dir, &limits);
 
     assert!(result.is_err());
-    assert!(!extract_dir.join("good.txt").exists(), "good.txt must be rolled back");
+    assert!(
+        !extract_dir.join("good.txt").exists(),
+        "good.txt must be rolled back"
+    );
     assert!(!extract_dir.join("bomb.bin").exists());
 }
 
@@ -330,7 +357,10 @@ fn test_tar_extraction_clean_rollback_on_traversal() {
     assert!(result.is_err());
 
     // Clean rollback: benign.txt must be deleted!
-    assert!(!extract_dir.join("benign.txt").exists(), "Rollback failed: benign.txt left behind");
+    assert!(
+        !extract_dir.join("benign.txt").exists(),
+        "Rollback failed: benign.txt left behind"
+    );
     assert!(!temp.path().join("escaped_tar.txt").exists());
 }
 

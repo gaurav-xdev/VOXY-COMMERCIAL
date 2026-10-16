@@ -471,6 +471,7 @@ impl TaskStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "QUEUED" => Self::Queued,
@@ -1670,12 +1671,8 @@ impl CommercialStore {
                     result_summary
                         .map(|s| Value::String(s.to_string()))
                         .unwrap_or(Value::Null),
-                    started_at_update
-                        .map(|s| Value::String(s))
-                        .unwrap_or(Value::Null),
-                    ended_at_update
-                        .map(|s| Value::String(s))
-                        .unwrap_or(Value::Null),
+                    started_at_update.map(Value::String).unwrap_or(Value::Null),
+                    ended_at_update.map(Value::String).unwrap_or(Value::Null),
                     Value::String(task_id.to_string()),
                 ],
             )
@@ -1700,6 +1697,7 @@ impl CommercialStore {
         Ok(affected)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_artifact(
         &self,
         task_id: &str,
@@ -1832,6 +1830,7 @@ impl CommercialStore {
         Ok(list)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn record_tool_invocation(
         &self,
         task_id: &str,
@@ -1888,6 +1887,7 @@ impl CommercialStore {
 
     // ── Scoped Long-Term Memory Operations ──
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn store_scoped_memory(
         &self,
         account_id: &str,
@@ -2219,6 +2219,7 @@ impl CommercialStore {
 
     // ── Skills & Workflows Operations ──
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn register_skill(
         &self,
         name: &str,

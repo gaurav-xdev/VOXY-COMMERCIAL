@@ -460,22 +460,24 @@ impl AgenticOperationLoop {
 
                 match step_res {
                     Ok(Ok(())) => {
-                        // 3. Verify
-                        if self.config.auto_verify && current_step.verification.is_some() {
-                            self.set_state(LoopState::Verifying);
-                            let verified = self
-                                .verify_step(current_step.verification.as_ref().unwrap())
-                                .await?;
-                            if verified {
+                        if self.config.auto_verify {
+                            if let Some(ref verif) = current_step.verification {
+                                self.set_state(LoopState::Verifying);
+                                let verified = self.verify_step(verif).await?;
+                                if verified {
+                                    act_success = true;
+                                    break;
+                                } else {
+                                    warn!(
+                                        "Verification failed for step {} (attempt {}/{})",
+                                        current_step.step_number,
+                                        retries + 1,
+                                        current_step.max_retries
+                                    );
+                                }
+                            } else {
                                 act_success = true;
                                 break;
-                            } else {
-                                warn!(
-                                    "Verification failed for step {} (attempt {}/{})",
-                                    current_step.step_number,
-                                    retries + 1,
-                                    current_step.max_retries
-                                );
                             }
                         } else {
                             act_success = true;
@@ -588,10 +590,10 @@ impl AgenticOperationLoop {
     }
 
     fn requires_approval(&self, step: &PlannedStep) -> bool {
-        match step.risk_level {
-            RiskLevel::HighRisk | RiskLevel::CriticalDestructive => true,
-            _ => false,
-        }
+        matches!(
+            step.risk_level,
+            RiskLevel::HighRisk | RiskLevel::CriticalDestructive
+        )
     }
 
     async fn request_approval(&self, step: &PlannedStep) -> Result<bool> {

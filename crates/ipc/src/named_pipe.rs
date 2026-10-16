@@ -687,7 +687,10 @@ impl VoxyIpcClient {
                                     {
                                         Ok(Ok(env)) => {
                                             // If heartbeat ping received from daemon, respond with HeartbeatPong
-                                            if matches!(env.payload, DaemonMessage::Heartbeat { .. }) {
+                                            if matches!(
+                                                env.payload,
+                                                DaemonMessage::Heartbeat { .. }
+                                            ) {
                                                 let _ = out_cmd_tx_reply
                                                     .send(ClientCommand::HeartbeatPong)
                                                     .await;

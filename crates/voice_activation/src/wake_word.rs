@@ -53,7 +53,8 @@ pub struct WakeWordDetector {
 
 impl WakeWordDetector {
     pub fn new(config: WakeWordConfig) -> Self {
-        let max_samples = (config.sample_rate as f64 * (config.window_ms as f64 / 1000.0)).round() as usize;
+        let max_samples =
+            (config.sample_rate as f64 * (config.window_ms as f64 / 1000.0)).round() as usize;
         Self {
             config,
             audio_buffer: Vec::with_capacity(max_samples),
@@ -65,7 +66,8 @@ impl WakeWordDetector {
 
     /// Feeds 16kHz mono audio frame (e.g. 20ms = 320 samples) and checks for wake word.
     pub fn feed_frame(&mut self, frame: &[f32]) -> Option<WakeWordMatch> {
-        let frame_duration_ms = (frame.len() as f64 / self.config.sample_rate as f64 * 1000.0).round() as u64;
+        let frame_duration_ms =
+            (frame.len() as f64 / self.config.sample_rate as f64 * 1000.0).round() as u64;
         self.current_time_ms += frame_duration_ms;
 
         // Maintain sliding history window
@@ -77,7 +79,9 @@ impl WakeWordDetector {
         self.audio_buffer.extend_from_slice(frame);
 
         // Check cooldown
-        if self.last_trigger_ms > 0 && self.current_time_ms < self.last_trigger_ms + self.config.cooldown_ms {
+        if self.last_trigger_ms > 0
+            && self.current_time_ms < self.last_trigger_ms + self.config.cooldown_ms
+        {
             return None;
         }
 
@@ -92,12 +96,8 @@ impl WakeWordDetector {
         let zcr = self.calculate_zcr();
 
         // Valid speech vowel formants have ZCR between 0.01 and 0.40 (rejects high-frequency hiss)
-        if (2..=5).contains(&peaks) && rms >= 0.03 && zcr >= 0.01 && zcr <= 0.42 {
-            let matched_keyword = if peaks >= 3 {
-                "hey osmoo"
-            } else {
-                "osmoo"
-            };
+        if (2..=5).contains(&peaks) && rms >= 0.03 && (0.01..=0.42).contains(&zcr) {
+            let matched_keyword = if peaks >= 3 { "hey osmoo" } else { "osmoo" };
 
             let confidence = (0.6 + (rms * 2.0)).clamp(0.65, 0.99);
             if confidence >= self.config.threshold {
@@ -132,7 +132,8 @@ impl WakeWordDetector {
             return 0;
         }
 
-        let energies: Vec<f32> = self.audio_buffer
+        let energies: Vec<f32> = self
+            .audio_buffer
             .chunks(chunk_size)
             .map(voxy_voice_audio::calculate_rms)
             .collect();
@@ -184,7 +185,8 @@ mod tests {
 
         // Synthetic 2-syllable modulated burst simulating "OS-MOO"
         let mut speech_burst = Vec::new();
-        for i in 0..6400 { // 400ms
+        for i in 0..6400 {
+            // 400ms
             let t = i as f32 / 16000.0;
             // Modulated carrier wave with two distinct syllable envelopes
             let envelope = ((2.0 * std::f32::consts::PI * 2.5 * t).sin()).abs();

@@ -182,7 +182,13 @@ pub fn is_ipv6_restricted(v6: &Ipv6Addr) -> bool {
     }
 
     // IPv4/IPv6 translation prefix: 64:ff9b::/96 (RFC 6052)
-    if segments[0] == 0x0064 && segments[1] == 0xff9b && segments[2] == 0 && segments[3] == 0 && segments[4] == 0 && segments[5] == 0 {
+    if segments[0] == 0x0064
+        && segments[1] == 0xff9b
+        && segments[2] == 0
+        && segments[3] == 0
+        && segments[4] == 0
+        && segments[5] == 0
+    {
         let octet0 = (segments[6] >> 8) as u8;
         let octet1 = (segments[6] & 0xff) as u8;
         let octet2 = (segments[7] >> 8) as u8;
@@ -282,8 +288,9 @@ pub fn validate_destination_url(url: &Url) -> Result<SocketAddr, SecurityError> 
 
 /// Helper to parse and validate a URL string in one step.
 pub fn validate_destination_url_str(url_str: &str) -> Result<SocketAddr, SecurityError> {
-    let url = Url::parse(url_str)
-        .map_err(|e| SecurityError::InvalidDestination(format!("Malformed URL '{url_str}': {e}")))?;
+    let url = Url::parse(url_str).map_err(|e| {
+        SecurityError::InvalidDestination(format!("Malformed URL '{url_str}': {e}"))
+    })?;
     validate_destination_url(&url)
 }
 
@@ -340,14 +347,19 @@ pub async fn safe_connect_tcp(
     // Double-check the socket address immediately before connection
     validate_socket_addr(&target_addr)?;
 
-    let stream = tokio::time::timeout(timeout_duration, tokio::net::TcpStream::connect(target_addr))
-        .await
-        .map_err(|_| {
-            SecurityError::Internal(format!("Connection to destination {target_addr} timed out"))
-        })?
-        .map_err(|e| {
-            SecurityError::Internal(format!("Failed to connect to destination {target_addr}: {e}"))
-        })?;
+    let stream = tokio::time::timeout(
+        timeout_duration,
+        tokio::net::TcpStream::connect(target_addr),
+    )
+    .await
+    .map_err(|_| {
+        SecurityError::Internal(format!("Connection to destination {target_addr} timed out"))
+    })?
+    .map_err(|e| {
+        SecurityError::Internal(format!(
+            "Failed to connect to destination {target_addr}: {e}"
+        ))
+    })?;
 
     Ok((stream, target_addr))
 }
@@ -472,7 +484,10 @@ mod tests {
         assert!(is_host_restricted("instance-data"));
 
         assert!(validate_destination_url_str("http://localhost:3000/").is_err());
-        assert!(validate_destination_url_str("http://metadata.google.internal/computeMetadata/v1/").is_err());
+        assert!(validate_destination_url_str(
+            "http://metadata.google.internal/computeMetadata/v1/"
+        )
+        .is_err());
     }
 
     #[test]

@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 pub mod auth;
 pub mod cognition;
 pub mod discovery;
@@ -9,12 +11,12 @@ pub mod settings;
 use std::sync::Arc;
 
 pub use auth::AuthBridge;
-pub use discovery::LocalModelDiscovery;
-pub use ipc::IpcBridge;
-pub use settings::SettingsBridge;
 pub use cognition::CognitionBridge;
-pub use memory::MemoryBridge;
+pub use discovery::LocalModelDiscovery;
 pub use events::EventBridge;
+pub use ipc::IpcBridge;
+pub use memory::MemoryBridge;
+pub use settings::SettingsBridge;
 
 use voxy_cognition::CognitiveEngine;
 use voxy_companion_intelligence::{ExperienceBridge, ExperienceInput};

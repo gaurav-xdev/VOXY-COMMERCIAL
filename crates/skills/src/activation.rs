@@ -89,7 +89,11 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-    pub fn new(task_id: impl Into<String>, prompt: impl Into<String>, workspace: impl Into<PathBuf>) -> Self {
+    pub fn new(
+        task_id: impl Into<String>,
+        prompt: impl Into<String>,
+        workspace: impl Into<PathBuf>,
+    ) -> Self {
         let mut permissions = HashSet::new();
         // Base read permission is standard for tasks
         permissions.insert(SkillPermission::ReadFiles);
@@ -195,10 +199,17 @@ impl ActivationEngine {
     pub fn read_capability_doc(&self, capability: &ExternalCapability) -> Result<String> {
         let path = self.catalog_root.join(&capability.doc_path);
         if path.exists() {
-            std::fs::read_to_string(&path)
-                .map_err(|e| SkillsError::SkillExecutionFailed(format!("Failed to read capability doc {:?}: {}", path, e)))
+            std::fs::read_to_string(&path).map_err(|e| {
+                SkillsError::SkillExecutionFailed(format!(
+                    "Failed to read capability doc {:?}: {}",
+                    path, e
+                ))
+            })
         } else {
-            Err(SkillsError::SkillNotFound(format!("Capability doc not found at {:?}", path)))
+            Err(SkillsError::SkillNotFound(format!(
+                "Capability doc not found at {:?}",
+                path
+            )))
         }
     }
 
@@ -233,7 +244,8 @@ impl ActivationEngine {
         let mut rejected = Vec::new();
 
         let prompt_tags = self.extract_tags_from_prompt(&task.prompt);
-        let mut combined_tags: HashSet<String> = task.tags.iter().map(|t| t.to_lowercase()).collect();
+        let mut combined_tags: HashSet<String> =
+            task.tags.iter().map(|t| t.to_lowercase()).collect();
         combined_tags.extend(prompt_tags);
 
         for cap in &self.catalog.capabilities {
@@ -297,10 +309,7 @@ impl ActivationEngine {
                 rejected.push(ActivationDecision {
                     capability_id: cap.id.clone(),
                     activated: false,
-                    reason: format!(
-                        "Missing required permissions: {:?}",
-                        missing_permissions
-                    ),
+                    reason: format!("Missing required permissions: {:?}", missing_permissions),
                 });
                 continue;
             }

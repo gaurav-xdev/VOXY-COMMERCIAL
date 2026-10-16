@@ -119,7 +119,10 @@ impl Tool for CodingGitDiffTool {
     async fn execute(&self, params: serde_json::Value, ctx: &ToolContext) -> Result<ToolResult> {
         let start = Instant::now();
         let root = resolve_repo_root(&params, ctx);
-        let staged = params.get("staged").and_then(|v| v.as_bool()).unwrap_or(false);
+        let staged = params
+            .get("staged")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
         let mut cmd = tokio::process::Command::new("git");
         cmd.arg("diff");

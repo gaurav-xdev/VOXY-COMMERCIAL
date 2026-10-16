@@ -172,9 +172,9 @@ pub fn OverlayApprovalModal(
     };
 
     let on_approve = {
-        let on_close = on_close.clone();
+        let on_close = on_close;
         move |_| {
-            let on_close = on_close.clone();
+            let on_close = on_close;
             spawn(async move {
                 let client = crate::get_ipc_client();
                 let _ = client
@@ -190,9 +190,9 @@ pub fn OverlayApprovalModal(
     };
 
     let on_deny = {
-        let on_close = on_close.clone();
+        let on_close = on_close;
         move |_| {
-            let on_close = on_close.clone();
+            let on_close = on_close;
             spawn(async move {
                 let client = crate::get_ipc_client();
                 let _ = client
@@ -208,9 +208,9 @@ pub fn OverlayApprovalModal(
     };
 
     let on_stop = {
-        let on_close = on_close.clone();
+        let on_close = on_close;
         move |_| {
-            let on_close = on_close.clone();
+            let on_close = on_close;
             spawn(async move {
                 let client = crate::get_ipc_client();
                 let _ = client

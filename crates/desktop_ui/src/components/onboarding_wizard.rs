@@ -1,7 +1,7 @@
-use dioxus::prelude::*;
 use crate::components::icons::{
     IconAlertCircle, IconCheck, IconChevronRight, IconCpu, IconRefresh,
 };
+use dioxus::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum OnboardingStep {
@@ -38,7 +38,7 @@ pub fn OnboardingWizard(
 
     let mut name_input = use_signal(|| "OSMOO Core".to_string());
     let mut selected_llm = use_signal(|| "ollama".to_string());
-    let mut ollama_models = use_signal(move || initial_ollama_models);
+    let ollama_models = use_signal(move || initial_ollama_models);
     let mut selected_ollama_model = use_signal(|| "llama3.2:3b".to_string());
     let mut autolaunch = use_signal(|| true);
 
@@ -250,9 +250,8 @@ pub fn OnboardingWizard(
                             class: "hud-btn secondary",
                             onclick: move |_| {
                                 let step = *current_step.read();
-                                match step {
-                                    OnboardingStep::LlmProvider => current_step.set(OnboardingStep::Identity),
-                                    _ => {}
+                                if step == OnboardingStep::LlmProvider {
+                                    current_step.set(OnboardingStep::Identity);
                                 }
                             },
                             "Back"

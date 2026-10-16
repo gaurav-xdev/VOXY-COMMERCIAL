@@ -1,7 +1,5 @@
+use crate::components::icons::{IconSettings, IconSparkles};
 use dioxus::prelude::*;
-use crate::components::icons::{
-    IconAlertCircle, IconCheck, IconCpu, IconMic, IconRefresh, IconSettings, IconShield, IconSparkles,
-};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsFormState {

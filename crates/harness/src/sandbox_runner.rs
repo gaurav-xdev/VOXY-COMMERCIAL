@@ -131,7 +131,9 @@ impl SandboxedRunner {
                 if crate::patch_engine::is_symlink_or_reparse_point(&full) {
                     return Err(RunnerError::InvalidWorkingDir);
                 }
-                if let (Ok(canon_full), Ok(canon_root)) = (full.canonicalize(), self.repo_root.canonicalize()) {
+                if let (Ok(canon_full), Ok(canon_root)) =
+                    (full.canonicalize(), self.repo_root.canonicalize())
+                {
                     if !crate::patch_engine::path_is_contained(&canon_full, &canon_root) {
                         return Err(RunnerError::InvalidWorkingDir);
                     }
@@ -370,10 +372,14 @@ mod tests {
 
         #[cfg(not(target_os = "windows"))]
         let res = runner
-            .run_command("echo", &["test"], Some(Path::new("../outside")), Duration::from_secs(5))
+            .run_command(
+                "echo",
+                &["test"],
+                Some(Path::new("../outside")),
+                Duration::from_secs(5),
+            )
             .await;
 
         assert!(matches!(res, Err(RunnerError::InvalidWorkingDir)));
     }
 }
-

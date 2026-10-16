@@ -41,7 +41,11 @@ pub struct SttResult {
 #[async_trait]
 pub trait SttEngine: Send + Sync {
     /// Transcribe 16kHz mono float PCM samples into text.
-    async fn transcribe(&self, pcm_16k_mono: &[f32], language: Option<&str>) -> Result<SttResult, SttError>;
+    async fn transcribe(
+        &self,
+        pcm_16k_mono: &[f32],
+        language: Option<&str>,
+    ) -> Result<SttResult, SttError>;
 
     /// Human-readable provider and model name.
     fn name(&self) -> &str;
@@ -50,8 +54,8 @@ pub trait SttEngine: Send + Sync {
 /// Encode raw 16kHz mono f32 samples in [-1.0, 1.0] to a standard 16-bit PCM RIFF WAV in memory.
 pub fn encode_wav_16k_mono(samples: &[f32]) -> Vec<u8> {
     let num_samples = samples.len() as u32;
-    let byte_rate: u32 = 16000 * 1 * 2; // sample_rate * channels * bytes_per_sample
-    let block_align: u16 = 1 * 2; // channels * bytes_per_sample
+    let byte_rate: u32 = 32000; // sample_rate * channels * bytes_per_sample
+    let block_align: u16 = 2; // channels * bytes_per_sample
     let data_chunk_size = num_samples * 2;
     let total_file_size = 36 + data_chunk_size;
 
@@ -129,7 +133,9 @@ impl GroqSttEngine {
     pub fn from_env() -> Result<Self, SttError> {
         let key = std::env::var("GROQ_API_KEY")
             .or_else(|_| std::env::var("STT_GROQ_API_KEY"))
-            .map_err(|_| SttError::MissingApiKey("Neither GROQ_API_KEY nor STT_GROQ_API_KEY is set".into()))?;
+            .map_err(|_| {
+                SttError::MissingApiKey("Neither GROQ_API_KEY nor STT_GROQ_API_KEY is set".into())
+            })?;
         let model = std::env::var("GROQ_STT_MODEL")
             .or_else(|_| std::env::var("STT_GROQ_MODEL"))
             .ok();
@@ -143,7 +149,11 @@ impl SttEngine for GroqSttEngine {
         "Groq (whisper-large-v3-turbo)"
     }
 
-    async fn transcribe(&self, pcm_16k_mono: &[f32], language: Option<&str>) -> Result<SttResult, SttError> {
+    async fn transcribe(
+        &self,
+        pcm_16k_mono: &[f32],
+        language: Option<&str>,
+    ) -> Result<SttResult, SttError> {
         if pcm_16k_mono.is_empty() {
             return Err(SttError::EmptyAudio);
         }
@@ -186,11 +196,7 @@ impl SttEngine for GroqSttEngine {
                             .json()
                             .await
                             .map_err(|e| SttError::ParseError(e.to_string()))?;
-                        let text = json["text"]
-                            .as_str()
-                            .unwrap_or("")
-                            .trim()
-                            .to_string();
+                        let text = json["text"].as_str().unwrap_or("").trim().to_string();
 
                         return Ok(SttResult {
                             text,
@@ -239,7 +245,9 @@ impl SttEngine for GroqSttEngine {
             }
         }
 
-        Err(SttError::Network(format!("Max retries exceeded: {last_err}")))
+        Err(SttError::Network(format!(
+            "Max retries exceeded: {last_err}"
+        )))
     }
 }
 
@@ -262,7 +270,11 @@ impl SttEngine for LocalWhisperSttEngine {
         "Local Whisper (whisper.cpp)"
     }
 
-    async fn transcribe(&self, pcm_16k_mono: &[f32], language: Option<&str>) -> Result<SttResult, SttError> {
+    async fn transcribe(
+        &self,
+        pcm_16k_mono: &[f32],
+        language: Option<&str>,
+    ) -> Result<SttResult, SttError> {
         if pcm_16k_mono.is_empty() {
             return Err(SttError::EmptyAudio);
         }
@@ -272,7 +284,9 @@ impl SttEngine for LocalWhisperSttEngine {
         // Returns simulated/fallback recognition or logs local execution
         Ok(SttResult {
             text: format!("[Local Whisper ({})] Audio transcribed", self.model_name),
-            language: language.map(String::from).or_else(|| Some("en".to_string())),
+            language: language
+                .map(String::from)
+                .or_else(|| Some("en".to_string())),
             duration_ms,
             confidence: 0.90,
             is_final: true,
@@ -301,7 +315,11 @@ impl SttEngine for MockSttEngine {
         "Mock STT Engine"
     }
 
-    async fn transcribe(&self, pcm_16k_mono: &[f32], language: Option<&str>) -> Result<SttResult, SttError> {
+    async fn transcribe(
+        &self,
+        pcm_16k_mono: &[f32],
+        language: Option<&str>,
+    ) -> Result<SttResult, SttError> {
         if pcm_16k_mono.is_empty() {
             return Err(SttError::EmptyAudio);
         }
@@ -309,7 +327,9 @@ impl SttEngine for MockSttEngine {
 
         Ok(SttResult {
             text: self.return_text.clone(),
-            language: language.map(String::from).or_else(|| Some("en".to_string())),
+            language: language
+                .map(String::from)
+                .or_else(|| Some("en".to_string())),
             duration_ms,
             confidence: 1.0,
             is_final: true,
@@ -365,7 +385,10 @@ mod tests {
         assert!(groq.prompt().contains("English:"));
 
         let custom = groq.with_prompt("Custom prompt for bilingual Hindi/English session");
-        assert_eq!(custom.prompt(), "Custom prompt for bilingual Hindi/English session");
+        assert_eq!(
+            custom.prompt(),
+            "Custom prompt for bilingual Hindi/English session"
+        );
     }
 
     #[tokio::test]
@@ -377,9 +400,14 @@ mod tests {
         assert_eq!(res_hi.language.as_deref(), Some("hi"));
 
         let hinglish_engine = MockSttEngine::new("Bhai build check karo aur tests run karo");
-        let res_hinglish = hinglish_engine.transcribe(&samples, Some("hi-Latn")).await.unwrap();
-        assert_eq!(res_hinglish.text, "Bhai build check karo aur tests run karo");
+        let res_hinglish = hinglish_engine
+            .transcribe(&samples, Some("hi-Latn"))
+            .await
+            .unwrap();
+        assert_eq!(
+            res_hinglish.text,
+            "Bhai build check karo aur tests run karo"
+        );
         assert_eq!(res_hinglish.language.as_deref(), Some("hi-Latn"));
     }
 }
-

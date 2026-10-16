@@ -320,7 +320,10 @@ async fn test_windows_named_pipe_heartbeat_and_pong() {
             }
         }
     }
-    assert!(got_hb, "Client should receive heartbeat message from server");
+    assert!(
+        got_hb,
+        "Client should receive heartbeat message from server"
+    );
 
     // Client should automatically reply with HeartbeatPong
     let pong_cmd = tokio::time::timeout(Duration::from_secs(2), server.recv_command())
@@ -378,9 +381,11 @@ async fn test_windows_named_pipe_reconnect_on_server_restart() {
         tokio::time::sleep(Duration::from_millis(100)).await;
         let _ = conn_watch.changed().await;
     }
-    assert!(reconnected, "Client should automatically reconnect after server restart");
+    assert!(
+        reconnected,
+        "Client should automatically reconnect after server restart"
+    );
 
     client.stop();
     server2.stop();
 }
-
