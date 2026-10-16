@@ -5,7 +5,6 @@ pub mod events;
 pub mod ipc;
 pub mod memory;
 pub mod settings;
-pub mod voice;
 
 use std::sync::Arc;
 
@@ -13,7 +12,6 @@ pub use auth::AuthBridge;
 pub use discovery::LocalModelDiscovery;
 pub use ipc::IpcBridge;
 pub use settings::SettingsBridge;
-pub use voice::VoiceBridge;
 pub use cognition::CognitionBridge;
 pub use memory::MemoryBridge;
 pub use events::EventBridge;
@@ -32,14 +30,12 @@ use voxy_memory::MemoryApi;
 use voxy_personality::PersonalityManager;
 use voxy_plugin_runtime::PluginManager;
 use voxy_security::GuardianEngine;
-use voxy_voice::VoicePipeline;
 
 #[derive(Clone)]
 pub struct AppBridge {
     pub event_bus: Arc<EventBus>,
     pub settings: Arc<SettingsManager>,
     pub config_manager: Arc<ConfigManager>,
-    pub voice: Arc<VoicePipeline>,
     pub cognition: Arc<dyn CognitiveEngine>,
     pub memory: Arc<dyn MemoryApi>,
     pub personality: Arc<dyn PersonalityManager>,
@@ -63,7 +59,6 @@ impl AppBridge {
         event_bus: Arc<EventBus>,
         settings: Arc<SettingsManager>,
         config_manager: Arc<ConfigManager>,
-        voice: Arc<VoicePipeline>,
         cognition: Arc<dyn CognitiveEngine>,
         memory: Arc<dyn MemoryApi>,
         personality: Arc<dyn PersonalityManager>,
@@ -84,7 +79,6 @@ impl AppBridge {
             event_bus,
             settings,
             config_manager,
-            voice,
             cognition,
             memory,
             personality,

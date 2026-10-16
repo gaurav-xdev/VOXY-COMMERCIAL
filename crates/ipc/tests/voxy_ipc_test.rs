@@ -8,10 +8,8 @@ use voxy_ipc::{
 fn test_voice_states_serde() {
     let states = [
         VoiceState::Idle,
-        VoiceState::Listening,
         VoiceState::Thinking,
-        VoiceState::Speaking,
-        VoiceState::Interrupted,
+        VoiceState::Responding,
         VoiceState::Error,
     ];
 
@@ -40,7 +38,7 @@ fn test_tool_step_status_serde() {
 #[test]
 fn test_state_snapshot_generation() {
     let snap = DaemonStateSnapshot {
-        voice_state: VoiceState::Speaking,
+        voice_state: VoiceState::Responding,
         transcript: "Test speech transcript".to_string(),
         emergency_stopped: false,
         ..Default::default()
@@ -54,7 +52,7 @@ fn test_state_snapshot_generation() {
             emergency_stopped,
             ..
         } => {
-            assert_eq!(voice_state, VoiceState::Speaking);
+            assert_eq!(voice_state, VoiceState::Responding);
             assert_eq!(transcript, "Test speech transcript");
             assert!(!emergency_stopped);
         }
@@ -108,7 +106,7 @@ async fn test_windows_named_pipe_e2e_communication() {
 
     // 3. Test state transition broadcast from daemon
     server
-        .set_voice_state(VoiceState::Listening, Some("PTT active".to_string()))
+        .set_voice_state(VoiceState::Thinking, Some("Prompt received".to_string()))
         .await;
 
     let state_msg = tokio::time::timeout(Duration::from_secs(2), event_rx.recv())
@@ -118,8 +116,8 @@ async fn test_windows_named_pipe_e2e_communication() {
 
     match state_msg {
         DaemonMessage::VoiceStateChanged { state, reason } => {
-            assert_eq!(state, VoiceState::Listening);
-            assert_eq!(reason, Some("PTT active".to_string()));
+            assert_eq!(state, VoiceState::Thinking);
+            assert_eq!(reason, Some("Prompt received".to_string()));
         }
         other => panic!("Expected VoiceStateChanged, got: {:?}", other),
     }

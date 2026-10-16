@@ -3,10 +3,8 @@ use dioxus::prelude::*;
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum CoreState {
     Idle,
-    Listening,
     Processing,
-    Speaking,
-    Interrupted,
+    Responding,
     Error,
 }
 
@@ -14,21 +12,17 @@ impl CoreState {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Idle => "Idle",
-            Self::Listening => "Listening",
             Self::Processing => "Processing",
-            Self::Speaking => "Speaking",
-            Self::Interrupted => "Interrupted",
+            Self::Responding => "Responding",
             Self::Error => "Error",
         }
     }
 
     pub fn label(&self) -> &'static str {
         match self {
-            Self::Idle => "IDLE // STANDBY",
-            Self::Listening => "ACOUSTIC STREAM ACTIVE",
+            Self::Idle => "IDLE // READY",
             Self::Processing => "EVALUATING CONTEXT & INTENT",
-            Self::Speaking => "SYNTHESIZING RESPONSE",
-            Self::Interrupted => "BARGE-IN DETECTED",
+            Self::Responding => "DISPATCHING RESPONSE",
             Self::Error => "SYSTEM ATTENTION REQUIRED",
         }
     }
@@ -36,10 +30,8 @@ impl CoreState {
     pub fn color_hex(&self) -> &'static str {
         match self {
             Self::Idle => "#4a5568",
-            Self::Listening => "#10b981",
             Self::Processing => "#8b5cf6",
-            Self::Speaking => "#06b6d4",
-            Self::Interrupted => "#f59e0b",
+            Self::Responding => "#06b6d4",
             Self::Error => "#ef4444",
         }
     }
@@ -51,35 +43,21 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
 (function() {
     let scene, camera, renderer;
     let coreMesh, auraMesh, outerRing, innerRing, particles;
-    let currentVoiceState = 'Idle';
+    let currentCompanionState = 'Idle';
     let targetCoreColor = new THREE.Color(0x38bdf8);
     let currentCoreColor = new THREE.Color(0x38bdf8);
-    let micEnergy = 0.05;
-    let smoothedEnergy = 0.05;
     let clock = new THREE.Clock();
 
     window.osmooSetCoreState = function(stateName) {
-        currentVoiceState = stateName;
-        if (stateName === 'Listening') {
-            targetCoreColor.setHex(0x10b981); // Emerald
-        } else if (stateName === 'Processing') {
+        currentCompanionState = stateName;
+        if (stateName === 'Processing') {
             targetCoreColor.setHex(0xa855f7); // Deep Purple
-        } else if (stateName === 'Speaking') {
+        } else if (stateName === 'Responding') {
             targetCoreColor.setHex(0x06b6d4); // Cyan
-        } else if (stateName === 'Interrupted') {
-            targetCoreColor.setHex(0xf59e0b); // Amber
         } else if (stateName === 'Error') {
             targetCoreColor.setHex(0xef4444); // Crimson
         } else {
             targetCoreColor.setHex(0x38bdf8); // Sky blue idle
-        }
-    };
-
-    window.osmooSetAudioEnergy = function(micRms, outputRms) {
-        if (currentVoiceState === 'Speaking') {
-            micEnergy = Math.min(1.0, (outputRms || 0.0) * 8.0 + 0.1);
-        } else {
-            micEnergy = Math.min(1.0, (micRms || 0.0) * 8.0 + 0.05);
         }
     };
 
@@ -215,9 +193,6 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
         const dt = clock.getDelta();
         const time = clock.getElapsedTime();
 
-        // Smooth energy interpolation
-        smoothedEnergy += (micEnergy - smoothedEnergy) * 0.2;
-
         // Color transition
         currentCoreColor.lerp(targetCoreColor, 0.08);
         if (coreMesh && coreMesh.material) {
@@ -228,11 +203,11 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
             particles.material.color.copy(currentCoreColor);
         }
 
-        // Pulse scale based on acoustic RMS
-        const pulse = 1.0 + Math.sin(time * 2.5) * 0.03 + (smoothedEnergy * 0.35);
+        // Pulse scale
+        const pulse = 1.0 + Math.sin(time * 2.5) * 0.04;
         if (coreMesh) {
             coreMesh.scale.set(pulse, pulse, pulse);
-            coreMesh.rotation.y += (0.2 + smoothedEnergy * 0.8) * dt;
+            coreMesh.rotation.y += 0.25 * dt;
             coreMesh.rotation.x += 0.1 * dt;
         }
 
@@ -269,8 +244,6 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
 #[component]
 pub fn AssistantCore(
     state: CoreState,
-    on_toggle_voice: EventHandler<()>,
-    mic_active: bool,
 ) -> Element {
     let state_str = state.as_str();
     let state_label = state.label();
@@ -285,8 +258,6 @@ pub fn AssistantCore(
             div {
                 id: "osmoo-three-container",
                 class: "osmoo-three-canvas-holder",
-                onclick: move |_| on_toggle_voice.call(()),
-                title: "Click core to activate continuous listening",
             }
 
             // Central Telemetry HUD Overlay
@@ -302,11 +273,7 @@ pub fn AssistantCore(
                 }
 
                 div { class: "core-subtext-stream",
-                    if mic_active {
-                        "CONTINUOUS WASAPI 48kHz REAL-TIME AUDIO // WAKE-WORD ACTIVE"
-                    } else {
-                        "AUDIO STANDBY // CLICK CORE OR SPACE TO TALK"
-                    }
+                    "AUTONOMOUS COGNITIVE OS ENGINE // READY"
                 }
             }
         }

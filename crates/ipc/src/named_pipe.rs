@@ -168,13 +168,18 @@ impl VoxyIpcServer {
         self.auth_secret = secret;
     }
 
-    /// Update the current voice state, updating the snapshot and broadcasting to all clients.
-    pub async fn set_voice_state(&self, state: VoiceState, reason: Option<String>) {
+    /// Update the current companion state, updating the snapshot and broadcasting to all clients.
+    pub async fn set_companion_state(&self, state: VoiceState, reason: Option<String>) {
         {
             let mut snap = self.snapshot.write().await;
             snap.voice_state = state;
         }
         self.broadcast(DaemonMessage::VoiceStateChanged { state, reason });
+    }
+
+    /// Update the current voice/companion state, updating the snapshot and broadcasting to all clients.
+    pub async fn set_voice_state(&self, state: VoiceState, reason: Option<String>) {
+        self.set_companion_state(state, reason).await;
     }
 
     /// Update the current transcript, updating the snapshot and broadcasting to all clients.
@@ -187,6 +192,18 @@ impl VoxyIpcServer {
             text,
             is_final,
             confidence,
+        });
+    }
+
+    /// Broadcast real-time audio energy level RMS (0.0 to 1.0) to all connected clients.
+    pub fn broadcast_audio_energy(&self, rms: f32) {
+        self.broadcast(DaemonMessage::AudioEnergy { rms });
+    }
+
+    /// Broadcast an interruption event to all connected clients.
+    pub fn broadcast_interrupted(&self, reason: impl Into<String>) {
+        self.broadcast(DaemonMessage::Interrupted {
+            reason: reason.into(),
         });
     }
 

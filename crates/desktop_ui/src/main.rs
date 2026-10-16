@@ -25,7 +25,6 @@ use voxy_personality::{
 };
 use voxy_plugin_runtime::PluginManager;
 use voxy_security::{CapabilityRegistry, GuardianConfig, GuardianEngine, PolicyEngine};
-use voxy_voice::{VoiceConfig, VoicePipeline};
 
 use bridge::AppBridge;
 use components::THREE_JS_CORE_SCRIPT;
@@ -170,12 +169,6 @@ fn init_bridge() -> AppBridge {
 
         let mut registry = CapabilityRegistry::new();
         let _ = registry.register(voxy_security::Capability::new(
-            "voice:capture",
-            "Capture audio from microphone",
-            voxy_security::RiskLevel::Low,
-            voxy_security::CapabilityCategory::Audio,
-        ));
-        let _ = registry.register(voxy_security::Capability::new(
             "memory:read",
             "Read memory items",
             voxy_security::RiskLevel::Low,
@@ -204,9 +197,6 @@ fn init_bridge() -> AppBridge {
         let health = Arc::new(HealthMonitor::new(5000));
         health.add_cpu_check("system-cpu").await;
         health.add_memory_check("system-memory").await;
-
-        let voice_config = VoiceConfig::default();
-        let voice = Arc::new(VoicePipeline::new(voice_config));
 
         let download_dir = dirs::download_dir()
             .map(|p| p.join("VOXY"))
@@ -299,7 +289,6 @@ fn init_bridge() -> AppBridge {
             event_bus,
             settings,
             config_manager,
-            voice,
             cognition,
             memory,
             personality,

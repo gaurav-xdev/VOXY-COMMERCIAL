@@ -1,16 +1,13 @@
 use dioxus::prelude::*;
 use crate::components::icons::{
-    IconAlertCircle, IconCheck, IconChevronRight, IconCpu, IconMic, IconRefresh,
-    IconShield, IconSpeaker,
+    IconAlertCircle, IconCheck, IconChevronRight, IconCpu, IconRefresh,
 };
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum OnboardingStep {
     Identity = 1,
     LlmProvider = 2,
-    SpeechToText = 3,
-    TextToSpeech = 4,
-    Complete = 5,
+    Complete = 3,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,9 +16,6 @@ pub struct OnboardingConfig {
     pub primary_llm: String,
     pub ollama_model: String,
     pub autolaunch_enabled: bool,
-    pub stt_provider: String,
-    pub tts_provider: String,
-    pub tts_voice: String,
 }
 
 impl Default for OnboardingConfig {
@@ -31,9 +25,6 @@ impl Default for OnboardingConfig {
             primary_llm: "ollama".to_string(),
             ollama_model: "llama3.2:3b".to_string(),
             autolaunch_enabled: true,
-            stt_provider: "deepgram".to_string(),
-            tts_provider: "cartesia".to_string(),
-            tts_voice: "default".to_string(),
         }
     }
 }
@@ -44,7 +35,6 @@ pub fn OnboardingWizard(
     initial_ollama_models: Vec<String>,
 ) -> Element {
     let mut current_step = use_signal(|| OnboardingStep::Identity);
-    let mut config = use_signal(OnboardingConfig::default);
 
     let mut name_input = use_signal(|| "OSMOO Core".to_string());
     let mut selected_llm = use_signal(|| "ollama".to_string());
@@ -52,22 +42,12 @@ pub fn OnboardingWizard(
     let mut selected_ollama_model = use_signal(|| "llama3.2:3b".to_string());
     let mut autolaunch = use_signal(|| true);
 
-    let mut selected_stt = use_signal(|| "deepgram".to_string());
-    let mut mic_testing = use_signal(|| false);
-    let mut mic_rms_level = use_signal(|| 0.0f32);
-
-    let mut selected_tts = use_signal(|| "cartesia".to_string());
-    let mut speech_testing = use_signal(|| false);
-    let mut speech_test_status = use_signal(|| "Ready to test".to_string());
-
     let mut is_refreshing_models = use_signal(|| false);
 
     let step_num = match *current_step.read() {
         OnboardingStep::Identity => 1,
         OnboardingStep::LlmProvider => 2,
-        OnboardingStep::SpeechToText => 3,
-        OnboardingStep::TextToSpeech => 4,
-        OnboardingStep::Complete => 5,
+        OnboardingStep::Complete => 3,
     };
 
     rsx! {
@@ -76,7 +56,7 @@ pub fn OnboardingWizard(
                 // Header Bar & Progress Indicator
                 div { class: "wizard-header",
                     div { class: "wizard-step-pills",
-                        for s in 1..=4 {
+                        for s in 1..=3 {
                             div {
                                 class: format!("{}", if s == step_num { "step-pill active" } else if s < step_num { "step-pill completed" } else { "step-pill" }),
                                 if s < step_num {
@@ -107,7 +87,7 @@ pub fn OnboardingWizard(
                                 oninput: move |e: FormEvent| name_input.set(e.value()),
                                 placeholder: "e.g. OSMOO Core, Voxy, Aegis",
                             }
-                            span { class: "form-hint", "Appears in audio confirmations and companion HUD telemetry." }
+                            span { class: "form-hint", "Appears in system notifications and companion HUD telemetry." }
                         }
 
                         div { class: "identity-preview-card",
@@ -217,7 +197,7 @@ pub fn OnboardingWizard(
                         div { class: "toggle-row",
                             div { class: "toggle-label-group",
                                 div { class: "toggle-title", "Start OSMOO with Windows" }
-                                div { class: "toggle-desc", "Seamless background voice monitoring and companion on user login." }
+                                div { class: "toggle-desc", "Seamless background companion startup on user login." }
                             }
                             input {
                                 r#type: "checkbox",
@@ -229,118 +209,7 @@ pub fn OnboardingWizard(
                     }
                 }
 
-                // Step 3: Speech-to-Text & Real Microphone Live Level Test
-                if *current_step.read() == OnboardingStep::SpeechToText {
-                    div { class: "wizard-body",
-                        h2 { class: "wizard-title", "Acoustic Capture (STT)" }
-                        p { class: "wizard-desc",
-                            "Calibrate WASAPI low-latency audio capture and live speech transcription."
-                        }
-
-                        div { class: "form-group",
-                            label { class: "form-label", "Primary STT Engine" }
-                            select {
-                                class: "hud-select",
-                                onchange: move |e: FormEvent| selected_stt.set(e.value()),
-                                option { value: "deepgram", "Deepgram Nova-2 (Lowest Latency Cloud)" }
-                                option { value: "groq", "Groq Whisper Large-v3 (Ultra Fast)" }
-                                option { value: "whisper_local", "Whisper Local (On-Device WASAPI)" }
-                            }
-                        }
-
-                        div { class: "mic-calibration-panel",
-                            div { class: "mic-status-row",
-                                div { class: "mic-label-group",
-                                    IconMic { size: 18 }
-                                    span { class: "mic-cal-title", "Microphone Input Calibration" }
-                                }
-                                button {
-                                    class: if *mic_testing.read() { "hud-btn active" } else { "hud-btn" },
-                                    onclick: move |_| {
-                                        let active = !*mic_testing.read();
-                                        mic_testing.set(active);
-                                        if active {
-                                            let mut rms_sig = mic_rms_level;
-                                            spawn(async move {
-                                                // Real audio energy sampling loop
-                                                for _ in 0..30 {
-                                                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                                                    rms_sig.set(0.45);
-                                                }
-                                                rms_sig.set(0.0);
-                                            });
-                                        }
-                                    },
-                                    span {
-                                        if *mic_testing.read() { "Stop Test" } else { "Test Microphone" }
-                                    }
-                                }
-                            }
-
-                            div { class: "meter-container",
-                                div {
-                                    class: "meter-fill",
-                                }
-                            }
-                            span { class: "form-hint", "Speak clearly into your microphone to verify level deflection." }
-                        }
-                    }
-                }
-
-                // Step 4: Text-to-Speech & Live Voice Playback Test
-                if *current_step.read() == OnboardingStep::TextToSpeech {
-                    div { class: "wizard-body",
-                        h2 { class: "wizard-title", "Vocal Synthesis (TTS)" }
-                        p { class: "wizard-desc",
-                            "Configure natural voice timbre, speed, and real-time audio playback stream."
-                        }
-
-                        div { class: "form-group",
-                            label { class: "form-label", "TTS Engine" }
-                            select {
-                                class: "hud-select",
-                                onchange: move |e: FormEvent| selected_tts.set(e.value()),
-                                option { value: "cartesia", "Cartesia Sonic (Sub-100ms Natural)" }
-                                option { value: "elevenlabs", "ElevenLabs Turbo v2.5 (High Expressiveness)" }
-                                option { value: "kokoro", "Kokoro-82M (Local Neural Synthesis)" }
-                                option { value: "sapi", "Windows SAPI (Zero VRAM Offline Fallback)" }
-                            }
-                        }
-
-                        div { class: "tts-test-panel",
-                            div { class: "tts-test-row",
-                                div { class: "tts-label-group",
-                                    IconSpeaker { size: 18 }
-                                    span { class: "tts-status-text", "{speech_test_status.read()}" }
-                                }
-                                button {
-                                    class: "hud-btn",
-                                    disabled: *speech_testing.read(),
-                                    onclick: move |_| {
-                                        speech_testing.set(true);
-                                        speech_test_status.set("Synthesizing audio stream...".to_string());
-                                        let mut testing = speech_testing;
-                                        let mut status = speech_test_status;
-                                        spawn(async move {
-                                            tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
-                                            status.set("Audio output verified successfully.".to_string());
-                                            testing.set(false);
-                                        });
-                                    },
-                                    span {
-                                        if *speech_testing.read() {
-                                            "Synthesizing..."
-                                        } else {
-                                            "Play Test Speech"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Step 5: Provisioning Complete Confirmation
+                // Step 3: Provisioning Complete Confirmation
                 if *current_step.read() == OnboardingStep::Complete {
                     div { class: "wizard-body center-text",
                         div { class: "complete-icon-box",
@@ -348,7 +217,7 @@ pub fn OnboardingWizard(
                         }
                         h2 { class: "wizard-title", "System Ready for Deployment" }
                         p { class: "wizard-desc",
-                            "OSMOO has calibrated your local hardware, audio channels, and neural engine."
+                            "OSMOO has initialized your local environment and neural engine."
                         }
                         div { class: "complete-summary-card",
                             div { class: "summary-row",
@@ -370,10 +239,6 @@ pub fn OnboardingWizard(
                                     }
                                 }
                             }
-                            div { class: "summary-row",
-                                span { class: "summary-label", "Acoustic Capture:" }
-                                span { class: "summary-val", "{selected_stt.read()}" }
-                            }
                         }
                     }
                 }
@@ -387,8 +252,6 @@ pub fn OnboardingWizard(
                                 let step = *current_step.read();
                                 match step {
                                     OnboardingStep::LlmProvider => current_step.set(OnboardingStep::Identity),
-                                    OnboardingStep::SpeechToText => current_step.set(OnboardingStep::LlmProvider),
-                                    OnboardingStep::TextToSpeech => current_step.set(OnboardingStep::SpeechToText),
                                     _ => {}
                                 }
                             },
@@ -403,9 +266,7 @@ pub fn OnboardingWizard(
                                 let step = *current_step.read();
                                 match step {
                                     OnboardingStep::Identity => current_step.set(OnboardingStep::LlmProvider),
-                                    OnboardingStep::LlmProvider => current_step.set(OnboardingStep::SpeechToText),
-                                    OnboardingStep::SpeechToText => current_step.set(OnboardingStep::TextToSpeech),
-                                    OnboardingStep::TextToSpeech => current_step.set(OnboardingStep::Complete),
+                                    OnboardingStep::LlmProvider => current_step.set(OnboardingStep::Complete),
                                     _ => {}
                                 }
                             },
@@ -421,9 +282,6 @@ pub fn OnboardingWizard(
                                     primary_llm: selected_llm.read().clone(),
                                     ollama_model: selected_ollama_model.read().clone(),
                                     autolaunch_enabled: *autolaunch.read(),
-                                    stt_provider: selected_stt.read().clone(),
-                                    tts_provider: selected_tts.read().clone(),
-                                    tts_voice: "default".to_string(),
                                 };
                                 on_finish.call(final_config);
                             },

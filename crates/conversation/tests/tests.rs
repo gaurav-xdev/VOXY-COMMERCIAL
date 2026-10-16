@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::Utc;
 use uuid::Uuid;
-use voxy_audio::AudioPacket;
 use voxy_personality::MoodState;
 
 use voxy_conversation::{
@@ -11,8 +10,8 @@ use voxy_conversation::{
     ConversationError, ConversationEvent, ConversationSession, HookEvent, InMemoryBargeInManager,
     InMemoryContextTracker, InMemoryHookRegistry, InMemorySession, InMemorySessionManager,
     InMemoryTurnManager, InMemoryWakeStateManager, PersonalityHook, PersonalityHookRegistry,
-    SessionId, SessionManager, SessionMetadata, SessionState, TurnManager, TurnSource, WakeState,
-    WakeStateManager,
+    SessionId, SessionManager, SessionMetadata, SessionState, SignalPacket, TurnManager, TurnSource,
+    WakeState, WakeStateManager,
 };
 
 // ---------------------------------------------------------------------------
@@ -90,13 +89,6 @@ fn test_error_display() {
 
     let err = ConversationError::Timeout;
     assert_eq!(format!("{}", err), "Timeout");
-}
-
-#[test]
-fn test_error_from_audio() {
-    let audio_err = voxy_audio::AudioError::DeviceNotFound("mic".to_string());
-    let err: ConversationError = audio_err.into();
-    assert_eq!(format!("{}", err), "Device not found: mic");
 }
 
 #[test]
@@ -349,8 +341,8 @@ async fn test_turn_barge_in_flag() {
 async fn test_barge_in_no_interrupt_on_silence() {
     let config = BargeInConfig::default();
     let mut mgr = InMemoryBargeInManager::new(config);
-    let packet = AudioPacket::silence(1600, 16000, 1);
-    let result = mgr.analyze_audio(&packet).await.unwrap();
+    let packet = SignalPacket { peak_level: 0.0 };
+    let result = mgr.analyze_signal(&packet).await.unwrap();
     assert!(result.is_none());
 }
 
@@ -361,9 +353,8 @@ async fn test_barge_in_interrupt_on_loud_audio() {
         ..Default::default()
     };
     let mut mgr = InMemoryBargeInManager::new(config);
-    let data = vec![0.5; 1600];
-    let packet = AudioPacket::new(data, 16000, 1);
-    let result = mgr.analyze_audio(&packet).await.unwrap();
+    let packet = SignalPacket { peak_level: 0.5 };
+    let result = mgr.analyze_signal(&packet).await.unwrap();
     assert!(result.is_some());
     assert!(mgr.is_interrupted());
 }
@@ -375,9 +366,8 @@ async fn test_barge_in_disabled() {
         ..Default::default()
     };
     let mut mgr = InMemoryBargeInManager::new(config);
-    let data = vec![0.9; 1600];
-    let packet = AudioPacket::new(data, 16000, 1);
-    let result = mgr.analyze_audio(&packet).await.unwrap();
+    let packet = SignalPacket { peak_level: 0.9 };
+    let result = mgr.analyze_signal(&packet).await.unwrap();
     assert!(result.is_none());
     assert!(!mgr.is_interrupted());
 }
@@ -389,9 +379,8 @@ async fn test_barge_in_clear_interruption() {
         ..Default::default()
     };
     let mut mgr = InMemoryBargeInManager::new(config);
-    let data = vec![0.5; 1600];
-    let packet = AudioPacket::new(data, 16000, 1);
-    mgr.analyze_audio(&packet).await.unwrap();
+    let packet = SignalPacket { peak_level: 0.5 };
+    mgr.analyze_signal(&packet).await.unwrap();
     assert!(mgr.is_interrupted());
     mgr.clear_interruption().await;
     assert!(!mgr.is_interrupted());
@@ -416,10 +405,9 @@ async fn test_barge_in_count_and_last() {
         ..Default::default()
     };
     let mut mgr = InMemoryBargeInManager::new(config);
-    let data = vec![0.5; 1600];
-    let packet = AudioPacket::new(data, 16000, 1);
-    mgr.analyze_audio(&packet).await.unwrap();
-    mgr.analyze_audio(&packet).await.unwrap();
+    let packet = SignalPacket { peak_level: 0.5 };
+    mgr.analyze_signal(&packet).await.unwrap();
+    mgr.analyze_signal(&packet).await.unwrap();
     assert_eq!(mgr.interruption_count(), 2);
     assert!(mgr.last_interruption().is_some());
 }

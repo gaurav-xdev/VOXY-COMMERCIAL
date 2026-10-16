@@ -37,10 +37,6 @@ pub enum OrchestratorEvent {
         source: String,
         action: String,
     },
-    VoiceInterruption {
-        session_id: String,
-        confidence: f64,
-    },
     SystemPaused {
         reason: String,
     },
@@ -133,14 +129,6 @@ impl fmt::Display for OrchestratorEvent {
             Self::EmergencyOverride { source, action } => {
                 write!(f, "Emergency override from {}: {}", source, action)
             }
-            Self::VoiceInterruption {
-                session_id,
-                confidence,
-            } => write!(
-                f,
-                "Voice interruption (session: {}, confidence: {:.2})",
-                session_id, confidence
-            ),
             Self::SystemPaused { reason } => {
                 write!(f, "System paused: {}", reason)
             }
@@ -266,14 +254,6 @@ impl fmt::Debug for OrchestratorEvent {
                 .debug_struct("EmergencyOverride")
                 .field("source", source)
                 .field("action", action)
-                .finish(),
-            Self::VoiceInterruption {
-                session_id,
-                confidence,
-            } => f
-                .debug_struct("VoiceInterruption")
-                .field("session_id", session_id)
-                .field("confidence", confidence)
                 .finish(),
             Self::SystemPaused { reason } => f
                 .debug_struct("SystemPaused")
@@ -404,13 +384,6 @@ impl Clone for OrchestratorEvent {
             Self::EmergencyOverride { source, action } => Self::EmergencyOverride {
                 source: source.clone(),
                 action: action.clone(),
-            },
-            Self::VoiceInterruption {
-                session_id,
-                confidence,
-            } => Self::VoiceInterruption {
-                session_id: session_id.clone(),
-                confidence: *confidence,
             },
             Self::SystemPaused { reason } => Self::SystemPaused {
                 reason: reason.clone(),

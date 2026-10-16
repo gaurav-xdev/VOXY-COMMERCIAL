@@ -1,22 +1,35 @@
 [package]
 name = "voxy-voice-orchestrator"
-description = "Voice orchestration pipeline interfaces"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Authoritative Voice Session State Machine, Barge-In Controller, and Streaming Pipeline Orchestration"
 
 [dependencies]
-voxy-shared = { workspace = true }
-voxy-provider-core = { workspace = true }
-voxy-hardware = { workspace = true }
+voxy-voice-audio = { path = "../voice_audio" }
+voxy-voice-activation = { path = "../voice_activation" }
+voxy-voice-stt = { path = "../voice_stt" }
+voxy-voice-tts = { path = "../voice_tts" }
+voxy-ipc = { path = "../ipc" }
 tokio = { workspace = true }
-async-trait = { workspace = true }
+tokio-util = { version = "0.7", features = ["codec"] }
+parking_lot = { workspace = true }
 thiserror = { workspace = true }
-serde = { workspace = true }
-uuid = { workspace = true }
-chrono = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+futures-util = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }
 
 [dev-dependencies]
 tokio = { workspace = true }
+dotenvy = { workspace = true }
+

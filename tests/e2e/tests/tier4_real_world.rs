@@ -6,6 +6,7 @@
 //! - Scenario 3: Production Release Packaging & Deployment Verification (NSIS, SHA-256, Binaries)
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use osmoo_e2e_tests::*;
@@ -16,10 +17,10 @@ use voxy_harness::patch_engine::PatchTransaction;
 use voxy_harness::repo_indexer::RepositoryIndexer;
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
-use voxy_voice::detection::EnergyVadDetector;
-use voxy_voice_orchestrator::{AudioChunk, VadDetector};
-use voxy_voice_stream::barge_in::{BargeInCoordinator, BargeInState};
-use voxy_voice_stream::chunker::SentenceChunker;
+use voxy_voice_activation::{VadConfig, VadDetector, VadEvent};
+use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
+use voxy_voice_stt::MockStt;
+use voxy_voice_tts::{MockTts, SentenceChunker};
 
 // =========================================================================
 // Scenario 1: Autonomous Coding Loop
@@ -124,18 +125,20 @@ async fn test_tier4_scenario2_voice_interaction_and_interruption_loop() {
     assert!(got_snapshot, "Client must receive initial StateSnapshot from server");
 
     // 3. User Speech Audio Ingestion -> VAD Trigger
-    let vad = EnergyVadDetector::new(0.01, 16000).with_min_speech_frames(1);
+    let mut vad = VadDetector::new(VadConfig {
+        threshold: 0.01,
+        min_speech_frames: 1,
+        ..Default::default()
+    });
     let speech_samples = create_synthetic_audio_chunk(16000, 1, 100, 440.0);
-    let chunk = AudioChunk {
-        data: speech_samples,
-        sample_rate: 16000,
-        channels: 1,
-        timestamp: chrono::Utc::now(),
-        sequence: 1,
-        is_final: false,
-    };
-    let is_voice = vad.is_voice(&chunk).await.expect("VAD check failed");
-    assert!(is_voice, "VAD must detect synthetic voice signal");
+    let mut detected = false;
+    for chunk in speech_samples.chunks(320) {
+        if let Some(VadEvent::SpeechStarted | VadEvent::SpeechFrame { .. }) = vad.process_frame(chunk) {
+            detected = true;
+            break;
+        }
+    }
+    assert!(detected, "VAD must detect synthetic voice signal");
 
     // 4. Server transitions to Listening
     server.set_voice_state(VoiceState::Listening, Some("voice activity detected".to_string())).await;
@@ -156,16 +159,17 @@ async fn test_tier4_scenario2_voice_interaction_and_interruption_loop() {
     assert_eq!(sentences[0], "The current time is 3:15 PM.");
 
     // 7. User Interrupts (Barge-In)
-    let mut barge_in = BargeInCoordinator::new(true, 100, 200);
-    let playback_state = BargeInState {
-        llm_streaming: true,
-        pending_generates: 0,
-        playback_active: true,
-        playback_elapsed_ms: 250,
-    };
-
-    let should_interrupt = barge_in.should_barge_in(&playback_state, Instant::now());
-    assert!(should_interrupt, "Barge-in coordinator must trigger on user interruption");
+    let pipeline = VoicePipeline::new(
+        VoicePipelineConfig::default(),
+        Arc::new(MockStt::new("test")),
+        Arc::new(MockTts::new()),
+        None,
+    )
+    .unwrap();
+    pipeline.set_state(VoiceState::Speaking, Some("TTS playback".to_string()));
+    assert_eq!(pipeline.current_state(), VoiceState::Speaking);
+    pipeline.trigger_barge_in("interrupted by user");
+    assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
 
     // Immediate cancellation
     server.set_voice_state(VoiceState::Listening, Some("interrupted by user".to_string())).await;

@@ -24,7 +24,6 @@ impl fmt::Display for JobId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SystemComponent {
-    Voice,
     Conversation,
     Memory,
     Learning,
@@ -47,7 +46,6 @@ pub enum SystemComponent {
 impl fmt::Display for SystemComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Voice => write!(f, "Voice"),
             Self::Conversation => write!(f, "Conversation"),
             Self::Memory => write!(f, "Memory"),
             Self::Learning => write!(f, "Learning"),

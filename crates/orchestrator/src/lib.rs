@@ -78,7 +78,6 @@ mod tests {
     #[test]
     fn test_system_component_variants() {
         let variants = vec![
-            (SystemComponent::Voice, "Voice"),
             (SystemComponent::Conversation, "Conversation"),
             (SystemComponent::Memory, "Memory"),
             (SystemComponent::Learning, "Learning"),
@@ -300,7 +299,7 @@ mod tests {
         let snapshot = SystemSnapshot {
             component_statuses: {
                 let mut m = HashMap::new();
-                m.insert(SystemComponent::Voice, ComponentStatus::Healthy);
+                m.insert(SystemComponent::Conversation, ComponentStatus::Healthy);
                 m
             },
             active_tasks: 5,
@@ -474,7 +473,6 @@ mod tests {
         assert_eq!(config.max_concurrent_tasks, 50);
         assert_eq!(config.max_priority_levels, 5);
         assert!(config.enable_guardian_override);
-        assert!(config.enable_voice_interruption);
         assert!(config.enable_emergency_override);
         assert!(config.enable_background_tasks);
         assert_eq!(config.task_timeout_seconds, 300);
@@ -525,17 +523,7 @@ mod tests {
         assert!(s.contains("3"));
     }
 
-    #[test]
-    fn test_orchestrator_event_display_voice_interruption() {
-        let event = OrchestratorEvent::VoiceInterruption {
-            session_id: "sess1".into(),
-            confidence: 0.95,
-        };
-        let s = format!("{}", event);
-        assert!(s.contains("Voice interruption"));
-        assert!(s.contains("sess1"));
-        assert!(s.contains("0.95"));
-    }
+
 
     #[test]
     fn test_orchestrator_event_display_emergency_override() {
@@ -723,7 +711,7 @@ mod tests {
 
     #[test]
     fn test_pipeline_stage_name() {
-        assert_eq!(PipelineStage::WakeWord.name(), "WakeWord");
+        assert_eq!(PipelineStage::Conversation.name(), "Conversation");
         assert_eq!(PipelineStage::Cognition.name(), "Cognition");
         assert_eq!(PipelineStage::Execution.name(), "Execution");
         assert_eq!(PipelineStage::MemoryStorage.name(), "MemoryStorage");
@@ -1070,17 +1058,7 @@ mod tests {
         });
     }
 
-    #[test]
-    fn test_default_system_coordinator_voice_interruption() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let coordinator = DefaultSystemCoordinator::new(OrchestratorConfig::default());
-            let result = coordinator
-                .handle_voice_interruption("session-1", 0.95)
-                .await;
-            assert!(result.is_ok());
-        });
-    }
+
 
     #[test]
     fn test_default_system_coordinator_snapshot() {

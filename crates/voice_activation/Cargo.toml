@@ -1,0 +1,17 @@
+[package]
+name = "voxy-voice-activation"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Voice Activity Detection (VAD), utterance endpointing, push-to-talk, and wake controls"
+
+[dependencies]
+voxy-voice-audio = { path = "../voice_audio" }
+tokio = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

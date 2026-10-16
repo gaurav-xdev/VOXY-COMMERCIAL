@@ -4,10 +4,6 @@ members = [
     "apps/*",
     "crates/*",
 ]
-exclude = [
-    "tools/whisper-espeak-diag",
-    "crates/espeak-rs-sys-patch",
-]
 
 [workspace.package]
 version = "0.1.0"
@@ -45,7 +41,6 @@ voxy-config = { path = "crates/config" }
 voxy-event-bus = { path = "crates/event_bus" }
 voxy-ipc = { path = "crates/ipc" }
 voxy-provider-core = { path = "crates/provider_core" }
-voxy-voice-orchestrator = { path = "crates/voice_orchestrator" }
 voxy-hardware = { path = "crates/hardware" }
 voxy-dependency = { path = "crates/dependency" }
 voxy-runtime = { path = "crates/runtime" }
@@ -53,7 +48,6 @@ voxy-personality = { path = "crates/personality" }
 voxy-guardian = { path = "crates/guardian" }
 voxy-security = { path = "crates/security" }
 voxy-home = { path = "crates/home" }
-voxy-audio = { path = "crates/audio" }
 voxy-world-model = { path = "crates/world_model" }
 voxy-skills = { path = "crates/skills" }
 voxy-cognition = { path = "crates/cognition" }
@@ -67,17 +61,12 @@ voxy-context = { path = "crates/context" }
 voxy-companion = { path = "crates/companion" }
 voxy-human-dynamics = { path = "crates/human_dynamics" }
 voxy-brain = { path = "crates/brain" }
-voxy-voice-runtime = { path = "crates/voice_runtime" }
 voxy-companion-intelligence = { path = "crates/companion_intelligence" }
 voxy-visual-presence = { path = "crates/visual_presence" }
 voxy-cognitive-orchestrator = { path = "crates/cognitive_orchestrator" }
 voxy-health = { path = "crates/health" }
 voxy-database = { path = "crates/database" }
 voxy-runtime-guard = { path = "crates/runtime_guard" }
-voxy-cloud-stt = { path = "crates/cloud_stt" }
-voxy-stt-router = { path = "crates/stt_router" }
-voxy-voice-stream = { path = "crates/voice_stream" }
-voxy-voxray = { path = "crates/voxray" }
 voxy-billing = { path = "crates/billing" }
 voxy-harness = { path = "crates/harness" }
 voxy-office = { path = "crates/office" }
@@ -97,7 +86,4 @@ panic = "abort"
 
 [profile.release.build-override]
 opt-level = 3
-
-[patch.crates-io]
-espeak-rs-sys = { path = "crates/espeak-rs-sys-patch" }
 

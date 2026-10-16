@@ -23,7 +23,9 @@ use voxy_database::DatabaseConfig;
 use voxy_harness::patch_engine::{PatchError, PatchTransaction};
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
-use voxy_voice_stream::barge_in::{BargeInAction, BargeInCoordinator, BargeInState};
+use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
+use voxy_voice_stt::MockStt;
+use voxy_voice_tts::MockTts;
 
 // =========================================================================
 // A1 + A4: IPC Cryptographic Authentication & Privileged Command Gating
@@ -73,42 +75,27 @@ async fn test_tier3_a1_a4_ipc_handshake_and_privileged_command_gating() {
 
 #[test]
 fn test_tier3_a2_voice_barge_in_interruption_cancels_playback() {
-    let mut coordinator = BargeInCoordinator::new(true, 300, 200);
+    let config = VoicePipelineConfig::default();
+    let stt = Arc::new(MockStt::new("hello"));
+    let tts = Arc::new(MockTts::new());
+    let pipeline = VoicePipeline::new(config, stt, tts, None).expect("pipeline");
 
     // Scenario 1: Idle state -> no barge in
-    let idle_state = BargeInState::idle();
-    assert!(!coordinator.should_barge_in(&idle_state, Instant::now()));
+    assert_eq!(pipeline.current_state(), VoiceState::Idle);
+    pipeline.trigger_barge_in("speech while idle");
+    assert_eq!(pipeline.current_state(), VoiceState::Idle);
 
-    // Scenario 2: Active playback has started and reached 400ms (> 300ms min playback)
-    let active_state = BargeInState {
-        llm_streaming: true,
-        pending_generates: 1,
-        playback_active: true,
-        playback_elapsed_ms: 400,
-    };
+    // Scenario 2: Active playback (Speaking) -> barge in triggers immediate interruption
+    pipeline.set_state(VoiceState::Speaking, Some("TTS output".to_string()));
+    assert_eq!(pipeline.current_state(), VoiceState::Speaking);
+    pipeline.trigger_barge_in("user interrupt");
+    assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
 
-    let now = Instant::now();
-    assert!(
-        coordinator.should_barge_in(&active_state, now),
-        "User speech during active playback must trigger immediate barge-in interruption"
-    );
-
-    // Mark interrupt time
-    coordinator.mark_interrupt(now);
-
-    // Scenario 3: Cooldown enforcement (within 200ms)
-    let immediate_repeat = now + Duration::from_millis(50);
-    assert!(
-        !coordinator.should_barge_in(&active_state, immediate_repeat),
-        "Subsequent triggers within cooldown window (200ms) must be debounced to prevent chatter"
-    );
-
-    // Scenario 4: After cooldown elapsed (250ms)
-    let after_cooldown = now + Duration::from_millis(250);
-    assert!(
-        coordinator.should_barge_in(&active_state, after_cooldown),
-        "After cooldown expires, barge-in must be active again"
-    );
+    // Scenario 3: Thinking state -> barge in also triggers interruption
+    pipeline.set_state(VoiceState::Thinking, Some("LLM generating".to_string()));
+    assert_eq!(pipeline.current_state(), VoiceState::Thinking);
+    pipeline.trigger_barge_in("user interrupt during think");
+    assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
 }
 
 // =========================================================================

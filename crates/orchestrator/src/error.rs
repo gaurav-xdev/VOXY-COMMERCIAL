@@ -18,8 +18,6 @@ pub enum OrchestratorError {
     GuardianOverride(String),
     #[error("Automation error: {0}")]
     AutomationError(String),
-    #[error("Voice error: {0}")]
-    VoiceError(String),
     #[error("Home error: {0}")]
     HomeError(String),
     #[error("Plugin error: {0}")]

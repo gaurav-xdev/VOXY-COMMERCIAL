@@ -179,7 +179,9 @@ fn App() -> Element {
                             voxy_ipc::VoiceState::Idle => VisualState::Idle,
                             voxy_ipc::VoiceState::Listening => VisualState::Listening,
                             voxy_ipc::VoiceState::Thinking => VisualState::Thinking,
-                            voxy_ipc::VoiceState::Speaking => VisualState::Speaking,
+                            voxy_ipc::VoiceState::Responding | voxy_ipc::VoiceState::Speaking => {
+                                VisualState::Speaking
+                            }
                             voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => {
                                 VisualState::Error
                             }
@@ -201,7 +203,9 @@ fn App() -> Element {
                             voxy_ipc::VoiceState::Idle => VisualState::Idle,
                             voxy_ipc::VoiceState::Listening => VisualState::Listening,
                             voxy_ipc::VoiceState::Thinking => VisualState::Thinking,
-                            voxy_ipc::VoiceState::Speaking => VisualState::Speaking,
+                            voxy_ipc::VoiceState::Responding | voxy_ipc::VoiceState::Speaking => {
+                                VisualState::Speaking
+                            }
                             voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => {
                                 VisualState::Error
                             }
@@ -224,15 +228,11 @@ fn App() -> Element {
                             json_text
                         ));
                     }
-                    voxy_ipc::DaemonMessage::AudioEnergy {
-                        mic_rms,
-                        output_rms,
-                    } => {
-                        telem.write().mic_rms = mic_rms;
-                        telem.write().output_rms = output_rms;
+                    voxy_ipc::DaemonMessage::AudioEnergy { rms } => {
+                        telem.write().mic_rms = rms;
                         let _ = document::eval(&format!(
-                            "if (window.voxyUpdateAudioEnergy) window.voxyUpdateAudioEnergy({}, {});",
-                            mic_rms, output_rms
+                            "if (window.voxyUpdateAudioEnergy) window.voxyUpdateAudioEnergy({}, 0.0);",
+                            rms
                         ));
                     }
                     voxy_ipc::DaemonMessage::ToolStep {

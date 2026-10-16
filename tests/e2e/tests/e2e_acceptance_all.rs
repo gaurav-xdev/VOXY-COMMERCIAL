@@ -27,9 +27,10 @@ use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_security::archive::{safe_extract_zip, ArchiveSecurityLimits};
 use voxy_security::ssrf::{is_ip_restricted, validate_destination_url_str};
-use voxy_voice::config::VoiceConfig;
-use voxy_voice::pipeline::VoicePipeline;
-use voxy_voice_stream::barge_in::{BargeInCoordinator, BargeInState};
+use voxy_voice_audio::AudioRingBuffer;
+use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
+use voxy_voice_stt::MockStt;
+use voxy_voice_tts::MockTts;
 
 #[tokio::test]
 async fn test_acceptance_criteria_a1_process_lifecycle_and_ipc() {
@@ -64,27 +65,25 @@ async fn test_acceptance_criteria_a1_process_lifecycle_and_ipc() {
 
 #[tokio::test]
 async fn test_acceptance_criteria_a2_voice_pipeline() {
-    let mut config = VoiceConfig::default();
-    config.auto_start_capture = false;
-    let pipeline = VoicePipeline::new(config);
+    let config = VoicePipelineConfig::default();
+    let stt = Arc::new(MockStt::new("hello world"));
+    let tts = Arc::new(MockTts::new());
+    let pipeline = VoicePipeline::new(config, stt, tts, None).expect("A2 Acceptance: Pipeline creation failed");
 
-    assert!(pipeline.initialize().await.is_ok(), "A2 Acceptance: Pipeline initialization failed");
-    assert!(pipeline.is_initialized());
+    assert_eq!(pipeline.current_state(), VoiceState::Idle);
+
+    // Audio ring buffer verification
+    let rb = AudioRingBuffer::new(16000);
+    rb.push(&vec![0.1; 1600]);
+    assert_eq!(rb.available_samples(), 1600);
+    rb.clear();
+    assert_eq!(rb.available_samples(), 0);
 
     // Interruption / Barge-in check
-    let mut barge_in = BargeInCoordinator::new(true, 100, 200);
-    let playback_state = BargeInState {
-        llm_streaming: true,
-        pending_generates: 0,
-        playback_active: true,
-        playback_elapsed_ms: 250,
-    };
-    assert!(
-        barge_in.should_barge_in(&playback_state, std::time::Instant::now()),
-        "A2 Acceptance: Interruption signal failed to trigger barge-in"
-    );
-
-    assert!(pipeline.shutdown().await.is_ok(), "A2 Acceptance: Pipeline shutdown failed");
+    pipeline.set_state(VoiceState::Speaking, Some("TTS playback".to_string()));
+    assert_eq!(pipeline.current_state(), VoiceState::Speaking);
+    pipeline.trigger_barge_in("User speech detected");
+    assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
 }
 
 #[test]

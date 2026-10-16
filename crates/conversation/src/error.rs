@@ -25,8 +25,6 @@ pub enum ConversationError {
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
     #[error(transparent)]
-    Audio(#[from] voxy_audio::AudioError),
-    #[error(transparent)]
     Personality(#[from] voxy_personality::PersonalityError),
 }
 

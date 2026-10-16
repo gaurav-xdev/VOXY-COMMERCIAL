@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
 use crate::error::Result;
-use voxy_audio::AudioPacket;
 
 #[derive(Debug, Clone)]
 pub struct BargeInConfig {
@@ -19,12 +18,17 @@ impl Default for BargeInConfig {
         Self {
             enabled: true,
             sensitivity: 0.5,
-            require_voice_activity: true,
+            require_voice_activity: false,
             debounce_ms: 300,
             allow_during_synthesis: true,
             allow_during_processing: false,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct SignalPacket {
+    pub peak_level: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -37,17 +41,15 @@ pub struct InterruptionEvent {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum InterruptionSource {
-    VoiceActivity,
-    WakeWord,
     Manual,
-    AudioLevel { peak: f32, threshold: f32 },
+    SignalLevel { peak: f32, threshold: f32 },
 }
 
 #[async_trait]
 pub trait BargeInManager: Send + Sync {
     fn config(&self) -> &BargeInConfig;
     async fn set_config(&mut self, config: BargeInConfig);
-    async fn analyze_audio(&mut self, packet: &AudioPacket) -> Result<Option<InterruptionEvent>>;
+    async fn analyze_signal(&mut self, packet: &SignalPacket) -> Result<Option<InterruptionEvent>>;
     fn is_interrupted(&self) -> bool;
     async fn clear_interruption(&mut self);
     fn last_interruption(&self) -> Option<InterruptionEvent>;
@@ -85,7 +87,7 @@ impl BargeInManager for InMemoryBargeInManager {
         self.config = config;
     }
 
-    async fn analyze_audio(&mut self, packet: &AudioPacket) -> Result<Option<InterruptionEvent>> {
+    async fn analyze_signal(&mut self, packet: &SignalPacket) -> Result<Option<InterruptionEvent>> {
         self.last_audio_level = packet.peak_level;
         if !self.config.enabled {
             return Ok(None);
@@ -94,7 +96,7 @@ impl BargeInManager for InMemoryBargeInManager {
         if packet.peak_level > threshold {
             let event = InterruptionEvent {
                 timestamp: Utc::now(),
-                triggered_by: InterruptionSource::AudioLevel {
+                triggered_by: InterruptionSource::SignalLevel {
                     peak: packet.peak_level,
                     threshold,
                 },

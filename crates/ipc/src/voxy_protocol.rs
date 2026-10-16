@@ -20,33 +20,38 @@ pub const VOXY_PIPE_NAME: &str = r"\\.\pipe\voxy-com-ipc";
 pub const VOXY_IPC_TEST_PORT: u16 = 18889;
 
 // ==============================================================================
-// Voice Pipeline States
+// Companion / Assistant States
 // ==============================================================================
 
-/// High-level runtime voice states published by the authoritative daemon.
+/// High-level runtime companion states published by the authoritative daemon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
-pub enum VoiceState {
-    /// Idle, standby mode. Audio capture is passive or awaiting wake / PTT.
+pub enum CompanionState {
+    /// Idle, standby mode. Ready for prompt or task execution.
     #[default]
     Idle,
-    /// Active microphone listening / user speaking.
+    /// Listening to microphone audio input.
     Listening,
-    /// STT complete, LLM generating response / reasoning.
+    /// LLM generating response / reasoning or executing tools.
     Thinking,
-    /// TTS audio synthesizing and actively playing through speakers.
+    /// Text response outputting stream.
+    Responding,
+    /// Actively speaking via TTS audio playback.
     Speaking,
-    /// Acoustic barge-in or user cutoff detected.
+    /// Interrupted by user barge-in.
     Interrupted,
-    /// Error condition (network dropout, provider rate-limit, mic failure).
+    /// Error condition (network dropout, provider rate-limit, execution failure).
     Error,
 }
 
-impl fmt::Display for VoiceState {
+pub type VoiceState = CompanionState;
+
+impl fmt::Display for CompanionState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Idle => write!(f, "Idle"),
             Self::Listening => write!(f, "Listening"),
             Self::Thinking => write!(f, "Thinking"),
+            Self::Responding => write!(f, "Responding"),
             Self::Speaking => write!(f, "Speaking"),
             Self::Interrupted => write!(f, "Interrupted"),
             Self::Error => write!(f, "Error"),
@@ -107,11 +112,11 @@ pub enum DaemonMessage {
         confidence: f32,
     },
 
-    /// Audio energy levels for local UI visualizer / orb animation.
-    AudioEnergy { mic_rms: f32, output_rms: f32 },
+    /// Real-time audio energy RMS telemetry (0.0 to 1.0) for UI/visualizer ripple animation.
+    AudioEnergy { rms: f32 },
 
-    /// Acoustic double-talk / user interruption detected.
-    Interrupted { latency_ms: u32, reason: String },
+    /// User or system interruption signal emitted.
+    Interrupted { reason: String },
 
     /// Computer control / tool execution step progress.
     ToolStep {
@@ -269,11 +274,23 @@ pub enum ClientCommand {
         reason: Option<String>,
     },
 
-    /// Interrupt ongoing speech synthesis immediately.
+    /// Send text input into conversational pipeline.
+    SendTextInput { text: String },
+
+    /// Trigger speech interruption / barge-in.
     InterruptSpeech,
 
-    /// Send text input into conversational pipeline (dev/text mode alternative to voice).
-    SendTextInput { text: String },
+    /// Start listening (e.g. push-to-talk press or activation).
+    StartListening,
+
+    /// Stop listening (e.g. push-to-talk release).
+    StopListening,
+
+    /// Mute / unmute microphone capture.
+    SetMute { muted: bool },
+
+    /// Adjust TTS speech playback rate.
+    SetVoiceSpeed { speed: f32 },
 
     /// Change the active AI routing mode ("Auto", "LocalOnly", "CloudOnly").
     SetRoutingMode { mode: String },
@@ -302,6 +319,11 @@ impl ClientCommand {
                 | ClientCommand::ConfirmAction { .. }
                 | ClientCommand::RespondApproval { .. }
                 | ClientCommand::SendTextInput { .. }
+                | ClientCommand::InterruptSpeech
+                | ClientCommand::StartListening
+                | ClientCommand::StopListening
+                | ClientCommand::SetMute { .. }
+                | ClientCommand::SetVoiceSpeed { .. }
                 | ClientCommand::SetRoutingMode { .. }
                 | ClientCommand::Shutdown { .. }
         )
@@ -378,8 +400,8 @@ mod tests {
     #[test]
     fn test_daemon_message_roundtrip() {
         let msg = DaemonMessage::VoiceStateChanged {
-            state: VoiceState::Listening,
-            reason: Some("Mic speech detected".to_string()),
+            state: VoiceState::Thinking,
+            reason: Some("Processing text input".to_string()),
         };
         let env = IpcEnvelope::new(msg.clone());
         let frame = encode_ipc_frame(&env).unwrap();
@@ -448,10 +470,10 @@ mod tests {
     }
 
     #[test]
-    fn test_voice_state_display() {
-        assert_eq!(VoiceState::Listening.to_string(), "Listening");
-        assert_eq!(VoiceState::Thinking.to_string(), "Thinking");
-        assert_eq!(VoiceState::Speaking.to_string(), "Speaking");
-        assert_eq!(VoiceState::Interrupted.to_string(), "Interrupted");
+    fn test_companion_state_display() {
+        assert_eq!(CompanionState::Idle.to_string(), "Idle");
+        assert_eq!(CompanionState::Thinking.to_string(), "Thinking");
+        assert_eq!(CompanionState::Responding.to_string(), "Responding");
+        assert_eq!(CompanionState::Error.to_string(), "Error");
     }
 }

@@ -1,0 +1,18 @@
+[package]
+name = "voxy-voice-audio"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Windows low-latency audio capture and playback via WASAPI / cpal"
+
+[dependencies]
+cpal = "0.18"
+tokio = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

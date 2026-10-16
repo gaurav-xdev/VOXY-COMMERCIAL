@@ -15,8 +15,6 @@ voxy-learning = { path = "../learning" }
 voxy-world-model = { path = "../world_model" }
 voxy-skills = { path = "../skills" }
 voxy-guardian = { workspace = true }
-voxy-voice-orchestrator = { workspace = true }
-voxy-voice = { path = "../voice" }
 voxy-hardware = { workspace = true }
 voxy-personality = { workspace = true }
 voxy-home = { workspace = true }

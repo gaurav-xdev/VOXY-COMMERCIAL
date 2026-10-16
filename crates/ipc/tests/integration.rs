@@ -120,18 +120,18 @@ fn replay_subscription_roundtrip() {
 #[test]
 fn stream_open_full_config() {
     let mut params = std::collections::HashMap::new();
-    params.insert("sample_rate".to_string(), "48000".to_string());
-    params.insert("channels".to_string(), "2".to_string());
-    params.insert("bit_depth".to_string(), "16".to_string());
+    params.insert("width".to_string(), "1920".to_string());
+    params.insert("height".to_string(), "1080".to_string());
+    params.insert("fps".to_string(), "60".to_string());
 
     let open = StreamOpen {
-        stream_type: StreamType::Audio,
-        content_type: "audio/wav".to_string(),
+        stream_type: StreamType::Video,
+        content_type: "video/mp4".to_string(),
         parameters: params,
     };
 
-    assert_eq!(open.stream_type, StreamType::Audio);
-    assert_eq!(open.parameters.get("sample_rate").unwrap(), "48000");
+    assert_eq!(open.stream_type, StreamType::Video);
+    assert_eq!(open.parameters.get("width").unwrap(), "1920");
     assert_eq!(open.parameters.len(), 3);
 }
 

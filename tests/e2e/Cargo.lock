@@ -261,9 +261,9 @@ dependencies = [
 
 [[package]]
 name = "combine"
-version = "4.6.8"
+version = "4.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfc320937d09e6de266b31b9afb480f197d7a861be86be7cb2ea7e5d1bfffc5e"
+checksum = "4356eba6976435498d05a311ee9fc486da3bc81c200d3f0d7dd9703b41913f92"
 dependencies = [
  "bytes",
  "memchr",
@@ -569,28 +569,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a31d2a3fbaaeb2af2368bbdd904aa8e812d3c04a1ee10d3171f52d556e5d0a3"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-executor",
- "futures-io",
- "futures-sink",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
 name = "futures-channel"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4"
 dependencies = [
  "futures-core",
- "futures-sink",
 ]
 
 [[package]]
@@ -598,17 +582,6 @@ name = "futures-core"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "031b47cf1a3c6cc8bc2fc76cd437f521619387907d469316e7c0bc278f1f5432"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
 
 [[package]]
 name = "futures-io"
@@ -645,7 +618,6 @@ version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc"
 dependencies = [
- "futures-channel",
  "futures-core",
  "futures-io",
  "futures-macro",
@@ -1668,7 +1640,6 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "voxy-audio",
  "voxy-config",
  "voxy-database",
  "voxy-desktop-runtime",
@@ -1678,9 +1649,11 @@ dependencies = [
  "voxy-runtime-guard",
  "voxy-security",
  "voxy-shared",
- "voxy-voice",
+ "voxy-voice-activation",
+ "voxy-voice-audio",
  "voxy-voice-orchestrator",
- "voxy-voice-stream",
+ "voxy-voice-stt",
+ "voxy-voice-tts",
  "zip",
 ]
 
@@ -2492,6 +2465,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "libc",
  "pin-project-lite",
  "tokio",
 ]
@@ -2716,25 +2690,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
-name = "voxy-audio"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "cpal",
- "futures-util",
- "parking_lot",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "uuid",
- "voxy-hardware",
- "voxy-shared",
-]
-
-[[package]]
 name = "voxy-cognition"
 version = "0.1.0"
 dependencies = [
@@ -2804,7 +2759,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "voxy-audio",
  "voxy-personality",
  "voxy-shared",
 ]
@@ -3220,26 +3174,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "voxy-voice"
+name = "voxy-voice-activation"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "chrono",
  "parking_lot",
  "serde",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
- "uuid",
- "voxy-audio",
- "voxy-conversation",
- "voxy-event-bus",
- "voxy-personality",
- "voxy-provider-core",
- "voxy-shared",
- "voxy-voice-orchestrator",
- "voxy-voice-stream",
- "voxy-voxray",
+ "voxy-voice-audio",
+]
+
+[[package]]
+name = "voxy-voice-audio"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cpal",
+ "parking_lot",
+ "serde",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3247,43 +3203,47 @@ name = "voxy-voice-orchestrator"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "chrono",
+ "futures-util",
+ "parking_lot",
  "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-util",
  "tracing",
- "uuid",
- "voxy-hardware",
- "voxy-provider-core",
- "voxy-shared",
+ "voxy-ipc",
+ "voxy-voice-activation",
+ "voxy-voice-audio",
+ "voxy-voice-stt",
+ "voxy-voice-tts",
+ "windows 0.58.0",
 ]
 
 [[package]]
-name = "voxy-voice-stream"
-version = "0.1.0"
-
-[[package]]
-name = "voxy-voxray"
+name = "voxy-voice-stt"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
- "chrono",
- "futures",
- "parking_lot",
  "reqwest",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
- "uuid",
- "voxy-audio",
- "voxy-config",
- "voxy-event-bus",
- "voxy-provider-core",
- "voxy-shared",
- "windows 0.58.0",
+]
+
+[[package]]
+name = "voxy-voice-tts"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "voxy-voice-stt",
 ]
 
 [[package]]

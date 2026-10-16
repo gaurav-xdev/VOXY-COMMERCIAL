@@ -11,7 +11,6 @@ use crate::cancellation::CancellationManager;
 use crate::config::OrchestratorConfig;
 use crate::error::{OrchestratorError, Result};
 use crate::event::OrchestratorEvent;
-use crate::interrupts::InterruptionManager;
 use crate::scheduler::TaskSchedulerInternal;
 use crate::types::{
     ComponentStatus, JobId, JobState, JobTicket, OrchestratorTask, ScheduleSpec, SystemComponent,
@@ -20,7 +19,7 @@ use crate::types::{
 
 use super::cancellation::DefaultCancellationManager;
 use super::execution::{CancellationFlag, PipelineInput, PipelineOutput};
-use super::interrupts::{DefaultInterruptionManager, InterruptionEvent, InterruptionSeverity};
+use super::interrupts::DefaultInterruptionManager;
 use super::pipeline::{execute_pipeline, StageHandler};
 use super::scheduler::PriorityTaskScheduler;
 
@@ -47,9 +46,6 @@ pub trait SystemCoordinator: Send + Sync {
     async fn deactivate_guardian_override(&self, reason: &str) -> Result<()>;
     async fn is_guardian_override_active(&self) -> bool;
     async fn get_active_overrides(&self) -> Result<Vec<String>>;
-
-    async fn handle_voice_interruption(&self, session_id: &str, confidence: f64) -> Result<()>;
-    async fn set_voice_priority(&self, priority: TaskPriority) -> Result<()>;
 
     async fn pause_system(&self, reason: &str) -> Result<()>;
     async fn resume_system(&self, reason: &str) -> Result<()>;
@@ -325,35 +321,6 @@ impl SystemCoordinator for DefaultSystemCoordinator {
 
     async fn get_active_overrides(&self) -> Result<Vec<String>> {
         Ok(self.overrides.read().clone())
-    }
-
-    async fn handle_voice_interruption(&self, session_id: &str, confidence: f64) -> Result<()> {
-        if !self.config.enable_voice_interruption {
-            return Ok(());
-        }
-        self.emit_event(OrchestratorEvent::VoiceInterruption {
-            session_id: session_id.to_string(),
-            confidence,
-        });
-        let event = InterruptionEvent {
-            id: Uuid::new_v4().to_string(),
-            source: "voice".to_string(),
-            task_id: None,
-            reason: format!("voice interruption (confidence: {:.2})", confidence),
-            severity: InterruptionSeverity::Warning,
-            timestamp: Utc::now(),
-            metadata: {
-                let mut m = HashMap::new();
-                m.insert("session_id".to_string(), session_id.to_string());
-                m.insert("confidence".to_string(), confidence.to_string());
-                m
-            },
-        };
-        self.interrupt.emit_interruption(event).await
-    }
-
-    async fn set_voice_priority(&self, _priority: TaskPriority) -> Result<()> {
-        Ok(())
     }
 
     async fn pause_system(&self, reason: &str) -> Result<()> {

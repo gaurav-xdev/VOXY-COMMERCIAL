@@ -9,8 +9,6 @@ pub type CorrelationId = Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PipelineStage {
-    WakeWord,
-    VoiceProcessing,
     Conversation,
     Cognition,
     Planning,
@@ -27,8 +25,6 @@ pub enum PipelineStage {
 impl PipelineStage {
     pub fn name(&self) -> &'static str {
         match self {
-            Self::WakeWord => "WakeWord",
-            Self::VoiceProcessing => "VoiceProcessing",
             Self::Conversation => "Conversation",
             Self::Cognition => "Cognition",
             Self::Planning => "Planning",

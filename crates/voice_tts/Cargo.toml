@@ -1,0 +1,19 @@
+[package]
+name = "voxy-voice-tts"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Text-to-Speech (TTS) services: Streaming Sentence Chunker, Cloud Speech synthesis, and Local TTS"
+
+[dependencies]
+tokio = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+voxy-voice-stt = { path = "../voice_stt" }
+
+[dev-dependencies]
+tokio = { workspace = true }

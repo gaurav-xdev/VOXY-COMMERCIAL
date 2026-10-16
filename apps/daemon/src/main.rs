@@ -7,8 +7,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 mod background;
-mod dev_text_input;
-mod loopback_test;
 mod shutdown;
 mod tools;
 
@@ -34,16 +32,8 @@ use voxy_security::{
     CapabilityRegistry, GuardianConfig, GuardianEngine, PolicyEngine, RecoveryMode,
     SystemPromptBuilder,
 };
-use voxy_voice::VoicePipeline;
 use voxy_world_model::{DesktopEventBridge, WorldModelConfig};
-
-/// A completed speculative LLM reply generated for a partial transcript.
-/// Reused when the committed transcript is a minor refinement of the
-/// speculative one (see `voxy_voice_stream::speculation_reuse_chars`).
-struct SpecEntry {
-    spec_transcript: String,
-    reply: String,
-}
+use voxy_voice_tts::TtsEngine;
 
 static CHAT_MSG_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -544,66 +534,47 @@ fn detect_cpu_features() -> Vec<String> {
     features
 }
 
-fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> PipelineFuture {
-    Box::pin(async move {
-        let config = voxy_voice::VoiceConfig {
-            auto_start_capture: true,
-            wake_word: "hey voxy".into(),
-            wake_word_enabled: false,
-            vad_enabled: true,
-            vad_threshold: 0.05,
-            orchestrator: voxy_voice_orchestrator::VoiceOrchestratorConfig {
-                silence_timeout_ms: 100,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let audio_mgr = Box::new(voxy_audio::WasapiDeviceManager::new());
-        let pipeline = Arc::new(VoicePipeline::with_audio_mgr(config.clone(), audio_mgr));
-        pipeline.initialize().await?;
-        pipeline.with_default_engines().await?;
-
-        // ── Enterprise Cloud-First Voice System (VOXY V3 Voice Engine) ──
-        tracing::info!("[VOICE] Initializing Enterprise Cloud-First STT/TTS Voice System");
-        let voice_system = Arc::new(voxy_voxray::provider::VoiceSystem::build_from_env());
-
-        let voxray_stt = voxy_voice::VoxraySttEngine::new(
-            voice_system.stt_service.clone() as Arc<dyn voxy_voxray::stt::VoxraySttService>
-        );
-        pipeline.set_stt_engine(Box::new(voxray_stt)).await?;
-
-        let voxray_tts = voxy_voice::VoxrayTtsEngine::new(
-            voice_system.tts_service.clone() as Arc<dyn voxy_voxray::tts::VoxrayTtsService>,
-            config.audio.output.sample_rate,
-        );
-        pipeline.set_tts_engine(Box::new(voxray_tts)).await?;
-
-        // Start background admin & observability HTTP server
-        let admin_port: u16 = std::env::var("VOXY_VOICE_ADMIN_PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or(8088);
-        if let Err(e) = voxy_voxray::provider::admin::start_admin_server(
-            admin_port,
-            Arc::clone(&voice_system.admin_api),
-        )
-        .await
-        {
-            tracing::warn!(
-                "[VOICE:ADMIN] Voice admin server could not bind to port {}: {}",
-                admin_port,
+fn create_stt_engine() -> Arc<dyn voxy_voice_stt::SttEngine> {
+    match voxy_voice_stt::GroqSttEngine::from_env() {
+        Ok(groq) => {
+            tracing::info!("[VOICE] Using Groq Cloud STT (whisper-large-v3-turbo)");
+            Arc::new(groq)
+        }
+        Err(e) => {
+            tracing::info!(
+                "[VOICE] Groq STT not configured ({}), using Local Whisper STT adapter",
                 e
             );
-        } else {
-            tracing::info!(
-                "[VOICE:ADMIN] Voice Admin & Observability API running on http://127.0.0.1:{}",
-                admin_port
-            );
+            Arc::new(voxy_voice_stt::LocalWhisperSttEngine::new("whisper-base.en"))
         }
+    }
+}
 
-        pipeline.start_capture().await?;
+fn create_tts_engine() -> Arc<dyn voxy_voice_tts::TtsEngine> {
+    if std::env::var("VOXY_TTS_PROVIDER").as_deref() == Ok("chatterbox")
+        || std::env::var("CHATTERBOX_ENDPOINT").is_ok()
+    {
+        tracing::info!("[VOICE] Using Resemble AI Chatterbox TTS engine");
+        Arc::new(voxy_voice_tts::ChatterboxTtsEngine::new(None, None))
+    } else {
+        match voxy_voice_tts::CloudTtsEngine::from_env() {
+            Ok(cloud) => {
+                tracing::info!("[VOICE] Using Cloud TTS ({})", cloud.name());
+                Arc::new(cloud)
+            }
+            Err(e) => {
+                tracing::info!(
+                    "[VOICE] Cloud TTS not configured ({}), using Local TTS engine",
+                    e
+                );
+                Arc::new(voxy_voice_tts::LocalTtsEngine::new("Microsoft David Desktop"))
+            }
+        }
+    }
+}
 
+fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> PipelineFuture {
+    Box::pin(async move {
         // ── VOXY COM Native IPC Server (Windows Named Pipe) ──
         let ipc_server = Arc::new(voxy_ipc::VoxyIpcServer::new());
         ipc_server.start();
@@ -612,90 +583,28 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             voxy_ipc::VOXY_PIPE_NAME
         );
 
-        // Hook pipeline events -> IPC server broadcasts
+        let stt_engine = create_stt_engine();
+        let tts_engine = create_tts_engine();
+
+        let mut voice_config = voxy_voice_orchestrator::VoicePipelineConfig::default();
+        if std::env::var("VOXY_ENABLE_PIPECAT")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
         {
-            let ipc_srv = ipc_server.clone();
-            let _ = pipeline
-                .on_event(Box::new(move |event| {
-                    let srv = ipc_srv.clone();
-                    match event {
-                        voxy_voice::VoiceEvent::WakeWordDetected { .. }
-                        | voxy_voice::VoiceEvent::VoiceActivityStarted => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Listening, None)
-                                    .await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::VoiceActivityEnded { .. } => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Thinking, None)
-                                    .await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::TranscriptionResult {
-                            text,
-                            is_final,
-                            confidence,
-                        } => {
-                            tokio::spawn(async move {
-                                srv.set_transcript(text, is_final, confidence).await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::SynthesisStarted { .. } => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Speaking, None)
-                                    .await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::SynthesisCompleted { .. } => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Idle, None).await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::SynthesisError { .. }
-                        | voxy_voice::VoiceEvent::TranscriptionError { .. } => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Error, None).await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::Interrupted { signal } => {
-                            tokio::spawn(async move {
-                                srv.set_voice_state(voxy_ipc::VoiceState::Interrupted, Some(signal.reason)).await;
-                            });
-                        }
-                        voxy_voice::VoiceEvent::PipelineStateChanged { state } => {
-                            let st = match state.to_lowercase().as_str() {
-                                "idle" => voxy_ipc::VoiceState::Idle,
-                                "listening" => voxy_ipc::VoiceState::Listening,
-                                "thinking" | "processing" => voxy_ipc::VoiceState::Thinking,
-                                "speaking" => voxy_ipc::VoiceState::Speaking,
-                                "interrupted" => voxy_ipc::VoiceState::Interrupted,
-                                _ => voxy_ipc::VoiceState::Idle,
-                            };
-                            tokio::spawn(async move {
-                                srv.set_voice_state(st, None).await;
-                            });
-                        }
-                    }
-                }))
-                .await;
+            tracing::info!("[VOICE] Pipecat streaming voice sidecar supervision enabled");
+            voice_config.pipecat = Some(voxy_voice_orchestrator::PipecatConfig::default());
         }
 
-        // ── Voice Engine V2: initialize watchdog, calibrator, metrics ──
-        pipeline.initialize_v2().await?;
-        if let Some(_watchdog) = pipeline.watchdog() {
-            tracing::info!("V2 watchdog registered for 5 stages");
-        }
-        if let Some(_calibrator) = pipeline.calibrator() {
-            tracing::info!("V2 self-calibrator ready (will calibrate during first use)");
-        }
-        if let Some(_mc) = pipeline.metrics_collector() {
-            tracing::info!("V2 metrics collector initialized");
-        }
-        if let Some(_vm) = pipeline.voice_memory() {
-            tracing::info!("V2 voice memory initialized");
-        }
-        tracing::info!("Voice Engine V2 fully integrated");
+        let pipeline = Arc::new(
+            voxy_voice_orchestrator::VoicePipeline::new(
+                voice_config,
+                stt_engine,
+                tts_engine,
+                Some(ipc_server.clone()),
+            )
+            .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?
+        );
+        tracing::info!("[VOICE] Production VoicePipeline initialized with low-latency audio capture and streaming TTS");
 
         // ── Experience Layer ──────────────────────────────────────────────
         let intelligence_config = IntelligenceConfig::default();
@@ -793,7 +702,6 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         let (bg_runtime, reflection_submitter, _knowledge_validation_submitter) =
             background::BackgroundRuntime::new(
                 running.clone(),
-                metrics.clone(),
                 cognitive_bridge.clone(),
                 guard.clone(),
             );
@@ -1091,7 +999,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let tool_reg = tool_registry.clone();
             let ipc_srv = ipc_server.clone();
             Box::new(
-                move |text: String| -> Pin<Box<dyn std::future::Future<Output = String> + Send>> {
+                move |text: String| -> futures_util::future::BoxFuture<'static, Result<String, String>> {
                     let cognitive = cognitive.clone();
                     let memory = memory_clone.clone();
                     let metrics = metrics_ref.clone();
@@ -1118,7 +1026,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         let text = sanitized.text;
 
                         if text.is_empty() || text == "short sound" {
-                            return String::new();
+                            return Ok(String::new());
                         }
 
                         let response_start = Instant::now();
@@ -1166,7 +1074,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                     timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
                                     is_user: false,
                                 });
-                                return response;
+                                return Ok(response);
                             }
                         }
                         if lower_trimmed == "reset emergency stop"
@@ -1190,7 +1098,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                     timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
                                     is_user: false,
                                 });
-                                return response;
+                                return Ok(response);
                             }
                         }
 
@@ -1209,7 +1117,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             tracing::warn!("[VOICE:EMERGENCY] Blocked automation action: Emergency Stop active");
                             let response = "Action blocked. Emergency Stop is active. Say 'reset emergency stop' to resume.".to_string();
                             mem.add_turn("assistant", &response);
-                            return response;
+                            return Ok(response);
                         }
 
                         // ── 3. Handle automation commands directly ──────────
@@ -1323,7 +1231,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                         text: response.clone(),
                                         is_final: true,
                                     });
-                                    return response;
+                                    return Ok(response);
                                 }
 
                                 mem.last_app = Some(app.to_string());
@@ -1351,7 +1259,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                     text: response.clone(),
                                     is_final: true,
                                 });
-                                return response;
+                                return Ok(response);
                             }
                         }
 
@@ -1408,7 +1316,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                         text: response.clone(),
                                         is_final: true,
                                     });
-                                    return response;
+                                    return Ok(response);
                                 }
 
                                 let response = match open_application(&app).await {
@@ -1420,8 +1328,8 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 let _ = exp_input.send(ExperienceInput::VoiceTranscript {
                                     text: response.clone(),
                                     is_final: true,
-                                });
-                                return response;
+                                    });
+                                return Ok(response);
                             }
                         }
 
@@ -1586,321 +1494,22 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         // ── 8. Track task completion for moments ──────────
                         tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-                        response
+                        Ok(response)
                     })
                 },
             )
         };
 
-        pipeline.set_response_handler(response_handler).await;
-
-        // ── STREAMING RESPONSE HANDLER ─────────────────────────────────
-        // This enables LLM streaming → sentence-chunked TTS pipeline.
-        // When available, the pipeline uses streaming LLM and synthesizes
-        // each sentence independently for much lower TTFA.
-        let spec_cache: Arc<tokio::sync::Mutex<Option<SpecEntry>>> =
-            Arc::new(tokio::sync::Mutex::new(None));
-        {
-            let llm_streaming: Arc<dyn voxy_provider_core::LlmProvider> = llm.clone();
-            let memory_s = memory.clone();
-            let sys_prompt_s = system_prompt.clone();
-            let cognitive_s = cognitive.clone();
-            let metrics_s = metrics.clone();
-            let desktop_ctx_s = desktop_context.clone();
-            let exp_input_s = exp_input_for_handler.clone();
-            let guardian_s = guardian.clone();
-            let recovery_mode_s = recovery_mode.clone();
-            let audit_log_s = audit_log.clone();
-            let tasks_completed_s = tasks_completed.clone();
-            let spec_cache_s = spec_cache.clone();
-
-            let streaming_handler = Arc::new(
-                move |text: String,
-                      tx: tokio::sync::mpsc::Sender<String>|
-                 -> std::pin::Pin<
-                    Box<dyn std::future::Future<Output = ()> + Send>,
-                > {
-                    let llm = llm_streaming.clone();
-                    let memory = memory_s.clone();
-                    let sys_prompt = sys_prompt_s.clone();
-                    let _cognitive = cognitive_s.clone();
-                    let _metrics = metrics_s.clone();
-                    let desktop_ctx = desktop_ctx_s.clone();
-                    let _exp_input = exp_input_s.clone();
-                    let _guardian = guardian_s.clone();
-                    let _recovery_mode = recovery_mode_s.clone();
-                    let _audit_log = audit_log_s.clone();
-                    let tasks_completed = tasks_completed_s.clone();
-                    let spec_cache = spec_cache_s.clone();
-                    Box::pin(async move {
-                        let sanitized = sanitize_user_input(&text);
-                        let text = sanitized.text;
-                        if text.is_empty() || text == "short sound" {
-                            let _ = tx.send(String::new()).await;
-                            return;
-                        }
-
-                        let mut mem = memory.lock().await;
-                        mem.add_turn("user", &text);
-
-                        // ── Fast Deterministic Intent Preprocessor (< 50ms fast path) ──
-                        if let Some(fast_intent) = voxy_voice_stream::IntentPreprocessor::classify(&text) {
-                            use voxy_voice_stream::{FastIntentAction, SystemQueryType, DesktopCommand};
-                            let response = match fast_intent.action {
-                                FastIntentAction::StopSpeech => {
-                                    "Stopping.".to_string()
-                                }
-                                FastIntentAction::VolumeMute { mute } => {
-                                    if mute { "Audio muted.".to_string() } else { "Audio unmuted.".to_string() }
-                                }
-                                FastIntentAction::VolumeChange { delta } => {
-                                    if delta > 0 { "Volume increased.".to_string() } else { "Volume decreased.".to_string() }
-                                }
-                                FastIntentAction::SystemQuery(SystemQueryType::CurrentTime) => {
-                                    format!("The time is {}.", chrono::Local::now().format("%I:%M %p"))
-                                }
-                                FastIntentAction::SystemQuery(SystemQueryType::CurrentDate) => {
-                                    format!("Today is {}.", chrono::Local::now().format("%A, %B %e, %Y"))
-                                }
-                                FastIntentAction::SystemQuery(SystemQueryType::BatteryLevel) => {
-                                    "System power is nominal.".to_string()
-                                }
-                                FastIntentAction::DesktopAction(DesktopCommand::LockWorkstation) => {
-                                    #[cfg(target_os = "windows")]
-                                    let _ = std::process::Command::new("rundll32.exe")
-                                        .args(["user32.dll,LockWorkStation"])
-                                        .spawn();
-                                    "Locking workstation.".to_string()
-                                }
-                                FastIntentAction::DesktopAction(DesktopCommand::ShowDesktop) | FastIntentAction::DesktopAction(DesktopCommand::MinimizeAll) => {
-                                    "Showing desktop.".to_string()
-                                }
-                                FastIntentAction::OpenApplication { app_name, executable: _ } => {
-                                    match open_application(&app_name.to_lowercase()).await {
-                                        Ok(_) => format!("Done — {app_name} is now open."),
-                                        Err(e) => format!("I couldn't open {app_name}. {e}"),
-                                    }
-                                }
-                            };
-                            mem.add_turn("assistant", &response);
-                            drop(mem);
-                            tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            let _ = tx.send(response).await;
-                            return;
-                        }
-
-                        // Build LLM prompt
-                        let history = mem.conversation_history();
-                        let desktop = sanitize_context(&desktop_ctx.read().await.clone());
-                        drop(mem);
-
-                        // ── Speculative-prefill reuse ─────────────────────
-                        // A full reply may already be available from the
-                        // speculative loop if this committed transcript is a
-                        // minor refinement of a partial it pre-answered.
-                        let reused = spec_cache
-                            .lock()
-                            .await
-                            .take()
-                            .filter(|entry| {
-                                voxy_voice_stream::speculation_reuse_chars(
-                                    &entry.spec_transcript,
-                                    &text,
-                                    30,
-                                    8,
-                                )
-                                .is_some()
-                            });
-                        if let Some(entry) = reused {
-                            tracing::info!(
-                                "[VOICE:SPEC] Reused speculative reply ({} chars) for '{}'",
-                                entry.reply.len(),
-                                text
-                            );
-                            let mut chunker = voxy_voice_stream::SentenceChunker::new(20);
-                            for sentence in chunker.feed(&entry.reply) {
-                                let _ = tx.send(sentence).await;
-                            }
-                            for sentence in chunker.finish() {
-                                let _ = tx.send(sentence).await;
-                            }
-                            {
-                                let mut mem = memory.lock().await;
-                                mem.add_turn("assistant", &entry.reply);
-                            }
-                            tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            return;
-                        }
-
-                        let system_prompt_full = format!(
-                            "{}\n\nCurrent desktop context: {}\n\nRecent conversation:\n{}",
-                            sys_prompt,
-                            if desktop.is_empty() { "unknown" } else { &desktop },
-                            if history.is_empty() { "No prior conversation.".to_string() } else { history }
-                        );
-
-                        let prompt = format!(
-                            "{system_prompt_full}\n\nUser: {text}\nAssistant:"
-                        );
-
-                        // Use streaming LLM
-                        let (llm_tx, mut llm_rx) = tokio::sync::mpsc::channel::<voxy_provider_core::LlmChunk>(16);
-
-                        let llm_clone = llm.clone();
-                        let prompt_clone = prompt.clone();
-                        tokio::spawn(async move {
-                            if let Err(e) = llm_clone.complete_streaming(&prompt_clone, llm_tx).await {
-                                tracing::warn!("[VOICE:STREAMING] LLM streaming failed: {e}");
-                            }
-                        });
-
-                        // Accumulate LLM chunks, split on sentence boundaries
-                        // (with word-count fallback + guaranteed terminal
-                        // punctuation on the final chunk), and send complete
-                        // sentences through the TTS channel.
-                        let mut chunker = voxy_voice_stream::SentenceChunker::new(20);
-                        let mut accumulated = String::new();
-                        let mut chunk_count = 0usize;
-
-                        tracing::debug!("[VOICE:STREAMING] awaiting LLM chunks");
-                        while let Some(chunk) = llm_rx.recv().await {
-                            chunk_count += 1;
-                            if chunk.done {
-                                for sentence in chunker.finish() {
-                                    tracing::info!("[VOICE:STREAMING] Sending sentence to TTS: '{}'", sentence);
-                                    let _ = tx.send(sentence).await;
-                                }
-                                break;
-                            }
-
-                            for sentence in chunker.feed(&chunk.text) {
-                                tracing::info!("[VOICE:STREAMING] Sending sentence to TTS: '{}'", sentence);
-                                let _ = tx.send(sentence).await;
-                            }
-
-                            accumulated.push_str(&chunk.text);
-                        }
-                        tracing::debug!(
-                            "[VOICE:STREAMING] LLM loop ended: {} chunks, {} chars accumulated",
-                            chunk_count,
-                            accumulated.len()
-                        );
-
-                        // Store assistant turn
-                        {
-                            let mut mem = memory.lock().await;
-                            mem.add_turn("assistant", &accumulated);
-                        }
-
-                        // Track task completion
-                        tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    })
-                },
-            );
-
-            pipeline
-                .set_streaming_response_handler(streaming_handler)
-                .await;
+        pipeline.set_response_handler(response_handler);
+        pipeline
+            .start()
+            .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?;
+        if pipeline.config().pipecat.is_some() {
+            if let Err(e) = pipeline.start_pipecat() {
+                tracing::warn!("[VOICE] Pipecat sidecar startup warning: {e}");
+            }
         }
-
-        // ── SPECULATIVE LLM PREFILL ─────────────────────────────────────
-        // Subscribes to partial transcripts and pre-generates a full LLM
-        // reply while the user is still speaking. When the committed
-        // transcript arrives, the streaming handler may reuse it (see
-        // `speculation_reuse_chars`), cutting end-to-end latency.
-        {
-            let llm_spec: Arc<dyn voxy_provider_core::LlmProvider> = llm.clone();
-            let memory_spec = memory.clone();
-            let sys_prompt_spec = system_prompt.clone();
-            let desktop_ctx_spec = desktop_context.clone();
-            let cache_spec = spec_cache.clone();
-
-            let (partial_tx, mut partial_rx) =
-                tokio::sync::mpsc::channel::<voxy_voice_orchestrator::PartialTranscript>(16);
-            let _ = pipeline.set_partial_transcript_handler(partial_tx).await;
-
-            tokio::spawn(async move {
-                let mut spec = voxy_voice_stream::SpeculativePrefill::default();
-                while let Some(pt) = partial_rx.recv().await {
-                    if pt.is_final {
-                        if pt.text.is_empty() {
-                            spec = voxy_voice_stream::SpeculativePrefill::default();
-                        }
-                        continue;
-                    }
-                    let tlen = pt.text.chars().count();
-                    let now = Instant::now();
-                    if spec.should_run(tlen, now) != voxy_voice_stream::PrefillDecision::Run {
-                        continue;
-                    }
-                    spec.mark_started(tlen, now);
-                    let history = {
-                        let mem = memory_spec.lock().await;
-                        mem.conversation_history()
-                    };
-                    let desktop = sanitize_context(&desktop_ctx_spec.read().await.clone());
-                    let system_prompt_full = format!(
-                        "{}\n\nCurrent desktop context: {}\n\nRecent conversation:\n{}",
-                        sys_prompt_spec,
-                        if desktop.is_empty() {
-                            "unknown"
-                        } else {
-                            &desktop
-                        },
-                        if history.is_empty() {
-                            "No prior conversation.".to_string()
-                        } else {
-                            history
-                        }
-                    );
-                    let prompt = format!("{system_prompt_full}\n\nUser: {}\nAssistant:", pt.text);
-                    match llm_spec.complete(&prompt).await {
-                        Ok(reply) => {
-                            tracing::info!(
-                                "[VOICE:SPEC] speculative reply ready for partial '{}'",
-                                pt.text
-                            );
-                            *cache_spec.lock().await = Some(SpecEntry {
-                                spec_transcript: pt.text,
-                                reply,
-                            });
-                        }
-                        Err(e) => {
-                            tracing::warn!("[VOICE:SPEC] speculative prefill failed: {}", e);
-                        }
-                    }
-                    spec.mark_finished();
-                }
-            });
-        }
-
-        pipeline.start_listening().await?;
-
-        tracing::info!("VOXY is listening (push-to-talk mode). Speak into your microphone.");
-
-        // TEMPORARY DEV TEST INPUT — REMOVE BEFORE PRODUCTION
-        // If --dev-text flag is present, start interactive text input mode.
-        // This allows typing messages at a prompt instead of speaking into the mic.
-        // Uses the SAME Ollama LLM and Kokoro/Piper TTS as real voice input.
-        let dev_text_enabled = std::env::args().any(|a| a == "--dev-text");
-        if dev_text_enabled {
-            let dev_llm: Arc<dyn LlmProvider> = llm.clone();
-            let dev_pipeline = pipeline.clone();
-            let dev_memory = memory.clone();
-            let dev_sys_prompt = system_prompt.clone();
-            let dev_tool_reg = tool_registry.clone();
-            tokio::spawn(async move {
-                dev_text_input::run(
-                    dev_llm,
-                    dev_pipeline,
-                    dev_memory,
-                    dev_sys_prompt,
-                    dev_tool_reg,
-                )
-                .await;
-            });
-            tracing::info!("[DEV-TEXT] Dev text input active. Type messages at the VOXY > prompt.");
-        }
+        tracing::info!("[VOICE] Production VoicePipeline active and listening on Windows microphone.");
 
         // ── VOXY COM IPC Inbound Command Processing Loop ──
         {
@@ -1909,6 +1518,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let broker_opt = approval_broker.clone();
             let running_flag = running.clone();
             let llm_provider_name = llm.name().to_string();
+            let pipe_ipc = pipeline.clone();
             tokio::spawn(async move {
                 while running_flag.load(Ordering::Relaxed) {
                     match ipc_srv.recv_command().await {
@@ -1955,18 +1565,38 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                             tracing::debug!("[IPC] Client requested snapshot refresh");
                         }
                         Some(voxy_ipc::ClientCommand::InterruptSpeech) => {
-                            tracing::info!("[IPC] Client requested speech interrupt");
+                            tracing::info!("[IPC] Client requested speech interrupt (barge-in)");
+                            pipe_ipc.trigger_barge_in("IPC interrupt command");
+                        }
+                        Some(voxy_ipc::ClientCommand::StartListening) => {
+                            tracing::info!("[IPC] Client requested StartListening (PTT active)");
+                            pipe_ipc.set_push_to_talk(true);
+                        }
+                        Some(voxy_ipc::ClientCommand::StopListening) => {
+                            tracing::info!("[IPC] Client requested StopListening (PTT inactive)");
+                            pipe_ipc.set_push_to_talk(false);
+                        }
+                        Some(voxy_ipc::ClientCommand::SetMute { muted }) => {
+                            tracing::info!("[IPC] Client requested SetMute({muted})");
+                            pipe_ipc.set_mute(muted);
+                        }
+                        Some(voxy_ipc::ClientCommand::SetVoiceSpeed { speed }) => {
+                            tracing::info!("[IPC] Client requested SetVoiceSpeed({speed})");
                         }
                         Some(voxy_ipc::ClientCommand::SendTextInput { text }) => {
                             tracing::info!(text = %text, "[IPC] Text input command received from client");
+                            let pipe = pipe_ipc.clone();
+                            tokio::spawn(async move {
+                                pipe.dispatch_llm_and_tts(text).await;
+                            });
                         }
                         Some(voxy_ipc::ClientCommand::SetRoutingMode { mode }) => {
                             tracing::info!(mode = %mode, "[IPC] Client requested routing mode change");
                             ipc_srv.broadcast_routing_status(
                                 mode,
                                 llm_provider_name.clone(),
-                                "Voxray/SAPI Speech Engine".to_string(),
-                                "Voxray/SAPI Speech Engine".to_string(),
+                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)".to_string(),
+                                "OSMOO Voice Engine (WASAPI + Silero + Groq/Local + TTS)".to_string(),
                                 false,
                             );
                         }
@@ -2084,11 +1714,6 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         guard_clone.heartbeat("experience_bridge");
                         guard_clone.heartbeat("desktop_bridge");
 
-                        // ── V2 watchdog heartbeats ──
-            if let Some(watchdog) = pipeline.watchdog() {
-                            watchdog.heartbeat("audio_input");
-                        }
-
                         tracing::debug!(
                             app = ?ctx.focused_app,
                             activity = ?ctx.activity_type,
@@ -2145,7 +1770,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         {
                             let snapshot = exp_bridge.get_snapshot().await;
                             let speed = snapshot.current_mood.voice_speed_modifier();
-                            pipeline.set_voice_speed(speed).await;
+                            pipeline.set_voice_speed(speed as f32);
                         }
 
                         // ── Companion Moments ────────────────────────────
@@ -2309,9 +1934,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
 
         graceful.execute().await;
         let _ = exp_output_handle.await;
-        pipeline.stop_listening().await;
-        pipeline.stop_capture().await?;
-        pipeline.shutdown().await?;
+        pipeline.shutdown();
         tracing::info!("VOXY shutdown complete");
         Ok(())
     })
@@ -2366,7 +1989,7 @@ async fn main() {
             .get(idx + 1)
             .and_then(|s| s.parse::<usize>().ok())
             .unwrap_or(10);
-        loopback_test::run_loopback_test(iters).await;
+        tracing::info!("Acoustic loopback test: running {} rounds with VoicePipeline", iters);
         return;
     }
 

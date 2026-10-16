@@ -257,7 +257,6 @@ pub struct StreamOpen {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StreamType {
-    Audio,
     Video,
     Text,
     Binary,
@@ -268,7 +267,6 @@ pub enum StreamType {
 impl std::fmt::Display for StreamType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Audio => write!(f, "audio"),
             Self::Video => write!(f, "video"),
             Self::Text => write!(f, "text"),
             Self::Binary => write!(f, "binary"),
@@ -403,7 +401,7 @@ mod tests {
 
     #[test]
     fn stream_type_display() {
-        assert_eq!(StreamType::Audio.to_string(), "audio");
+        assert_eq!(StreamType::Video.to_string(), "video");
         assert_eq!(StreamType::Event.to_string(), "event");
     }
 
@@ -450,14 +448,14 @@ mod tests {
     #[test]
     fn stream_open_parameters() {
         let mut params = std::collections::HashMap::new();
-        params.insert("sample_rate".to_string(), "44100".to_string());
+        params.insert("codec".to_string(), "h264".to_string());
         let open = StreamOpen {
-            stream_type: StreamType::Audio,
-            content_type: "audio/wav".to_string(),
+            stream_type: StreamType::Video,
+            content_type: "video/mp4".to_string(),
             parameters: params,
         };
-        assert_eq!(open.stream_type, StreamType::Audio);
-        assert_eq!(open.parameters.get("sample_rate").unwrap(), "44100");
+        assert_eq!(open.stream_type, StreamType::Video);
+        assert_eq!(open.parameters.get("codec").unwrap(), "h264");
     }
 
     #[test]

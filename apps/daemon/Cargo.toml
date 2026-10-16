@@ -11,8 +11,6 @@ path = "src/main.rs"
 
 [features]
 default = []
-piper-engine = []
-whisper-engine = []
 
 [dependencies]
 voxy-ipc = { path = "../../crates/ipc" }
@@ -22,16 +20,11 @@ voxy-logging = { path = "../../crates/logging" }
 voxy-metrics = { path = "../../crates/metrics" }
 voxy-event-bus = { path = "../../crates/event_bus" }
 voxy-kernel = { path = "../../crates/kernel" }
-voxy-voice = { path = "../../crates/voice" }
-voxy-voxray = { path = "../../crates/voxray" }
-voxy-cloud-stt = { path = "../../crates/cloud_stt" }
 voxy-orchestrator = { path = "../../crates/orchestrator" }
 voxy-cognition = { path = "../../crates/cognition" }
 voxy-automation = { path = "../../crates/automation" }
 voxy-model-router = { path = "../../crates/model_router" }
 voxy-provider-core = { path = "../../crates/provider_core" }
-voxy-audio = { path = "../../crates/audio" }
-voxy-voice-orchestrator = { path = "../../crates/voice_orchestrator" }
 voxy-world-model = { path = "../../crates/world_model" }
 voxy-memory = { path = "../../crates/memory" }
 voxy-companion-intelligence = { path = "../../crates/companion_intelligence" }
@@ -44,8 +37,12 @@ voxy-openai = { path = "../../crates/openai" }
 voxy-anthropic = { path = "../../crates/anthropic" }
 voxy-gemini = { path = "../../crates/gemini" }
 voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
-voxy-voice-stream = { path = "../../crates/voice_stream" }
 voxy-tool-calling = { path = "../../crates/tool_calling" }
+voxy-voice-audio = { path = "../../crates/voice_audio" }
+voxy-voice-activation = { path = "../../crates/voice_activation" }
+voxy-voice-stt = { path = "../../crates/voice_stt" }
+voxy-voice-tts = { path = "../../crates/voice_tts" }
+voxy-voice-orchestrator = { path = "../../crates/voice_orchestrator" }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { workspace = true }

@@ -18,7 +18,7 @@ use osmoo_e2e_tests::*;
 use tempfile::TempDir;
 use tokio::time::timeout;
 
-use voxy_audio::error::AudioError;
+use voxy_voice_audio::AudioError;
 use voxy_database::conversation::ConversationStore;
 use voxy_database::sqlite::SqliteConversationStore;
 use voxy_harness::patch_engine::{PatchError, PatchTransaction};
@@ -102,7 +102,7 @@ async fn test_tier2_a1_ipc_replay_attack_rejected() {
 fn test_tier2_a2_audio_error_conditions() {
     // Verify explicit structured error states
     let err_dev = AudioError::DeviceNotFound("WASAPI_Default_Mic".to_string());
-    assert_eq!(err_dev.to_string(), "Device not found: WASAPI_Default_Mic");
+    assert_eq!(err_dev.to_string(), "Audio device not found: WASAPI_Default_Mic");
 
     let err_rate = AudioError::UnsupportedSampleRate(192000);
     assert_eq!(err_rate.to_string(), "Unsupported sample rate: 192000");

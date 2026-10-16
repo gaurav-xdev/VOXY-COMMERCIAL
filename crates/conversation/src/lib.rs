@@ -15,6 +15,7 @@ pub use event::ConversationEvent;
 pub use hooks::{HookEvent, InMemoryHookRegistry, PersonalityHook, PersonalityHookRegistry};
 pub use interrupt::{
     BargeInConfig, BargeInManager, InMemoryBargeInManager, InterruptionEvent, InterruptionSource,
+    SignalPacket,
 };
 pub use session::{
     ConversationSession, InMemorySession, InMemorySessionManager, SessionId, SessionManager,

@@ -1,0 +1,18 @@
+[package]
+name = "voxy-voice-stt"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Speech-to-Text (STT) services: Cloud Groq Whisper with Hindi/English/Hinglish support and Local Whisper interface"
+
+[dependencies]
+tokio = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "multipart"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use crate::components::icons::{
-    IconAlertCircle, IconCheck, IconLayers, IconMessageSquare, IconMic, IconMicOff,
+    IconAlertCircle, IconCheck, IconLayers, IconMessageSquare,
     IconRefresh, IconSend, IconSettings, IconShield, IconStopCircle,
 };
 
@@ -15,28 +15,21 @@ pub struct ChatTurn {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TelemetryStats {
-    pub mic_rms: f32,
     pub daemon_connected: bool,
-    pub audio_latency_ms: u32,
     pub active_llm: String,
-    pub active_stt: String,
-    pub active_tts: String,
 }
 
 #[component]
 pub fn AssistantHud(
-    on_toggle_voice: EventHandler<()>,
     on_send_prompt: EventHandler<String>,
     on_open_settings: EventHandler<()>,
     on_emergency_stop: EventHandler<()>,
-    mic_active: bool,
     telemetry: TelemetryStats,
     chat_history: Vec<ChatTurn>,
 ) -> Element {
     let mut drawer_open = use_signal(|| false);
     let mut prompt_input = use_signal(String::new);
 
-    let mic_color = if mic_active { "#10b981" } else { "#64748b" };
     let daemon_color = if telemetry.daemon_connected { "#10b981" } else { "#f59e0b" };
 
     rsx! {
@@ -61,35 +54,13 @@ pub fn AssistantHud(
                         }
                     }
 
-                    // Audio Stream Status Pill
-                    div { class: "telemetry-pill",
-                        span {
-                            class: "telemetry-dot",
-                            style: "background-color: {mic_color};",
-                        }
-                        span { class: "telemetry-text",
-                            if mic_active { "MIC: 48kHz LIVE" } else { "MIC: STANDBY" }
-                        }
-                    }
-
                     // Active Provider Pill
                     div { class: "telemetry-pill",
-                        span { class: "telemetry-text", "{telemetry.active_llm} // {telemetry.active_stt}" }
+                        span { class: "telemetry-text", "{telemetry.active_llm}" }
                     }
                 }
 
                 div { class: "hud-controls-cluster",
-                    // Mic Privacy Toggle Button
-                    button {
-                        class: if mic_active { "hud-icon-btn active" } else { "hud-icon-btn" },
-                        title: if mic_active { "Mute Microphone" } else { "Unmute Microphone" },
-                        onclick: move |_| on_toggle_voice.call(()),
-                        if mic_active {
-                            IconMic { size: 16 }
-                        } else {
-                            IconMicOff { size: 16 }
-                        }
-                    }
 
                     // Drawer Toggle Button
                     button {

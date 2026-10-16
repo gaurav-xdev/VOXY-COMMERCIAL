@@ -150,7 +150,6 @@ async fn execute_with_retry(
 
 fn component_to_stage(component: SystemComponent) -> PipelineStage {
     match component {
-        SystemComponent::Voice => PipelineStage::VoiceProcessing,
         SystemComponent::Conversation => PipelineStage::Conversation,
         SystemComponent::Cognition => PipelineStage::Cognition,
         SystemComponent::Planner => PipelineStage::Planning,

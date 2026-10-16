@@ -21,14 +21,13 @@ pub fn App() -> Element {
     let mut splash_status = use_signal(|| "INITIALIZING HARDWARE SUBSYSTEMS...".to_string());
 
     let mut core_state = use_signal(|| CoreState::Idle);
-    let mut mic_active = use_signal(|| true);
     let mut show_settings = use_signal(|| false);
 
     let mut chat_history = use_signal(|| {
         vec![ChatTurn {
             id: 1,
             sender: "OSMOO Core".to_string(),
-            text: "OSMOO Windows AI Operating Companion online. Ready for voice interaction."
+            text: "OSMOO Windows AI Operating Companion online. Ready for interaction."
                 .to_string(),
             timestamp: "System Init".to_string(),
             is_user: false,
@@ -36,12 +35,8 @@ pub fn App() -> Element {
     });
 
     let mut telemetry = use_signal(|| TelemetryStats {
-        mic_rms: 0.05,
         daemon_connected: false,
-        audio_latency_ms: 12,
         active_llm: "Ollama (Local)".to_string(),
-        active_stt: "Deepgram".to_string(),
-        active_tts: "Cartesia".to_string(),
     });
 
     let mut discovered_models = use_signal(Vec::new);
@@ -65,7 +60,7 @@ pub fn App() -> Element {
 
             tokio::time::sleep(std::time::Duration::from_millis(400)).await;
             progress_sig.set(0.70);
-            status_sig.set("CALIBRATING WASAPI AUDIO & ACOUSTIC MODELS...".to_string());
+            status_sig.set("INITIALIZING COMPANION INTELLIGENCE...".to_string());
 
             tokio::time::sleep(std::time::Duration::from_millis(400)).await;
             progress_sig.set(1.0);
@@ -105,29 +100,21 @@ pub fn App() -> Element {
                             voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
                                 let mapped = match state {
                                     voxy_ipc::VoiceState::Idle => CoreState::Idle,
-                                    voxy_ipc::VoiceState::Listening => CoreState::Listening,
+                                    voxy_ipc::VoiceState::Listening => CoreState::Processing,
                                     voxy_ipc::VoiceState::Thinking => CoreState::Processing,
-                                    voxy_ipc::VoiceState::Speaking => CoreState::Speaking,
-                                    voxy_ipc::VoiceState::Interrupted => CoreState::Interrupted,
-                                    voxy_ipc::VoiceState::Error => CoreState::Error,
+                                    voxy_ipc::VoiceState::Responding | voxy_ipc::VoiceState::Speaking => CoreState::Responding,
+                                    voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => CoreState::Error,
                                 };
                                 core_sig.set(mapped);
-                            }
-                            voxy_ipc::DaemonMessage::AudioEnergy { mic_rms, .. } => {
-                                let mut t = telem_sig.read().clone();
-                                t.mic_rms = mic_rms;
-                                telem_sig.set(t);
                             }
                             voxy_ipc::DaemonMessage::ChatMessage { id, sender, text, timestamp, is_user } => {
                                 let mut list = chat_sig.read().clone();
                                 list.push(ChatTurn { id, sender, text, timestamp, is_user });
                                 chat_sig.set(list);
                             }
-                            voxy_ipc::DaemonMessage::RoutingStatusUpdate { active_llm, active_stt, active_tts, .. } => {
+                            voxy_ipc::DaemonMessage::RoutingStatusUpdate { active_llm, .. } => {
                                 let mut t = telem_sig.read().clone();
                                 t.active_llm = active_llm;
-                                t.active_stt = active_stt;
-                                t.active_tts = active_tts;
                                 telem_sig.set(t);
                             }
                             _ => {}
@@ -145,38 +132,6 @@ pub fn App() -> Element {
     });
 
     // Handlers
-    let on_toggle_voice_core = move |()| {
-        let new_active = !*mic_active.read();
-        mic_active.set(new_active);
-
-        spawn(async move {
-            let bridge = crate::get_bridge();
-            if new_active {
-                let _ = bridge.voice.start_listening().await;
-                core_state.set(CoreState::Listening);
-            } else {
-                bridge.voice.stop_listening().await;
-                core_state.set(CoreState::Idle);
-            }
-        });
-    };
-
-    let on_toggle_voice_hud = move |()| {
-        let new_active = !*mic_active.read();
-        mic_active.set(new_active);
-
-        spawn(async move {
-            let bridge = crate::get_bridge();
-            if new_active {
-                let _ = bridge.voice.start_listening().await;
-                core_state.set(CoreState::Listening);
-            } else {
-                bridge.voice.stop_listening().await;
-                core_state.set(CoreState::Idle);
-            }
-        });
-    };
-
     let on_send_prompt = move |text: String| {
         let mut list = chat_history.read().clone();
         list.push(ChatTurn {
@@ -206,7 +161,7 @@ pub fn App() -> Element {
 
             match bridge.cognition.process(&intent_input).await {
                 Ok(result) => {
-                    core_state.set(CoreState::Speaking);
+                    core_state.set(CoreState::Responding);
                     let response_text = serde_json::to_string_pretty(&result.result)
                         .unwrap_or_else(|_| format!("{:?}", result.result));
 
@@ -220,7 +175,6 @@ pub fn App() -> Element {
                     });
                     chat_history.set(l);
 
-                    let _ = bridge.voice.speak(&response_text).await;
                     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                     core_state.set(CoreState::Idle);
                 }
@@ -280,17 +234,13 @@ pub fn App() -> Element {
                     // Hero 3D Volumetric Assistant Core
                     AssistantCore {
                         state: *core_state.read(),
-                        on_toggle_voice: on_toggle_voice_core,
-                        mic_active: *mic_active.read(),
                     }
 
                     // Floating Glassmorphic HUD & Secondary Drawer
                     AssistantHud {
-                        on_toggle_voice: on_toggle_voice_hud,
                         on_send_prompt: on_send_prompt,
                         on_open_settings: move |()| show_settings.set(true),
                         on_emergency_stop: on_emergency_stop,
-                        mic_active: *mic_active.read(),
                         telemetry: telemetry.read().clone(),
                         chat_history: chat_history.read().clone(),
                     }

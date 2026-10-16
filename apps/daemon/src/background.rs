@@ -11,8 +11,6 @@ use voxy_cognitive_orchestrator::knowledge_validation::KnowledgeItem;
 use voxy_cognitive_orchestrator::reflection::ConversationRecord;
 use voxy_runtime_guard::RuntimeGuard;
 
-use crate::VoiceMetrics;
-
 pub struct BackgroundRuntime {
     #[allow(dead_code)]
     handles: Vec<JoinHandle<()>>,
@@ -62,7 +60,6 @@ impl KnowledgeValidationSubmitter {
 impl BackgroundRuntime {
     pub fn new(
         running: Arc<AtomicBool>,
-        _metrics: Arc<VoiceMetrics>,
         cognitive: Arc<CognitiveBridge>,
         guard: Arc<RuntimeGuard>,
     ) -> (Self, ReflectionSubmitter, KnowledgeValidationSubmitter) {

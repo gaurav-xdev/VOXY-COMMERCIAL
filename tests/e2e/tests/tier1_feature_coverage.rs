@@ -10,6 +10,7 @@
 use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 
 use osmoo_e2e_tests::*;
@@ -26,10 +27,9 @@ use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_security::archive::{safe_extract_zip, ArchiveSecurityLimits};
 use voxy_security::ssrf::{is_ip_restricted, validate_destination_url_str};
-use voxy_voice::config::VoiceConfig;
-use voxy_voice::error::VoiceError;
-use voxy_voice::pipeline::VoicePipeline;
-use voxy_voice_stream::SentenceChunker;
+use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
+use voxy_voice_stt::MockStt;
+use voxy_voice_tts::{MockTts, SentenceChunker};
 
 // =========================================================================
 // A1: Process Lifecycle & Authenticated Named Pipe IPC
@@ -117,31 +117,16 @@ async fn test_tier1_a1_process_lifecycle_named_pipe_ipc() {
 
 #[tokio::test]
 async fn test_tier1_a2_voice_pipeline_lifecycle() {
-    let mut config = VoiceConfig::default();
-    config.auto_start_capture = false;
-    let pipeline = VoicePipeline::new(config);
+    let config = VoicePipelineConfig::default();
+    let stt = Arc::new(MockStt::new("hello world"));
+    let tts = Arc::new(MockTts::new());
+    let pipeline = VoicePipeline::new(config, stt, tts, None).expect("Pipeline creation");
 
     // Initial state
-    assert!(!pipeline.is_initialized());
-    assert!(!pipeline.is_running());
-
-    // Initialize pipeline
-    assert!(pipeline.initialize().await.is_ok());
-    assert!(pipeline.is_initialized());
-
-    // Double init protection
-    let double_init_err = pipeline.initialize().await.unwrap_err();
-    assert!(matches!(double_init_err, VoiceError::AlreadyInitialized));
-
-    // Attempting to start capture without configured/open audio hardware returns explicit error
-    let capture_err = pipeline.start_capture().await.unwrap_err();
-    assert!(
-        matches!(capture_err, VoiceError::CaptureError(_)),
-        "Must produce structured VoiceError::CaptureError rather than silently mocking or deadlocking"
-    );
+    assert_eq!(pipeline.current_state(), VoiceState::Idle);
 
     // Sentence chunking verification for streaming voice pipeline
-    let mut chunker = SentenceChunker::new(20);
+    let mut chunker = SentenceChunker::new(10);
     let tokens = ["Hello ", "world! ", "This is ", "OSMOO speaking. ", "Next part."];
     let mut emitted_sentences = Vec::new();
     for token in tokens {
@@ -155,9 +140,11 @@ async fn test_tier1_a2_voice_pipeline_lifecycle() {
     assert_eq!(emitted_sentences[0], "Hello world!");
     assert_eq!(emitted_sentences[1], "This is OSMOO speaking.");
 
-    // Graceful shutdown
-    assert!(pipeline.shutdown().await.is_ok());
-    assert!(!pipeline.is_initialized());
+    // State transition and barge-in
+    pipeline.set_state(VoiceState::Speaking, Some("TTS playback".to_string()));
+    assert_eq!(pipeline.current_state(), VoiceState::Speaking);
+    pipeline.trigger_barge_in("User speech detected");
+    assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
 }
 
 // =========================================================================
