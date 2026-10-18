@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use voxy_ipc::{CompanionState, DaemonMessage};
-use voxy_voice_activation::{ActivationMode, VadConfig, VadDetector, VadEvent};
+use voxy_voice_activation::{ActivationMode, VadConfig, VadDetector, VadEvent, WakeWordConfig};
 use voxy_voice_audio::{AudioCaptureHandle, AudioConfig, AudioPlaybackHandle, AudioRuntime};
 use voxy_voice_stt::SttEngine;
 use voxy_voice_tts::{SentenceChunker, TtsEngine};
@@ -45,6 +45,7 @@ pub enum PipelineError {
 pub struct VoicePipelineConfig {
     pub audio: AudioConfig,
     pub vad: VadConfig,
+    pub wake_word: Option<WakeWordConfig>,
     pub pipecat: Option<PipecatConfig>,
     pub auto_start_capture: bool,
     pub voice_speed: f32,
@@ -55,6 +56,7 @@ impl Default for VoicePipelineConfig {
         Self {
             audio: AudioConfig::default(),
             vad: VadConfig::default(),
+            wake_word: Some(WakeWordConfig::default()),
             pipecat: None,
             auto_start_capture: true,
             voice_speed: 1.0,
@@ -104,7 +106,11 @@ impl VoicePipeline {
         ipc_server: Option<Arc<voxy_ipc::VoxyIpcServer>>,
     ) -> Result<Self, PipelineError> {
         let audio_runtime = Arc::new(AudioRuntime::new(config.audio.clone())?);
-        let vad = Arc::new(Mutex::new(VadDetector::new(config.vad.clone())));
+        let mut vad_detector = VadDetector::new(config.vad.clone());
+        if let Some(ref ww) = config.wake_word {
+            vad_detector.set_wake_word_config(ww.clone());
+        }
+        let vad = Arc::new(Mutex::new(vad_detector));
 
         let pipecat_supervisor = if let Some(ref pcfg) = config.pipecat {
             match PipecatSupervisor::new(pcfg.clone()) {
@@ -240,6 +246,21 @@ impl VoicePipeline {
 
     pub fn set_activation_mode(&self, mode: ActivationMode) {
         self.vad.lock().set_mode(mode);
+    }
+
+    /// Dynamically enable or update wake-word detection configuration.
+    pub fn enable_wake_word(&self, config: WakeWordConfig) {
+        self.vad.lock().set_wake_word_config(config);
+    }
+
+    /// Disable wake-word detection.
+    pub fn disable_wake_word(&self) {
+        self.vad.lock().disable_wake_word();
+    }
+
+    /// Check if wake-word detection is currently enabled.
+    pub fn has_wake_word(&self) -> bool {
+        self.vad.lock().has_wake_word()
     }
 
     pub fn is_running(&self) -> bool {

@@ -639,6 +639,15 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             tracing::info!("[VOICE] Pipecat streaming voice sidecar supervision enabled");
             voice_config.pipecat = Some(voxy_voice_orchestrator::PipecatConfig::default());
         }
+        if std::env::var("VOXY_WAKE_WORD_DISABLE")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+        {
+            voice_config.wake_word = None;
+            tracing::info!("[VOICE] Wake word detection disabled by environment flag");
+        } else {
+            tracing::info!("[VOICE] Wake word detection enabled for 'Hey OSMOO' / 'OSMOO'");
+        }
 
         let pipeline = Arc::new(
             voxy_voice_orchestrator::VoicePipeline::new(
@@ -1685,6 +1694,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                         }
                         Some(voxy_ipc::ClientCommand::SetVoiceSpeed { speed }) => {
                             tracing::info!("[IPC] Client requested SetVoiceSpeed({speed})");
+                            pipe_ipc.set_voice_speed(speed);
                         }
                         Some(voxy_ipc::ClientCommand::SendTextInput { text }) => {
                             tracing::info!(text = %text, "[IPC] Text input command received from client");

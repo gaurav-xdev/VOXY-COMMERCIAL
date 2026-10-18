@@ -8,11 +8,11 @@ Integrates Pipecat streaming voice pipeline with the OSMOO Windows native compan
 Pipeline Architecture:
     Windows Audio Capture (WASAPI / cpal)
         ↓
-    Audio Conditioning & Silero VAD / openWakeWord
+    Audio Conditioning & Silero VAD (Pipecat SileroVADAnalyzer)
         ↓
-    Speech-to-Text (Groq whisper-large-v3-turbo / Whisper.cpp)
+    Speech-to-Text (WhisperSTTService via faster-whisper / Whisper.cpp / Groq Cloud)
         ↓
-    OSMOO Brain Bridge (Named Pipe / TCP IPC -> CognitiveEngine / LLM Router & Tools)
+    OSMOO Brain Bridge (Loopback TCP IPC -> CognitiveEngine / LLM Router & Tools)
         ↓
     Natural Sentence Chunker
         ↓
@@ -28,6 +28,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 from typing import Optional, List, Dict, Any
 
@@ -56,8 +57,10 @@ try:
         StartFrame,
     )
     from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
+    from pipecat.audio.vad.silero import SileroVADAnalyzer
+    from pipecat.services.whisper.stt import WhisperSTTService
     HAVE_PIPECAT = True
-    logger.info("Native Pipecat framework loaded (v1.12+ compliant).")
+    logger.info("Native Pipecat framework loaded (v1.12+ compliant with Silero VAD and WhisperSTTService).")
 except ImportError as e:
     HAVE_PIPECAT = False
     logger.warning("Native Pipecat package import failed (%s); using native protocol fallback.", e)
@@ -98,7 +101,7 @@ except ImportError as e:
 # ── OSMOO Brain Bridge ───────────────────────────────────────────────────────
 
 class OsmooBrainBridge:
-    """IPC client bridge connecting the Pipecat pipeline to OSMOO's Rust Daemon."""
+    """IPC client bridge connecting the Pipecat pipeline to OSMOO's Rust Daemon via TCP loopback."""
 
     def __init__(self, host: str = "127.0.0.1", port: int = 18889, auth_token: Optional[str] = None):
         self.host = host
@@ -107,21 +110,87 @@ class OsmooBrainBridge:
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.connected = False
+        self._inbound_task: Optional[asyncio.Task] = None
+        self._on_interrupted_callbacks: List[Any] = []
+
+    def register_on_interrupted(self, callback):
+        self._on_interrupted_callbacks.append(callback)
 
     async def connect(self):
         try:
             self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
             self.connected = True
             logger.info("Connected to OSMOO Rust Daemon at %s:%d", self.host, self.port)
+
+            # Perform authenticated ClientHandshake immediately
+            handshake_payload = {
+                "type": "ClientHandshake",
+                "data": {
+                    "client_name": "osmoo-pipecat-sidecar",
+                    "client_version": "0.1.0",
+                    "auth_token": self.auth_token if self.auth_token else None,
+                    "timestamp_ms": int(time.time() * 1000),
+                }
+            }
+            envelope = {
+                "version": 1,
+                "timestamp_ms": int(time.time() * 1000),
+                "payload": handshake_payload,
+            }
+            data = json.dumps(envelope).encode("utf-8")
+            self.writer.write(len(data).to_bytes(4, byteorder="big") + data)
+            await self.writer.drain()
+            logger.info("Sent ClientHandshake frame to Rust Daemon (token present: %s).", bool(self.auth_token))
+
+            # Start reading daemon broadcast messages
+            self._inbound_task = asyncio.create_task(self._read_daemon_loop())
         except Exception as e:
-            logger.info("Rust Daemon TCP fallback unavailable (%s). Operating in standalone pipeline mode.", e)
+            logger.info("Rust Daemon TCP loopback unavailable (%s). Operating in standalone pipeline mode.", e)
+            self.connected = False
+
+    async def _read_daemon_loop(self):
+        """Read 4-byte length framed JSON messages from the Rust Daemon."""
+        try:
+            while self.connected and self.reader:
+                len_bytes = await self.reader.readexactly(4)
+                if not len_bytes:
+                    break
+                frame_len = int.from_bytes(len_bytes, byteorder="big")
+                if frame_len > 1024 * 1024:  # 1 MB safety cap
+                    logger.error("Daemon sent oversized frame (%d bytes); closing reader", frame_len)
+                    break
+                frame_data = await self.reader.readexactly(frame_len)
+                msg_envelope = json.loads(frame_data.decode("utf-8"))
+                payload = msg_envelope.get("payload", {})
+                msg_type = payload.get("type", "")
+
+                if msg_type == "Interrupted":
+                    reason = payload.get("data", {}).get("reason", "Daemon interruption")
+                    logger.info("[DAEMON->PIPECAT] Interruption received from daemon: %s", reason)
+                    for cb in self._on_interrupted_callbacks:
+                        try:
+                            if asyncio.iscoroutinefunction(cb):
+                                asyncio.create_task(cb(reason))
+                            else:
+                                cb(reason)
+                        except Exception as e:
+                            logger.error("Error in on_interrupted callback: %s", e)
+                elif msg_type == "VoiceStateChanged":
+                    new_state = payload.get("data", {}).get("state", "")
+                    logger.info("[DAEMON->PIPECAT] Voice state update: %s", new_state)
+        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError):
+            logger.info("Daemon connection closed by remote peer.")
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.debug("Daemon inbound reader error: %s", e)
+        finally:
             self.connected = False
 
     async def forward_transcript(self, text: str, language: str = "en") -> str:
         """Forward recognized user utterance to OSMOO's CognitiveEngine / LLM Router."""
         if not self.connected or not self.writer or not self.reader:
             logger.info("[PIPELINE-ROUTER] Routing transcript to OSMOO LLM: \"%s\"", text)
-            # Standalone response simulation matching OSMOO assistant persona
             return f"OSMOO acknowledged: {text}"
 
         try:
@@ -131,8 +200,8 @@ class OsmooBrainBridge:
             }
             envelope = {
                 "version": 1,
+                "timestamp_ms": int(time.time() * 1000),
                 "payload": payload,
-                "timestamp": int(time.time() * 1000)
             }
             data = json.dumps(envelope).encode("utf-8")
             self.writer.write(len(data).to_bytes(4, byteorder="big") + data)
@@ -148,7 +217,11 @@ class OsmooBrainBridge:
         if self.connected and self.writer:
             try:
                 payload = {"type": "InterruptSpeech", "data": None}
-                envelope = {"version": 1, "payload": payload, "timestamp": int(time.time() * 1000)}
+                envelope = {
+                    "version": 1,
+                    "timestamp_ms": int(time.time() * 1000),
+                    "payload": payload,
+                }
                 data = json.dumps(envelope).encode("utf-8")
                 self.writer.write(len(data).to_bytes(4, byteorder="big") + data)
                 await self.writer.drain()
@@ -157,6 +230,9 @@ class OsmooBrainBridge:
                 logger.debug("Interruption notification failed: %s", e)
 
     async def close(self):
+        if self._inbound_task:
+            self._inbound_task.cancel()
+            self._inbound_task = None
         if self.writer:
             try:
                 self.writer.close()
@@ -175,6 +251,11 @@ if HAVE_PIPECAT:
         def __init__(self, bridge: OsmooBrainBridge):
             super().__init__()
             self.bridge = bridge
+            self.bridge.register_on_interrupted(self._handle_daemon_interruption)
+
+        async def _handle_daemon_interruption(self, reason: str):
+            logger.info("[PIPECAT-BRAIN] Handling daemon interruption: %s", reason)
+            await self.push_frame(CancelFrame(), FrameDirection.DOWNSTREAM)
 
         async def process_frame(self, frame: Frame, direction: FrameDirection):
             await super().process_frame(frame, direction)
@@ -286,29 +367,45 @@ class PipecatVoiceService:
         logger.info("Pipecat voice service shut down gracefully.")
 
 
-# ── Stdin Supervisor Protocol Reader ─────────────────────────────────────────
+# ── Windows-Compatible Stdin Supervisor Protocol Reader ──────────────────────
+
+def _stdin_reader_worker(loop: asyncio.AbstractEventLoop, queue: asyncio.Queue, stop_event: threading.Event):
+    """Background thread reading lines from sys.stdin, avoiding Windows Proactor pipe limits."""
+    try:
+        while not stop_event.is_set():
+            line = sys.stdin.readline()
+            if not line:  # EOF
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+                break
+            asyncio.run_coroutine_threadsafe(queue.put(line), loop)
+    except Exception as e:
+        logger.debug("Stdin reader thread terminated: %s", e)
+        asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
 
 async def stdin_supervisor_loop(service: PipecatVoiceService):
     """Asynchronously reads commands from the Rust supervisor over stdin."""
     loop = asyncio.get_running_loop()
-    reader = asyncio.StreamReader()
-    protocol = asyncio.StreamReaderProtocol(reader)
-    
-    try:
-        await loop.connect_read_pipe(lambda: protocol, sys.stdin)
-    except Exception as e:
-        logger.debug("Async stdin pipe not supported on this platform: %s", e)
-        return
+    queue = asyncio.Queue()
+    stop_event = threading.Event()
+
+    reader_thread = threading.Thread(
+        target=_stdin_reader_worker,
+        args=(loop, queue, stop_event),
+        daemon=True,
+        name="osmoo-stdin-reader"
+    )
+    reader_thread.start()
 
     while service.running:
         try:
-            line = await reader.readline()
-            if not line:
-                logger.info("Supervisor stdin closed; initiating graceful exit.")
+            line = await queue.get()
+            if line is None:
+                logger.info("Supervisor stdin EOF reached; initiating graceful exit.")
                 await service.stop()
                 break
 
-            text = line.decode("utf-8").strip()
+            text = line.strip()
             if not text:
                 continue
 
@@ -331,8 +428,9 @@ async def stdin_supervisor_loop(service: PipecatVoiceService):
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.debug("Error reading supervisor stdin: %s", e)
+            logger.debug("Error processing supervisor command: %s", e)
             break
+    stop_event.set()
 
 
 # ── Main Entrypoint ──────────────────────────────────────────────────────────

@@ -121,6 +121,14 @@ impl VadDetector {
         self.wake_word_detector = Some(WakeWordDetector::new(config));
     }
 
+    pub fn disable_wake_word(&mut self) {
+        self.wake_word_detector = None;
+    }
+
+    pub fn has_wake_word(&self) -> bool {
+        self.wake_word_detector.is_some()
+    }
+
     pub fn set_mode(&mut self, mode: ActivationMode) {
         if self.mode != mode {
             self.mode = mode;
