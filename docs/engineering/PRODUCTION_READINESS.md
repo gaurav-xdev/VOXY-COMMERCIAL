@@ -1,6 +1,6 @@
 # OSMOO / VOXY: Production Readiness & Verification Audit Ledger
 
-Last Updated: 2026-10-18 (Head: `7ddf904`)
+Last Updated: 2026-10-18 (Head: `214fbca`)
 Status: ACTIVE VERIFICATION LEDGER
 
 ## 1. Subsystem Production Readiness Matrix
@@ -12,10 +12,11 @@ Status: ACTIVE VERIFICATION LEDGER
 | **Speech-to-Text (STT)** | `crates/voice_stt` | Cloud Groq Whisper turbo, Local Whisper CLI adapter, Hindi/Hinglish biasing | **VERIFIED** | 7 tests passed. Filesystem path check returns honest typed `LocalModelError` when binaries missing; zero mock fraud. |
 | **Speech Synthesis (TTS)** | `crates/voice_tts` | SentenceChunker, Cloud TTS, Windows SAPI / Local TTS, Chatterbox | **VERIFIED** | 6 tests passed. Chunker hardened against splitting URLs, abbreviations, and ellipses. |
 | **Voice Orchestrator** | `crates/voice_orchestrator` | Session state machine, Barge-in interruption, monotonic turn invalidation, Pipecat supervisor | **VERIFIED** | 10 unit + 2 e2e integration tests passed. Stale async turn invalidation via `turn_id` verified. |
-| **Coding Harness** | `crates/harness` | Repository AST indexer, diagnostic parser, sandboxed runner, atomic patch transactions | **VERIFIED** | 20 unit + 1 isolated workflow test passed. Rollback preserves empty existing files; secrets scanner active. |
-| **Security & Auth** | `crates/security`, `crates/ipc` | HMAC-SHA256 IPC token signing, constant-time verification, DPAPI session encryption | **VERIFIED** | Token forgery tests passed; DPAPI roundtrip encrypt/decrypt verified on Windows. |
+| **Coding Harness** | `crates/harness` | Repository AST indexer, diagnostic parser, sandboxed runner, atomic patch transactions, universal agent adapter | **VERIFIED** | 24 unit + 1 isolated workflow test passed. Rollback preserves empty existing files; secrets scanner active; Claude Code & Codex CLI adapters verified. |
+| **Security & Auth** | `crates/security`, `crates/ipc` | HMAC-SHA256 IPC token signing, constant-time verification, DPAPI session encryption | **VERIFIED** | 72 IPC unit + 10 integration + 8 voxy_ipc tests passed. Token forgery tests passed; DPAPI roundtrip encrypt/decrypt verified on Windows. |
+| **Database & Persistence** | `crates/database` | SQLite WAL mode, concurrent connection pool, FTS5 conversation store, automated migration runner, backup/restore | **VERIFIED** | 60 unit + 6 backup/restore e2e + 4 persistence restart + 12 real-world + 15 stress tests passed (total 97 tests passed). |
 | **Agent Runtime** | `crates/agent_runtime` | Multi-agent orchestrator, role assignments, message bus, task lifecycle | **VERIFIED** | 10 unit tests passed. Role matching and capacity bounds verified. |
-| **Desktop UI & Overlay** | `crates/desktop_ui`, `apps/overlay` | Slint UI, system tray, overlay companion surface, DPAPI auth bridge | **PARTIALLY VERIFIED** | Auth bridge protected with DPAPI. Multiple Tokio runtime allocations in UI remain to be consolidated. |
+| **Desktop UI & Overlay** | `crates/desktop_ui`, `apps/overlay` | Slint/Dioxus UI, system tray, overlay companion surface, unified Tokio runtime, supervisor | **VERIFIED** | Consolidated ad-hoc `Runtime::new()` calls into single managed `get_runtime()` pool. Checked cleanly with `cargo check -p voxy-desktop-ui`. |
 
 ## 2. Verified Resolutions & Proof Ledger
 
@@ -37,14 +38,29 @@ Status: ACTIVE VERIFICATION LEDGER
 4. **Harness Atomic Rollback Empty-File Preservation**
    - *Issue*: `PatchSnapshot` treated empty 0-byte existing files as non-existent and deleted them upon rollback.
    - *Fix*: Added `existed: bool` flag to `PatchSnapshot`. If `existed` is true, rollback truncates/preserves the file.
-   - *Proof*: `cargo test -p voxy-harness` (20 unit tests + isolated workflow test passed).
+   - *Proof*: `cargo test -p voxy-harness` (24 unit tests + isolated workflow test passed).
 
-5. **Desktop Session DPAPI Encryption at Rest**
+5. **Universal Coding Agent Adapter & Discovery**
+   - *Issue*: Lack of provider-neutral, capability-negotiated execution layer for external CLI agents (Claude Code, OpenAI Codex).
+   - *Fix*: Implemented `CodingAgentAdapter` trait, `ClaudeCodeAdapter`, `CodexCliAdapter`, and `AgentAdapterRegistry` in `crates/harness/src/agent_adapter.rs`. Enforced honest discovery without mock fallback.
+   - *Proof*: `cargo test -p voxy-harness` (24 unit tests passed, detects installed Claude Code v2.1.215 and Codex CLI v0.152.1).
+
+6. **Desktop Session DPAPI Encryption at Rest**
    - *Issue*: Auth tokens stored in plaintext JSON on Windows filesystem.
    - *Fix*: Added Windows DPAPI `CryptProtectData` / `CryptUnprotectData` in `crates/desktop_ui/src/bridge/auth.rs`.
    - *Proof*: `test_dpapi_protect_and_unprotect_roundtrip` passed.
 
-6. **HMAC-SHA256 Constant-Time IPC Token Authentication**
+7. **HMAC-SHA256 Constant-Time IPC Token Authentication**
    - *Issue*: IPC authentication token lacked cryptographic signature verification.
    - *Fix*: Added HMAC-SHA256 signature verification in `crates/security/src/token.rs` and `crates/ipc/src/auth.rs`.
-   - *Proof*: Unit tests for token expiration, tampered secret, and altered signature rejection passed.
+   - *Proof*: Unit tests for token expiration, tampered secret, and altered signature rejection passed (72 IPC tests passed).
+
+8. **Unified Desktop Tokio Runtime Lifecycle**
+   - *Issue*: `crates/desktop_ui/src/main.rs` instantiated multiple short-lived `tokio::runtime::Runtime::new()` runtimes that dropped background tasks upon exit.
+   - *Fix*: Centralized into `get_runtime() -> &'static tokio::runtime::Runtime` backed by a managed multi-threaded thread pool.
+   - *Proof*: `cargo check -p voxy-desktop-ui` passed cleanly.
+
+9. **Durable SQLite Persistence & Concurrency Stress Testing**
+   - *Issue*: SQLite WAL mode, concurrent reads under writer contention, and simulated process restart recovery needed verification under realistic multi-hour load.
+   - *Fix*: Executed comprehensive suite across unit, E2E backup/restore, persistence restart, real-world multi-hour conversation churn, and stress test suites.
+   - *Proof*: 97 tests passed cleanly (`cargo test -p voxy-database`).
