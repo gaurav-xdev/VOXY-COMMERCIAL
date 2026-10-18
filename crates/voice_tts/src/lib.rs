@@ -87,18 +87,59 @@ impl SentenceChunker {
 
         let chars: Vec<(usize, char)> = self.buffer.char_indices().collect();
         for (i, &(byte_idx, c)) in chars.iter().enumerate() {
-            if c == '.' || c == '!' || c == '?' || c == '\n' || c == ';' {
-                // Ignore decimals and abbreviations
-                if c == '.' {
-                    if i + 1 < chars.len() && chars[i + 1].1.is_numeric() {
-                        continue;
-                    }
-                    if i > 0 && chars[i - 1].1.is_numeric() {
+            if c == '!' || c == '?' || c == '\n' || c == ';' {
+                if byte_idx >= self.min_chunk_chars {
+                    return Some(byte_idx);
+                }
+            } else if c == '.' {
+                // 1. Guard against ellipsis: "..." or ".."
+                if (i + 1 < chars.len() && chars[i + 1].1 == '.')
+                    || (i > 0 && chars[i - 1].1 == '.')
+                {
+                    continue;
+                }
+
+                // 2. Guard against decimals: "3.14"
+                if (i + 1 < chars.len() && chars[i + 1].1.is_numeric())
+                    || (i > 0 && chars[i - 1].1.is_numeric())
+                {
+                    continue;
+                }
+
+                // 3. Guard against URLs and file extensions: e.g. "osmoo.ai", "lib.rs"
+                // A sentence-ending period must be followed by whitespace, newline, quote, closing bracket, or EOF.
+                if i + 1 < chars.len() {
+                    let next_ch = chars[i + 1].1;
+                    if !next_ch.is_whitespace()
+                        && next_ch != '"'
+                        && next_ch != '\''
+                        && next_ch != ')'
+                        && next_ch != ']'
+                    {
                         continue;
                     }
                 }
 
-                // Ensure chunk meets minimum size or has whitespace following
+                // 4. Guard against common abbreviations: "Dr.", "Mr.", "Mrs.", "Ms.", "e.g.", "i.e.", "vs."
+                let prefix = &self.buffer[..byte_idx];
+                let is_abbrev = ["mr", "mrs", "ms", "dr", "prof", "e.g", "i.e", "vs", "etc"]
+                    .iter()
+                    .any(|&abbr| {
+                        let lower = prefix.to_lowercase();
+                        lower.ends_with(abbr)
+                            && (prefix.len() == abbr.len()
+                                || prefix
+                                    .chars()
+                                    .nth(prefix.len() - abbr.len() - 1)
+                                    .map(|p| p.is_whitespace())
+                                    .unwrap_or(false))
+                    });
+
+                if is_abbrev {
+                    continue;
+                }
+
+                // Ensure chunk meets minimum size threshold
                 if byte_idx >= self.min_chunk_chars {
                     return Some(byte_idx);
                 }
@@ -505,5 +546,31 @@ mod tests {
 
         let err = engine.synthesize("   ").await.unwrap_err();
         assert!(matches!(err, TtsError::EmptyText));
+    }
+
+    #[test]
+    fn test_sentence_chunker_url_and_abbrev_preservation() {
+        let mut chunker = SentenceChunker::new(15);
+        // "Visit https://osmoo.ai for details." should not be cut at ".ai"
+        let chunks = chunker.push_text("Please check https://osmoo.ai for the latest build.");
+        assert_eq!(
+            chunks,
+            vec!["Please check https://osmoo.ai for the latest build."]
+        );
+
+        // Abbreviations like "Dr. Smith" or "e.g."
+        let mut chunker2 = SentenceChunker::new(10);
+        let chunks2 = chunker2.push_text("Dr. Smith is here. ");
+        assert_eq!(chunks2, vec!["Dr. Smith is here."]);
+
+        // Ellipsis "Wait... let me think."
+        let mut chunker3 = SentenceChunker::new(10);
+        let c3_a = chunker3.push_text("Wait... ");
+        assert!(
+            c3_a.is_empty(),
+            "Ellipsis should not break sentence prematurely"
+        );
+        let c3_b = chunker3.push_text("let me check the file!");
+        assert_eq!(c3_b, vec!["Wait... let me check the file!"]);
     }
 }

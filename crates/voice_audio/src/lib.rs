@@ -51,6 +51,9 @@ pub struct AudioConfig {
     pub output_device_name: Option<String>,
     /// Audio conditioning (high-pass, noise gate, pre-emphasis, limiter).
     pub conditioning: ConditioningConfig,
+    /// When false (default, production requirement), stream creation failure returns an explicit Error.
+    /// When true (tests or explicit simulation), fallback to virtual handle is allowed.
+    pub allow_virtual_fallback: bool,
 }
 
 impl Default for AudioConfig {
@@ -62,6 +65,7 @@ impl Default for AudioConfig {
             input_device_name: None,
             output_device_name: None,
             conditioning: ConditioningConfig::default(),
+            allow_virtual_fallback: false,
         }
     }
 }
@@ -248,8 +252,14 @@ pub struct AudioCaptureHandle {
 }
 
 impl AudioCaptureHandle {
+    /// True if capture is running. Returns false if no physical stream exists unless virtual handle is active.
     pub fn is_active(&self) -> bool {
-        self.is_active.load(Ordering::SeqCst)
+        self.is_active.load(Ordering::SeqCst) && self._stream.is_some()
+    }
+
+    /// Explicit check for whether this handle wraps a real hardware stream.
+    pub fn has_physical_stream(&self) -> bool {
+        self._stream.is_some()
     }
 
     pub fn set_muted(&self, muted: bool) {
@@ -283,6 +293,11 @@ pub struct AudioPlaybackHandle {
 }
 
 impl AudioPlaybackHandle {
+    /// Explicit check for whether this handle wraps a real hardware stream.
+    pub fn has_physical_stream(&self) -> bool {
+        self._stream.is_some()
+    }
+
     pub fn queue_samples(&self, samples: &[f32]) {
         self.buffer.push(samples);
         self.is_playing.store(true, Ordering::SeqCst);
@@ -443,13 +458,18 @@ impl AudioRuntime {
                 })
             }
             Err(e) => {
-                tracing::warn!("Failed to open physical audio capture stream: {e}. Falling back to virtual handle.");
-                Ok(AudioCaptureHandle {
-                    _stream: None,
-                    is_active,
-                    is_muted,
-                    is_speaker_playing,
-                })
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!("Failed to open physical audio capture stream: {e}. Falling back to virtual handle.");
+                    Ok(AudioCaptureHandle {
+                        _stream: None,
+                        is_active,
+                        is_muted,
+                        is_speaker_playing,
+                    })
+                } else {
+                    tracing::error!("Failed to open physical audio capture stream: {e}");
+                    Err(AudioError::InputStreamError(e.to_string()))
+                }
             }
         }
     }
@@ -533,13 +553,18 @@ impl AudioRuntime {
                 })
             }
             Err(e) => {
-                tracing::warn!("Failed to open physical audio playback stream: {e}. Falling back to virtual handle.");
-                Ok(AudioPlaybackHandle {
-                    _stream: None,
-                    buffer: ring_buffer,
-                    is_playing,
-                    sample_rate,
-                })
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!("Failed to open physical audio playback stream: {e}. Falling back to virtual handle.");
+                    Ok(AudioPlaybackHandle {
+                        _stream: None,
+                        buffer: ring_buffer,
+                        is_playing,
+                        sample_rate,
+                    })
+                } else {
+                    tracing::error!("Failed to open physical audio playback stream: {e}");
+                    Err(AudioError::OutputStreamError(e.to_string()))
+                }
             }
         }
     }
@@ -587,5 +612,21 @@ mod tests {
         let mono_16k = normalize_to_mono_16k(&stereo_48k, 48000, 2, 16000);
         assert_eq!(mono_16k.len(), 1);
         assert!((mono_16k[0] - 0.3).abs() < 1e-4);
+    }
+
+    #[test]
+    fn test_audio_capture_handle_physical_stream_semantics() {
+        let handle_virtual = AudioCaptureHandle {
+            _stream: None,
+            is_active: Arc::new(AtomicBool::new(true)),
+            is_muted: Arc::new(AtomicBool::new(false)),
+            is_speaker_playing: Arc::new(AtomicBool::new(false)),
+        };
+        // Virtual handle with None stream must report is_active = false and has_physical_stream = false
+        assert!(!handle_virtual.is_active());
+        assert!(!handle_virtual.has_physical_stream());
+
+        handle_virtual.set_muted(true);
+        assert!(handle_virtual.is_muted());
     }
 }

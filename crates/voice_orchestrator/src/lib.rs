@@ -11,7 +11,7 @@
 
 use futures_util::future::BoxFuture;
 use parking_lot::Mutex;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::mpsc;
@@ -90,6 +90,8 @@ pub struct VoicePipeline {
     ipc_server: Option<Arc<voxy_ipc::VoxyIpcServer>>,
     pipecat_supervisor: Arc<Mutex<Option<Arc<PipecatSupervisor>>>>,
     is_running: Arc<AtomicBool>,
+    /// Monotonically increasing turn ID for race protection and stale event invalidation.
+    turn_id: Arc<AtomicU64>,
     /// True while the companion is in sleep mode (only wake-word input accepted).
     sleeping: Arc<AtomicBool>,
     /// Voice speed multiplier in milli-units (1000 = natural 1.0×).
@@ -141,10 +143,16 @@ impl VoicePipeline {
             ipc_server,
             pipecat_supervisor: Arc::new(Mutex::new(pipecat_supervisor)),
             is_running: Arc::new(AtomicBool::new(false)),
+            turn_id: Arc::new(AtomicU64::new(0)),
             sleeping: Arc::new(AtomicBool::new(false)),
             voice_speed_milli: Arc::new(AtomicU32::new(initial_speed_milli)),
             degraded_reason: Arc::new(Mutex::new(None)),
         })
+    }
+
+    /// Monotonically increasing current turn ID.
+    pub fn current_turn_id(&self) -> u64 {
+        self.turn_id.load(Ordering::SeqCst)
     }
 
     pub fn config(&self) -> &VoicePipelineConfig {
@@ -208,6 +216,9 @@ impl VoicePipeline {
         let current = self.current_state();
         if current == CompanionState::Speaking || current == CompanionState::Thinking {
             tracing::info!("[BARGE-IN] Interruption triggered: {}", reason);
+
+            // Invalidate current turn ID monotonically so in-flight tasks ignore completion
+            self.turn_id.fetch_add(1, Ordering::SeqCst);
 
             // 1. Abort in-flight LLM/TTS generation
             if let Some(cancel) = self.active_cancellation.lock().take() {
@@ -358,84 +369,88 @@ impl VoicePipeline {
         // outside a tokio runtime (e.g. some tests) by dropping events honestly.
         let runtime_handle = tokio::runtime::Handle::try_current().ok();
 
-        let result = self
-            .audio_runtime
-            .start_capture(move |frame: Vec<f32>, rms: f32| {
-                // Broadcast energy telemetry synchronously (cheap broadcast channel).
-                if let Some(ref ipc) = ipc {
-                    ipc.broadcast_audio_energy(rms);
-                }
-
-                // VAD runs on the audio thread: ordered, bounded, no per-frame spawn.
-                let event = { vad.lock().process_frame(&frame) };
-                let Some(event) = event else { return };
-
-                // Wake-word and speech events are handled inline (cheap, ordered);
-                // heavy async work is dispatched only per completed utterance.
-                match event {
-                    VadEvent::WakeWordDetected {
-                        keyword,
-                        confidence,
-                    } => {
-                        if sleeping.load(Ordering::SeqCst) {
-                            sleeping.store(false, Ordering::SeqCst);
-                            tracing::info!(%keyword, "[VOICE] Wake word in sleep mode; waking");
-                        }
-                        this.trigger_barge_in("Wake word activation");
-                        this.set_state(
-                            CompanionState::Listening,
-                            Some(format!("Wake word: {keyword}")),
-                        );
-                        tracing::debug!(%keyword, %confidence, "[VOICE] Wake word path active");
+        if self.config.auto_start_capture {
+            let result = self
+                .audio_runtime
+                .start_capture(move |frame: Vec<f32>, rms: f32| {
+                    // Broadcast energy telemetry synchronously (cheap broadcast channel).
+                    if let Some(ref ipc) = ipc {
+                        ipc.broadcast_audio_energy(rms);
                     }
-                    VadEvent::SpeechStarted => {
-                        if sleeping.load(Ordering::SeqCst) {
-                            return; // sleeping: ignore speech until wake word
+
+                    // VAD runs on the audio thread: ordered, bounded, no per-frame spawn.
+                    let event = { vad.lock().process_frame(&frame) };
+                    let Some(event) = event else { return };
+
+                    // Wake-word and speech events are handled inline (cheap, ordered);
+                    // heavy async work is dispatched only per completed utterance.
+                    match event {
+                        VadEvent::WakeWordDetected {
+                            keyword,
+                            confidence,
+                        } => {
+                            if sleeping.load(Ordering::SeqCst) {
+                                sleeping.store(false, Ordering::SeqCst);
+                                tracing::info!(%keyword, "[VOICE] Wake word in sleep mode; waking");
+                            }
+                            this.trigger_barge_in("Wake word activation");
+                            this.set_state(
+                                CompanionState::Listening,
+                                Some(format!("Wake word: {keyword}")),
+                            );
+                            tracing::debug!(%keyword, %confidence, "[VOICE] Wake word path active");
                         }
-                        // If user speaks while assistant is speaking or thinking -> BARGE-IN
-                        this.trigger_barge_in("User speech onset");
-                        this.set_state(CompanionState::Listening, None);
-                    }
-                    VadEvent::SpeechFrame { .. } => {
-                        if sleeping.load(Ordering::SeqCst) {
-                            return;
-                        }
-                        if this.current_state() != CompanionState::Listening
-                            && this.current_state() != CompanionState::Speaking
-                        {
+                        VadEvent::SpeechStarted => {
+                            if sleeping.load(Ordering::SeqCst) {
+                                return; // sleeping: ignore speech until wake word
+                            }
+                            // If user speaks while assistant is speaking or thinking -> BARGE-IN
+                            this.trigger_barge_in("User speech onset");
                             this.set_state(CompanionState::Listening, None);
                         }
-                    }
-                    VadEvent::UtteranceComplete { audio, duration_ms } => {
-                        if sleeping.load(Ordering::SeqCst) {
-                            tracing::debug!("[VOICE] Utterance ignored while sleeping");
-                            return;
-                        }
-                        match &runtime_handle {
-                            Some(handle) => {
-                                let p = this.clone();
-                                handle.spawn(async move {
-                                    p.on_utterance_complete(audio, duration_ms).await;
-                                });
+                        VadEvent::SpeechFrame { .. } => {
+                            if sleeping.load(Ordering::SeqCst) {
+                                return;
                             }
-                            None => {
-                                tracing::warn!(
-                                "[VOICE] No async runtime available; utterance dropped ({ms} ms)",
-                                ms = duration_ms
-                            );
+                            if this.current_state() != CompanionState::Listening
+                                && this.current_state() != CompanionState::Speaking
+                            {
+                                this.set_state(CompanionState::Listening, None);
                             }
                         }
+                        VadEvent::UtteranceComplete { audio, duration_ms } => {
+                            if sleeping.load(Ordering::SeqCst) {
+                                tracing::debug!("[VOICE] Utterance ignored while sleeping");
+                                return;
+                            }
+                            match &runtime_handle {
+                                Some(handle) => {
+                                    let p = this.clone();
+                                    handle.spawn(async move {
+                                        p.on_utterance_complete(audio, duration_ms).await;
+                                    });
+                                }
+                                None => {
+                                    tracing::warn!(
+                                    "[VOICE] No async runtime available; utterance dropped ({ms} ms)",
+                                    ms = duration_ms
+                                );
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                });
 
-        let capture = result.map_err(|e| {
-            tracing::error!(
-                "[VOICE] Audio capture initialization failed: {e} — pipeline NOT started"
-            );
-            PipelineError::Audio(e)
-        })?;
-        *self.capture_handle.lock() = Some(capture);
+            let capture = result.map_err(|e| {
+                tracing::error!(
+                    "[VOICE] Audio capture initialization failed: {e} — pipeline NOT started"
+                );
+                PipelineError::Audio(e)
+            })?;
+            *self.capture_handle.lock() = Some(capture);
+        } else {
+            tracing::info!("[VOICE] auto_start_capture is false; capture stream deferred");
+        }
 
         self.is_running.store(true, Ordering::SeqCst);
         self.set_state(CompanionState::Idle, None);
@@ -540,6 +555,7 @@ impl VoicePipeline {
     /// as the first coherent chunk is available instead of waiting for the full
     /// response. Legacy whole-response handler is used as fallback.
     pub async fn dispatch_llm_and_tts(&self, text: String) {
+        let turn = self.turn_id.fetch_add(1, Ordering::SeqCst) + 1;
         self.set_state(CompanionState::Thinking, Some("Reasoning".into()));
 
         let cancel_token = CancellationToken::new();
@@ -577,6 +593,11 @@ impl VoicePipeline {
                     tracing::info!("[VOICE] LLM turn cancelled by barge-in");
                 }
                 res = response_future => {
+                    // Stale check: if a new turn occurred, ignore old response
+                    if self.turn_id.load(Ordering::SeqCst) != turn {
+                        tracing::info!("[VOICE] Discarding stale LLM response from prior turn {turn}");
+                        return;
+                    }
                     match res {
                         Ok(reply_text) => {
                             if !cancel_token.is_cancelled() {
@@ -941,25 +962,48 @@ mod tests {
 
     #[tokio::test]
     async fn test_pipeline_creation_and_state_flow() {
-        let config = VoicePipelineConfig::default();
+        // 1. In production mode (allow_virtual_fallback = false), start() correctly fails closed if mic access is denied
+        let mut prod_config = VoicePipelineConfig::default();
+        prod_config.audio.allow_virtual_fallback = false;
         let stt = Arc::new(MockSttEngine::new("System check status"));
         let tts = Arc::new(MockTtsEngine::new());
 
-        let pipeline = Arc::new(VoicePipeline::new(config, stt, tts, None).unwrap());
-        assert_eq!(pipeline.current_state(), CompanionState::Idle);
+        let prod_pipeline =
+            Arc::new(VoicePipeline::new(prod_config, stt.clone(), tts.clone(), None).unwrap());
+        let start_res = prod_pipeline.start();
+        // If mic access is denied or not present, it must return PipelineError::Audio(InputStreamError)
+        // If mic is available, start_res is Ok(())
+        match start_res {
+            Ok(_) => {
+                assert!(prod_pipeline.is_running.load(Ordering::SeqCst));
+                prod_pipeline.shutdown();
+            }
+            Err(PipelineError::Audio(voxy_voice_audio::AudioError::InputStreamError(_))) => {
+                // Expected fail-closed behavior on systems with no mic permission!
+            }
+            Err(e) => panic!("Unexpected error: {e}"),
+        }
 
-        pipeline.start().unwrap();
-        assert_eq!(pipeline.current_state(), CompanionState::Idle);
+        // 2. In simulation/test mode (allow_virtual_fallback = true), pipeline starts cleanly without physical mic
+        let mut sim_config = VoicePipelineConfig::default();
+        sim_config.audio.allow_virtual_fallback = true;
+        let sim_pipeline = Arc::new(VoicePipeline::new(sim_config, stt, tts, None).unwrap());
+        assert_eq!(sim_pipeline.current_state(), CompanionState::Idle);
 
-        // Simulate barge-in trigger
-        pipeline.set_state(CompanionState::Speaking, None);
-        assert_eq!(pipeline.current_state(), CompanionState::Speaking);
+        sim_pipeline.start().unwrap();
+        assert_eq!(sim_pipeline.current_state(), CompanionState::Idle);
+        assert_eq!(sim_pipeline.current_turn_id(), 0);
 
-        pipeline.trigger_barge_in("User interrupt test");
-        assert_eq!(pipeline.current_state(), CompanionState::Interrupted);
+        // Simulate barge-in trigger and turn invalidation
+        sim_pipeline.set_state(CompanionState::Speaking, None);
+        assert_eq!(sim_pipeline.current_state(), CompanionState::Speaking);
 
-        pipeline.shutdown();
-        assert_eq!(pipeline.current_state(), CompanionState::Idle);
+        sim_pipeline.trigger_barge_in("User interrupt test");
+        assert_eq!(sim_pipeline.current_state(), CompanionState::Interrupted);
+        assert_eq!(sim_pipeline.current_turn_id(), 1);
+
+        sim_pipeline.shutdown();
+        assert_eq!(sim_pipeline.current_state(), CompanionState::Idle);
     }
 
     #[tokio::test]
