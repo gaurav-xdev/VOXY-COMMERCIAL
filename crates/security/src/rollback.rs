@@ -107,11 +107,90 @@ impl RollbackManager {
                     };
                 }
             }
-            record.status = RollbackStatus::Completed;
+            let (success, message) = match record.strategy {
+                RollbackStrategy::FileBackup => {
+                    // Expect target path in metadata
+                    if let Some(target_path_str) = record.metadata.get("target_path") {
+                        let path = std::path::Path::new(target_path_str);
+                        let is_new = record
+                            .metadata
+                            .get("is_new")
+                            .map(|v| v == "true")
+                            .unwrap_or(false);
+                        if is_new {
+                            if path.exists() {
+                                match std::fs::remove_file(path) {
+                                    Ok(_) => (
+                                        true,
+                                        format!("Removed newly created file {}", target_path_str),
+                                    ),
+                                    Err(e) => (
+                                        false,
+                                        format!("Failed to remove file {}: {}", target_path_str, e),
+                                    ),
+                                }
+                            } else {
+                                (true, format!("File {} already absent", target_path_str))
+                            }
+                        } else {
+                            if let Some(parent) = path.parent() {
+                                let _ = std::fs::create_dir_all(parent);
+                            }
+                            match std::fs::write(path, &record.snapshot) {
+                                Ok(_) => (
+                                    true,
+                                    format!(
+                                        "Restored {} ({} bytes)",
+                                        target_path_str,
+                                        record.snapshot.len()
+                                    ),
+                                ),
+                                Err(e) => (
+                                    false,
+                                    format!("Failed to restore {}: {}", target_path_str, e),
+                                ),
+                            }
+                        }
+                    } else if !record.snapshot.is_empty() {
+                        // Snapshot present without target path metadata: report unsupported without destination
+                        (
+                            false,
+                            "FileBackup rollback missing target_path metadata".to_string(),
+                        )
+                    } else {
+                        (true, "Rollback completed (empty snapshot)".to_string())
+                    }
+                }
+                RollbackStrategy::StateRestore
+                | RollbackStrategy::CompensationAction
+                | RollbackStrategy::NoOp => (
+                    true,
+                    format!("Rollback completed using {}", record.strategy),
+                ),
+                RollbackStrategy::RegistrySnapshot
+                | RollbackStrategy::ApiUndo
+                | RollbackStrategy::DatabaseTransaction => {
+                    // Explicitly distinguish unsupported strategies from fake success
+                    (
+                        false,
+                        format!(
+                            "Strategy {} not implemented for automatic execution",
+                            record.strategy
+                        ),
+                    )
+                }
+            };
+
+            if success {
+                record.status = RollbackStatus::Completed;
+            } else {
+                record.status = RollbackStatus::Failed(message.clone());
+            }
+
             RollbackResult {
                 action_id,
-                success: true,
-                message: format!("Rollback completed using {0}", record.strategy),
+                success,
+                message,
                 duration_ms: start.elapsed().as_millis() as u64,
             }
         } else {
@@ -248,9 +327,15 @@ mod tests {
     fn pending_rollbacks() {
         let mut mgr = RollbackManager::new();
         let id = Uuid::new_v4();
-        mgr.register(id, RollbackStrategy::ApiUndo, b"data".to_vec(), Some(3600));
+        mgr.register(
+            id,
+            RollbackStrategy::StateRestore,
+            b"data".to_vec(),
+            Some(3600),
+        );
         assert_eq!(mgr.pending_rollbacks().len(), 1);
-        mgr.rollback(id);
+        let res = mgr.rollback(id);
+        assert!(res.success);
         assert_eq!(mgr.pending_rollbacks().len(), 0);
     }
 

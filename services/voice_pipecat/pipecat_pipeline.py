@@ -145,7 +145,10 @@ class OsmooBrainBridge:
             # Start reading daemon broadcast messages
             self._inbound_task = asyncio.create_task(self._read_daemon_loop())
         except Exception as e:
-            logger.info("Rust Daemon TCP loopback unavailable (%s). Operating in standalone pipeline mode.", e)
+            if os.environ.get("VOXY_ALLOW_STANDALONE", "0") == "1":
+                logger.info("Rust Daemon TCP loopback unavailable (%s). Explicit standalone development mode permitted.", e)
+            else:
+                logger.error("Rust Daemon TCP loopback unavailable (%s). Integrated production mode requires active daemon connection.", e)
             self.connected = False
 
     async def _read_daemon_loop(self):
@@ -190,8 +193,11 @@ class OsmooBrainBridge:
     async def forward_transcript(self, text: str, language: str = "en") -> str:
         """Forward recognized user utterance to OSMOO's CognitiveEngine / LLM Router."""
         if not self.connected or not self.writer or not self.reader:
-            logger.info("[PIPELINE-ROUTER] Routing transcript to OSMOO LLM: \"%s\"", text)
-            return f"OSMOO acknowledged: {text}"
+            if os.environ.get("VOXY_ALLOW_STANDALONE", "0") == "1":
+                logger.info("[PIPELINE-ROUTER] Standalone test route transcript to mock assistant: \"%s\"", text)
+                return f"OSMOO test mock: {text}"
+            logger.error("[PIPELINE-ROUTER] Cannot route transcript; OSMOO Rust Daemon IPC is not connected!")
+            raise ConnectionError("OSMOO Rust Daemon IPC is disconnected; cannot route utterance to LLM in production")
 
         try:
             payload = {

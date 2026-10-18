@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use uuid::Uuid;
+
+type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CapabilityToken {
@@ -82,6 +86,58 @@ impl CapabilityToken {
         }
     }
 
+    /// Issue and cryptographically sign a token with HMAC-SHA256 using `secret`.
+    pub fn issue_signed(
+        subject: impl Into<String>,
+        issuer: impl Into<String>,
+        capabilities: Vec<CapabilityClaim>,
+        ttl_secs: u64,
+        secret: &[u8],
+    ) -> Self {
+        let mut token = Self::new(subject, issuer, capabilities, ttl_secs, Vec::new());
+        token.sign(secret);
+        token
+    }
+
+    /// Compute canonical payload for cryptographic signing.
+    pub fn signature_payload(&self) -> Vec<u8> {
+        let mut payload = Vec::new();
+        payload.extend_from_slice(self.id.as_bytes());
+        payload.extend_from_slice(self.issuer.as_bytes());
+        payload.extend_from_slice(self.subject.as_bytes());
+        for claim in &self.capabilities {
+            payload.extend_from_slice(claim.capability.as_bytes());
+            if let Some(ref r) = claim.resource {
+                payload.extend_from_slice(r.as_bytes());
+            }
+            payload.push(0x00);
+        }
+        payload.extend_from_slice(&self.issued_at.timestamp().to_le_bytes());
+        payload.extend_from_slice(&self.expires_at.timestamp().to_le_bytes());
+        payload
+    }
+
+    /// Sign the token payload with HMAC-SHA256 using the provided secret key.
+    pub fn sign(&mut self, secret: &[u8]) {
+        if let Ok(mut mac) = HmacSha256::new_from_slice(secret) {
+            mac.update(&self.signature_payload());
+            self.signature = mac.finalize().into_bytes().to_vec();
+        }
+    }
+
+    /// Cryptographically verify the token's HMAC-SHA256 signature against `secret`.
+    pub fn verify_signature(&self, secret: &[u8]) -> bool {
+        if self.signature.is_empty() || secret.is_empty() {
+            return false;
+        }
+        if let Ok(mut mac) = HmacSha256::new_from_slice(secret) {
+            mac.update(&self.signature_payload());
+            mac.verify_slice(&self.signature).is_ok()
+        } else {
+            false
+        }
+    }
+
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }
@@ -89,6 +145,11 @@ impl CapabilityToken {
     /// SECURITY: Token is only valid if it has a signature and is not expired.
     pub fn is_valid(&self) -> bool {
         !self.is_expired() && !self.signature.is_empty()
+    }
+
+    /// Cryptographically verify token validity (not expired AND valid signature matching secret).
+    pub fn is_valid_with_secret(&self, secret: &[u8]) -> bool {
+        self.is_valid() && self.verify_signature(secret)
     }
 
     pub fn has_capability(&self, capability: &str) -> bool {
@@ -226,5 +287,62 @@ mod tests {
         let restored: AuthRequest = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.method, AuthMethod::ApiKey);
         assert_eq!(restored.client_name, "voxy-cli");
+    }
+
+    #[test]
+    fn capability_token_hmac_sign_and_verify() {
+        let secret = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "audio:capture".to_string(),
+            resource: None,
+            constraints: vec![],
+        }];
+        let token = CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+
+        assert!(token.is_valid());
+        assert!(token.verify_signature(secret));
+        assert!(token.is_valid_with_secret(secret));
+        assert!(token.has_capability("audio:capture"));
+        assert!(!token.has_capability("network:write"));
+    }
+
+    #[test]
+    fn capability_token_tampered_claim_rejected() {
+        let secret = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "audio:capture".to_string(),
+            resource: None,
+            constraints: vec![],
+        }];
+        let mut token =
+            CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+
+        // Tamper by injecting root/admin capability
+        token.capabilities.push(CapabilityClaim {
+            capability: "admin:*".to_string(),
+            resource: None,
+            constraints: vec![],
+        });
+
+        assert!(
+            !token.verify_signature(secret),
+            "Tampered claim must fail HMAC verification"
+        );
+        assert!(!token.is_valid_with_secret(secret));
+    }
+
+    #[test]
+    fn capability_token_wrong_secret_rejected() {
+        let secret_a = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let secret_b = b"attacker-secret-hmac-key-for-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "audio:capture".to_string(),
+            resource: None,
+            constraints: vec![],
+        }];
+        let token = CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret_a);
+
+        assert!(token.verify_signature(secret_a));
+        assert!(!token.verify_signature(secret_b));
     }
 }

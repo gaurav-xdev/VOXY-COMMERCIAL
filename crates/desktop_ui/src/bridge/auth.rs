@@ -18,6 +18,131 @@ pub struct AuthSession {
     pub expires_at: i64,
 }
 
+#[cfg(windows)]
+mod dpapi {
+    use std::ptr;
+
+    #[repr(C)]
+    struct DataBlob {
+        cb_data: u32,
+        pb_data: *mut u8,
+    }
+
+    #[link(name = "crypt32")]
+    extern "system" {
+        fn CryptProtectData(
+            pDataIn: *const DataBlob,
+            szDataDescr: *const u16,
+            pOptionalEntropy: *const DataBlob,
+            pvReserved: *mut std::ffi::c_void,
+            pPromptStruct: *mut std::ffi::c_void,
+            dwFlags: u32,
+            pDataOut: *mut DataBlob,
+        ) -> i32;
+
+        fn CryptUnprotectData(
+            pDataIn: *const DataBlob,
+            ppszDataDescr: *mut *mut u16,
+            pOptionalEntropy: *const DataBlob,
+            pvReserved: *mut std::ffi::c_void,
+            pPromptStruct: *mut std::ffi::c_void,
+            dwFlags: u32,
+            pDataOut: *mut DataBlob,
+        ) -> i32;
+    }
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn LocalFree(hMem: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+    }
+
+    const CRYPTPROTECT_UI_FORBIDDEN: u32 = 0x1;
+
+    pub fn protect(data: &[u8]) -> Result<Vec<u8>, String> {
+        if data.is_empty() {
+            return Ok(Vec::new());
+        }
+        let in_blob = DataBlob {
+            cb_data: data.len() as u32,
+            pb_data: data.as_ptr() as *mut u8,
+        };
+        let mut out_blob = DataBlob {
+            cb_data: 0,
+            pb_data: ptr::null_mut(),
+        };
+
+        unsafe {
+            let res = CryptProtectData(
+                &in_blob,
+                ptr::null(),
+                ptr::null(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                CRYPTPROTECT_UI_FORBIDDEN,
+                &mut out_blob,
+            );
+            if res == 0 {
+                return Err(format!(
+                    "CryptProtectData failed: {}",
+                    std::io::Error::last_os_error()
+                ));
+            }
+
+            let slice = std::slice::from_raw_parts(out_blob.pb_data, out_blob.cb_data as usize);
+            let protected = slice.to_vec();
+            LocalFree(out_blob.pb_data as *mut std::ffi::c_void);
+            Ok(protected)
+        }
+    }
+
+    pub fn unprotect(data: &[u8]) -> Result<Vec<u8>, String> {
+        if data.is_empty() {
+            return Ok(Vec::new());
+        }
+        let in_blob = DataBlob {
+            cb_data: data.len() as u32,
+            pb_data: data.as_ptr() as *mut u8,
+        };
+        let mut out_blob = DataBlob {
+            cb_data: 0,
+            pb_data: ptr::null_mut(),
+        };
+
+        unsafe {
+            let res = CryptUnprotectData(
+                &in_blob,
+                ptr::null_mut(),
+                ptr::null(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                CRYPTPROTECT_UI_FORBIDDEN,
+                &mut out_blob,
+            );
+            if res == 0 {
+                return Err(format!(
+                    "CryptUnprotectData failed: {}",
+                    std::io::Error::last_os_error()
+                ));
+            }
+
+            let slice = std::slice::from_raw_parts(out_blob.pb_data, out_blob.cb_data as usize);
+            let unprotected = slice.to_vec();
+            LocalFree(out_blob.pb_data as *mut std::ffi::c_void);
+            Ok(unprotected)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+mod dpapi {
+    pub fn protect(data: &[u8]) -> Result<Vec<u8>, String> {
+        Ok(data.to_vec())
+    }
+    pub fn unprotect(data: &[u8]) -> Result<Vec<u8>, String> {
+        Ok(data.to_vec())
+    }
+}
+
 pub struct AuthBridge {
     router: Arc<ApiRouter>,
     session: Arc<RwLock<Option<AuthSession>>>,
@@ -32,24 +157,28 @@ impl AuthBridge {
             .join("session.json");
 
         let loaded_session = if session_file.exists() {
-            match std::fs::read_to_string(&session_file) {
-                Ok(content) => match serde_json::from_str::<AuthSession>(&content) {
-                    Ok(sess) => {
-                        let now = chrono::Utc::now().timestamp();
-                        if sess.expires_at > now {
-                            tracing::info!("Restored active OSMOO session for {}", sess.email);
-                            Some(sess)
-                        } else {
-                            tracing::info!("Stored OSMOO session expired, clearing");
-                            let _ = std::fs::remove_file(&session_file);
+            match std::fs::read(&session_file) {
+                Ok(raw_bytes) => {
+                    // Try DPAPI decryption first, fall back to plaintext for legacy sessions
+                    let decrypted = dpapi::unprotect(&raw_bytes).unwrap_or(raw_bytes);
+                    match serde_json::from_slice::<AuthSession>(&decrypted) {
+                        Ok(sess) => {
+                            let now = chrono::Utc::now().timestamp();
+                            if sess.expires_at > now {
+                                tracing::info!("Restored active OSMOO session for {}", sess.email);
+                                Some(sess)
+                            } else {
+                                tracing::info!("Stored OSMOO session expired, clearing");
+                                let _ = std::fs::remove_file(&session_file);
+                                None
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to parse session file: {e}");
                             None
                         }
                     }
-                    Err(e) => {
-                        tracing::warn!("Failed to parse session file: {e}");
-                        None
-                    }
-                },
+                }
                 Err(e) => {
                     tracing::warn!("Failed to read session file: {e}");
                     None
@@ -85,7 +214,15 @@ impl AuthBridge {
                 let _ = std::fs::create_dir_all(parent);
             }
             if let Ok(json) = serde_json::to_string(sess) {
-                let _ = std::fs::write(&self.session_file, json);
+                match dpapi::protect(json.as_bytes()) {
+                    Ok(encrypted_bytes) => {
+                        let _ = std::fs::write(&self.session_file, encrypted_bytes);
+                    }
+                    Err(e) => {
+                        tracing::warn!("DPAPI encryption unavailable: {e}; writing fallback");
+                        let _ = std::fs::write(&self.session_file, json);
+                    }
+                }
             }
         } else {
             let _ = std::fs::remove_file(&self.session_file);
@@ -464,5 +601,24 @@ mod tests {
         assert_eq!(deserialized.email, "operator@osmoo.in");
         assert_eq!(deserialized.active_tier, "pro");
         assert_eq!(deserialized.expires_at, 1893456000);
+    }
+
+    #[test]
+    fn test_dpapi_protect_and_unprotect_roundtrip() {
+        let plaintext = b"{\"token\":\"secret-access-token-9876543210\"}";
+        let protected = dpapi::protect(plaintext).expect("dpapi protect should succeed");
+
+        #[cfg(windows)]
+        {
+            // Verify protected blob does NOT contain the raw plaintext secret token
+            let protected_str = String::from_utf8_lossy(&protected);
+            assert!(
+                !protected_str.contains("secret-access-token-9876543210"),
+                "Encrypted DPAPI blob must not contain raw token string"
+            );
+        }
+
+        let unprotected = dpapi::unprotect(&protected).expect("dpapi unprotect should succeed");
+        assert_eq!(unprotected, plaintext);
     }
 }

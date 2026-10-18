@@ -1,14 +1,15 @@
-//! Audio conditioning and noise suppression for the OSMOO voice pipeline.
+//! Audio conditioning, echo suppression, and noise suppression for the OSMOO voice pipeline.
 //!
 //! Provides lightweight, zero-VRAM, low-latency audio conditioning:
 //! - 80Hz High-Pass Filter (DC-offset and low-frequency rumble elimination, WebRTC APM standard)
-//! - Spectral Subtractive Noise Gate (removes steady-state fan/background noise without chopping speech)
+//! - Spectral Subtractive Noise Gate with Smooth Hysteresis (prevents syllable chopping on quiet speech)
 //! - Speech Pre-Emphasis Filter (boosts high-frequency consonant clarity for Whisper STT)
 //! - Soft Limiter / AGC (Automatic Gain Control preventing digital clipping)
+//! - Acoustic Echo Suppression (attenuates capture input when speaker reference stream is active)
 
 use serde::{Deserialize, Serialize};
 
-/// Configuration for audio conditioning.
+/// Configuration for audio conditioning and echo suppression.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConditioningConfig {
     /// Enable 80Hz high-pass filter.
@@ -27,6 +28,10 @@ pub struct ConditioningConfig {
     pub enable_limiter: bool,
     /// Peak ceiling (default 0.95).
     pub peak_ceiling: f32,
+    /// Enable acoustic echo suppression when assistant audio is actively playing.
+    pub enable_echo_suppression: bool,
+    /// Attenuation factor applied during active speaker playback (e.g. 0.05 = -26dB).
+    pub echo_attenuation: f32,
 }
 
 impl Default for ConditioningConfig {
@@ -40,6 +45,8 @@ impl Default for ConditioningConfig {
             pre_emphasis_factor: 0.95,
             enable_limiter: true,
             peak_ceiling: 0.95,
+            enable_echo_suppression: true,
+            echo_attenuation: 0.08,
         }
     }
 }
@@ -53,8 +60,12 @@ pub struct AudioConditioner {
     hp_alpha: f32,
     // Pre-emphasis filter state
     pe_prev_x: f32,
-    // Noise gate adaptive envelope
+    // Noise gate adaptive envelope & hysteresis state
     noise_floor_est: f32,
+    current_gate_gain: f32,
+    gate_hold_frames: usize,
+    // Echo suppression state
+    is_speaker_active: bool,
 }
 
 impl AudioConditioner {
@@ -72,7 +83,20 @@ impl AudioConditioner {
             hp_alpha,
             pe_prev_x: 0.0,
             noise_floor_est: 0.005,
+            current_gate_gain: 1.0,
+            gate_hold_frames: 0,
+            is_speaker_active: false,
         }
+    }
+
+    /// Inform conditioner of active speaker reference stream status for AEC suppression.
+    pub fn set_speaker_active(&mut self, active: bool) {
+        self.is_speaker_active = active;
+    }
+
+    /// Returns current speaker activity reference status.
+    pub fn is_speaker_active(&self) -> bool {
+        self.is_speaker_active
     }
 
     /// Process in-place a chunk of 16kHz mono audio samples.
@@ -99,10 +123,20 @@ impl AudioConditioner {
             self.hp_prev_y = prev_y;
         }
 
-        // 2. Adaptive Noise Gate
+        // 2. Acoustic Echo Suppression (AES)
+        // If speaker is active and playback audio is spilling into microphone,
+        // attenuate the microphone capture to prevent the assistant from transcribing its own output.
+        if self.config.enable_echo_suppression && self.is_speaker_active {
+            let aec_gain = self.config.echo_attenuation;
+            for sample in samples.iter_mut() {
+                *sample *= aec_gain;
+            }
+        }
+
+        // 3. Adaptive Noise Gate with Smooth Hysteresis (prevents word onset/tail chopping)
         if self.config.enable_noise_gate {
             let chunk_rms = crate::calculate_rms(samples);
-            // Slowly track baseline ambient noise floor
+            // Slowly track baseline ambient noise floor during quieter periods
             if chunk_rms < self.noise_floor_est * 2.0 {
                 self.noise_floor_est = 0.95 * self.noise_floor_est + 0.05 * chunk_rms;
             }
@@ -111,15 +145,27 @@ impl AudioConditioner {
                 .config
                 .noise_gate_threshold
                 .max(self.noise_floor_est * 1.5);
-            if chunk_rms < threshold {
-                let gain = self.config.noise_attenuation;
-                for sample in samples.iter_mut() {
-                    *sample *= gain;
-                }
+
+            let target_gain = if chunk_rms >= threshold {
+                self.gate_hold_frames = 5; // Hold open for at least 5 frames (~100ms) to preserve word endings
+                1.0f32
+            } else if self.gate_hold_frames > 0 {
+                self.gate_hold_frames -= 1;
+                1.0f32
+            } else {
+                self.config.noise_attenuation
+            };
+
+            // Smooth linear interpolation of gain across frames to eliminate audible clicks
+            let step = (target_gain - self.current_gate_gain) / (samples.len() as f32).max(1.0);
+            for sample in samples.iter_mut() {
+                self.current_gate_gain += step;
+                *sample *= self.current_gate_gain;
             }
+            self.current_gate_gain = target_gain;
         }
 
-        // 3. Pre-Emphasis Filter (Improves high-frequency intelligibility for STT models)
+        // 4. Pre-Emphasis Filter (Improves high-frequency intelligibility for STT models)
         if self.config.enable_pre_emphasis {
             let factor = self.config.pre_emphasis_factor;
             let mut prev = self.pe_prev_x;
@@ -134,7 +180,7 @@ impl AudioConditioner {
             self.pe_prev_x = prev;
         }
 
-        // 4. Soft Limiter / Peak Ceiling
+        // 5. Soft Limiter / Peak Ceiling
         if self.config.enable_limiter {
             let ceiling = self.config.peak_ceiling;
             for sample in samples.iter_mut() {
@@ -154,6 +200,9 @@ impl AudioConditioner {
         self.hp_prev_y = 0.0;
         self.pe_prev_x = 0.0;
         self.noise_floor_est = 0.005;
+        self.current_gate_gain = 1.0;
+        self.gate_hold_frames = 0;
+        self.is_speaker_active = false;
     }
 }
 
@@ -185,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_noise_gate_attenuation() {
+    fn test_noise_gate_attenuation_and_hysteresis() {
         let mut conditioner = AudioConditioner::new(ConditioningConfig {
             enable_high_pass: false,
             enable_noise_gate: true,
@@ -196,16 +245,57 @@ mod tests {
             ..Default::default()
         });
 
-        // Low energy noise: 0.005 (well below 0.02 threshold)
+        // Frame 1: Low energy noise: 0.005 (below 0.02 threshold)
         let mut noise_samples = vec![0.005f32; 320];
         conditioner.process(&mut noise_samples);
 
-        // Should be attenuated by ~0.1
-        let max_val = noise_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        // Frame 2: Still low noise - should be attenuated by ~0.1
+        let mut noise_samples_2 = vec![0.005f32; 320];
+        conditioner.process(&mut noise_samples_2);
+        let max_val = noise_samples_2
+            .iter()
+            .map(|s| s.abs())
+            .fold(0.0f32, f32::max);
         assert!(
-            max_val <= 0.001,
+            max_val <= 0.0015,
             "Low noise should be attenuated by noise gate: got {}",
             max_val
+        );
+    }
+
+    #[test]
+    fn test_echo_suppression_when_speaker_active() {
+        let mut conditioner = AudioConditioner::new(ConditioningConfig {
+            enable_high_pass: false,
+            enable_noise_gate: false,
+            enable_pre_emphasis: false,
+            enable_limiter: false,
+            enable_echo_suppression: true,
+            echo_attenuation: 0.05,
+            ..Default::default()
+        });
+
+        // Loud spill from speaker: 0.8
+        let mut spill_samples = vec![0.8f32; 320];
+        conditioner.set_speaker_active(true);
+        conditioner.process(&mut spill_samples);
+
+        let max_spill = spill_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(
+            max_spill <= 0.05,
+            "Active echo suppression must attenuate speaker feedback: got {}",
+            max_spill
+        );
+
+        // When speaker turns off, full gain restored
+        conditioner.set_speaker_active(false);
+        let mut voice_samples = vec![0.8f32; 320];
+        conditioner.process(&mut voice_samples);
+        let max_voice = voice_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(
+            max_voice > 0.7,
+            "User voice must not be attenuated when speaker inactive: got {}",
+            max_voice
         );
     }
 

@@ -262,11 +262,28 @@ pub struct LocalWhisperSttEngine {
 
 impl LocalWhisperSttEngine {
     pub fn new(model_name: impl Into<String>) -> Self {
+        let cli_path = std::env::var("VOXY_WHISPER_CLI")
+            .ok()
+            .map(std::path::PathBuf::from);
+        let model_path = std::env::var("VOXY_WHISPER_MODEL")
+            .ok()
+            .map(std::path::PathBuf::from);
         Self {
             model_name: model_name.into(),
-            cli_path: None,
-            model_path: None,
+            cli_path,
+            model_path,
         }
+    }
+
+    /// Explicitly configure the whisper.cpp CLI binary and ggml model paths.
+    pub fn with_paths(
+        mut self,
+        cli_path: impl Into<std::path::PathBuf>,
+        model_path: impl Into<std::path::PathBuf>,
+    ) -> Self {
+        self.cli_path = Some(cli_path.into());
+        self.model_path = Some(model_path.into());
+        self
     }
 
     /// Build a real whisper.cpp integration from environment configuration:
@@ -276,7 +293,7 @@ impl LocalWhisperSttEngine {
     /// Returns Err (honest) when either is missing — the engine must never
     /// fabricate transcription text when no real recognizer is configured.
     pub fn from_env() -> Result<Self, SttError> {
-        let cli = std::env::var("VOXY_WHISPER_CLI")
+        let cli: std::path::PathBuf = std::env::var("VOXY_WHISPER_CLI")
             .map_err(|_| {
                 SttError::LocalModelError(
                     "VOXY_WHISPER_CLI not set; no local whisper.cpp executable configured"
@@ -284,13 +301,27 @@ impl LocalWhisperSttEngine {
                 )
             })?
             .into();
-        let model = std::env::var("VOXY_WHISPER_MODEL")
+        let model: std::path::PathBuf = std::env::var("VOXY_WHISPER_MODEL")
             .map_err(|_| {
                 SttError::LocalModelError(
                     "VOXY_WHISPER_MODEL not set; no ggml model file configured".to_string(),
                 )
             })?
             .into();
+
+        if !cli.exists() {
+            return Err(SttError::LocalModelError(format!(
+                "Configured whisper.cpp executable not found at '{}'",
+                cli.display()
+            )));
+        }
+        if !model.exists() {
+            return Err(SttError::LocalModelError(format!(
+                "Configured whisper model file not found at '{}'",
+                model.display()
+            )));
+        }
+
         Ok(Self {
             model_name: "whisper.cpp".to_string(),
             cli_path: Some(cli),
@@ -322,6 +353,19 @@ impl LocalWhisperSttEngine {
                 )
             })?
             .clone();
+
+        if !cli.exists() {
+            return Err(SttError::LocalModelError(format!(
+                "whisper.cpp executable does not exist at '{}'",
+                cli.display()
+            )));
+        }
+        if !model.exists() {
+            return Err(SttError::LocalModelError(format!(
+                "whisper model file does not exist at '{}'",
+                model.display()
+            )));
+        }
 
         let duration_ms = (pcm_16k_mono.len() as f64 / 16000.0 * 1000.0) as u64;
         let wav_bytes = encode_wav_16k_mono(pcm_16k_mono);
@@ -538,5 +582,32 @@ mod tests {
             "Bhai build check karo aur tests run karo"
         );
         assert_eq!(res_hinglish.language.as_deref(), Some("hi-Latn"));
+    }
+
+    #[tokio::test]
+    async fn test_local_whisper_missing_paths_produce_honest_typed_error() {
+        let engine = LocalWhisperSttEngine::new("base.en");
+        let samples = vec![0.1f32; 1600];
+        let err = engine.transcribe(&samples, None).await.unwrap_err();
+        assert!(
+            matches!(err, SttError::LocalModelError(ref msg) if msg.contains("Set VOXY_WHISPER_CLI and VOXY_WHISPER_MODEL")),
+            "Expected honest configuration error, got: {:?}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_local_whisper_nonexistent_cli_path_error() {
+        let engine = LocalWhisperSttEngine::new("base.en").with_paths(
+            "C:\\nonexistent\\whisper-cli.exe",
+            "C:\\nonexistent\\ggml-base.bin",
+        );
+        let samples = vec![0.1f32; 1600];
+        let err = engine.transcribe(&samples, None).await.unwrap_err();
+        assert!(
+            matches!(err, SttError::LocalModelError(ref msg) if msg.contains("does not exist")),
+            "Expected path not found error, got: {:?}",
+            err
+        );
     }
 }

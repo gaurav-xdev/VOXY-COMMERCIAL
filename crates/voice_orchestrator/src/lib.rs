@@ -214,9 +214,12 @@ impl VoicePipeline {
                 cancel.cancel();
             }
 
-            // 2. Clear audio playback ring buffer
+            // 2. Clear audio playback ring buffer and update AEC reference
             if let Some(ref pb) = *self.playback_handle.lock() {
                 pb.clear_playback();
+            }
+            if let Some(ref cap) = *self.capture_handle.lock() {
+                cap.set_speaker_playing(false);
             }
 
             // 3. Update state and notify clients
@@ -650,6 +653,10 @@ impl VoicePipeline {
 
         tokio::join!(speak, generate);
 
+        if let Some(ref cap) = *self.capture_handle.lock() {
+            cap.set_speaker_playing(false);
+        }
+
         if !cancel_token.is_cancelled() {
             self.set_state(CompanionState::Idle, None);
         }
@@ -680,6 +687,9 @@ impl VoicePipeline {
                                     out_rate,
                                 )
                             };
+                            if let Some(ref cap) = *self.capture_handle.lock() {
+                                cap.set_speaker_playing(true);
+                            }
                             pb.queue_samples(&samples);
                         }
                         Err(e) => {
@@ -711,6 +721,10 @@ impl VoicePipeline {
             if !cancel_token.is_cancelled() {
                 self.synthesize_and_queue(&remaining, &cancel_token).await;
             }
+        }
+
+        if let Some(ref cap) = *self.capture_handle.lock() {
+            cap.set_speaker_playing(false);
         }
 
         if !cancel_token.is_cancelled() {

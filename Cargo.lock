@@ -8059,6 +8059,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "hmac 0.12.1",
  "parking_lot",
  "serde",
  "serde_json",

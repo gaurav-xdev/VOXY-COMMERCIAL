@@ -28,8 +28,10 @@ pub enum PatchError {
     PatchConflict,
 }
 
+#[derive(Debug, Clone)]
 pub struct PatchSnapshot {
     pub file_path: PathBuf,
+    pub existed: bool,
     pub original_content: String,
 }
 
@@ -249,7 +251,7 @@ pub fn validate_path(root: &Path, rel: &Path) -> Result<(), PatchError> {
 pub struct PatchTransaction {
     root_path: PathBuf,
     patches: Vec<FilePatch>,
-    applied_snapshots: HashMap<PathBuf, String>,
+    applied_snapshots: HashMap<PathBuf, PatchSnapshot>,
     committed: bool,
 }
 
@@ -299,21 +301,25 @@ impl PatchTransaction {
 
             let full_path = self.root_path.join(&patch.relative_path);
 
-            let original = if full_path.exists() {
+            let (existed, original) = if full_path.exists() {
                 match std::fs::read_to_string(&full_path) {
-                    Ok(c) => c,
+                    Ok(c) => (true, c),
                     Err(e) => {
                         self.rollback();
                         return Err(PatchError::Io(e));
                     }
                 }
             } else {
-                String::new()
+                (false, String::new())
             };
 
             self.applied_snapshots
                 .entry(full_path.clone())
-                .or_insert_with(|| original.clone());
+                .or_insert_with(|| PatchSnapshot {
+                    file_path: full_path.clone(),
+                    existed,
+                    original_content: original.clone(),
+                });
 
             if let Some(parent) = full_path.parent() {
                 if let Err(e) = std::fs::create_dir_all(parent) {
@@ -349,16 +355,17 @@ impl PatchTransaction {
     }
 
     /// Roll back all modifications applied in this transaction.
+    /// Distinguishes pre-existing empty files (restores empty content) from newly created files (deletes them).
     pub fn rollback(&mut self) -> usize {
         let mut count = 0;
-        for (path, original) in self.applied_snapshots.drain() {
-            if original.is_empty() {
-                if path.exists() {
-                    let _ = std::fs::remove_file(&path);
+        for (path, snapshot) in self.applied_snapshots.drain() {
+            if snapshot.existed {
+                if std::fs::write(&path, &snapshot.original_content).is_ok() {
                     count += 1;
                 }
             } else {
-                if std::fs::write(&path, &original).is_ok() {
+                if path.exists() {
+                    let _ = std::fs::remove_file(&path);
                     count += 1;
                 }
             }
@@ -375,7 +382,7 @@ impl PatchTransaction {
 
 pub struct PatchEngine {
     root_path: PathBuf,
-    snapshots: HashMap<PathBuf, String>,
+    snapshots: HashMap<PathBuf, PatchSnapshot>,
 }
 
 impl PatchEngine {
@@ -420,16 +427,20 @@ impl PatchEngine {
 
         let full_path = self.root_path.join(rel);
 
-        let original = if full_path.exists() {
-            std::fs::read_to_string(&full_path)?
+        let (existed, original) = if full_path.exists() {
+            (true, std::fs::read_to_string(&full_path)?)
         } else {
-            String::new()
+            (false, String::new())
         };
 
         // Snapshot original content before writing
         self.snapshots
             .entry(full_path.clone())
-            .or_insert_with(|| original.clone());
+            .or_insert_with(|| PatchSnapshot {
+                file_path: full_path.clone(),
+                existed,
+                original_content: original.clone(),
+            });
 
         // Ensure parent directory exists
         if let Some(parent) = full_path.parent() {
@@ -453,18 +464,18 @@ impl PatchEngine {
     }
 
     /// Rolls back all modifications performed during the current session.
+    /// Distinguishes pre-existing empty files (restores empty content) from newly created files (deletes them).
     pub fn rollback_all(&mut self) -> Result<usize, PatchError> {
         let mut count = 0;
-        for (path, original) in self.snapshots.drain() {
-            if original.is_empty() {
-                // Was a new file created; remove it
+        for (path, snapshot) in self.snapshots.drain() {
+            if snapshot.existed {
+                std::fs::write(&path, &snapshot.original_content)?;
+                count += 1;
+            } else {
                 if path.exists() {
                     let _ = std::fs::remove_file(&path);
                     count += 1;
                 }
-            } else {
-                std::fs::write(&path, &original)?;
-                count += 1;
             }
         }
         Ok(count)
@@ -644,5 +655,90 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_empty_existing_file_rollback_preserves_file() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let empty_existing = root.join("empty.txt");
+        let non_existing = root.join("brand_new.txt");
+
+        // Create 0-byte file
+        std::fs::write(&empty_existing, "").unwrap();
+        assert!(empty_existing.exists());
+        assert_eq!(std::fs::metadata(&empty_existing).unwrap().len(), 0);
+
+        let mut engine = PatchEngine::new(root);
+
+        // Modify pre-existing empty file
+        engine
+            .apply_modification("empty.txt", "added content to empty file")
+            .unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&empty_existing).unwrap(),
+            "added content to empty file"
+        );
+
+        // Create new file
+        engine
+            .apply_modification("brand_new.txt", "brand new content")
+            .unwrap();
+        assert!(non_existing.exists());
+
+        // Roll back everything
+        let rolled_back = engine.rollback_all().unwrap();
+        assert_eq!(rolled_back, 2);
+
+        // Pre-existing empty file MUST STILL EXIST and be 0 bytes!
+        assert!(
+            empty_existing.exists(),
+            "Pre-existing empty file must not be deleted on rollback"
+        );
+        assert_eq!(std::fs::read_to_string(&empty_existing).unwrap(), "");
+
+        // Newly created file MUST be deleted
+        assert!(
+            !non_existing.exists(),
+            "Newly created file must be deleted on rollback"
+        );
+    }
+
+    #[test]
+    fn test_patch_transaction_empty_existing_file_rollback() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let empty_existing = root.join("pre_empty.txt");
+        let brand_new = root.join("tx_new.txt");
+
+        std::fs::write(&empty_existing, "").unwrap();
+
+        let mut tx = PatchTransaction::new(root);
+        tx.add_change("pre_empty.txt", "tx modified empty");
+        tx.add_change("tx_new.txt", "tx created new");
+
+        tx.apply().unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&empty_existing).unwrap(),
+            "tx modified empty"
+        );
+        assert!(brand_new.exists());
+
+        // Roll back transaction
+        let count = tx.rollback();
+        assert_eq!(count, 2);
+
+        // Verify empty file preserved, new file deleted
+        assert!(
+            empty_existing.exists(),
+            "Pre-existing empty file must not be deleted by tx rollback"
+        );
+        assert_eq!(std::fs::read_to_string(&empty_existing).unwrap(), "");
+        assert!(
+            !brand_new.exists(),
+            "Newly created file must be deleted by tx rollback"
+        );
     }
 }

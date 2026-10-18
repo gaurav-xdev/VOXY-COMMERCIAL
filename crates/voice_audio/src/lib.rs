@@ -244,6 +244,7 @@ pub struct AudioCaptureHandle {
     _stream: Option<cpal::Stream>,
     is_active: Arc<AtomicBool>,
     is_muted: Arc<AtomicBool>,
+    is_speaker_playing: Arc<AtomicBool>,
 }
 
 impl AudioCaptureHandle {
@@ -257,6 +258,14 @@ impl AudioCaptureHandle {
 
     pub fn is_muted(&self) -> bool {
         self.is_muted.load(Ordering::SeqCst)
+    }
+
+    pub fn set_speaker_playing(&self, playing: bool) {
+        self.is_speaker_playing.store(playing, Ordering::SeqCst);
+    }
+
+    pub fn is_speaker_playing(&self) -> bool {
+        self.is_speaker_playing.load(Ordering::SeqCst)
     }
 
     pub fn stop(&self) {
@@ -347,9 +356,12 @@ impl AudioRuntime {
 
         let is_active = Arc::new(AtomicBool::new(true));
         let is_muted = Arc::new(AtomicBool::new(false));
+        let is_speaker_playing = Arc::new(AtomicBool::new(false));
 
         let active_clone = is_active.clone();
         let muted_clone = is_muted.clone();
+        let speaker_clone_f32 = is_speaker_playing.clone();
+        let speaker_clone_i16 = is_speaker_playing.clone();
         let on_frame = Arc::new(on_frame);
 
         let mut conditioner_f32 = AudioConditioner::new(self.config.conditioning.clone());
@@ -370,6 +382,8 @@ impl AudioRuntime {
                         }
                         let mut mono_16k =
                             normalize_to_mono_16k(data, sample_rate, channels, target_sr);
+                        conditioner_f32
+                            .set_speaker_active(speaker_clone_f32.load(Ordering::SeqCst));
                         conditioner_f32.process(&mut mono_16k);
                         let rms = calculate_rms(&mono_16k);
                         on_frame(mono_16k, rms);
@@ -398,6 +412,8 @@ impl AudioRuntime {
                             data.iter().map(|&s| (s as f32) / 32768.0).collect();
                         let mut mono_16k =
                             normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr);
+                        conditioner_i16
+                            .set_speaker_active(speaker_clone_i16.load(Ordering::SeqCst));
                         conditioner_i16.process(&mut mono_16k);
                         let rms = calculate_rms(&mono_16k);
                         on_frame(mono_16k, rms);
@@ -423,6 +439,7 @@ impl AudioRuntime {
                     _stream: Some(stream),
                     is_active,
                     is_muted,
+                    is_speaker_playing,
                 })
             }
             Err(e) => {
@@ -431,6 +448,7 @@ impl AudioRuntime {
                     _stream: None,
                     is_active,
                     is_muted,
+                    is_speaker_playing,
                 })
             }
         }
