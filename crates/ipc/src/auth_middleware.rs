@@ -198,9 +198,18 @@ impl AuthMiddleware {
                     token_str.as_bytes().to_vec(),
                 );
 
-                if let Some(ref secret) = *self.signing_secret.read() {
-                    token.sign(secret);
+                let secret_guard = self.signing_secret.read();
+                let secret = secret_guard.as_ref().ok_or_else(|| {
+                    AuthError::AuthenticationFailed(
+                        "Signing secret not configured; failing closed".into(),
+                    )
+                })?;
+                if secret.is_empty() {
+                    return Err(AuthError::AuthenticationFailed(
+                        "Signing secret is empty; failing closed".into(),
+                    ));
                 }
+                token.sign(secret);
 
                 let session_id = uuid::Uuid::new_v4();
                 self.sessions.write().insert(
@@ -258,13 +267,23 @@ impl AuthMiddleware {
             return Err(AuthError::TokenUnsigned);
         }
 
-        // Cryptographic HMAC-SHA256 signature verification if signing secret configured
-        if let Some(ref secret) = *self.signing_secret.read() {
-            if !token.verify_signature(secret) {
-                return Err(AuthError::AuthenticationFailed(
-                    "Token signature verification failed: invalid HMAC".into(),
-                ));
-            }
+        // Cryptographic HMAC-SHA256 signature verification: fails closed if missing or empty
+        let secret_guard = self.signing_secret.read();
+        let secret = secret_guard.as_ref().ok_or_else(|| {
+            AuthError::AuthenticationFailed(
+                "Signing secret not configured; failing closed".into(),
+            )
+        })?;
+        if secret.is_empty() {
+            return Err(AuthError::AuthenticationFailed(
+                "Signing secret is empty; failing closed".into(),
+            ));
+        }
+
+        if !token.verify_signature(secret) {
+            return Err(AuthError::AuthenticationFailed(
+                "Token signature verification failed: invalid HMAC".into(),
+            ));
         }
 
         // Capability check
@@ -299,7 +318,7 @@ mod tests {
     use super::*;
 
     fn make_middleware() -> AuthMiddleware {
-        AuthMiddleware::new(100)
+        AuthMiddleware::new(100).with_signing_secret(b"default-test-signing-secret")
     }
 
     fn make_auth_request(token: &str, capabilities: Vec<String>) -> AuthRequest {
@@ -348,7 +367,7 @@ mod tests {
 
     #[test]
     fn rate_limiting() {
-        let mw = AuthMiddleware::new(2); // 2 requests per minute
+        let mw = AuthMiddleware::new(2).with_signing_secret(b"default-test-signing-secret"); // 2 requests per minute
         let req = make_auth_request("token", vec![]);
         let resp = mw.authenticate(&req).unwrap();
         let session_id = resp.session_id.unwrap();
@@ -411,5 +430,35 @@ mod tests {
         }
         let err = mw.validate_request(&session_id, "audio:capture");
         assert!(matches!(err, Err(AuthError::AuthenticationFailed(_))));
+    }
+
+    #[test]
+    fn test_unconfigured_or_empty_signing_secret_fails_closed() {
+        // 1. Unconfigured secret in authenticate fails closed
+        let mw_unconfigured = AuthMiddleware::new(100);
+        let req = make_auth_request("valid-token-123", vec!["audio:capture".to_string()]);
+        let err = mw_unconfigured.authenticate(&req);
+        assert!(matches!(err, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret not configured")));
+
+        // 2. Empty secret in authenticate fails closed
+        let mw_empty = AuthMiddleware::new(100).with_signing_secret(b"");
+        let err2 = mw_empty.authenticate(&req);
+        assert!(matches!(err2, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret is empty")));
+
+        // 3. Unconfigured secret in validate_request fails closed even if session exists
+        let mw_configured = AuthMiddleware::new(100).with_signing_secret(b"secret");
+        let resp = mw_configured.authenticate(&req).unwrap();
+        let session_id = resp.session_id.unwrap();
+        assert!(mw_configured.validate_request(&session_id, "audio:capture").is_ok());
+
+        // Now clear the secret on the middleware
+        *mw_configured.signing_secret.write() = None;
+        let err3 = mw_configured.validate_request(&session_id, "audio:capture");
+        assert!(matches!(err3, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret not configured")));
+
+        // Set empty secret
+        *mw_configured.signing_secret.write() = Some(vec![]);
+        let err4 = mw_configured.validate_request(&session_id, "audio:capture");
+        assert!(matches!(err4, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret is empty")));
     }
 }
