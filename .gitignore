@@ -61,3 +61,7 @@ __pycache__/
 *.WebView2/
 installer/**/*.WebView2/
 
+# Analysis scratch
+.freebuff/
+graphify/
+graphify-out/

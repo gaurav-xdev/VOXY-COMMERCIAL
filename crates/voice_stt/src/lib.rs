@@ -254,13 +254,140 @@ impl SttEngine for GroqSttEngine {
 /// Local Whisper CPP speech-to-text adapter.
 pub struct LocalWhisperSttEngine {
     model_name: String,
+    /// Optional whisper.cpp executable path (usually discovered from env).
+    cli_path: Option<std::path::PathBuf>,
+    /// Optional ggml model path for the whisper.cpp executable.
+    model_path: Option<std::path::PathBuf>,
 }
 
 impl LocalWhisperSttEngine {
     pub fn new(model_name: impl Into<String>) -> Self {
         Self {
             model_name: model_name.into(),
+            cli_path: None,
+            model_path: None,
         }
+    }
+
+    /// Build a real whisper.cpp integration from environment configuration:
+    /// - `VOXY_WHISPER_CLI`: path to the whisper.cpp `main`/`whisper-cli` executable
+    /// - `VOXY_WHISPER_MODEL`: path to the ggml model file
+    ///
+    /// Returns Err (honest) when either is missing — the engine must never
+    /// fabricate transcription text when no real recognizer is configured.
+    pub fn from_env() -> Result<Self, SttError> {
+        let cli = std::env::var("VOXY_WHISPER_CLI")
+            .map_err(|_| {
+                SttError::LocalModelError(
+                    "VOXY_WHISPER_CLI not set; no local whisper.cpp executable configured"
+                        .to_string(),
+                )
+            })?
+            .into();
+        let model = std::env::var("VOXY_WHISPER_MODEL")
+            .map_err(|_| {
+                SttError::LocalModelError(
+                    "VOXY_WHISPER_MODEL not set; no ggml model file configured".to_string(),
+                )
+            })?
+            .into();
+        Ok(Self {
+            model_name: "whisper.cpp".to_string(),
+            cli_path: Some(cli),
+            model_path: Some(model),
+        })
+    }
+
+    /// Run the real whisper.cpp CLI against the encoded WAV and capture stdout text.
+    async fn run_whisper_cli(
+        &self,
+        pcm_16k_mono: &[f32],
+        language: Option<&str>,
+    ) -> Result<SttResult, SttError> {
+        let cli = self
+            .cli_path
+            .as_ref()
+            .ok_or_else(|| {
+                SttError::LocalModelError(
+                    "whisper.cpp executable not configured; set VOXY_WHISPER_CLI".to_string(),
+                )
+            })?
+            .clone();
+        let model = self
+            .model_path
+            .as_ref()
+            .ok_or_else(|| {
+                SttError::LocalModelError(
+                    "whisper.cpp model file not configured; set VOXY_WHISPER_MODEL".to_string(),
+                )
+            })?
+            .clone();
+
+        let duration_ms = (pcm_16k_mono.len() as f64 / 16000.0 * 1000.0) as u64;
+        let wav_bytes = encode_wav_16k_mono(pcm_16k_mono);
+        let wav_path = std::env::temp_dir().join(format!(
+            "osmoo_whisper_{}.wav",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        tokio::fs::write(&wav_path, &wav_bytes)
+            .await
+            .map_err(|e| SttError::LocalModelError(format!("failed to write temp WAV: {e}")))?;
+
+        let mut cmd = tokio::process::Command::new(&cli);
+        cmd.arg("-m")
+            .arg(&model)
+            .arg("-f")
+            .arg(&wav_path)
+            .arg("-nt") // no timestamps: plain text output
+            .arg("--no-prints");
+        if let Some(lang) = language {
+            cmd.arg("-l").arg(lang);
+        }
+
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| SttError::LocalModelError(format!("failed to run whisper.cpp CLI: {e}")));
+        let _ = tokio::fs::remove_file(&wav_path).await;
+        let output = output?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(SttError::LocalModelError(format!(
+                "whisper.cpp exited non-zero: {}",
+                stderr.trim()
+            )));
+        }
+
+        let mut text = String::from_utf8_lossy(&output.stdout).to_string();
+        text = text
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty() && !line.starts_with('['))
+            .collect::<Vec<_>>()
+            .join(" ")
+            .trim()
+            .to_string();
+
+        let duration_secs = duration_ms as f32 / 1000.0;
+        // Confidence is a transparent heuristic estimate (recognized characters
+        // per second against typical speech), not a fabricated model probability.
+        let chars_per_sec = if duration_secs > 0.05 {
+            text.chars().count() as f32 / duration_secs
+        } else {
+            0.0
+        };
+        let confidence = (chars_per_sec / 15.0).clamp(0.0, 0.95);
+        Ok(SttResult {
+            text,
+            language: language.map(String::from),
+            duration_ms,
+            confidence,
+            is_final: true,
+        })
     }
 }
 
@@ -278,19 +405,21 @@ impl SttEngine for LocalWhisperSttEngine {
         if pcm_16k_mono.is_empty() {
             return Err(SttError::EmptyAudio);
         }
-        let duration_ms = (pcm_16k_mono.len() as f64 / 16000.0 * 1000.0) as u64;
 
-        // Local whisper.cpp adapter fallback:
-        // Returns simulated/fallback recognition or logs local execution
-        Ok(SttResult {
-            text: format!("[Local Whisper ({})] Audio transcribed", self.model_name),
-            language: language
-                .map(String::from)
-                .or_else(|| Some("en".to_string())),
-            duration_ms,
-            confidence: 0.90,
-            is_final: true,
-        })
+        // Only run the real recognizer when one is actually configured.
+        // The previous behavior in this code path returned a fabricated
+        // "[Local Whisper (...)] Audio transcribed" placeholder with fake
+        // confidence — that is strictly forbidden now.
+        if self.cli_path.is_some() && self.model_path.is_some() {
+            return self.run_whisper_cli(pcm_16k_mono, language).await;
+        }
+
+        Err(SttError::LocalModelError(format!(
+            "Local whisper.cpp STT is not configured on this machine (model '{}'). \
+             Set VOXY_WHISPER_CLI and VOXY_WHISPER_MODEL to enable real local transcription; \
+             no fabricated transcription is produced.",
+            self.model_name
+        )))
     }
 }
 

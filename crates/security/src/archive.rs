@@ -367,7 +367,10 @@ pub fn safe_extract_zip<R: io::Read + io::Seek>(
             .by_index(i)
             .map_err(|e| ArchiveSecurityError::ZipError(e.to_string()))?;
 
-        let raw_name = entry.name().to_string();
+        let raw_name = entry
+            .name()
+            .map_err(|e| ArchiveSecurityError::ZipError(e.to_string()))?
+            .to_string();
 
         // 1. Validate relative path & prevent traversal
         let safe_rel_path = validate_archive_path(&raw_name, limits)?;

@@ -577,6 +577,47 @@ fn create_tts_engine() -> Arc<dyn voxy_voice_tts::TtsEngine> {
     }
 }
 
+async fn stream_llm_to_sink(
+    llm: Arc<dyn LlmProvider>,
+    prompt: String,
+    sink: tokio::sync::mpsc::Sender<String>,
+) -> Result<String, String> {
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::channel::<voxy_provider_core::LlmChunk>(32);
+    let llm_clone = llm.clone();
+    let prompt_clone = prompt.clone();
+    let stream_task =
+        tokio::spawn(async move { llm_clone.complete_streaming(&prompt_clone, chunk_tx).await });
+
+    let mut accumulated = String::new();
+    while let Some(chunk) = chunk_rx.recv().await {
+        if !chunk.text.is_empty() {
+            accumulated.push_str(&chunk.text);
+            let _ = sink.send(chunk.text).await;
+        }
+        if chunk.done {
+            break;
+        }
+    }
+
+    match stream_task.await {
+        Ok(Ok(())) => Ok(accumulated),
+        Ok(Err(e)) => {
+            if !accumulated.is_empty() {
+                Ok(accumulated)
+            } else {
+                Err(e.to_string())
+            }
+        }
+        Err(e) => {
+            if !accumulated.is_empty() {
+                Ok(accumulated)
+            } else {
+                Err(e.to_string())
+            }
+        }
+    }
+}
+
 fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> PipelineFuture {
     Box::pin(async move {
         // ── VOXY COM Native IPC Server (Windows Named Pipe) ──
@@ -988,7 +1029,12 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
         let tasks_completed = Arc::new(std::sync::atomic::AtomicU32::new(0));
 
         // ── Response Handler ──────────────────────────────────────────────
-        let response_handler = {
+        // One production request pipeline shared by both handler forms:
+        // - legacy: full-text response (used when streaming is unavailable)
+        // - streaming: same body, LLM chunks forwarded sentence-by-sentence so TTS
+        //   starts before the whole response exists; TOOL: lines are suppressed
+        //   from speech until the executed tool result replaces them.
+        let request_pipeline = std::sync::Arc::new({
             let cognitive = cognitive.clone();
             let memory_clone = memory.clone();
             let exp_input = exp_input_for_handler.clone();
@@ -1002,261 +1048,233 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             let recovery_mode = recovery_mode.clone();
             let tool_reg = tool_registry.clone();
             let ipc_srv = ipc_server.clone();
-            Box::new(
-                move |text: String| -> futures_util::future::BoxFuture<'static, Result<String, String>> {
-                    let cognitive = cognitive.clone();
-                    let memory = memory_clone.clone();
-                    let metrics = metrics_ref.clone();
-                    let exp_input = exp_input.clone();
-                    let llm = llm.clone();
-                    let desktop_ctx = desktop_ctx.clone();
-                    let reflector = reflector.clone();
-                    let guardian = guardian.clone();
-                    let sys_prompt = sys_prompt.clone();
-                    let recovery_mode = recovery_mode.clone();
-                    let tasks_completed = tasks_completed.clone();
-                    let audit_log = audit_log.clone();
-                    let tool_reg = tool_reg.clone();
-                    let ipc_srv = ipc_srv.clone();
-                    Box::pin(async move {
-                        // ── 0. SANITIZE INPUT (security boundary) ────────
-                        let sanitized = sanitize_user_input(&text);
-                        if sanitized.injection_detected {
+            move |text: String,
+                  stream_sink: Option<tokio::sync::mpsc::Sender<String>>|
+                  -> futures_util::future::BoxFuture<'static, Result<String, String>> {
+                let cognitive = cognitive.clone();
+                let memory = memory_clone.clone();
+                let metrics = metrics_ref.clone();
+                let exp_input = exp_input.clone();
+                let llm = llm.clone();
+                let desktop_ctx = desktop_ctx.clone();
+                let reflector = reflector.clone();
+                let guardian = guardian.clone();
+                let sys_prompt = sys_prompt.clone();
+                let recovery_mode = recovery_mode.clone();
+                let tasks_completed = tasks_completed.clone();
+                let audit_log = audit_log.clone();
+                let tool_reg = tool_reg.clone();
+                let ipc_srv = ipc_srv.clone();
+                Box::pin(async move {
+                    // ── 0. SANITIZE INPUT (security boundary) ────────
+                    let sanitized = sanitize_user_input(&text);
+                    if sanitized.injection_detected {
+                        tracing::warn!(
+                            patterns = ?sanitized.patterns,
+                            "Injection pattern detected in user input — sanitizing"
+                        );
+                    }
+                    let text = sanitized.text;
+
+                    if text.is_empty() || text == "short sound" {
+                        return Ok(String::new());
+                    }
+
+                    let response_start = Instant::now();
+
+                    // ── 1. Feed transcript → Experience Layer & IPC Clients ──────────
+                    tracing::info!("[VOICE:LLM] Text: {}", text);
+                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                        text: text.clone(),
+                        is_final: true,
+                    });
+                    ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                        id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                        sender: "USER".into(),
+                        text: text.clone(),
+                        timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                        is_user: true,
+                    });
+
+                    // ── 2. Store user turn in memory ───────────────────
+                    let lower = text.to_lowercase();
+                    let mut mem = memory.lock().await;
+                    mem.add_turn("user", &text);
+                    let _is_follow_up = mem.is_follow_up(&lower);
+
+                    // ── 2b. Emergency Stop Voice Interceptor ────────────
+                    let lower_trimmed = lower.trim();
+                    if lower_trimmed == "emergency stop"
+                        || lower_trimmed == "abort all actions"
+                        || lower_trimmed == "freeze actions"
+                        || lower_trimmed == "stop all actions"
+                        || lower_trimmed == "emergency halt"
+                    {
+                        if let Some(ref tr) = tool_reg {
+                            tr.trigger_emergency_stop();
+                            ipc_srv.set_emergency_stop(true).await;
                             tracing::warn!(
-                                patterns = ?sanitized.patterns,
-                                "Injection pattern detected in user input — sanitizing"
+                                "[VOICE:EMERGENCY] Emergency Stop triggered via voice command"
                             );
-                        }
-                        let text = sanitized.text;
-
-                        if text.is_empty() || text == "short sound" {
-                            return Ok(String::new());
-                        }
-
-                        let response_start = Instant::now();
-
-                        // ── 1. Feed transcript → Experience Layer & IPC Clients ──────────
-                        tracing::info!("[VOICE:LLM] Text: {}", text);
-                        let _ = exp_input.send(ExperienceInput::VoiceTranscript {
-                            text: text.clone(),
-                            is_final: true,
-                        });
-                        ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
-                            id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
-                            sender: "USER".into(),
-                            text: text.clone(),
-                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                            is_user: true,
-                        });
-
-                        // ── 2. Store user turn in memory ───────────────────
-                        let lower = text.to_lowercase();
-                        let mut mem = memory.lock().await;
-                        mem.add_turn("user", &text);
-                        let _is_follow_up = mem.is_follow_up(&lower);
-
-                        // ── 2b. Emergency Stop Voice Interceptor ────────────
-                        let lower_trimmed = lower.trim();
-                        if lower_trimmed == "emergency stop"
-                            || lower_trimmed == "abort all actions"
-                            || lower_trimmed == "freeze actions"
-                            || lower_trimmed == "stop all actions"
-                            || lower_trimmed == "emergency halt"
-                        {
-                            if let Some(ref tr) = tool_reg {
-                                tr.trigger_emergency_stop();
-                                ipc_srv.set_emergency_stop(true).await;
-                                tracing::warn!(
-                                    "[VOICE:EMERGENCY] Emergency Stop triggered via voice command"
-                                );
-                                let response = "Emergency Stop activated. All computer control actions have been halted.".to_string();
-                                mem.add_turn("assistant", &response);
-                                ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
-                                    id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
-                                    sender: "VOXY".into(),
-                                    text: response.clone(),
-                                    timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                                    is_user: false,
-                                });
-                                return Ok(response);
-                            }
-                        }
-                        if lower_trimmed == "reset emergency stop"
-                            || lower_trimmed == "resume actions"
-                            || lower_trimmed == "cancel emergency stop"
-                        {
-                            if let Some(ref tr) = tool_reg {
-                                tr.reset_emergency_stop();
-                                ipc_srv.set_emergency_stop(false).await;
-                                tracing::info!(
-                                    "[VOICE:EMERGENCY] Emergency Stop reset via voice command"
-                                );
-                                let response =
-                                    "Emergency Stop reset. Computer control is re-enabled."
-                                        .to_string();
-                                mem.add_turn("assistant", &response);
-                                ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
-                                    id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
-                                    sender: "VOXY".into(),
-                                    text: response.clone(),
-                                    timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                                    is_user: false,
-                                });
-                                return Ok(response);
-                            }
-                        }
-
-                        // If Emergency Stop is engaged, block any automation commands
-                        if tool_reg
-                            .as_ref()
-                            .map(|tr| tr.is_emergency_stopped())
-                            .unwrap_or(false)
-                            && (lower.contains("open")
-                                || lower.contains("launch")
-                                || lower.contains("start")
-                                || lower.contains("type")
-                                || lower.contains("click")
-                                || lower.contains("press"))
-                        {
-                            tracing::warn!("[VOICE:EMERGENCY] Blocked automation action: Emergency Stop active");
-                            let response = "Action blocked. Emergency Stop is active. Say 'reset emergency stop' to resume.".to_string();
+                            let response = "Emergency Stop activated. All computer control actions have been halted.".to_string();
                             mem.add_turn("assistant", &response);
+                            ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                                id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                                sender: "VOXY".into(),
+                                text: response.clone(),
+                                timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                is_user: false,
+                            });
                             return Ok(response);
                         }
+                    }
+                    if lower_trimmed == "reset emergency stop"
+                        || lower_trimmed == "resume actions"
+                        || lower_trimmed == "cancel emergency stop"
+                    {
+                        if let Some(ref tr) = tool_reg {
+                            tr.reset_emergency_stop();
+                            ipc_srv.set_emergency_stop(false).await;
+                            tracing::info!(
+                                "[VOICE:EMERGENCY] Emergency Stop reset via voice command"
+                            );
+                            let response =
+                                "Emergency Stop reset. Computer control is re-enabled.".to_string();
+                            mem.add_turn("assistant", &response);
+                            ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                                id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                                sender: "VOXY".into(),
+                                text: response.clone(),
+                                timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                is_user: false,
+                            });
+                            return Ok(response);
+                        }
+                    }
 
-                        // ── 3. Handle automation commands directly ──────────
-                        if lower.contains("open")
+                    // If Emergency Stop is engaged, block any automation commands
+                    if tool_reg
+                        .as_ref()
+                        .map(|tr| tr.is_emergency_stopped())
+                        .unwrap_or(false)
+                        && (lower.contains("open")
                             || lower.contains("launch")
                             || lower.contains("start")
-                        {
-                            let app = if lower.contains("chrome") || lower.contains("browser") {
-                                Some("chrome")
-                            } else if lower.contains("notepad") || lower.contains("editor") {
-                                Some("notepad")
-                            } else if lower.contains("calc") || lower.contains("calculator") {
-                                Some("calc")
-                            } else if lower.contains("explorer") || lower.contains("files") {
-                                Some("explorer")
-                            } else if lower.contains("spotify") {
-                                Some("spotify")
-                            } else if lower.contains("discord") {
-                                Some("discord")
-                            } else if lower.contains("code") || lower.contains("vscode") {
-                                Some("code")
-                            } else if lower.contains("terminal") || lower.contains("powershell") {
-                                Some("wt")
-                            } else if lower.contains("cmd") || lower.contains("command prompt") {
-                                Some("cmd")
-                            } else if lower.contains("settings") {
-                                Some("ms-settings:")
-                            } else {
-                                None
+                            || lower.contains("type")
+                            || lower.contains("click")
+                            || lower.contains("press"))
+                    {
+                        tracing::warn!(
+                            "[VOICE:EMERGENCY] Blocked automation action: Emergency Stop active"
+                        );
+                        let response = "Action blocked. Emergency Stop is active. Say 'reset emergency stop' to resume.".to_string();
+                        mem.add_turn("assistant", &response);
+                        return Ok(response);
+                    }
+
+                    // ── 3. Handle automation commands directly ──────────
+                    if lower.contains("open") || lower.contains("launch") || lower.contains("start")
+                    {
+                        let app = if lower.contains("chrome") || lower.contains("browser") {
+                            Some("chrome")
+                        } else if lower.contains("notepad") || lower.contains("editor") {
+                            Some("notepad")
+                        } else if lower.contains("calc") || lower.contains("calculator") {
+                            Some("calc")
+                        } else if lower.contains("explorer") || lower.contains("files") {
+                            Some("explorer")
+                        } else if lower.contains("spotify") {
+                            Some("spotify")
+                        } else if lower.contains("discord") {
+                            Some("discord")
+                        } else if lower.contains("code") || lower.contains("vscode") {
+                            Some("code")
+                        } else if lower.contains("terminal") || lower.contains("powershell") {
+                            Some("wt")
+                        } else if lower.contains("cmd") || lower.contains("command prompt") {
+                            Some("cmd")
+                        } else if lower.contains("settings") {
+                            Some("ms-settings:")
+                        } else {
+                            None
+                        };
+
+                        if let Some(app) = app {
+                            // ── GUARDIAN CHECK: automation requires authorization ──
+                            let decision = {
+                                let r = recovery_mode.lock().await;
+                                guardian.evaluate(
+                                    "voice-user",
+                                    "automation:write",
+                                    Some(app),
+                                    "launch_application",
+                                    std::collections::HashMap::new(),
+                                    &r,
+                                )
                             };
 
-                            if let Some(app) = app {
-                                // ── GUARDIAN CHECK: automation requires authorization ──
-                                let decision = {
-                                    let r = recovery_mode.lock().await;
-                                    guardian.evaluate(
-                                        "voice-user",
-                                        "automation:write",
-                                        Some(app),
-                                        "launch_application",
-                                        std::collections::HashMap::new(),
-                                        &r,
-                                    )
-                                };
-
-                                // Record typed audit event for guardian decision
-                                {
-                                    let mut log = audit_log.lock().await;
-                                    let event_type = if decision.allowed {
-                                        AuditEventType::Authorization {
-                                            decision: "allowed".to_string(),
-                                        }
-                                    } else {
-                                        AuditEventType::Authorization {
-                                            decision: "denied".to_string(),
-                                        }
-                                    };
-                                    log.record_typed(
-                                        "voice-user",
-                                        "automation:write",
-                                        Some(app),
-                                        if decision.allowed {
-                                            "allowed"
-                                        } else {
-                                            "denied"
-                                        },
-                                        Some(&decision.reason),
-                                        "high",
-                                        "trusted",
-                                        voxy_security::policy::AuditLevel::Detailed,
-                                        event_type,
-                                    );
-                                }
-
-                                if !decision.allowed {
-                                    // Activate recovery mode on critical-risk denials
-                                    if decision.requires_mfa {
-                                        let mut recovery = recovery_mode.lock().await;
-                                        if recovery.state()
-                                            == voxy_security::recovery::RecoveryState::Normal
-                                        {
-                                            let auth = voxy_security::recovery::RecoveryAuth {
-                                                subject: "system".to_string(),
-                                                reason: format!(
-                                                    "Critical risk action denied: {}",
-                                                    decision.reason
-                                                ),
-                                                auth_method: "automatic_guardian".to_string(),
-                                            };
-                                            if let Err(e) = recovery.enter(auth) {
-                                                tracing::error!(
-                                                    error = %e,
-                                                    "Failed to activate recovery mode"
-                                                );
-                                            } else {
-                                                tracing::warn!(
-                                                    reason = %decision.reason,
-                                                    "Recovery mode activated due to critical threat"
-                                                );
-                                            }
-                                        }
-                                    }
-
-                                    let response = format!(
-                                        "I need permission to open {}. {}",
-                                        app, decision.reason
-                                    );
-                                    mem.add_turn("assistant", &response);
-                                    drop(mem);
-                                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
-                                        text: response.clone(),
-                                        is_final: true,
-                                    });
-                                    return Ok(response);
-                                }
-
-                                mem.last_app = Some(app.to_string());
-                                let uia = WindowsUiaBackend::new();
-                                let response = if uia.is_available().await {
-                                    let auto_start = Instant::now();
-                                    match open_application(app).await {
-                                        Ok(_) => {
-                                            metrics.record_automation(auto_start.elapsed());
-                                            format!("Done — {app} is now open.")
-                                        }
-                                        Err(e) => {
-                                            metrics.record_automation(auto_start.elapsed());
-                                            format!("I couldn't open {app}. {e}")
-                                        }
+                            // Record typed audit event for guardian decision
+                            {
+                                let mut log = audit_log.lock().await;
+                                let event_type = if decision.allowed {
+                                    AuditEventType::Authorization {
+                                        decision: "allowed".to_string(),
                                     }
                                 } else {
-                                    format!(
-                                        "I'd open {app} for you, but automation isn't available."
-                                    )
+                                    AuditEventType::Authorization {
+                                        decision: "denied".to_string(),
+                                    }
                                 };
+                                log.record_typed(
+                                    "voice-user",
+                                    "automation:write",
+                                    Some(app),
+                                    if decision.allowed {
+                                        "allowed"
+                                    } else {
+                                        "denied"
+                                    },
+                                    Some(&decision.reason),
+                                    "high",
+                                    "trusted",
+                                    voxy_security::policy::AuditLevel::Detailed,
+                                    event_type,
+                                );
+                            }
+
+                            if !decision.allowed {
+                                // Activate recovery mode on critical-risk denials
+                                if decision.requires_mfa {
+                                    let mut recovery = recovery_mode.lock().await;
+                                    if recovery.state()
+                                        == voxy_security::recovery::RecoveryState::Normal
+                                    {
+                                        let auth = voxy_security::recovery::RecoveryAuth {
+                                            subject: "system".to_string(),
+                                            reason: format!(
+                                                "Critical risk action denied: {}",
+                                                decision.reason
+                                            ),
+                                            auth_method: "automatic_guardian".to_string(),
+                                        };
+                                        if let Err(e) = recovery.enter(auth) {
+                                            tracing::error!(
+                                                error = %e,
+                                                "Failed to activate recovery mode"
+                                            );
+                                        } else {
+                                            tracing::warn!(
+                                                reason = %decision.reason,
+                                                "Recovery mode activated due to critical threat"
+                                            );
+                                        }
+                                    }
+                                }
+
+                                let response = format!(
+                                    "I need permission to open {}. {}",
+                                    app, decision.reason
+                                );
                                 mem.add_turn("assistant", &response);
                                 drop(mem);
                                 let _ = exp_input.send(ExperienceInput::VoiceTranscript {
@@ -1265,246 +1283,325 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 });
                                 return Ok(response);
                             }
+
+                            mem.last_app = Some(app.to_string());
+                            let uia = WindowsUiaBackend::new();
+                            let response = if uia.is_available().await {
+                                let auto_start = Instant::now();
+                                match open_application(app).await {
+                                    Ok(_) => {
+                                        metrics.record_automation(auto_start.elapsed());
+                                        format!("Done — {app} is now open.")
+                                    }
+                                    Err(e) => {
+                                        metrics.record_automation(auto_start.elapsed());
+                                        format!("I couldn't open {app}. {e}")
+                                    }
+                                }
+                            } else {
+                                format!("I'd open {app} for you, but automation isn't available.")
+                            };
+                            mem.add_turn("assistant", &response);
+                            drop(mem);
+                            let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                                text: response.clone(),
+                                is_final: true,
+                            });
+                            return Ok(response);
                         }
+                    }
 
-                        if lower.contains("open it again") || lower.contains("reopen") {
-                            if let Some(app) = mem.last_app.clone() {
-                                let decision = {
-                                    let r = recovery_mode.lock().await;
-                                    guardian.evaluate(
-                                        "voice-user",
-                                        "automation:write",
-                                        Some(&app),
-                                        "launch_application",
-                                        std::collections::HashMap::new(),
-                                        &r,
-                                    )
+                    if lower.contains("open it again") || lower.contains("reopen") {
+                        if let Some(app) = mem.last_app.clone() {
+                            let decision = {
+                                let r = recovery_mode.lock().await;
+                                guardian.evaluate(
+                                    "voice-user",
+                                    "automation:write",
+                                    Some(&app),
+                                    "launch_application",
+                                    std::collections::HashMap::new(),
+                                    &r,
+                                )
+                            };
+
+                            {
+                                let mut log = audit_log.lock().await;
+                                let event_type = if decision.allowed {
+                                    AuditEventType::Authorization {
+                                        decision: "allowed".to_string(),
+                                    }
+                                } else {
+                                    AuditEventType::Authorization {
+                                        decision: "denied".to_string(),
+                                    }
                                 };
-
-                                {
-                                    let mut log = audit_log.lock().await;
-                                    let event_type = if decision.allowed {
-                                        AuditEventType::Authorization {
-                                            decision: "allowed".to_string(),
-                                        }
+                                log.record_typed(
+                                    "voice-user",
+                                    "automation:write",
+                                    Some(&app),
+                                    if decision.allowed {
+                                        "allowed"
                                     } else {
-                                        AuditEventType::Authorization {
-                                            decision: "denied".to_string(),
-                                        }
-                                    };
-                                    log.record_typed(
-                                        "voice-user",
-                                        "automation:write",
-                                        Some(&app),
-                                        if decision.allowed {
-                                            "allowed"
-                                        } else {
-                                            "denied"
-                                        },
-                                        Some(&decision.reason),
-                                        "high",
-                                        "trusted",
-                                        voxy_security::policy::AuditLevel::Detailed,
-                                        event_type,
-                                    );
-                                }
+                                        "denied"
+                                    },
+                                    Some(&decision.reason),
+                                    "high",
+                                    "trusted",
+                                    voxy_security::policy::AuditLevel::Detailed,
+                                    event_type,
+                                );
+                            }
 
-                                if !decision.allowed {
-                                    let response = format!(
-                                        "I need permission to reopen {app}. {}",
-                                        decision.reason
-                                    );
-                                    mem.add_turn("assistant", &response);
-                                    drop(mem);
-                                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
-                                        text: response.clone(),
-                                        is_final: true,
-                                    });
-                                    return Ok(response);
-                                }
-
-                                let response = match open_application(&app).await {
-                                    Ok(_) => format!("Opening {app} again."),
-                                    Err(e) => format!("Failed to reopen {app}: {e}"),
-                                };
+                            if !decision.allowed {
+                                let response = format!(
+                                    "I need permission to reopen {app}. {}",
+                                    decision.reason
+                                );
                                 mem.add_turn("assistant", &response);
                                 drop(mem);
                                 let _ = exp_input.send(ExperienceInput::VoiceTranscript {
                                     text: response.clone(),
                                     is_final: true,
-                                    });
+                                });
                                 return Ok(response);
                             }
+
+                            let response = match open_application(&app).await {
+                                Ok(_) => format!("Opening {app} again."),
+                                Err(e) => format!("Failed to reopen {app}: {e}"),
+                            };
+                            mem.add_turn("assistant", &response);
+                            drop(mem);
+                            let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                                text: response.clone(),
+                                is_final: true,
+                            });
+                            return Ok(response);
                         }
+                    }
 
-                        // ── 4. Build LLM prompt with full context ──────────
-                        let history = mem.conversation_history();
-                        let desktop = sanitize_context(&desktop_ctx.read().await.clone());
-                        drop(mem);
+                    // ── 4. Build LLM prompt with full context ──────────
+                    let history = mem.conversation_history();
+                    let desktop = sanitize_context(&desktop_ctx.read().await.clone());
+                    drop(mem);
 
-                        let system_prompt = format!(
-                            "{}\n\n\
+                    let system_prompt = format!(
+                        "{}\n\n\
                              Current desktop context: {}\n\n\
                              Recent conversation:\n{}",
-                            sys_prompt,
-                            if desktop.is_empty() {
-                                "unknown"
-                            } else {
-                                &desktop
-                            },
-                            if history.is_empty() {
-                                "No prior conversation.".to_string()
-                            } else {
-                                history
-                            },
-                        );
+                        sys_prompt,
+                        if desktop.is_empty() {
+                            "unknown"
+                        } else {
+                            &desktop
+                        },
+                        if history.is_empty() {
+                            "No prior conversation.".to_string()
+                        } else {
+                            history
+                        },
+                    );
 
-                        // ── 5. Generate response via Ollama LLM ───────────
-                        tracing::info!(
-                            "[VOICE:LLM] Calling Ollama (prompt={} chars)",
-                            system_prompt.len()
-                        );
-                        let response = match llm
-                            .complete(&format!(
-                                "{system_prompt}\n\n{}",
-                                voxy_security::prompt::SystemPromptBuilder::format_user_message(
-                                    &text
-                                )
-                            ))
-                            .await
+                    // ── 5. Generate response via LLM provider ─────────
+                    // Streaming mode (when the pipeline wired a sink): provider
+                    // chunks are forwarded sentence-by-sentence so TTS can start
+                    // before the full response; TOOL: lines are suppressed from
+                    // speech and executed through the tool path below.
+                    tracing::info!(
+                        "[VOICE:LLM] Calling provider {} (prompt={} chars, streaming={})",
+                        llm.name(),
+                        system_prompt.len(),
+                        stream_sink.is_some()
+                    );
+                    let user_prompt = format!(
+                        "{system_prompt}\n\n{}",
+                        voxy_security::prompt::SystemPromptBuilder::format_user_message(&text)
+                    );
+                    let response = match stream_sink {
+                        Some(sink) => {
+                            match stream_llm_to_sink(llm.clone(), user_prompt, sink).await {
+                                Ok(accumulated) => {
+                                    let cleaned = accumulated
+                                        .trim()
+                                        .trim_start_matches("Assistant:")
+                                        .trim()
+                                        .to_string();
+                                    if cleaned.is_empty() {
+                                        pick_echo(&text)
+                                    } else {
+                                        // Sanitize LLM output to prevent system prompt leakage
+                                        sanitize_llm_output(&cleaned)
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::warn!("LLM streaming failed: {e} — using fallback");
+                                    let intent = IntentInput {
+                                        raw_text: text.clone(),
+                                        context: None,
+                                        source: "voice".to_string(),
+                                        metadata: std::collections::HashMap::new(),
+                                    };
+                                    match cognitive.process(&intent).await {
+                                        Ok(_) => pick_echo(&text),
+                                        Err(_) => pick_echo(&text),
+                                    }
+                                }
+                            }
+                        }
+                        None => {
+                            match llm.complete(&user_prompt).await {
+                                Ok(raw) => {
+                                    let cleaned = raw
+                                        .trim()
+                                        .trim_start_matches("Assistant:")
+                                        .trim()
+                                        .to_string();
+                                    if cleaned.is_empty() {
+                                        pick_echo(&text)
+                                    } else {
+                                        // Sanitize LLM output to prevent system prompt leakage
+                                        sanitize_llm_output(&cleaned)
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::warn!("LLM call failed: {e} — using fallback");
+                                    // Fallback to intent matching
+                                    let intent = IntentInput {
+                                        raw_text: text.clone(),
+                                        context: None,
+                                        source: "voice".to_string(),
+                                        metadata: std::collections::HashMap::new(),
+                                    };
+                                    match cognitive.process(&intent).await {
+                                        Ok(_) => pick_echo(&text),
+                                        Err(_) => pick_echo(&text),
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    // ── 5b. Parse & execute structured tool call if present ───
+                    let response = if let Some(ref tr) = tool_reg {
+                        if let Some((call, remaining)) =
+                            tools::ToolRegistry::parse_tool_call(&response)
                         {
-                            Ok(raw) => {
-                                let cleaned = raw
-                                    .trim()
-                                    .trim_start_matches("Assistant:")
-                                    .trim()
-                                    .to_string();
-                                if cleaned.is_empty() {
-                                    pick_echo(&text)
-                                } else {
-                                    // Sanitize LLM output to prevent system prompt leakage
-                                    sanitize_llm_output(&cleaned)
-                                }
-                            }
-                            Err(e) => {
-                                tracing::warn!("LLM call failed: {e} — using fallback");
-                                // Fallback to intent matching
-                                let intent = IntentInput {
-                                    raw_text: text.clone(),
-                                    context: None,
-                                    source: "voice".to_string(),
-                                    metadata: std::collections::HashMap::new(),
-                                };
-                                match cognitive.process(&intent).await {
-                                    Ok(_) => pick_echo(&text),
-                                    Err(_) => pick_echo(&text),
-                                }
-                            }
-                        };
-
-                        // ── 5b. Parse & execute structured tool call if present ───
-                        let response = if let Some(ref tr) = tool_reg {
-                            if let Some((call, remaining)) =
-                                tools::ToolRegistry::parse_tool_call(&response)
-                            {
-                                tracing::info!(
-                                    "[VOICE:TOOL] Parsed tool call: {} {:?}",
-                                    call.tool,
-                                    call.params
-                                );
-                                let step_id = uuid::Uuid::new_v4().as_u128() as u64;
-                                ipc_srv.broadcast_tool_step(
-                                    step_id,
-                                    call.tool.clone(),
-                                    format!("Executing {}", call.tool),
-                                    call.params.to_string(),
-                                    voxy_ipc::ToolStepStatus::Running,
-                                );
-                                let result = tr.execute(&call).await;
-                                let status = if result.success {
-                                    voxy_ipc::ToolStepStatus::Completed
-                                } else {
-                                    voxy_ipc::ToolStepStatus::Failed
-                                };
-                                ipc_srv.broadcast_tool_step(
-                                    step_id,
-                                    call.tool.clone(),
-                                    result.message.clone(),
-                                    call.params.to_string(),
-                                    status,
-                                );
-                                if !remaining.is_empty() {
-                                    format!("{}\n{}", remaining, result.message)
-                                } else {
-                                    result.message
-                                }
+                            tracing::info!(
+                                "[VOICE:TOOL] Parsed tool call: {} {:?}",
+                                call.tool,
+                                call.params
+                            );
+                            let step_id = uuid::Uuid::new_v4().as_u128() as u64;
+                            ipc_srv.broadcast_tool_step(
+                                step_id,
+                                call.tool.clone(),
+                                format!("Executing {}", call.tool),
+                                call.params.to_string(),
+                                voxy_ipc::ToolStepStatus::Running,
+                            );
+                            let result = tr.execute(&call).await;
+                            let status = if result.success {
+                                voxy_ipc::ToolStepStatus::Completed
                             } else {
-                                response
+                                voxy_ipc::ToolStepStatus::Failed
+                            };
+                            ipc_srv.broadcast_tool_step(
+                                step_id,
+                                call.tool.clone(),
+                                result.message.clone(),
+                                call.params.to_string(),
+                                status,
+                            );
+                            if !remaining.is_empty() {
+                                format!("{}\n{}", remaining, result.message)
+                            } else {
+                                result.message
                             }
                         } else {
                             response
-                        };
-
-                        let elapsed_ms = response_start.elapsed().as_millis();
-                        tracing::info!(
-                            "[VOICE:LLM] Response: {} chars in {}ms",
-                            response.len(),
-                            elapsed_ms
-                        );
-                        tracing::info!(
-                            input = %text,
-                            response_len = response.len(),
-                            latency_ms = elapsed_ms,
-                            "Response generated"
-                        );
-
-                        // ── 6. Store assistant turn in memory ──────────────
-                        {
-                            let mut mem = memory.lock().await;
-                            mem.add_turn("assistant", &response);
                         }
+                    } else {
+                        response
+                    };
 
-                        // ── 6b. Submit for reflection ────────────────────
-                        {
-                            let mem = memory.lock().await;
-                            let messages: Vec<(String, String)> =
-                                mem.turns.iter().cloned().collect();
-                            drop(mem);
-                            if messages.len() >= 2 {
-                                let record =
-                                    voxy_cognitive_orchestrator::reflection::ConversationRecord {
-                                        id: uuid::Uuid::new_v4(),
-                                        messages,
-                                        context: String::new(),
-                                        timestamp: chrono::Utc::now(),
-                                    };
-                                let _ = reflector.submit(record).await;
-                            }
+                    let elapsed_ms = response_start.elapsed().as_millis();
+                    tracing::info!(
+                        "[VOICE:LLM] Response: {} chars in {}ms",
+                        response.len(),
+                        elapsed_ms
+                    );
+                    tracing::info!(
+                        input = %text,
+                        response_len = response.len(),
+                        latency_ms = elapsed_ms,
+                        "Response generated"
+                    );
+
+                    // ── 6. Store assistant turn in memory ──────────────
+                    {
+                        let mut mem = memory.lock().await;
+                        mem.add_turn("assistant", &response);
+                    }
+
+                    // ── 6b. Submit for reflection ────────────────────
+                    {
+                        let mem = memory.lock().await;
+                        let messages: Vec<(String, String)> = mem.turns.iter().cloned().collect();
+                        drop(mem);
+                        if messages.len() >= 2 {
+                            let record =
+                                voxy_cognitive_orchestrator::reflection::ConversationRecord {
+                                    id: uuid::Uuid::new_v4(),
+                                    messages,
+                                    context: String::new(),
+                                    timestamp: chrono::Utc::now(),
+                                };
+                            let _ = reflector.submit(record).await;
                         }
+                    }
 
-                        // ── 7. Feed response → Experience Layer & IPC Clients ────────────
-                        let _ = exp_input.send(ExperienceInput::VoiceTranscript {
-                            text: response.clone(),
-                            is_final: true,
-                        });
-                        ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
-                            id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
-                            sender: "VOXY".into(),
-                            text: response.clone(),
-                            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                            is_user: false,
-                        });
+                    // ── 7. Feed response → Experience Layer & IPC Clients ────────────
+                    let _ = exp_input.send(ExperienceInput::VoiceTranscript {
+                        text: response.clone(),
+                        is_final: true,
+                    });
+                    ipc_srv.broadcast(voxy_ipc::DaemonMessage::ChatMessage {
+                        id: CHAT_MSG_ID.fetch_add(1, Ordering::Relaxed),
+                        sender: "VOXY".into(),
+                        text: response.clone(),
+                        timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                        is_user: false,
+                    });
 
-                        // ── 8. Track task completion for moments ──────────
-                        tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    // ── 8. Track task completion for moments ──────────
+                    tasks_completed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-                        Ok(response)
-                    })
-                },
-            )
+                    Ok(response)
+                })
+            }
+        });
+
+        let response_handler: voxy_voice_orchestrator::ResponseHandlerFn = {
+            let request_pipeline = request_pipeline.clone();
+            Box::new(move |text: String| request_pipeline(text, None))
         };
 
         pipeline.set_response_handler(response_handler);
+
+        // Streaming form: identical pipeline body, real LLM token streaming so
+        // sentence-aware TTS can begin before the full response exists.
+        let streaming_response_handler: voxy_voice_orchestrator::StreamResponseHandlerFn = {
+            let request_pipeline = request_pipeline.clone();
+            Box::new(
+                move |text: String, sink: tokio::sync::mpsc::Sender<String>| {
+                    let req = request_pipeline(text, Some(sink));
+                    Box::pin(async move { req.await.map(|_| ()) })
+                },
+            )
+        };
+        pipeline.set_streaming_response_handler(streaming_response_handler);
+
         pipeline
             .start()
             .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?;

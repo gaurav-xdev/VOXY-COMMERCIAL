@@ -269,12 +269,20 @@ pub struct AudioPlaybackHandle {
     _stream: Option<cpal::Stream>,
     buffer: AudioRingBuffer,
     is_playing: Arc<AtomicBool>,
+    /// Output device sample rate — callers must resample queued audio to it.
+    sample_rate: u32,
 }
 
 impl AudioPlaybackHandle {
     pub fn queue_samples(&self, samples: &[f32]) {
         self.buffer.push(samples);
         self.is_playing.store(true, Ordering::SeqCst);
+    }
+
+    /// Output device sample rate (Hz). Queued samples must already be at this rate:
+    /// the playback loop pops raw counts without resampling.
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
     }
 
     /// Instant barge-in stop: cleans out all pending audio in flight immediately.
@@ -503,6 +511,7 @@ impl AudioRuntime {
                     _stream: Some(stream),
                     buffer: ring_buffer,
                     is_playing,
+                    sample_rate,
                 })
             }
             Err(e) => {
@@ -511,6 +520,7 @@ impl AudioRuntime {
                     _stream: None,
                     buffer: ring_buffer,
                     is_playing,
+                    sample_rate,
                 })
             }
         }

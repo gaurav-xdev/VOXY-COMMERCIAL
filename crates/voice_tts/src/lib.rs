@@ -123,6 +123,13 @@ pub trait TtsEngine: Send + Sync {
 
     /// Human-readable provider and voice name.
     fn name(&self) -> &str;
+
+    /// Apply a speech-rate multiplier (1.0 = natural). Returns whether the
+    /// engine actually honored it — callers must not claim speed control was
+    /// applied when the backend has no such capability.
+    fn set_speed(&self, _speed: f32) -> bool {
+        false
+    }
 }
 
 /// Cloud speech synthesis client supporting OpenAI / Cartesia / ElevenLabs compatible endpoints.
@@ -215,17 +222,26 @@ impl TtsEngine for CloudTtsEngine {
 /// Local speech synthesizer adapter.
 pub struct LocalTtsEngine {
     voice_name: String,
+    /// SAPI speech rate: -10 (slowest) .. 10 (fastest); 0 = natural.
+    sapi_rate: std::sync::atomic::AtomicI32,
 }
 
 impl LocalTtsEngine {
     pub fn new(voice_name: impl Into<String>) -> Self {
         Self {
             voice_name: voice_name.into(),
+            sapi_rate: std::sync::atomic::AtomicI32::new(0),
         }
     }
 
     pub fn voice_name(&self) -> &str {
         &self.voice_name
+    }
+
+    /// Map a speed multiplier (1.0 = natural) onto the SAPI rate scale.
+    /// 0.5× ≈ -5, 1.0× = 0, 2.0× ≈ +5. Clamped to the SAPI range.
+    fn map_speed_to_sapi_rate(speed: f32) -> i32 {
+        ((speed - 1.0) * 5.0).round().clamp(-10.0, 10.0) as i32
     }
 }
 
@@ -233,6 +249,14 @@ impl LocalTtsEngine {
 impl TtsEngine for LocalTtsEngine {
     fn name(&self) -> &str {
         "Local TTS (Windows SAPI / Local Model)"
+    }
+
+    fn set_speed(&self, speed: f32) -> bool {
+        let rate = Self::map_speed_to_sapi_rate(speed);
+        self.sapi_rate
+            .store(rate, std::sync::atomic::Ordering::SeqCst);
+        tracing::debug!(speed, sapi_rate = rate, "[TTS] SAPI speech rate updated");
+        true
     }
 
     async fn synthesize(&self, text: &str) -> Result<Vec<u8>, TtsError> {
@@ -249,8 +273,9 @@ impl TtsEngine for LocalTtsEngine {
                 .unwrap_or(12345);
             let temp_path = std::env::temp_dir().join(format!("osmoo_sapi_{}.wav", id));
             let sanitized = trimmed.replace('\'', "''");
+            let rate = self.sapi_rate.load(std::sync::atomic::Ordering::SeqCst);
             let ps_script = format!(
-                "$v = New-Object -ComObject SAPI.SpVoice; $s = New-Object -ComObject SAPI.SpFileStream; $s.Open('{}', 3); $v.AudioOutputStream = $s; $v.Speak('{}'); $s.Close()",
+                "$v = New-Object -ComObject SAPI.SpVoice; $v.Rate = {rate}; $s = New-Object -ComObject SAPI.SpFileStream; $s.Open('{}', 3); $v.AudioOutputStream = $s; $v.Speak('{}'); $s.Close()",
                 temp_path.display(),
                 sanitized
             );
@@ -266,14 +291,31 @@ impl TtsEngine for LocalTtsEngine {
                         if bytes.len() >= 44 {
                             return Ok(bytes);
                         }
+                        return Err(TtsError::SynthesisFailed(
+                            "SAPI produced an empty voice file".to_string(),
+                        ));
                     }
+                    return Err(TtsError::SynthesisFailed(
+                        "SAPI voice file unreadable".to_string(),
+                    ));
                 }
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                return Err(TtsError::SynthesisFailed(format!(
+                    "SAPI synthesis failed (status {:?}): {}",
+                    out.status.code(),
+                    stderr.trim()
+                )));
             }
+
+            return Err(TtsError::SynthesisFailed(
+                "failed to launch PowerShell for SAPI synthesis".to_string(),
+            ));
         }
 
-        // Fallback tone if SAPI is unavailable or on non-Windows
-        let pcm = vec![0.0f32; 16000];
-        Ok(voxy_voice_stt::encode_wav_16k_mono(&pcm))
+        #[cfg(not(windows))]
+        Err(TtsError::SynthesisFailed(
+            "Local Windows SAPI TTS is unavailable on this platform".to_string(),
+        ))
     }
 }
 

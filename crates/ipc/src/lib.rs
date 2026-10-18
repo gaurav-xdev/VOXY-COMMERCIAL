@@ -23,6 +23,7 @@ pub mod error;
 pub mod named_pipe;
 pub mod protocol;
 pub mod replay;
+pub mod tcp_loopback;
 pub mod transport;
 pub mod voxy_protocol;
 
