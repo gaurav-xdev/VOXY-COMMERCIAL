@@ -19,6 +19,7 @@ chrono = { workspace = true }
 walkdir = "2"
 similar = "2"
 parking_lot = { workspace = true }
+async-trait = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

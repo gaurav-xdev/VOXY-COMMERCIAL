@@ -127,13 +127,24 @@ impl PersonalityProfile for InMemoryPersonalityProfile {
 }
 
 static BRIDGE: OnceLock<AppBridge> = OnceLock::new();
+static TOKIO_RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 
 pub fn get_bridge() -> AppBridge {
     BRIDGE.get().expect("AppBridge not initialized").clone()
 }
 
+pub fn get_runtime() -> &'static tokio::runtime::Runtime {
+    TOKIO_RT.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .thread_name("osmoo-runtime-worker")
+            .build()
+            .expect("Failed to create shared OSMOO Tokio runtime")
+    })
+}
+
 fn init_bridge() -> AppBridge {
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    let rt = get_runtime();
     let _guard = rt.enter();
 
     rt.block_on(async {
@@ -393,7 +404,7 @@ fn main() {
 
     if daemon_only {
         tracing::info!("Running OSMOO in daemon-only supervisor mode. Press Ctrl+C to terminate.");
-        let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+        let rt = get_runtime();
         rt.block_on(async {
             let _ = tokio::signal::ctrl_c().await;
             tracing::info!("Shutdown signal received");
@@ -426,7 +437,7 @@ fn main() {
 
     // Clean shutdown of supervisor and all supervised children when UI exits
     tracing::info!("OSMOO main window closed; initiating supervisor shutdown");
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    let rt = get_runtime();
     rt.block_on(async {
         let _ = supervisor.shutdown().await;
     });

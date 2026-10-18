@@ -7963,6 +7963,7 @@ dependencies = [
 name = "voxy-harness"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "parking_lot",
  "serde",
