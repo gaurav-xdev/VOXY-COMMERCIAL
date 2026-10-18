@@ -80,6 +80,8 @@ pub struct AuthMiddleware {
     method_capabilities: HashMap<String, String>,
     /// Optional set of trusted token SHA-256 hashes for authentication.
     trusted_token_hashes: RwLock<Option<std::collections::HashSet<Vec<u8>>>>,
+    /// Optional HMAC-SHA256 signing secret for authentic token signature validation.
+    signing_secret: RwLock<Option<Vec<u8>>>,
 }
 
 struct SessionInfo {
@@ -113,7 +115,19 @@ impl AuthMiddleware {
             )),
             method_capabilities,
             trusted_token_hashes: RwLock::new(None),
+            signing_secret: RwLock::new(None),
         }
+    }
+
+    /// Set an HMAC-SHA256 secret key for signing session tokens and verifying request tokens.
+    pub fn set_signing_secret(&self, secret: &[u8]) {
+        *self.signing_secret.write() = Some(secret.to_vec());
+    }
+
+    /// Fluent builder method to set an HMAC-SHA256 secret key.
+    pub fn with_signing_secret(self, secret: &[u8]) -> Self {
+        *self.signing_secret.write() = Some(secret.to_vec());
+        self
     }
 
     /// Add a trusted token whose SHA-256 hash will be verified during authenticate().
@@ -176,13 +190,17 @@ impl AuthMiddleware {
                     })
                     .collect();
 
-                let token = CapabilityToken::new(
+                let mut token = CapabilityToken::new(
                     &request.client_name,
                     "voxy-auth",
                     granted_capabilities,
                     3600,
                     token_str.as_bytes().to_vec(),
                 );
+
+                if let Some(ref secret) = *self.signing_secret.read() {
+                    token.sign(secret);
+                }
 
                 let session_id = uuid::Uuid::new_v4();
                 self.sessions.write().insert(
@@ -238,6 +256,15 @@ impl AuthMiddleware {
         }
         if token.signature.is_empty() {
             return Err(AuthError::TokenUnsigned);
+        }
+
+        // Cryptographic HMAC-SHA256 signature verification if signing secret configured
+        if let Some(ref secret) = *self.signing_secret.read() {
+            if !token.verify_signature(secret) {
+                return Err(AuthError::AuthenticationFailed(
+                    "Token signature verification failed: invalid HMAC".into(),
+                ));
+            }
         }
 
         // Capability check
@@ -359,5 +386,30 @@ mod tests {
         mw.cleanup_expired();
         // Token has 3600s TTL so still active
         assert_eq!(mw.active_sessions(), 1);
+    }
+
+    #[test]
+    fn test_auth_middleware_hmac_signature_verification_and_tamper_rejection() {
+        let secret = b"super-secret-hmac-key-for-ipc";
+        let mw = AuthMiddleware::new(100).with_signing_secret(secret);
+
+        let req = make_auth_request("valid-token-123", vec!["audio:capture".to_string()]);
+        let resp = mw.authenticate(&req).unwrap();
+        assert!(resp.success);
+        let session_id = resp.session_id.unwrap();
+
+        // Valid signature passes
+        assert!(mw.validate_request(&session_id, "audio:capture").is_ok());
+
+        // Tampered token signature fails
+        {
+            let mut sessions = mw.sessions.write();
+            if let Some(session) = sessions.get_mut(&session_id) {
+                // Corrupt signature
+                session.token.signature = vec![0xDE, 0xAD, 0xBE, 0xEF];
+            }
+        }
+        let err = mw.validate_request(&session_id, "audio:capture");
+        assert!(matches!(err, Err(AuthError::AuthenticationFailed(_))));
     }
 }

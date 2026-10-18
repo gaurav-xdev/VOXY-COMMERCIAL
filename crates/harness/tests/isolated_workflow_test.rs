@@ -197,4 +197,21 @@ async fn test_isolated_coding_harness_workflow() {
             Err(voxy_harness::RunnerError::Timeout(_))
         ));
     }
+
+    // Phase 11: Agent Adapter Execution Boundary Enforcement
+    let adapter_reg = voxy_harness::AgentAdapterRegistry::with_defaults();
+    let claude_adapter = adapter_reg.get_adapter("claude-code").unwrap();
+    let non_existent_workspace = repo_root.join("does_not_exist_xyz");
+    let task = voxy_harness::CodingTask {
+        task_id: "test-task-1".to_string(),
+        prompt: "echo hello".to_string(),
+        workspace_root: non_existent_workspace,
+        timeout: Duration::from_secs(5),
+        dry_run: true,
+    };
+    let exec_res = claude_adapter.execute_task(&task).await;
+    assert!(matches!(
+        exec_res,
+        Err(voxy_harness::AgentAdapterError::PathBoundaryViolation(_, _))
+    ));
 }
