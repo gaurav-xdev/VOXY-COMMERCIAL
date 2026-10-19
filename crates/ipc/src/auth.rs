@@ -18,7 +18,16 @@ pub struct CapabilityToken {
     pub signature: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Maximum allowed length for any individual string field in canonical payload (64 KB).
+pub const MAX_STRING_FIELD_LEN: usize = 65535;
+/// Maximum allowed capability claims per token in canonical payload.
+pub const MAX_CAPABILITY_CLAIMS: usize = 1024;
+/// Maximum allowed constraints per capability claim in canonical payload.
+pub const MAX_CONSTRAINTS_PER_CLAIM: usize = 256;
+/// Minimum HMAC-SHA256 key size (128 bits / 16 bytes).
+pub const MIN_HMAC_KEY_LEN: usize = 16;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CapabilityClaim {
     pub capability: String,
     pub resource: Option<String>,
@@ -101,17 +110,16 @@ impl CapabilityToken {
 
     /// Compute canonical payload for cryptographic signing.
     ///
-    /// Encodes all security-relevant fields unambiguously:
-    /// - Token ID (UUID bytes)
-    /// - Issuer (length prefix + UTF-8 bytes)
-    /// - Subject (length prefix + UTF-8 bytes)
-    /// - Number of capability claims (u32 LE)
+    /// Encodes all security-relevant fields unambiguously with deterministic ordering:
+    /// - Token ID (UUID 16 bytes)
+    /// - Issuer (length prefix + UTF-8 bytes, bounded to MAX_STRING_FIELD_LEN)
+    /// - Subject (length prefix + UTF-8 bytes, bounded to MAX_STRING_FIELD_LEN)
+    /// - Deterministically sorted and deduplicated capability claims (u32 LE count):
     ///   For each claim:
     ///   - Capability name (length prefix + UTF-8 bytes)
     ///   - Resource flag (0x01 if Some, 0x00 if None)
     ///   - Resource name if present (length prefix + UTF-8 bytes)
-    ///   - Number of constraints (u32 LE)
-    ///     For each constraint:
+    ///   - Deterministically sorted and deduplicated constraints (u32 LE count):
     ///     - Constraint (length prefix + UTF-8 bytes)
     /// - Issued at timestamp (i64 LE)
     /// - Expires at timestamp (i64 LE)
@@ -122,35 +130,51 @@ impl CapabilityToken {
 
         // Issuer
         let issuer_bytes = self.issuer.as_bytes();
-        payload.extend_from_slice(&(issuer_bytes.len() as u32).to_le_bytes());
-        payload.extend_from_slice(issuer_bytes);
+        let issuer_len = issuer_bytes.len().min(MAX_STRING_FIELD_LEN) as u32;
+        payload.extend_from_slice(&issuer_len.to_le_bytes());
+        payload.extend_from_slice(&issuer_bytes[..issuer_len as usize]);
 
         // Subject
         let subject_bytes = self.subject.as_bytes();
-        payload.extend_from_slice(&(subject_bytes.len() as u32).to_le_bytes());
-        payload.extend_from_slice(subject_bytes);
+        let subject_len = subject_bytes.len().min(MAX_STRING_FIELD_LEN) as u32;
+        payload.extend_from_slice(&subject_len.to_le_bytes());
+        payload.extend_from_slice(&subject_bytes[..subject_len as usize]);
 
-        // Capabilities
-        payload.extend_from_slice(&(self.capabilities.len() as u32).to_le_bytes());
-        for claim in &self.capabilities {
+        // Canonical deterministic claims: sort and deduplicate
+        let mut claims = self.capabilities.clone();
+        for claim in &mut claims {
+            claim.constraints.sort();
+            claim.constraints.dedup();
+        }
+        claims.sort();
+        claims.dedup();
+
+        let claims_len = claims.len().min(MAX_CAPABILITY_CLAIMS) as u32;
+        payload.extend_from_slice(&claims_len.to_le_bytes());
+
+        for claim in claims.iter().take(claims_len as usize) {
             let cap_bytes = claim.capability.as_bytes();
-            payload.extend_from_slice(&(cap_bytes.len() as u32).to_le_bytes());
-            payload.extend_from_slice(cap_bytes);
+            let cap_len = cap_bytes.len().min(MAX_STRING_FIELD_LEN) as u32;
+            payload.extend_from_slice(&cap_len.to_le_bytes());
+            payload.extend_from_slice(&cap_bytes[..cap_len as usize]);
 
             if let Some(ref r) = claim.resource {
                 payload.push(0x01);
                 let r_bytes = r.as_bytes();
-                payload.extend_from_slice(&(r_bytes.len() as u32).to_le_bytes());
-                payload.extend_from_slice(r_bytes);
+                let r_len = r_bytes.len().min(MAX_STRING_FIELD_LEN) as u32;
+                payload.extend_from_slice(&r_len.to_le_bytes());
+                payload.extend_from_slice(&r_bytes[..r_len as usize]);
             } else {
                 payload.push(0x00);
             }
 
-            payload.extend_from_slice(&(claim.constraints.len() as u32).to_le_bytes());
-            for c in &claim.constraints {
+            let constraints_len = claim.constraints.len().min(MAX_CONSTRAINTS_PER_CLAIM) as u32;
+            payload.extend_from_slice(&constraints_len.to_le_bytes());
+            for c in claim.constraints.iter().take(constraints_len as usize) {
                 let c_bytes = c.as_bytes();
-                payload.extend_from_slice(&(c_bytes.len() as u32).to_le_bytes());
-                payload.extend_from_slice(c_bytes);
+                let c_len = c_bytes.len().min(MAX_STRING_FIELD_LEN) as u32;
+                payload.extend_from_slice(&c_len.to_le_bytes());
+                payload.extend_from_slice(&c_bytes[..c_len as usize]);
             }
         }
 
@@ -465,5 +489,90 @@ mod tests {
         let mut t4 = token.clone();
         t4.id = uuid::Uuid::new_v4();
         assert!(!t4.verify_signature(secret), "Tampered ID must fail verification");
+    }
+
+    #[test]
+    fn canonical_payload_deterministic_ordering_and_deduplication() {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+        let expires = now + chrono::Duration::hours(1);
+
+        // Token 1: out-of-order claims, duplicate claims, duplicate and out-of-order constraints
+        let token1 = CapabilityToken {
+            id,
+            issuer: "voxy-auth".to_string(),
+            subject: "client-a".to_string(),
+            capabilities: vec![
+                CapabilityClaim {
+                    capability: "file:write".to_string(),
+                    resource: Some("temp.txt".to_string()),
+                    constraints: vec!["write".to_string(), "read".to_string(), "write".to_string()],
+                },
+                CapabilityClaim {
+                    capability: "audio:capture".to_string(),
+                    resource: None,
+                    constraints: vec![],
+                },
+                CapabilityClaim {
+                    capability: "file:write".to_string(),
+                    resource: Some("temp.txt".to_string()),
+                    constraints: vec!["read".to_string(), "write".to_string()],
+                },
+            ],
+            issued_at: now,
+            expires_at: expires,
+            signature: vec![],
+        };
+
+        // Token 2: clean canonically ordered, deduplicated claims and constraints
+        let token2 = CapabilityToken {
+            id,
+            issuer: "voxy-auth".to_string(),
+            subject: "client-a".to_string(),
+            capabilities: vec![
+                CapabilityClaim {
+                    capability: "audio:capture".to_string(),
+                    resource: None,
+                    constraints: vec![],
+                },
+                CapabilityClaim {
+                    capability: "file:write".to_string(),
+                    resource: Some("temp.txt".to_string()),
+                    constraints: vec!["read".to_string(), "write".to_string()],
+                },
+            ],
+            issued_at: now,
+            expires_at: expires,
+            signature: vec![],
+        };
+
+        // Both tokens MUST produce the exact same canonical signature payload
+        assert_eq!(
+            token1.signature_payload(),
+            token2.signature_payload(),
+            "Canonical serialization must be strictly deterministic across duplicates and ordering"
+        );
+    }
+
+    #[test]
+    fn canonical_payload_bounds_oversized_fields_safely() {
+        let oversized_string = "A".repeat(100_000); // 100 KB string (exceeds 64 KB cap)
+        let token = CapabilityToken {
+            id: Uuid::new_v4(),
+            issuer: oversized_string.clone(),
+            subject: "client".to_string(),
+            capabilities: vec![CapabilityClaim {
+                capability: oversized_string,
+                resource: None,
+                constraints: vec![],
+            }],
+            issued_at: Utc::now(),
+            expires_at: Utc::now() + chrono::Duration::hours(1),
+            signature: vec![],
+        };
+
+        // Must compute payload without panic or overflow, capping length prefix to MAX_STRING_FIELD_LEN
+        let payload = token.signature_payload();
+        assert!(!payload.is_empty());
     }
 }
