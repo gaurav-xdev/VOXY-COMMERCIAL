@@ -79,7 +79,11 @@ pub struct AuthMiddleware {
     /// Required capabilities per method name.
     method_capabilities: HashMap<String, String>,
     /// Optional set of trusted token SHA-256 hashes for authentication.
+    /// Default is None (unconfigured). Authentication will fail closed if None or empty.
     trusted_token_hashes: RwLock<Option<std::collections::HashSet<Vec<u8>>>>,
+    /// Allowed capabilities policy: either None (in which case only capabilities registered in method_capabilities or system policy are authorized),
+    /// or Some(set) specifying exact allowed capabilities for issued tokens.
+    allowed_capabilities: RwLock<Option<std::collections::HashSet<String>>>,
     /// Optional HMAC-SHA256 signing secret for authentic token signature validation.
     signing_secret: RwLock<Option<Vec<u8>>>,
 }
@@ -115,6 +119,7 @@ impl AuthMiddleware {
             )),
             method_capabilities,
             trusted_token_hashes: RwLock::new(None),
+            allowed_capabilities: RwLock::new(None),
             signing_secret: RwLock::new(None),
         }
     }
@@ -141,6 +146,45 @@ impl AuthMiddleware {
         set.insert(hash);
     }
 
+    /// Fluent builder method to add a trusted token.
+    pub fn with_trusted_token(self, token: &str) -> Self {
+        self.add_trusted_token(token);
+        self
+    }
+
+    /// Fluent builder method to configure explicit allowed capabilities.
+    pub fn with_allowed_capabilities(
+        self,
+        capabilities: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        let mut guard = self.allowed_capabilities.write();
+        let set = guard.get_or_insert_with(std::collections::HashSet::new);
+        for cap in capabilities {
+            set.insert(cap.into());
+        }
+        drop(guard);
+        self
+    }
+
+    /// Add an allowed capability to the authorization policy.
+    pub fn add_allowed_capability(&self, capability: &str) {
+        let mut guard = self.allowed_capabilities.write();
+        let set = guard.get_or_insert_with(std::collections::HashSet::new);
+        set.insert(capability.to_string());
+    }
+
+    /// Check if a capability is authorized by server policy.
+    /// If an explicit `allowed_capabilities` set is configured, only those capabilities are permitted.
+    /// Otherwise, only registered system capabilities (`method_capabilities` values) are permitted.
+    pub fn is_capability_allowed(&self, capability: &str) -> bool {
+        let guard = self.allowed_capabilities.read();
+        if let Some(ref allowed) = *guard {
+            allowed.contains(capability)
+        } else {
+            self.method_capabilities.values().any(|c| c == capability)
+        }
+    }
+
     /// Authenticate a new session. Returns a session token on success.
     pub fn authenticate(&self, request: &AuthRequest) -> Result<AuthResponse, AuthError> {
         match request.method {
@@ -159,19 +203,41 @@ impl AuthMiddleware {
                     return Err(AuthError::AuthenticationFailed("Empty token".into()));
                 }
 
-                // Cryptographic validation against configured trusted tokens
+                // Cryptographic validation against configured trusted tokens (fail closed)
                 {
                     let guard = self.trusted_token_hashes.read();
-                    if let Some(ref trusted) = *guard {
-                        use sha2::{Digest, Sha256};
-                        let mut hasher = Sha256::new();
-                        hasher.update(token_str.as_bytes());
-                        let hash = hasher.finalize().to_vec();
-                        if !trusted.contains(&hash) {
+                    match guard.as_ref() {
+                        None => {
                             return Err(AuthError::AuthenticationFailed(
-                                "Invalid token hash".into(),
+                                "Trust store not configured; failing closed".into(),
                             ));
                         }
+                        Some(trusted) if trusted.is_empty() => {
+                            return Err(AuthError::AuthenticationFailed(
+                                "Trust store is empty; failing closed".into(),
+                            ));
+                        }
+                        Some(trusted) => {
+                            use sha2::{Digest, Sha256};
+                            let mut hasher = Sha256::new();
+                            hasher.update(token_str.as_bytes());
+                            let hash = hasher.finalize().to_vec();
+                            if !trusted.contains(&hash) {
+                                return Err(AuthError::AuthenticationFailed(
+                                    "Invalid token: credential not found in trust store".into(),
+                                ));
+                            }
+                        }
+                    }
+                }
+
+                // Capability authorization policy check: ensure caller cannot grant arbitrary capabilities
+                for cap in &request.requested_capabilities {
+                    if !self.is_capability_allowed(cap) {
+                        return Err(AuthError::AuthenticationFailed(format!(
+                            "Unauthorized capability requested: '{}'",
+                            cap
+                        )));
                     }
                 }
 
@@ -318,7 +384,10 @@ mod tests {
     use super::*;
 
     fn make_middleware() -> AuthMiddleware {
-        AuthMiddleware::new(100).with_signing_secret(b"default-test-signing-secret")
+        AuthMiddleware::new(100)
+            .with_signing_secret(b"default-test-signing-secret")
+            .with_trusted_token("valid-token-123")
+            .with_trusted_token("token")
     }
 
     fn make_auth_request(token: &str, capabilities: Vec<String>) -> AuthRequest {
@@ -367,7 +436,9 @@ mod tests {
 
     #[test]
     fn rate_limiting() {
-        let mw = AuthMiddleware::new(2).with_signing_secret(b"default-test-signing-secret"); // 2 requests per minute
+        let mw = AuthMiddleware::new(2)
+            .with_signing_secret(b"default-test-signing-secret")
+            .with_trusted_token("token"); // 2 requests per minute
         let req = make_auth_request("token", vec![]);
         let resp = mw.authenticate(&req).unwrap();
         let session_id = resp.session_id.unwrap();
@@ -410,7 +481,9 @@ mod tests {
     #[test]
     fn test_auth_middleware_hmac_signature_verification_and_tamper_rejection() {
         let secret = b"super-secret-hmac-key-for-ipc";
-        let mw = AuthMiddleware::new(100).with_signing_secret(secret);
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(secret)
+            .with_trusted_token("valid-token-123");
 
         let req = make_auth_request("valid-token-123", vec!["audio:capture".to_string()]);
         let resp = mw.authenticate(&req).unwrap();
@@ -435,18 +508,22 @@ mod tests {
     #[test]
     fn test_unconfigured_or_empty_signing_secret_fails_closed() {
         // 1. Unconfigured secret in authenticate fails closed
-        let mw_unconfigured = AuthMiddleware::new(100);
+        let mw_unconfigured = AuthMiddleware::new(100).with_trusted_token("valid-token-123");
         let req = make_auth_request("valid-token-123", vec!["audio:capture".to_string()]);
         let err = mw_unconfigured.authenticate(&req);
         assert!(matches!(err, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret not configured")));
 
         // 2. Empty secret in authenticate fails closed
-        let mw_empty = AuthMiddleware::new(100).with_signing_secret(b"");
+        let mw_empty = AuthMiddleware::new(100)
+            .with_signing_secret(b"")
+            .with_trusted_token("valid-token-123");
         let err2 = mw_empty.authenticate(&req);
         assert!(matches!(err2, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret is empty")));
 
         // 3. Unconfigured secret in validate_request fails closed even if session exists
-        let mw_configured = AuthMiddleware::new(100).with_signing_secret(b"secret");
+        let mw_configured = AuthMiddleware::new(100)
+            .with_signing_secret(b"secret")
+            .with_trusted_token("valid-token-123");
         let resp = mw_configured.authenticate(&req).unwrap();
         let session_id = resp.session_id.unwrap();
         assert!(mw_configured.validate_request(&session_id, "audio:capture").is_ok());
@@ -460,5 +537,115 @@ mod tests {
         *mw_configured.signing_secret.write() = Some(vec![]);
         let err4 = mw_configured.validate_request(&session_id, "audio:capture");
         assert!(matches!(err4, Err(AuthError::AuthenticationFailed(msg)) if msg.contains("Signing secret is empty")));
+    }
+
+    #[test]
+    fn test_unconfigured_trust_store_fails_closed() {
+        // Unconfigured trusted tokens must fail closed by default, even if secret is configured
+        let mw = AuthMiddleware::new(100).with_signing_secret(b"some-secret");
+        let req = make_auth_request("arbitrary-credential", vec![]);
+        let err = mw.authenticate(&req);
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Trust store not configured")),
+            "Expected unconfigured trust store failure, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_empty_trust_store_fails_closed() {
+        let mw = AuthMiddleware::new(100).with_signing_secret(b"some-secret");
+        // Explicitly set an empty hash set in trusted_token_hashes
+        *mw.trusted_token_hashes.write() = Some(std::collections::HashSet::new());
+        let req = make_auth_request("arbitrary-credential", vec![]);
+        let err = mw.authenticate(&req);
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Trust store is empty")),
+            "Expected empty trust store failure, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_unknown_credential_rejected() {
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(b"some-secret")
+            .with_trusted_token("expected-trusted-token");
+        let req = make_auth_request("unknown-attacker-credential", vec![]);
+        let err = mw.authenticate(&req);
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Invalid token")),
+            "Expected unknown credential rejection, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_valid_credential_accepted() {
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(b"some-secret")
+            .with_trusted_token("my-trusted-token");
+        let req = make_auth_request("my-trusted-token", vec!["audio:capture".to_string()]);
+        let res = mw.authenticate(&req);
+        assert!(res.is_ok(), "Valid credential must succeed");
+        let resp = res.unwrap();
+        assert!(resp.success);
+        assert_eq!(resp.granted_capabilities, vec!["audio:capture"]);
+    }
+
+    #[test]
+    fn test_unauthorized_capability_request_rejected() {
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(b"some-secret")
+            .with_trusted_token("my-trusted-token");
+        // Request capability not in system or allowed capabilities
+        let req = make_auth_request(
+            "my-trusted-token",
+            vec!["admin:grant_root_privileges".to_string()],
+        );
+        let err = mw.authenticate(&req);
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Unauthorized capability requested")),
+            "Expected unauthorized capability rejection, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_explicit_allowed_capabilities_policy() {
+        // Restrict allowed capabilities strictly to "audio:capture"
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(b"some-secret")
+            .with_trusted_token("my-trusted-token")
+            .with_allowed_capabilities(vec!["audio:capture"]);
+
+        // 1. Permitted capability passes
+        let req_ok = make_auth_request("my-trusted-token", vec!["audio:capture".to_string()]);
+        assert!(mw.authenticate(&req_ok).is_ok());
+
+        // 2. System capability "file:read" that is NOT in explicit allowed list gets rejected
+        let req_denied = make_auth_request("my-trusted-token", vec!["file:read".to_string()]);
+        let err = mw.authenticate(&req_denied);
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Unauthorized capability requested: 'file:read'")),
+            "Expected policy rejection for file:read, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_apikey_auth_method() {
+        let mw = AuthMiddleware::new(100)
+            .with_signing_secret(b"some-secret")
+            .with_trusted_token("api-key-12345");
+        let req = AuthRequest {
+            method: AuthMethod::ApiKey,
+            credentials: serde_json::json!({"key": "api-key-12345"}),
+            requested_capabilities: vec!["audio:capture".to_string()],
+            client_version: "1.0.0".to_string(),
+            client_name: "api-client".to_string(),
+        };
+        let res = mw.authenticate(&req);
+        assert!(res.is_ok(), "ApiKey authentication must succeed with valid key");
     }
 }

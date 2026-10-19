@@ -100,18 +100,61 @@ impl CapabilityToken {
     }
 
     /// Compute canonical payload for cryptographic signing.
+    ///
+    /// Encodes all security-relevant fields unambiguously:
+    /// - Token ID (UUID bytes)
+    /// - Issuer (length prefix + UTF-8 bytes)
+    /// - Subject (length prefix + UTF-8 bytes)
+    /// - Number of capability claims (u32 LE)
+    ///   For each claim:
+    ///   - Capability name (length prefix + UTF-8 bytes)
+    ///   - Resource flag (0x01 if Some, 0x00 if None)
+    ///   - Resource name if present (length prefix + UTF-8 bytes)
+    ///   - Number of constraints (u32 LE)
+    ///     For each constraint:
+    ///     - Constraint (length prefix + UTF-8 bytes)
+    /// - Issued at timestamp (i64 LE)
+    /// - Expires at timestamp (i64 LE)
     pub fn signature_payload(&self) -> Vec<u8> {
         let mut payload = Vec::new();
+        // ID
         payload.extend_from_slice(self.id.as_bytes());
-        payload.extend_from_slice(self.issuer.as_bytes());
-        payload.extend_from_slice(self.subject.as_bytes());
+
+        // Issuer
+        let issuer_bytes = self.issuer.as_bytes();
+        payload.extend_from_slice(&(issuer_bytes.len() as u32).to_le_bytes());
+        payload.extend_from_slice(issuer_bytes);
+
+        // Subject
+        let subject_bytes = self.subject.as_bytes();
+        payload.extend_from_slice(&(subject_bytes.len() as u32).to_le_bytes());
+        payload.extend_from_slice(subject_bytes);
+
+        // Capabilities
+        payload.extend_from_slice(&(self.capabilities.len() as u32).to_le_bytes());
         for claim in &self.capabilities {
-            payload.extend_from_slice(claim.capability.as_bytes());
+            let cap_bytes = claim.capability.as_bytes();
+            payload.extend_from_slice(&(cap_bytes.len() as u32).to_le_bytes());
+            payload.extend_from_slice(cap_bytes);
+
             if let Some(ref r) = claim.resource {
-                payload.extend_from_slice(r.as_bytes());
+                payload.push(0x01);
+                let r_bytes = r.as_bytes();
+                payload.extend_from_slice(&(r_bytes.len() as u32).to_le_bytes());
+                payload.extend_from_slice(r_bytes);
+            } else {
+                payload.push(0x00);
             }
-            payload.push(0x00);
+
+            payload.extend_from_slice(&(claim.constraints.len() as u32).to_le_bytes());
+            for c in &claim.constraints {
+                let c_bytes = c.as_bytes();
+                payload.extend_from_slice(&(c_bytes.len() as u32).to_le_bytes());
+                payload.extend_from_slice(c_bytes);
+            }
         }
+
+        // Timestamps
         payload.extend_from_slice(&self.issued_at.timestamp().to_le_bytes());
         payload.extend_from_slice(&self.expires_at.timestamp().to_le_bytes());
         payload
@@ -344,5 +387,83 @@ mod tests {
 
         assert!(token.verify_signature(secret_a));
         assert!(!token.verify_signature(secret_b));
+    }
+
+    #[test]
+    fn capability_token_tampered_resource_rejected() {
+        let secret = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "file:read".to_string(),
+            resource: Some("logs/today.txt".to_string()),
+            constraints: vec![],
+        }];
+        let mut token =
+            CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+
+        assert!(token.verify_signature(secret));
+
+        // Tamper with resource to target sensitive system file
+        token.capabilities[0].resource = Some("/etc/shadow".to_string());
+        assert!(!token.verify_signature(secret), "Tampered resource must fail verification");
+
+        // Tamper by removing resource
+        token.capabilities[0].resource = None;
+        assert!(!token.verify_signature(secret), "Removed resource must fail verification");
+    }
+
+    #[test]
+    fn capability_token_tampered_constraints_rejected() {
+        let secret = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "file:write".to_string(),
+            resource: Some("scratch/temp.txt".to_string()),
+            constraints: vec!["max_size:1MB".to_string(), "read_only:false".to_string()],
+        }];
+        let mut token =
+            CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+
+        assert!(token.verify_signature(secret));
+
+        // Tamper with constraints (e.g. remove restriction)
+        token.capabilities[0].constraints.remove(0);
+        assert!(!token.verify_signature(secret), "Removed constraint must fail verification");
+
+        // Tamper with constraint text
+        token.capabilities[0].constraints.push("max_size:10GB".to_string());
+        assert!(!token.verify_signature(secret), "Altered constraint must fail verification");
+    }
+
+    #[test]
+    fn capability_token_tampered_issuer_subject_or_timestamps_rejected() {
+        let secret = b"super-secret-hmac-key-for-ipc-tokens-32b!";
+        let claims = vec![CapabilityClaim {
+            capability: "audio:capture".to_string(),
+            resource: None,
+            constraints: vec![],
+        }];
+        let token =
+            CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+
+        assert!(token.verify_signature(secret));
+
+        // Tamper subject
+        let mut t1 = token.clone();
+        t1.subject = "client-b".to_string();
+        assert!(!t1.verify_signature(secret), "Tampered subject must fail verification");
+
+        // Tamper issuer
+        let mut t2 = token.clone();
+        t2.issuer = "rogue-auth".to_string();
+        assert!(!t2.verify_signature(secret), "Tampered issuer must fail verification");
+
+        // Tamper expires_at (attempt lifetime extension)
+        let mut t3 = token.clone();
+        t3.expires_at = t3.expires_at + chrono::Duration::hours(24);
+        assert!(!t3.verify_signature(secret), "Tampered expiry must fail verification");
+
+        // Tamper ID
+        let mut t4 = token.clone();
+        t4.id = uuid::Uuid::new_v4();
+        assert!(!t4.verify_signature(secret), "Tampered ID must fail verification");
     }
 }
