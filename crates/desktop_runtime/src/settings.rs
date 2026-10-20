@@ -51,7 +51,14 @@ pub struct VoiceSettings {
     pub tts_provider: Option<String>,
     #[serde(default)]
     pub stt_provider: Option<String>,
+    #[serde(default = "default_sample_rate")]
+    pub sample_rate: u32,
 }
+
+fn default_sample_rate() -> u32 {
+    48000
+}
+
 
 impl Default for VoiceSettings {
     fn default() -> Self {
@@ -69,9 +76,11 @@ impl Default for VoiceSettings {
             language: "en".to_string(),
             tts_provider: Some("cartesia".to_string()),
             stt_provider: Some("groq".to_string()),
+            sample_rate: 48000,
         }
     }
 }
+
 
 /// Model settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -348,6 +357,27 @@ impl SettingsManager {
             change_tx,
         })
     }
+
+    /// Create a new settings manager with a custom file path.
+    pub fn with_path(path: std::path::PathBuf) -> Result<Self> {
+
+        let (change_tx, _) = broadcast::channel(16);
+
+        let settings = if path.exists() {
+            Self::load_from_file(&path)?
+        } else {
+            SettingsSnapshot::default()
+        };
+
+        Ok(Self {
+            settings: RwLock::new(settings),
+            history: RwLock::new(Vec::new()),
+            max_history: 10,
+            path,
+            change_tx,
+        })
+    }
+
 
     /// Get current settings.
     pub fn get(&self) -> SettingsSnapshot {

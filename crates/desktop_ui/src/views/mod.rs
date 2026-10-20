@@ -1,3 +1,8 @@
+pub mod auth;
 pub mod settings;
 
-pub use settings::{SettingsFormState, SettingsView};
+#[allow(unused_imports)]
+pub use auth::{AuthMode, AuthView};
+#[allow(unused_imports)]
+pub use settings::{SettingsFormState, SettingsTab, SettingsView};
+

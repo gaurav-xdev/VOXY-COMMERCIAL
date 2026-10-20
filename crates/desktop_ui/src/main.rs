@@ -1,11 +1,15 @@
 mod app;
+pub mod backend;
 mod bridge;
 mod components;
+pub mod fixtures;
 mod styles;
 pub mod supervisor;
 mod views;
 
+pub use backend::{BackendCommand, BackendDispatcher, BackendError, BackendResult};
 pub use supervisor::{Supervisor, SupervisorConfig, SupervisorStatus, WindowsJobObject};
+
 
 use std::sync::{Arc, OnceLock};
 use tracing_subscriber::EnvFilter;
@@ -127,11 +131,19 @@ impl PersonalityProfile for InMemoryPersonalityProfile {
 }
 
 static BRIDGE: OnceLock<AppBridge> = OnceLock::new();
+static DISPATCHER: OnceLock<BackendDispatcher> = OnceLock::new();
 static TOKIO_RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 
 pub fn get_bridge() -> AppBridge {
     BRIDGE.get().expect("AppBridge not initialized").clone()
 }
+
+pub fn get_dispatcher() -> BackendDispatcher {
+    DISPATCHER
+        .get_or_init(|| BackendDispatcher::new(get_bridge()))
+        .clone()
+}
+
 
 pub fn get_runtime() -> &'static tokio::runtime::Runtime {
     TOKIO_RT.get_or_init(|| {

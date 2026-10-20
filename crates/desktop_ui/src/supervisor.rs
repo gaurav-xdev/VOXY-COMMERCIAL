@@ -290,16 +290,30 @@ impl Supervisor {
         cmd.stdout(Stdio::inherit());
         cmd.stderr(Stdio::inherit());
 
-        let child = cmd
+        let mut child = cmd
             .spawn()
             .map_err(|e| SupervisorError::LaunchFailed(name.to_string(), e))?;
 
         let pid = child.id();
         info!(child = %name, pid, path = %bin_path.display(), "Spawned child process");
 
-        // Immediately attach to Job Object
+        // Immediately attach to Job Object.
+        // SECURITY & RELIABILITY INVARIANT:
+        // A child process MUST NOT continue running if Job Object supervision cannot be established.
+        // If assignment fails, we immediately terminate the spawned child to prevent an unmanaged
+        // orphan zombie holding system resources, and fail closed by returning the error.
+        #[cfg(windows)]
         if let Err(e) = self.job_object.assign_pid(pid) {
-            warn!(child = %name, pid, error = %e, "Failed to assign to Job Object, falling back to process tree kill");
+            tracing::error!(
+                child = %name,
+                pid,
+                error = %e,
+                "Job Object assignment failed: terminating spawned process and failing closed to prevent orphaned child"
+            );
+            let _ = child.kill();
+            Self::kill_pid_tree(pid);
+            let _ = child.wait();
+            return Err(e);
         }
 
         let tracked = TrackedChild {
@@ -584,5 +598,21 @@ mod tests {
         // Process should terminate promptly
         let wait_res = child.wait();
         assert!(wait_res.is_ok());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_job_object_assign_invalid_pid_fails_closed() {
+        let job = WindowsJobObject::new().expect("Job object init failed");
+        // Non-existent PID should fail closed with AssignProcessFailed
+        let res = job.assign_pid(9_999_999);
+        assert!(res.is_err());
+        match res.unwrap_err() {
+            SupervisorError::AssignProcessFailed(pid, msg) => {
+                assert_eq!(pid, 9_999_999);
+                assert!(msg.contains("OpenProcess failed"));
+            }
+            other => panic!("Expected AssignProcessFailed, got {other:?}"),
+        }
     }
 }

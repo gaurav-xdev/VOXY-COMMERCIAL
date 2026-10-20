@@ -2,14 +2,15 @@ use dioxus::prelude::*;
 
 use crate::bridge::LocalModelDiscovery;
 use crate::components::{
-    AssistantCore, AssistantHud, ChatTurn, CoreState, OnboardingConfig, OnboardingWizard,
-    StartupSplash, TelemetryStats,
+    AssistantCore, AssistantHud, ChatTurn, CompanionMode, CoreState, OnboardingConfig,
+    OnboardingWizard, StartupSplash, TelemetryStats, THREE_JS_CORE_SCRIPT,
 };
-use crate::views::{SettingsFormState, SettingsView};
+use crate::views::{AuthView, SettingsFormState, SettingsView};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum AppScreen {
     Splash,
+    Auth,
     Onboarding,
     MainHud,
 }
@@ -18,16 +19,17 @@ pub enum AppScreen {
 pub fn App() -> Element {
     let mut screen = use_signal(|| AppScreen::Splash);
     let splash_progress = use_signal(|| 0.15f32);
-    let splash_status = use_signal(|| "INITIALIZING HARDWARE SUBSYSTEMS...".to_string());
+    let splash_status = use_signal(|| "INITIALIZING OSMIORA CORE ARCHITECTURE...".to_string());
 
     let mut core_state = use_signal(|| CoreState::Idle);
+    let mut companion_mode = use_signal(|| CompanionMode::Robot);
     let mut show_settings = use_signal(|| false);
 
     let mut chat_history = use_signal(|| {
         vec![ChatTurn {
             id: 1,
             sender: "OSMOO Core".to_string(),
-            text: "OSMOO Windows AI Operating Companion online. Ready for interaction.".to_string(),
+            text: "OSMOO AI Operating Companion online. Ready for multimodal interaction.".to_string(),
             timestamp: "System Init".to_string(),
             is_user: false,
         }]
@@ -35,10 +37,11 @@ pub fn App() -> Element {
 
     let telemetry = use_signal(|| TelemetryStats {
         daemon_connected: false,
-        active_llm: "Ollama (Local)".to_string(),
+        active_llm: "Ollama (Local Engine)".to_string(),
     });
 
     let discovered_models = use_signal(Vec::new);
+
 
     // Initial Startup Splash Telemetry Task
     use_effect(move || {
@@ -46,20 +49,42 @@ pub fn App() -> Element {
         let mut status_sig = splash_status;
         let mut screen_sig = screen;
         let mut models_sig = discovered_models;
+        let mut chat_sig = chat_history;
+        let mut telem_sig = telemetry;
 
         spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-            progress_sig.set(0.35);
-            status_sig.set("CONNECTING AUTHORITATIVE NAMED PIPE IPC...".to_string());
+            tokio::time::sleep(std::time::Duration::from_millis(350)).await;
+            progress_sig.set(0.40);
+            status_sig.set("SYNCHRONIZING SECURE NAMED PIPE IPC & PERSISTENCE...".to_string());
 
             // Query Ollama local models
             if let Ok(models) = LocalModelDiscovery::fetch_ollama_models().await {
                 models_sig.set(models);
             }
 
-            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
-            progress_sig.set(0.70);
-            status_sig.set("INITIALIZING COMPANION INTELLIGENCE...".to_string());
+            tokio::time::sleep(std::time::Duration::from_millis(450)).await;
+            progress_sig.set(0.75);
+            status_sig.set("INITIALIZING 3D COMPANION ENGINE...".to_string());
+
+            // Hydrate historical chat turns from SQLite if available
+            if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
+                if let Ok(crate::backend::BackendResult::ChatHistory(turns)) =
+                    dispatcher.dispatch(crate::backend::BackendCommand::GetChatHistory { limit: 50, offset: 0 }).await
+                {
+                    if !turns.is_empty() {
+                        chat_sig.set(turns);
+                    }
+                }
+
+                if let Ok(crate::backend::BackendResult::SystemTelemetry { daemon_connected, active_llm, .. }) =
+                    dispatcher.dispatch(crate::backend::BackendCommand::GetSystemTelemetry).await
+                {
+                    telem_sig.set(TelemetryStats {
+                        daemon_connected,
+                        active_llm,
+                    });
+                }
+            }
 
             tokio::time::sleep(std::time::Duration::from_millis(400)).await;
             progress_sig.set(1.0);
@@ -67,19 +92,26 @@ pub fn App() -> Element {
 
             tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
-            // Check if onboarding was completed before
+            // Check if provisioning flag exists and if session is authenticated
             let cfg_path = dirs::config_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
                 .join("osmoo")
                 .join("provisioned.flag");
 
-            if cfg_path.exists() {
-                screen_sig.set(AppScreen::MainHud);
-            } else {
+            let is_auth = crate::bridge::AppBridge::get_global()
+                .map(|b| b.auth.is_authenticated())
+                .unwrap_or(false);
+
+            if !cfg_path.exists() {
                 screen_sig.set(AppScreen::Onboarding);
+            } else if !is_auth {
+                screen_sig.set(AppScreen::Auth);
+            } else {
+                screen_sig.set(AppScreen::MainHud);
             }
         });
     });
+
 
     // Background IPC Listener
     use_effect(move || {
@@ -88,9 +120,9 @@ pub fn App() -> Element {
         let mut chat_sig = chat_history;
 
         spawn(async move {
-            let bridge = crate::get_bridge();
-            let mut rx = bridge.ipc.subscribe();
-            let mut conn_rx = bridge.ipc.watch_connected();
+            let bridge = crate::bridge::IpcBridge::new();
+            let mut rx = bridge.subscribe();
+            let mut conn_rx = bridge.watch_connected();
 
             loop {
                 tokio::select! {
@@ -98,124 +130,63 @@ pub fn App() -> Element {
                         match msg {
                             voxy_ipc::DaemonMessage::VoiceStateChanged { state, .. } => {
                                 let mapped = match state {
+                                    voxy_ipc::VoiceState::Listening => CoreState::Listening,
+                                    voxy_ipc::VoiceState::Thinking => CoreState::Thinking,
+                                    voxy_ipc::VoiceState::Speaking => CoreState::Speaking,
                                     voxy_ipc::VoiceState::Idle => CoreState::Idle,
-                                    voxy_ipc::VoiceState::Listening => CoreState::Processing,
-                                    voxy_ipc::VoiceState::Thinking => CoreState::Processing,
-                                    voxy_ipc::VoiceState::Responding | voxy_ipc::VoiceState::Speaking => CoreState::Responding,
-                                    voxy_ipc::VoiceState::Interrupted | voxy_ipc::VoiceState::Error => CoreState::Error,
+                                    voxy_ipc::VoiceState::Error => CoreState::Error,
+                                    voxy_ipc::VoiceState::Responding => CoreState::Speaking,
+                                    voxy_ipc::VoiceState::Interrupted => CoreState::Idle,
                                 };
                                 core_sig.set(mapped);
                             }
-                            voxy_ipc::DaemonMessage::ChatMessage { id, sender, text, timestamp, is_user } => {
-                                let mut list = chat_sig.read().clone();
-                                list.push(ChatTurn { id, sender, text, timestamp, is_user });
-                                chat_sig.set(list);
+                            voxy_ipc::DaemonMessage::TranscriptUpdate { text, is_final, .. } => {
+                                if is_final && !text.trim().is_empty() {
+                                    let next_id = chat_sig.read().len() as u64 + 1;
+                                    chat_sig.write().push(ChatTurn {
+                                        id: next_id,
+                                        sender: "Operator".to_string(),
+                                        text,
+                                        timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                        is_user: true,
+                                    });
+                                }
                             }
-                            voxy_ipc::DaemonMessage::RoutingStatusUpdate { active_llm, .. } => {
-                                let mut t = telem_sig.read().clone();
-                                t.active_llm = active_llm;
-                                telem_sig.set(t);
+                            voxy_ipc::DaemonMessage::ChatMessage { sender, text, timestamp, is_user, .. } => {
+                                let next_id = chat_sig.read().len() as u64 + 1;
+                                chat_sig.write().push(ChatTurn {
+                                    id: next_id,
+                                    sender,
+                                    text,
+                                    timestamp,
+                                    is_user,
+                                });
                             }
                             _ => {}
                         }
                     }
-                    Ok(_) = conn_rx.changed() => {
-                        let connected = *conn_rx.borrow();
-                        let mut t = telem_sig.read().clone();
-                        t.daemon_connected = connected;
-                        telem_sig.set(t);
+                    Ok(()) = conn_rx.changed() => {
+                        let is_conn = *conn_rx.borrow();
+                        telem_sig.write().daemon_connected = is_conn;
+                        if !is_conn {
+                            core_sig.set(CoreState::Offline);
+                        } else {
+                            core_sig.set(CoreState::Idle);
+                        }
                     }
                 }
             }
         });
     });
 
-    // Handlers
-    let on_send_prompt = move |text: String| {
-        let mut list = chat_history.read().clone();
-        list.push(ChatTurn {
-            id: list.len() as u64 + 1,
-            sender: "User".to_string(),
-            text: text.clone(),
-            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-            is_user: true,
-        });
-        chat_history.set(list);
-
-        core_state.set(CoreState::Processing);
-
-        spawn(async move {
-            let bridge = crate::get_bridge();
-            let _ = bridge
-                .ipc
-                .send_command(voxy_ipc::ClientCommand::SendTextInput { text: text.clone() })
-                .await;
-
-            let intent_input = voxy_cognition::IntentInput {
-                raw_text: text,
-                context: None,
-                source: "desktop_ui_core".to_string(),
-                metadata: std::collections::HashMap::new(),
-            };
-
-            match bridge.cognition.process(&intent_input).await {
-                Ok(result) => {
-                    core_state.set(CoreState::Responding);
-                    let response_text = serde_json::to_string_pretty(&result.result)
-                        .unwrap_or_else(|_| format!("{:?}", result.result));
-
-                    let mut l = chat_history.read().clone();
-                    l.push(ChatTurn {
-                        id: l.len() as u64 + 1,
-                        sender: "OSMOO Core".to_string(),
-                        text: response_text.clone(),
-                        timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-                        is_user: false,
-                    });
-                    chat_history.set(l);
-
-                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                    core_state.set(CoreState::Idle);
-                }
-                Err(_) => {
-                    core_state.set(CoreState::Error);
-                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                    core_state.set(CoreState::Idle);
-                }
-            }
-        });
-    };
-
-    let on_onboarding_finish = move |cfg: OnboardingConfig| {
-        // Persist autolaunch setting
-        if cfg.autolaunch_enabled {
-            let autolauncher = voxy_desktop_runtime::autolaunch::AutoLauncher::new("OSMOO");
-            let _ = autolauncher.enable();
-        }
-
-        // Flag completion
-        let cfg_dir = dirs::config_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join("osmoo");
-        let _ = std::fs::create_dir_all(&cfg_dir);
-        let _ = std::fs::write(cfg_dir.join("provisioned.flag"), "true");
-
-        screen.set(AppScreen::MainHud);
-    };
-
-    let on_emergency_stop = move |()| {
-        core_state.set(CoreState::Error);
-        spawn(async move {
-            let bridge = crate::get_bridge();
-            let _ = bridge
-                .ipc
-                .send_command(voxy_ipc::ClientCommand::EmergencyStop)
-                .await;
-        });
-    };
-
     rsx! {
         div { id: "main-app-container",
+            style { {crate::styles::APP_CSS} }
+
+            // Embedded Three.js Engine Scripts
+            div { dangerous_inner_html: "{THREE_JS_CORE_SCRIPT}" }
+
+            // ── Screen Rendering ────────────────────────────────────────
             match *screen.read() {
                 AppScreen::Splash => rsx! {
                     StartupSplash {
@@ -223,71 +194,133 @@ pub fn App() -> Element {
                         status_text: splash_status.read().clone(),
                     }
                 },
+                AppScreen::Auth => rsx! {
+                    AuthView {
+                        on_success: move |_| screen.set(AppScreen::MainHud),
+                        on_cancel: move |_| screen.set(AppScreen::MainHud),
+                    }
+                },
                 AppScreen::Onboarding => rsx! {
                     OnboardingWizard {
-                        on_finish: on_onboarding_finish,
                         initial_ollama_models: discovered_models.read().clone(),
+                        on_finish: move |cfg: OnboardingConfig| {
+                            companion_mode.set(cfg.companion_mode);
+                            let cfg_clone = cfg.clone();
+                            spawn(async move {
+                                if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
+                                    let _ = dispatcher.dispatch(crate::backend::BackendCommand::CompleteOnboarding(cfg_clone)).await;
+                                }
+                            });
+                            screen.set(AppScreen::MainHud);
+                        },
                     }
                 },
                 AppScreen::MainHud => rsx! {
-                    // Hero 3D Volumetric Assistant Core
+                    // 3D Viewport Layer (Obsidian Bot & Starlight Orb)
                     AssistantCore {
                         state: *core_state.read(),
+                        mode: *companion_mode.read(),
                     }
 
-                    // Floating Glassmorphic HUD & Secondary Drawer
+                    // Floating 2D HUD Controls & Telemetry
                     AssistantHud {
-                        on_send_prompt: on_send_prompt,
-                        on_open_settings: move |()| show_settings.set(true),
-                        on_emergency_stop: on_emergency_stop,
                         telemetry: telemetry.read().clone(),
                         chat_history: chat_history.read().clone(),
+                        current_mode: *companion_mode.read(),
+                        on_open_settings: move |_| show_settings.set(true),
+                        on_toggle_mode: move |m: CompanionMode| companion_mode.set(m),
+                        on_emergency_stop: move |_| {
+                            spawn(async move {
+                                if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
+                                    let _ = dispatcher.dispatch(crate::backend::BackendCommand::EmergencyStop).await;
+                                }
+                            });
+                        },
+                        on_send_prompt: move |text: String| {
+                            let next_id = chat_history.read().len() as u64 + 1;
+                            chat_history.write().push(ChatTurn {
+                                id: next_id,
+                                sender: "Operator".to_string(),
+                                text: text.clone(),
+                                timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                is_user: true,
+                            });
+                            core_state.set(CoreState::Thinking);
+
+                            let mut chat_sig = chat_history;
+                            let mut core_sig = core_state;
+                            spawn(async move {
+                                if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
+                                    match dispatcher.dispatch(crate::backend::BackendCommand::SendPrompt { text }).await {
+                                        Ok(crate::backend::BackendResult::PromptResponse { text: resp, .. }) => {
+                                            let resp_id = chat_sig.read().len() as u64 + 1;
+                                            chat_sig.write().push(ChatTurn {
+                                                id: resp_id,
+                                                sender: "OSMOO Core".to_string(),
+                                                text: resp,
+                                                timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                                is_user: false,
+                                            });
+                                            core_sig.set(CoreState::Speaking);
+                                        }
+                                        Err(e) => {
+                                            let err_id = chat_sig.read().len() as u64 + 1;
+                                            chat_sig.write().push(ChatTurn {
+                                                id: err_id,
+                                                sender: "OSMOO Core".to_string(),
+                                                text: format!("[SYSTEM ERROR]: {}", e),
+                                                timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+                                                is_user: false,
+                                            });
+                                            core_sig.set(CoreState::Error);
+                                        }
+                                        _ => {
+                                            core_sig.set(CoreState::Idle);
+                                        }
+                                    }
+                                }
+                            });
+                        },
                     }
 
-                    // System Preferences & Hardware Modal
+                    // Modal Preferences Drawer
                     if *show_settings.read() {
-                        {
-                            let bridge = crate::get_bridge();
-                            let current_sess = bridge.auth.current_session();
-                            let user_email = current_sess.as_ref().map(|s| s.email.clone()).unwrap_or_else(|| "guest@osmoo.in".to_string());
-                            let active_tier = current_sess.as_ref().map(|s| s.active_tier.clone()).unwrap_or_else(|| "free".to_string());
-                            let autolauncher = voxy_desktop_runtime::autolaunch::AutoLauncher::new("OSMOO");
-                            let is_autolaunch = autolauncher.is_enabled();
-
-                            let init_form = SettingsFormState {
-                                assistant_name: "OSMOO Core".to_string(),
-                                primary_llm: "ollama".to_string(),
-                                ollama_model: discovered_models.read().first().cloned().unwrap_or_else(|| "llama3.2:3b".to_string()),
-                                autolaunch: is_autolaunch,
-                                stt_provider: "deepgram".to_string(),
-                                tts_provider: "cartesia".to_string(),
-                                audio_sample_rate: 48000,
-                                vad_sensitivity: 0.5,
-                                minimize_to_tray: true,
-                                user_email,
-                                active_tier,
-                            };
-
-                            rsx! {
-                                SettingsView {
-                                    on_close: move |()| show_settings.set(false),
-                                    on_save: move |saved_settings: SettingsFormState| {
-                                        let autolauncher = voxy_desktop_runtime::autolaunch::AutoLauncher::new("OSMOO");
-                                        if saved_settings.autolaunch {
-                                            let _ = autolauncher.enable();
-                                        } else {
-                                            let _ = autolauncher.disable();
-                                        }
-                                        show_settings.set(false);
-                                    },
-                                    initial_settings: init_form,
-                                    ollama_models: discovered_models.read().clone(),
+                        SettingsView {
+                            initial_settings: {
+                                if let Some(br) = crate::bridge::AppBridge::get_global() {
+                                    let s = br.settings.get();
+                                    SettingsFormState {
+                                        assistant_name: s.app_name,
+                                        primary_llm: s.models.provider,
+                                        ollama_model: s.models.model,
+                                        autolaunch: true,
+                                        stt_provider: s.voice.stt_provider.unwrap_or_else(|| "groq".to_string()),
+                                        tts_provider: s.voice.tts_provider.unwrap_or_else(|| "cartesia".to_string()),
+                                        audio_sample_rate: s.voice.sample_rate,
+                                        vad_sensitivity: s.voice.wake_word_sensitivity as f32,
+                                        minimize_to_tray: true,
+                                        user_email: br.auth.current_session().map(|sess| sess.email).unwrap_or_else(|| "operator@osmoo.in".to_string()),
+                                        active_tier: br.auth.current_session().map(|sess| sess.active_tier).unwrap_or_else(|| "free".to_string()),
+                                    }
+                                } else {
+                                    SettingsFormState::default()
                                 }
-                            }
+                            },
+                            ollama_models: discovered_models.read().clone(),
+                            on_close: move |_| show_settings.set(false),
+                            on_save: move |updated: SettingsFormState| {
+                                spawn(async move {
+                                    if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
+                                        let _ = dispatcher.dispatch(crate::backend::BackendCommand::SaveSettings(updated)).await;
+                                    }
+                                });
+                                show_settings.set(false);
+                            },
                         }
                     }
                 },
             }
         }
     }
+
 }

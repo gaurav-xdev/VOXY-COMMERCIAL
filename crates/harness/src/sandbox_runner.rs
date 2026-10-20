@@ -1,4 +1,19 @@
-//! Sandboxed Command Execution with Timeout & Emergency Stop Token.
+//! Restricted Process Execution Engine with Boundary Checks, Timeout & Emergency Stop.
+//!
+//! SECURITY BOUNDARY & ISOLATION DISCLOSURE:
+//! This runner provides *Restricted Process Execution* rather than an operating-system-level
+//! kernel sandbox (such as Windows AppContainer or Linux cgroups/namespaces).
+//!
+//! Specifically, it enforces:
+//! 1. Strict working-directory boundary containment (rejects directory traversal, parent escapes,
+//!    and Windows reparse points/symlinks that escape the repository root).
+//! 2. Periodic emergency-stop token polling (every 50ms) with immediate execution abortion.
+//! 3. Bounded execution timeouts with guaranteed recursive process-tree termination (`taskkill /F /T /PID`).
+//! 4. Optional secret environment variable stripping.
+//!
+//! NOTE: The executed child process inherits the ambient user account permissions and can access
+//! system resources if passed absolute paths. Consequential or destructive commands MUST be guarded
+//! by human approval (`voxy_security::ApprovalBroker`) prior to invocation.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -8,6 +23,15 @@ use std::time::Duration;
 use thiserror::Error;
 use tokio::io::AsyncReadExt;
 use tokio::process::Command;
+
+/// Level of process isolation guaranteed by this runner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ProcessIsolationLevel {
+    /// Restricted process execution: working directory boundary containment,
+    /// reparse point rejection, emergency stop polling, and recursive process tree termination.
+    /// Does NOT provide OS-level containerization, restricted user token, or filesystem/network virtualization.
+    RestrictedProcess,
+}
 
 #[derive(Debug, Error)]
 pub enum RunnerError {
@@ -36,6 +60,7 @@ pub struct CommandOutput {
 pub struct SandboxedRunner {
     repo_root: PathBuf,
     emergency_stop: Arc<AtomicBool>,
+    strip_sensitive_env: bool,
 }
 
 impl SandboxedRunner {
@@ -43,12 +68,24 @@ impl SandboxedRunner {
         Self {
             repo_root: repo_root.as_ref().to_path_buf(),
             emergency_stop: Arc::new(AtomicBool::new(false)),
+            strip_sensitive_env: false,
         }
     }
 
     pub fn with_emergency_stop(mut self, stop: Arc<AtomicBool>) -> Self {
         self.emergency_stop = stop;
         self
+    }
+
+    /// Enable or disable stripping known sensitive credentials from child process environment.
+    pub fn with_stripped_sensitive_env(mut self, strip: bool) -> Self {
+        self.strip_sensitive_env = strip;
+        self
+    }
+
+    /// Returns the honest, verified isolation level provided by this runner.
+    pub fn isolation_level(&self) -> ProcessIsolationLevel {
+        ProcessIsolationLevel::RestrictedProcess
     }
 
     pub fn emergency_stop_token(&self) -> Arc<AtomicBool> {
@@ -147,12 +184,29 @@ impl SandboxedRunner {
 
         let start = std::time::Instant::now();
 
-        let mut child = Command::new(program)
-            .args(args)
+        let mut cmd = Command::new(program);
+        cmd.args(args)
             .current_dir(working_dir)
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+            .stderr(Stdio::piped());
+
+        if self.strip_sensitive_env {
+            const SENSITIVE_KEYS: &[&str] = &[
+                "AWS_SECRET_ACCESS_KEY",
+                "AWS_SESSION_TOKEN",
+                "GITHUB_TOKEN",
+                "GH_TOKEN",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "GROQ_API_KEY",
+                "CARTESIA_API_KEY",
+            ];
+            for key in SENSITIVE_KEYS {
+                cmd.env_remove(key);
+            }
+        }
+
+        let mut child = cmd.spawn()?;
 
         let mut stdout_pipe = child.stdout.take();
         let mut stderr_pipe = child.stderr.take();
@@ -381,5 +435,44 @@ mod tests {
             .await;
 
         assert!(matches!(res, Err(RunnerError::InvalidWorkingDir)));
+    }
+
+    #[test]
+    fn test_runner_isolation_level_reports_restricted_process() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path());
+        assert_eq!(
+            runner.isolation_level(),
+            ProcessIsolationLevel::RestrictedProcess
+        );
+    }
+
+    #[tokio::test]
+    async fn test_runner_strips_sensitive_env_when_configured() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path()).with_stripped_sensitive_env(true);
+
+        std::env::set_var("OPENAI_API_KEY", "sk-secret-test-key-12345");
+
+        #[cfg(target_os = "windows")]
+        let out = runner
+            .run_command(
+                "cmd.exe",
+                &["/c", "echo %OPENAI_API_KEY%"],
+                None,
+                Duration::from_secs(5),
+            )
+            .await
+            .expect("Command should succeed");
+
+        #[cfg(target_os = "windows")]
+        {
+            // In cmd.exe, an unset variable echoes as %OPENAI_API_KEY% or empty
+            let stdout = out.stdout.trim();
+            assert!(
+                !stdout.contains("sk-secret-test-key-12345"),
+                "Sensitive key must not leak to child process: got {stdout}"
+            );
+        }
     }
 }

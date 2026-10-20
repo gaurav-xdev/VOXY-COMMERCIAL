@@ -28,3 +28,10 @@ async fn test_integration_supervisor_lifecycle_and_shutdown() {
     let status_after = supervisor.status();
     assert!(status_after.is_shutting_down);
 }
+
+#[test]
+fn test_integration_job_object_assign_non_existent_pid_fails_closed() {
+    let job = WindowsJobObject::new().expect("Job object init failed");
+    let res = job.assign_pid(0);
+    assert!(res.is_err(), "Assigning PID 0 or invalid must fail closed");
+}

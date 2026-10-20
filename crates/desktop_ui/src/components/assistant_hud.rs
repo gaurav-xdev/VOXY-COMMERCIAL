@@ -1,7 +1,13 @@
-use crate::components::icons::{IconMessageSquare, IconSend, IconSettings, IconStopCircle};
+use crate::components::assistant_core::CompanionMode;
+use crate::components::icons::{
+    IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings,
+    IconStopCircle,
+};
 use dioxus::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ChatTurn {
     pub id: u64,
     pub sender: String,
@@ -9,6 +15,7 @@ pub struct ChatTurn {
     pub timestamp: String,
     pub is_user: bool,
 }
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TelemetryStats {
@@ -21,52 +28,53 @@ pub fn AssistantHud(
     on_send_prompt: EventHandler<String>,
     on_open_settings: EventHandler<()>,
     on_emergency_stop: EventHandler<()>,
+    on_toggle_mode: EventHandler<CompanionMode>,
     telemetry: TelemetryStats,
     chat_history: Vec<ChatTurn>,
+    current_mode: CompanionMode,
 ) -> Element {
     let mut drawer_open = use_signal(|| false);
     let mut prompt_input = use_signal(String::new);
 
     let daemon_color = if telemetry.daemon_connected {
-        "#10b981"
+        "var(--status-listening)"
     } else {
-        "#f59e0b"
+        "var(--osmoo-metallic)"
     };
 
     rsx! {
         div { class: "hud-root-layer",
-            // ── Top Floating Header Bar ─────────────────────────────────
+            // ── Top Floating Navigation & Telemetry Bar ─────────────────
             div { class: "hud-top-bar",
+                // Brand Monogram & Title
                 div { class: "hud-brand-pill",
-                    span { class: "hud-brand-dot" }
+                    IconOsmooLogo { size: 22, class: Some("brand-helical-mark".to_string()) }
                     span { class: "hud-brand-name", "OSMOO" }
-                    span { class: "hud-brand-sub", "OSMIORA COMPUTATIONAL SYSTEMS" }
+                    span { class: "hud-brand-sub", "COMPUTATIONAL COMPANION" }
                 }
 
+                // Telemetry Cluster
                 div { class: "hud-telemetry-cluster",
-                    // Daemon IPC Status Pill
                     div { class: "telemetry-pill",
                         span {
                             class: "telemetry-dot",
                             style: "background-color: {daemon_color};",
                         }
                         span { class: "telemetry-text",
-                            if telemetry.daemon_connected { "PIPE: CONNECTED" } else { "PIPE: SEARCHING" }
+                            if telemetry.daemon_connected { "PIPE: ONLINE" } else { "PIPE: SEARCHING" }
                         }
                     }
 
-                    // Active Provider Pill
                     div { class: "telemetry-pill",
                         span { class: "telemetry-text", "{telemetry.active_llm}" }
                     }
                 }
 
+                // Top Controls
                 div { class: "hud-controls-cluster",
-
-                    // Drawer Toggle Button
                     button {
                         class: if *drawer_open.read() { "hud-icon-btn active" } else { "hud-icon-btn" },
-                        title: "Toggle Conversation History",
+                        title: "Conversation Drawer",
                         onclick: move |_| {
                             let cur = *drawer_open.read();
                             drawer_open.set(!cur);
@@ -74,115 +82,105 @@ pub fn AssistantHud(
                         IconMessageSquare { size: 16 }
                     }
 
-                    // Emergency Stop Button
                     button {
                         class: "hud-icon-btn emergency",
-                        title: "Emergency Stop (Abort Autonomous Tools)",
+                        title: "Emergency Halt (Abort Running Subsystems)",
                         onclick: move |_| on_emergency_stop.call(()),
                         IconStopCircle { size: 16 }
                     }
 
-                    // Settings Button
                     button {
                         class: "hud-icon-btn",
-                        title: "System Settings",
+                        title: "System Preferences",
                         onclick: move |_| on_open_settings.call(()),
                         IconSettings { size: 16 }
                     }
                 }
             }
 
-            // ── Slide-in Conversation Drawer (Secondary Interface) ───────
+            // ── Bottom Dock: Mode Segmented Switch + Input Capsule ──────
+            div { class: "hud-bottom-dock",
+                // Mode Segmented Switch
+                div { class: "mode-toggle-segmented",
+                    button {
+                        class: if current_mode == CompanionMode::Robot { "mode-segment-btn active" } else { "mode-segment-btn" },
+                        onclick: move |_| on_toggle_mode.call(CompanionMode::Robot),
+                        IconRobot { size: 14 }
+                        span { "Companion" }
+                    }
+                    button {
+                        class: if current_mode == CompanionMode::ParticleOrb { "mode-segment-btn active" } else { "mode-segment-btn" },
+                        onclick: move |_| on_toggle_mode.call(CompanionMode::ParticleOrb),
+                        IconOrb { size: 14 }
+                        span { "Particle Orb" }
+                    }
+                }
+
+                // Prompt Input Capsule
+                div { class: "hud-input-capsule",
+                    input {
+                        class: "hud-text-input",
+                        r#type: "text",
+                        placeholder: "Direct OSMOO Companion or execute OS automation...",
+                        value: "{prompt_input.read()}",
+                        oninput: move |e: FormEvent| prompt_input.set(e.value()),
+                        onkeydown: move |e: KeyboardEvent| {
+                            if e.key() == Key::Enter {
+                                let text = prompt_input.read().trim().to_string();
+                                if !text.is_empty() {
+                                    on_send_prompt.call(text);
+                                    prompt_input.set(String::new());
+                                }
+                            }
+                        },
+                    }
+                    button {
+                        class: "hud-icon-btn",
+                        style: "width: 32px; height: 32px; background: var(--osmoo-ivory); color: var(--osmoo-onyx);",
+                        title: "Dispatch Command",
+                        onclick: move |_| {
+                            let text = prompt_input.read().trim().to_string();
+                            if !text.is_empty() {
+                                on_send_prompt.call(text);
+                                prompt_input.set(String::new());
+                            }
+                        },
+                        IconSend { size: 14 }
+                    }
+                }
+            }
+
+            // ── Slide-in Conversation Drawer ────────────────────────────
             if *drawer_open.read() {
                 div {
                     class: "hud-drawer-backdrop",
                     onclick: move |_| drawer_open.set(false),
                 }
-            }
 
-            div {
-                class: if *drawer_open.read() { "hud-history-drawer open" } else { "hud-history-drawer" },
-                div { class: "drawer-header",
-                    span { class: "drawer-title", "CONVERSATION & EVENT LOG" }
-                    button {
-                        class: "drawer-close-btn",
-                        onclick: move |_| drawer_open.set(false),
-                        "×"
-                    }
-                }
-
-                div { class: "drawer-turns-scroll",
-                    if chat_history.is_empty() {
-                        div { class: "drawer-empty", "No messages in session buffer." }
-                    } else {
-                        for turn in chat_history.iter() {
-                            div {
-                                class: if turn.is_user { "chat-turn user" } else { "chat-turn assistant" },
-                                div { class: "turn-meta",
-                                    span { class: "turn-sender", "{turn.sender}" }
-                                    span { class: "turn-time", "{turn.timestamp}" }
-                                }
-                                div { class: "turn-body", "{turn.text}" }
-                            }
+                div { class: "hud-drawer-panel",
+                    div { class: "drawer-header",
+                        span { class: "drawer-title", "COGNITIVE DIALOGUE STREAM" }
+                        button {
+                            class: "hud-icon-btn",
+                            style: "width: 28px; height: 28px; font-size: 16px;",
+                            onclick: move |_| drawer_open.set(false),
+                            "×"
                         }
                     }
-                }
 
-                // Interactive Text Input Inside Drawer
-                div { class: "drawer-input-row",
-                    input {
-                        class: "hud-input",
-                        r#type: "text",
-                        placeholder: "Type a prompt or system command...",
-                        value: "{prompt_input.read()}",
-                        oninput: move |e: FormEvent| prompt_input.set(e.value()),
-                        onkeydown: {
-                            let mut prompt_sig = prompt_input;
-                            let on_send = on_send_prompt;
-                            move |e: KeyboardEvent| {
-                                if e.key() == Key::Enter {
-                                    let txt = prompt_sig.read().trim().to_string();
-                                    if !txt.is_empty() {
-                                        prompt_sig.set(String::new());
-                                        on_send.call(txt);
+                    div { class: "drawer-content",
+                        for turn in chat_history.iter() {
+                            {
+                                let b_class = if turn.is_user { "chat-bubble user" } else { "chat-bubble assistant" };
+                                rsx! {
+                                    div { class: "{b_class}",
+                                        div { class: "chat-sender-label", "{turn.sender} · {turn.timestamp}" }
+                                        div { "{turn.text}" }
                                     }
                                 }
                             }
-                        },
+                        }
                     }
-                    button {
-                        class: "hud-btn primary",
-                        onclick: {
-                            let mut prompt_sig = prompt_input;
-                            let on_send = on_send_prompt;
-                            move |_| {
-                                let txt = prompt_sig.read().trim().to_string();
-                                if !txt.is_empty() {
-                                    prompt_sig.set(String::new());
-                                    on_send.call(txt);
-                                }
-                            }
-                        },
-                        IconSend { size: 16 }
-                    }
-                }
-            }
-
-            // ── Floating Action Bar at Bottom of HUD ─────────────────────
-            div { class: "hud-bottom-actions",
-                div { class: "action-hint",
-                    span { class: "kbd-key", "SPACE" }
-                    span { class: "hint-text", "HOLD TO TALK" }
-                }
-                div { class: "action-divider", "·" }
-                div { class: "action-hint",
-                    span { class: "kbd-key", "ALT + O" }
-                    span { class: "hint-text", "TOGGLE OVERLAY" }
-                }
-                div { class: "action-divider", "·" }
-                div { class: "action-hint",
-                    span { class: "kbd-key", "ESC" }
-                    span { class: "hint-text", "HIDE TO TRAY" }
                 }
             }
         }

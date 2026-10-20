@@ -1,0 +1,70 @@
+REPOSITORY IDENTIFICATION & ENVIRONMENT SNAPSHOT
+=====================================================
+Captured At: 2026-10-20T14:48:00+05:30
+Repository Root: C:\Users\gaurav\Downloads\VOXY-COMMERCIAL
+Git Branch: master
+Git Commit HEAD SHA: ccb5737d9d9b65877f32b4a66aa40df44c1d228d
+Git Remote Origin: git@github.com:osmiora/voxy-commercial.git
+
+OPERATING SYSTEM & RUNTIME VERSIONS
+-----------------------------------
+OS Version: Microsoft Windows NT 10.0.26200.0 (Windows 11 Pro 64-bit)
+Rust Compiler: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+Cargo Package Manager: cargo 1.99.1 (5f94df478 2026-08-27)
+Python Runtime: Python 3.11.9
+Node Runtime: v24.14.0
+Shell: Windows PowerShell 5.1 / PowerShell Core 7+
+
+EXECUTABLE BINARY ARTIFACTS & INTEGRITY HASHES
+----------------------------------------------
+1. Target: target\release\OSMOO.exe
+   Size: 9,211,904 bytes (8.78 MB)
+   Last Modified: 2026-10-20 12:11:06
+   SHA-256 Hash: EDBF0418970B52D0FC1F7A4BFC250DE30607EAB1E150C3F754A787608335AB20
+
+2. Target: target\debug\OSMOO.exe
+   Size: 28,602,880 bytes (27.28 MB)
+   Last Modified: 2026-10-20 11:30:10
+   SHA-256 Hash: 928373AF9695C453C91079D9606B26A69F06D94119932402120C188AE5F5FEA9
+
+WORKSPACE STRUCTURE SUMMARY
+---------------------------
+Total Packages: 77 packages in Cargo workspace
+Application Binaries:
+  - apps/daemon (voxy-daemon) -> voxy-daemon.exe
+  - apps/overlay (voxy-overlay) -> voxy-overlay.exe
+  - crates/desktop_ui ([[bin]] OSMOO) -> OSMOO.exe
+Library Crates: 74 library crates under crates/
+
+ACTIVE WORKING TREE STATUS
+--------------------------
+Changes not staged for commit:
+  M Cargo.lock
+  M crates/desktop_runtime/src/settings.rs
+  M crates/desktop_ui/Cargo.toml
+  M crates/desktop_ui/src/app.rs
+  M crates/desktop_ui/src/bridge/auth.rs
+  M crates/desktop_ui/src/bridge/mod.rs
+  M crates/desktop_ui/src/components/assistant_core.rs
+  M crates/desktop_ui/src/components/assistant_hud.rs
+  M crates/desktop_ui/src/components/icons.rs
+  M crates/desktop_ui/src/components/mod.rs
+  M crates/desktop_ui/src/components/onboarding_wizard.rs
+  M crates/desktop_ui/src/components/startup_splash.rs
+  M crates/desktop_ui/src/lib.rs
+  M crates/desktop_ui/src/main.rs
+  M crates/desktop_ui/src/styles/mod.rs
+  M crates/desktop_ui/src/views/mod.rs
+  M crates/desktop_ui/src/views/settings.rs
+  M graphify-out/GRAPH_REPORT.md
+  M graphify-out/graph.html
+  M graphify-out/graph.json
+Untracked files:
+  crates/desktop_ui/src/backend/
+  crates/desktop_ui/src/fixtures/
+  crates/desktop_ui/src/views/auth.rs
+  crates/desktop_ui/tests/backend_command_test.rs
+  crates/desktop_ui/tests/ui_state_test.rs
+  docs/OSMOO_MASTER_AUDIT_REPORT.md
+  docs/plans/
+  artifacts/independent-audit/

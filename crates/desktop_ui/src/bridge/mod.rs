@@ -77,8 +77,9 @@ impl AppBridge {
         auth: Arc<AuthBridge>,
         window_tracker: Arc<WindowTracker>,
     ) -> Self {
-        Self {
+        let bridge = Self {
             event_bus,
+
             settings,
             config_manager,
             cognition,
@@ -96,6 +97,16 @@ impl AppBridge {
             ipc,
             auth,
             window_tracker,
-        }
+        };
+        let _ = GLOBAL_BRIDGE.set(bridge.clone());
+        bridge
+    }
+
+
+    pub fn get_global() -> Option<AppBridge> {
+        GLOBAL_BRIDGE.get().cloned()
     }
 }
+
+static GLOBAL_BRIDGE: std::sync::OnceLock<AppBridge> = std::sync::OnceLock::new();
+

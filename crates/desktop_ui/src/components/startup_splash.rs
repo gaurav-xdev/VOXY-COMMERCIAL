@@ -1,3 +1,4 @@
+use crate::components::icons::IconOsmooLogo;
 use dioxus::prelude::*;
 
 #[component]
@@ -9,24 +10,16 @@ pub fn StartupSplash(progress: f32, status_text: String) -> Element {
             div { class: "splash-ambient-radiance" }
 
             div { class: "splash-branding-box",
-                // Osmiora Master Monogram
+                // Authentic Osmiora Helical Aperture Logo Mark
                 div { class: "splash-logo-mark",
-                    svg {
-                        width: "64",
-                        height: "64",
-                        view_box: "0 0 64 64",
-                        fill: "none",
-                        circle { cx: "32", cy: "32", r: "28", stroke: "rgba(56, 189, 248, 0.3)", stroke_width: "1.5" }
-                        circle { cx: "32", cy: "32", r: "18", stroke: "rgba(56, 189, 248, 0.8)", stroke_width: "2" }
-                        circle { cx: "32", cy: "32", r: "6", fill: "#38bdf8" }
-                    }
+                    IconOsmooLogo { size: 68 }
                 }
 
                 h1 { class: "splash-brand-title", "OSMOO" }
                 div { class: "splash-brand-subtitle", "OPERATING SYSTEM MACHINE OPTIMIZATION OPERATOR" }
                 div { class: "splash-brand-parent", "OSMIORA COMPUTATIONAL SYSTEMS" }
 
-                // Cinematic Loading Bar
+                // Machined Loading Track
                 div { class: "splash-progress-track",
                     div {
                         class: "splash-progress-fill",

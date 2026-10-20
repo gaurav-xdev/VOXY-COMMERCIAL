@@ -50,7 +50,26 @@ mod platform {
     }
 
     fn get_dpi_scale() -> f64 {
-        1.0
+        unsafe {
+            let dpi = GetDpiForSystem();
+            if dpi > 0 {
+                dpi as f64 / 96.0
+            } else {
+                1.0
+            }
+        }
+    }
+
+    /// Converts logical coordinates to physical pixel coordinates based on DPI scale.
+    pub fn logical_to_physical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
+        let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
+        (((x as f64) * scale).round() as i32, ((y as f64) * scale).round() as i32)
+    }
+
+    /// Converts physical pixel coordinates to logical coordinates based on DPI scale.
+    pub fn physical_to_logical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
+        let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
+        (((x as f64) / scale).round() as i32, ((y as f64) / scale).round() as i32)
     }
 
     fn to_wstring(s: &str) -> Vec<u16> {
@@ -63,8 +82,15 @@ mod platform {
     #[link(name = "user32")]
     #[link(name = "gdi32")]
     extern "system" {
+        fn GetDpiForSystem() -> u32;
+        fn GetDpiForWindow(hWnd: Hwnd) -> u32;
         fn FindWindowW(lpClassName: *const u16, lpWindowName: *const u16) -> Hwnd;
         fn EnumWindows(
+            lpEnumFunc: Option<unsafe extern "system" fn(Hwnd, isize) -> i32>,
+            lParam: isize,
+        ) -> i32;
+        fn EnumChildWindows(
+            hWndParent: Hwnd,
             lpEnumFunc: Option<unsafe extern "system" fn(Hwnd, isize) -> i32>,
             lParam: isize,
         ) -> i32;
@@ -321,6 +347,17 @@ mod platform {
         let results = &mut *(lparam as *mut Vec<Hwnd>);
         results.push(hwnd);
         1
+    }
+
+    pub fn find_child_windows(parent: Hwnd) -> Vec<Hwnd> {
+        let mut results = Vec::new();
+        unsafe {
+            let callback: Option<unsafe extern "system" fn(Hwnd, isize) -> i32> =
+                Some(hook_enum_windows);
+            let lparam = &mut results as *mut Vec<Hwnd> as isize;
+            EnumChildWindows(parent, callback, lparam);
+        }
+        results
     }
 
     fn build_window_target(hwnd: Hwnd) -> Option<WindowTarget> {
@@ -957,88 +994,87 @@ mod platform {
         pub fn find_elements(&self, selector: &ElementSelector) -> Result<Vec<ElementInfo>> {
             let mut results = Vec::new();
 
-            if let Some(ref name) = selector.name {
-                let hwnds = find_windows(name, None)?;
-                for hwnd in hwnds {
-                    let title = get_window_text(hwnd);
-                    if title.to_lowercase().contains(&name.to_lowercase()) {
-                        let mut rect = RECT {
-                            left: 0,
-                            top: 0,
-                            right: 0,
-                            bottom: 0,
-                        };
-                        unsafe { GetWindowRect(hwnd, &mut rect) };
-                        results.push(ElementInfo {
-                            id: format!("{:x}", hwnd as u64),
-                            name: title.clone(),
-                            control_type: "Window".to_string(),
-                            bounds: rect_to_dto(rect),
-                            is_enabled: true,
-                            is_visible: unsafe { IsWindowVisible(hwnd) != 0 },
-                            text: Some(title),
-                            children: vec![],
-                        });
+            let candidate_hwnds = if let Some(ref name) = selector.name {
+                find_windows(name, None)?
+            } else if let Some(ref auto_id) = selector.automation_id {
+                find_windows(auto_id, None)?
+            } else {
+                find_windows("", None)?
+            };
+
+            let inspect_hwnd = |hwnd: Hwnd, is_child: bool| -> Option<ElementInfo> {
+                let title = get_window_text(hwnd);
+                let class = get_class_name(hwnd);
+                let control_type = if !is_child {
+                    "Window".to_string()
+                } else if !class.is_empty() {
+                    class.clone()
+                } else {
+                    "ChildControl".to_string()
+                };
+
+                if let Some(ref name) = selector.name {
+                    if !title.to_lowercase().contains(&name.to_lowercase()) {
+                        return None;
                     }
                 }
-            }
 
-            if let Some(ref automation_id) = selector.automation_id {
-                let hwnds = find_windows(automation_id, None)?;
-                for hwnd in hwnds {
-                    let class = get_class_name(hwnd);
-                    if let Some(ref expected_class) = selector.class_name {
-                        if !class
-                            .to_lowercase()
-                            .contains(&expected_class.to_lowercase())
-                        {
-                            continue;
-                        }
+                if let Some(ref text) = selector.text {
+                    if !title.to_lowercase().contains(&text.to_lowercase()) {
+                        return None;
                     }
-                    let mut rect = RECT {
-                        left: 0,
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                    };
-                    unsafe { GetWindowRect(hwnd, &mut rect) };
-                    results.push(ElementInfo {
-                        id: format!("{:x}", hwnd as u64),
-                        name: get_window_text(hwnd),
-                        control_type: class,
-                        bounds: rect_to_dto(rect),
-                        is_enabled: true,
-                        is_visible: unsafe { IsWindowVisible(hwnd) != 0 },
-                        text: None,
-                        children: vec![],
-                    });
                 }
-            }
 
-            if let Some(ref class_name) = selector.class_name {
-                let class_lower = class_name.to_lowercase();
-                let all_hwnds = find_windows("", None)?;
-                for hwnd in all_hwnds {
-                    let class = get_class_name(hwnd);
-                    if class.to_lowercase().contains(&class_lower) {
-                        let mut rect = RECT {
-                            left: 0,
-                            top: 0,
-                            right: 0,
-                            bottom: 0,
-                        };
-                        unsafe { GetWindowRect(hwnd, &mut rect) };
-                        let title = get_window_text(hwnd);
-                        results.push(ElementInfo {
-                            id: format!("{:x}", hwnd as u64),
-                            name: title.clone(),
-                            control_type: class,
-                            bounds: rect_to_dto(rect),
-                            is_enabled: true,
-                            is_visible: unsafe { IsWindowVisible(hwnd) != 0 },
-                            text: if title.is_empty() { None } else { Some(title) },
-                            children: vec![],
-                        });
+                if let Some(ref class_name) = selector.class_name {
+                    if !class.to_lowercase().contains(&class_name.to_lowercase()) {
+                        return None;
+                    }
+                }
+
+                if let Some(ref ct) = selector.control_type {
+                    let ct_lower = ct.to_lowercase();
+                    if !control_type.to_lowercase().contains(&ct_lower)
+                        && !class.to_lowercase().contains(&ct_lower)
+                    {
+                        return None;
+                    }
+                }
+
+                if let Some(ref auto_id) = selector.automation_id {
+                    let id_str = format!("{:x}", hwnd as u64);
+                    if !id_str.contains(auto_id) && !title.contains(auto_id) {
+                        return None;
+                    }
+                }
+
+                let mut rect = RECT {
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                };
+                unsafe { GetWindowRect(hwnd, &mut rect) };
+
+                Some(ElementInfo {
+                    id: format!("{:x}", hwnd as u64),
+                    name: title.clone(),
+                    control_type,
+                    bounds: rect_to_dto(rect),
+                    is_enabled: true,
+                    is_visible: unsafe { IsWindowVisible(hwnd) != 0 },
+                    text: if title.is_empty() { None } else { Some(title) },
+                    children: vec![],
+                })
+            };
+
+            for hwnd in candidate_hwnds {
+                if let Some(elem) = inspect_hwnd(hwnd, false) {
+                    results.push(elem);
+                }
+                let children = find_child_windows(hwnd);
+                for child in children {
+                    if let Some(child_elem) = inspect_hwnd(child, true) {
+                        results.push(child_elem);
                     }
                 }
             }
@@ -1068,6 +1104,24 @@ mod platform {
         pub fn new() -> Self {
             Self
         }
+
+        pub fn initialize(&mut self) -> Result<()> {
+            Ok(())
+        }
+
+        pub fn dpi_scale(&self) -> f64 {
+            1.0
+        }
+    }
+
+    pub fn logical_to_physical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
+        let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
+        (((x as f64) * scale).round() as i32, ((y as f64) * scale).round() as i32)
+    }
+
+    pub fn physical_to_logical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
+        let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
+        (((x as f64) / scale).round() as i32, ((y as f64) / scale).round() as i32)
     }
 
     pub struct Win32Automation;
@@ -1419,5 +1473,63 @@ impl AutomationBackend for WindowsUiaBackend {
             AutomationCapability::WindowManagement,
             AutomationCapability::ElementDetection,
         ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dpi_coordinate_scaling_100_percent() {
+        let (px, py) = logical_to_physical(100, 200, 1.0);
+        assert_eq!((px, py), (100, 200));
+
+        let (lx, ly) = physical_to_logical(px, py, 1.0);
+        assert_eq!((lx, ly), (100, 200));
+    }
+
+    #[test]
+    fn test_dpi_coordinate_scaling_125_percent() {
+        let (px, py) = logical_to_physical(100, 200, 1.25);
+        assert_eq!((px, py), (125, 250));
+
+        let (lx, ly) = physical_to_logical(px, py, 1.25);
+        assert_eq!((lx, ly), (100, 200));
+    }
+
+    #[test]
+    fn test_dpi_coordinate_scaling_150_percent() {
+        let (px, py) = logical_to_physical(100, 200, 1.5);
+        assert_eq!((px, py), (150, 300));
+
+        let (lx, ly) = physical_to_logical(px, py, 1.5);
+        assert_eq!((lx, ly), (100, 200));
+    }
+
+    #[test]
+    fn test_dpi_coordinate_scaling_200_percent() {
+        let (px, py) = logical_to_physical(100, 200, 2.0);
+        assert_eq!((px, py), (200, 400));
+
+        let (lx, ly) = physical_to_logical(px, py, 2.0);
+        assert_eq!((lx, ly), (100, 200));
+    }
+
+    #[test]
+    fn test_dpi_coordinate_scaling_fallback_on_invalid_scale() {
+        let (px, py) = logical_to_physical(100, 200, 0.0);
+        assert_eq!((px, py), (100, 200));
+
+        let (lx, ly) = physical_to_logical(100, 200, -1.5);
+        assert_eq!((lx, ly), (100, 200));
+    }
+
+    #[test]
+    fn test_windows_uia_backend_inner_dpi() {
+        let mut inner = WindowsUiaBackendInner::new();
+        assert_eq!(inner.dpi_scale(), 1.0);
+        let _ = inner.initialize();
+        assert!(inner.dpi_scale() > 0.0);
     }
 }

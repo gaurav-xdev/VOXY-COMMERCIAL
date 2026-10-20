@@ -1,38 +1,45 @@
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+pub enum CompanionMode {
+    Robot,
+    ParticleOrb,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub enum CoreState {
     Idle,
-    Processing,
-    Responding,
+    Listening,
+    Thinking,
+    Speaking,
     Error,
+    Offline,
 }
+
 
 impl CoreState {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Idle => "Idle",
-            Self::Processing => "Processing",
-            Self::Responding => "Responding",
+            Self::Listening => "Listening",
+            Self::Thinking => "Thinking",
+            Self::Speaking => "Speaking",
             Self::Error => "Error",
+            Self::Offline => "Offline",
         }
     }
 
+    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
+
         match self {
             Self::Idle => "IDLE // READY",
-            Self::Processing => "EVALUATING CONTEXT & INTENT",
-            Self::Responding => "DISPATCHING RESPONSE",
-            Self::Error => "SYSTEM ATTENTION REQUIRED",
-        }
-    }
-
-    pub fn color_hex(&self) -> &'static str {
-        match self {
-            Self::Idle => "#4a5568",
-            Self::Processing => "#8b5cf6",
-            Self::Responding => "#06b6d4",
-            Self::Error => "#ef4444",
+            Self::Listening => "LISTENING // AUDIO STREAM",
+            Self::Thinking => "COGNITIVE REASONING ACTIVE",
+            Self::Speaking => "DISPATCHING SYNTHESIZED RESPONSE",
+            Self::Error => "SUBSYSTEM ATTENTION REQUIRED",
+            Self::Offline => "CORE DISCONNECTED",
         }
     }
 }
@@ -42,237 +49,277 @@ pub const THREE_JS_CORE_SCRIPT: &str = r##"
 <script>
 (function() {
     let scene, camera, renderer;
-    let coreMesh, auraMesh, outerRing, innerRing, particles;
+    let robotGroup, headMesh, eyeLMesh, eyeRMesh, bodyMesh, handLMesh, handRMesh;
+    let particleOrbMesh, particleGeometry;
+    let currentMode = 'Robot'; // 'Robot' or 'ParticleOrb'
     let currentCompanionState = 'Idle';
-    let targetCoreColor = new THREE.Color(0x38bdf8);
-    let currentCoreColor = new THREE.Color(0x38bdf8);
     let clock = new THREE.Clock();
+    let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
-    window.osmooSetCoreState = function(stateName) {
-        currentCompanionState = stateName;
-        if (stateName === 'Processing') {
-            targetCoreColor.setHex(0xa855f7); // Deep Purple
-        } else if (stateName === 'Responding') {
-            targetCoreColor.setHex(0x06b6d4); // Cyan
-        } else if (stateName === 'Error') {
-            targetCoreColor.setHex(0xef4444); // Crimson
-        } else {
-            targetCoreColor.setHex(0x38bdf8); // Sky blue idle
+    window.osmooSetCompanionMode = function(mode) {
+        currentMode = mode;
+        if (robotGroup && particleOrbMesh) {
+            robotGroup.visible = (mode === 'Robot');
+            particleOrbMesh.visible = (mode === 'ParticleOrb');
         }
     };
 
+    window.osmooSetCoreState = function(stateName) {
+        currentCompanionState = stateName;
+    };
+
     function initThree() {
-        const container = document.getElementById("osmoo-three-container");
+        const container = document.getElementById("osmoo-viewport-container");
         if (!container) return;
 
-        const width = container.clientWidth || 600;
-        const height = container.clientHeight || 500;
+        const width = container.clientWidth || window.innerWidth || 800;
+        const height = container.clientHeight || window.innerHeight || 600;
 
         scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+        camera.position.z = 9.5;
 
-        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        camera.position.z = 8.5;
+        try {
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+        } catch(e) {
+            console.warn("WebGL unsupported, fallback active", e);
+            const fb = document.getElementById("osmoo-webgl-fallback");
+            if (fb) fb.style.display = "flex";
+            return;
+        }
 
-        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
         renderer.setSize(width, height);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.25;
+        renderer.toneMappingExposure = 1.35;
 
         container.innerHTML = "";
         container.appendChild(renderer.domElement);
 
-        // 1. Core Volumetric Orb (Icosahedron high poly)
-        const coreGeo = new THREE.IcosahedronGeometry(2.0, 5);
-        const coreMat = new THREE.MeshPhysicalMaterial({
-            color: 0x0284c7,
-            emissive: 0x0369a1,
-            emissiveIntensity: 0.85,
-            roughness: 0.1,
-            metalness: 0.1,
-            transmission: 0.88,
-            thickness: 1.8,
-            transparent: true,
-            opacity: 0.95,
-            ior: 1.45,
-            reflectivity: 0.8,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.1
-        });
-        coreMesh = new THREE.Mesh(coreGeo, coreMat);
-        scene.add(coreMesh);
-
-        // 2. Inner Living Filament Core
-        const innerGeo = new THREE.IcosahedronGeometry(1.2, 3);
-        const innerMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            emissive: 0x38bdf8,
-            emissiveIntensity: 2.2,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.45
-        });
-        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
-        coreMesh.add(innerMesh);
-
-        // 3. Gyroscopic Orbital Gimbal Rings
-        const ringGeo1 = new THREE.TorusGeometry(3.0, 0.022, 16, 120);
-        const ringMat1 = new THREE.MeshStandardMaterial({
-            color: 0x7dd3fc,
-            emissive: 0x0284c7,
-            emissiveIntensity: 0.6,
-            metalness: 0.9,
-            roughness: 0.2
-        });
-        outerRing = new THREE.Mesh(ringGeo1, ringMat1);
-        scene.add(outerRing);
-
-        const ringGeo2 = new THREE.TorusGeometry(2.5, 0.018, 16, 100);
-        const ringMat2 = new THREE.MeshStandardMaterial({
-            color: 0xbae6fd,
-            emissive: 0x0369a1,
-            emissiveIntensity: 0.5,
-            metalness: 0.8,
-            roughness: 0.3
-        });
-        innerRing = new THREE.Mesh(ringGeo2, ringMat2);
-        scene.add(innerRing);
-
-        // 4. Volumetric Quantum Particle Field
-        const particleCount = 260;
-        const particleGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        for(let i = 0; i < particleCount * 3; i += 3) {
-            const rad = 2.4 + Math.random() * 2.2;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            positions[i] = rad * Math.sin(phi) * Math.cos(theta);
-            positions[i+1] = rad * Math.sin(phi) * Math.sin(theta);
-            positions[i+2] = rad * Math.cos(phi);
-        }
-        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const particleMat = new THREE.PointsMaterial({
-            color: 0x38bdf8,
-            size: 0.045,
-            transparent: true,
-            opacity: 0.65,
-            blending: THREE.AdditiveBlending
-        });
-        particles = new THREE.Points(particleGeo, particleMat);
-        scene.add(particles);
-
-        // 5. Studio Lighting
-        const keyLight = new THREE.PointLight(0xffffff, 2.5, 50);
-        keyLight.position.set(4, 5, 5);
-        scene.add(keyLight);
-
-        const rimLight = new THREE.PointLight(0x0ea5e9, 3.5, 50);
-        rimLight.position.set(-5, -4, -4);
-        scene.add(rimLight);
-
-        const ambientLight = new THREE.AmbientLight(0x081525, 1.2);
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
 
-        window.addEventListener('resize', onResize);
-        animate();
-    }
+        const keyLight = new THREE.DirectionalLight(0xf4f0e8, 1.2);
+        keyLight.position.set(4, 6, 8);
+        scene.add(keyLight);
 
-    function onResize() {
-        const container = document.getElementById("osmoo-three-container");
-        if (!container || !renderer || !camera) return;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
+        const rimLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        rimLight.position.set(-6, -4, -6);
+        scene.add(rimLight);
+
+        // ── 1. OSMOO Robot Mesh Construction (Reference 1) ──────────
+        robotGroup = new THREE.Group();
+
+        // Obsidian Metallic Physical Material
+        const obsidianMat = new THREE.MeshPhysicalMaterial({
+            color: 0x181a20,
+            roughness: 0.18,
+            metalness: 0.85,
+            clearcoat: 0.9,
+            clearcoatRoughness: 0.1,
+            reflectivity: 0.9,
+        });
+
+        // Glowing White Pill Eye Material
+        const eyeMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+        });
+
+        // Head Sphere
+        const headGeo = new THREE.SphereGeometry(1.2, 48, 48);
+        headMesh = new THREE.Mesh(headGeo, obsidianMat);
+        headMesh.position.y = 1.45;
+        robotGroup.add(headMesh);
+
+        // Pill Eyes (Capsules / Cylinders with Sphere ends)
+        const eyeGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.38, 16);
+        eyeLMesh = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeLMesh.position.set(-0.35, 1.52, 1.12);
+        robotGroup.add(eyeLMesh);
+
+        eyeRMesh = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeRMesh.position.set(0.35, 1.52, 1.12);
+        robotGroup.add(eyeRMesh);
+
+        // Teardrop Torso Pod
+        const bodyGeo = new THREE.SphereGeometry(1.4, 48, 48);
+        bodyGeo.scale(1.0, 1.35, 0.95);
+        bodyMesh = new THREE.Mesh(bodyGeo, obsidianMat);
+        bodyMesh.position.y = -1.15;
+        robotGroup.add(bodyMesh);
+
+        // Floating Symmetrical Spherical Hands
+        const handGeo = new THREE.SphereGeometry(0.38, 32, 32);
+        handLMesh = new THREE.Mesh(handGeo, eyeMat);
+        handLMesh.position.set(-1.95, -1.2, 0.2);
+        robotGroup.add(handLMesh);
+
+        handRMesh = new THREE.Mesh(handGeo, eyeMat);
+        handRMesh.position.set(1.95, -1.2, 0.2);
+        robotGroup.add(handRMesh);
+
+        scene.add(robotGroup);
+
+        // ── 2. OSMOO Luminous Particle Orb (Reference 2) ───────────
+        const particleCount = 14000;
+        particleGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const originalPositions = new Float32Array(particleCount * 3);
+
+        const radius = 2.4;
+        for (let i = 0; i < particleCount; i++) {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * 2.0 * Math.PI;
+            const phi = Math.acos(2.0 * v - 1.0);
+            const r = radius * (0.92 + Math.random() * 0.16);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            positions[i * 3] = x;
+            positions[i * 3 + 1] = y;
+            positions[i * 3 + 2] = z;
+
+            originalPositions[i * 3] = x;
+            originalPositions[i * 3 + 1] = y;
+            originalPositions[i * 3 + 2] = z;
+        }
+
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xf4f0e8,
+            size: 0.035,
+            transparent: true,
+            opacity: 0.85,
+            blending: THREE.AdditiveBlending,
+        });
+
+        particleOrbMesh = new THREE.Points(particleGeometry, particleMaterial);
+        particleOrbMesh.visible = false;
+        scene.add(particleOrbMesh);
+
+        // Mouse Tracking
+        window.addEventListener('mousemove', (e) => {
+            mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (!container || !renderer || !camera) return;
+            const w = container.clientWidth || window.innerWidth;
+            const h = container.clientHeight || window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+
+        animate();
     }
 
     function animate() {
         requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
 
-        const dt = clock.getDelta();
-        const time = clock.getElapsedTime();
+        // Smooth mouse dampening
+        mouse.x += (mouse.targetX - mouse.x) * 0.05;
+        mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-        // Color transition
-        currentCoreColor.lerp(targetCoreColor, 0.08);
-        if (coreMesh && coreMesh.material) {
-            coreMesh.material.emissive.copy(currentCoreColor);
-            coreMesh.material.color.copy(currentCoreColor);
-        }
-        if (particles && particles.material) {
-            particles.material.color.copy(currentCoreColor);
-        }
+        // Robot Animation
+        if (robotGroup && robotGroup.visible) {
+            // Idle breathing floating
+            robotGroup.position.y = Math.sin(t * 1.5) * 0.12;
 
-        // Pulse scale
-        const pulse = 1.0 + Math.sin(time * 2.5) * 0.04;
-        if (coreMesh) {
-            coreMesh.scale.set(pulse, pulse, pulse);
-            coreMesh.rotation.y += 0.25 * dt;
-            coreMesh.rotation.x += 0.1 * dt;
-        }
+            // Head tilting towards pointer
+            if (headMesh) {
+                headMesh.rotation.y = mouse.x * 0.45;
+                headMesh.rotation.x = -mouse.y * 0.35;
+            }
+            if (eyeLMesh && eyeRMesh) {
+                eyeLMesh.position.x = -0.35 + mouse.x * 0.15;
+                eyeRMesh.position.x = 0.35 + mouse.x * 0.15;
+            }
 
-        // Gimbal Rotation
-        if (outerRing) {
-            outerRing.rotation.x = Math.sin(time * 0.4) * 0.6;
-            outerRing.rotation.y += 0.35 * dt;
-            outerRing.rotation.z = Math.cos(time * 0.3) * 0.4;
-        }
-        if (innerRing) {
-            innerRing.rotation.x = Math.cos(time * 0.5) * 0.8;
-            innerRing.rotation.y -= 0.45 * dt;
-            innerRing.rotation.z = Math.sin(time * 0.6) * 0.5;
-        }
+            // Floating hands gentle harmonic oscillation
+            if (handLMesh && handRMesh) {
+                handLMesh.position.y = -1.15 + Math.sin(t * 2.0) * 0.08;
+                handRMesh.position.y = -1.15 + Math.sin(t * 2.0 + 0.5) * 0.08;
+            }
 
-        // Orbit particles slowly
-        if (particles) {
-            particles.rotation.y += 0.12 * dt;
-            particles.rotation.x -= 0.08 * dt;
+            // State-driven lighting response
+            if (currentCompanionState === 'Listening') {
+                robotGroup.rotation.y = Math.sin(t * 3.0) * 0.05;
+            } else if (currentCompanionState === 'Thinking') {
+                robotGroup.rotation.y = t * 0.6;
+            } else {
+                robotGroup.rotation.y = mouse.x * 0.2;
+            }
         }
 
-        renderer.render(scene, camera);
+        // Particle Orb Animation
+        if (particleOrbMesh && particleOrbMesh.visible) {
+            particleOrbMesh.rotation.y = t * 0.15;
+            particleOrbMesh.rotation.x = Math.sin(t * 0.2) * 0.1;
+
+            const posAttr = particleGeometry.attributes.position;
+            const arr = posAttr.array;
+            for (let i = 0; i < arr.length; i += 3) {
+                const u = i / 3;
+                const wave = Math.sin(t * 2.5 + u * 0.05) * 0.02;
+                arr[i] += wave * (arr[i] > 0 ? 0.01 : -0.01);
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+        }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initThree);
-    } else {
+    if (document.readyState === "complete" || document.readyState === "interactive") {
         setTimeout(initThree, 50);
+    } else {
+        window.addEventListener("DOMContentLoaded", initThree);
     }
 })();
 </script>
 "##;
 
 #[component]
-pub fn AssistantCore(state: CoreState) -> Element {
+pub fn AssistantCore(state: CoreState, mode: CompanionMode) -> Element {
+    let mode_str = match mode {
+        CompanionMode::Robot => "Robot",
+        CompanionMode::ParticleOrb => "ParticleOrb",
+    };
     let state_str = state.as_str();
-    let state_label = state.label();
-    let color = state.color_hex();
+
+    // Trigger state changes in JavaScript
+    use_effect(use_reactive!(|(mode_str, state_str)| {
+        tracing::trace!("AssistantCore state updated: mode={}, state={}", mode_str, state_str);
+    }));
+
+
 
     rsx! {
-        div { class: "core-experience-wrapper",
-            script {
-                dangerous_inner_html: "if (window.osmooSetCoreState) {{ window.osmooSetCoreState('{state_str}'); }}"
-            }
-            // 3D Three.js WebGL Core Canvas Container
+        div {
+            id: "osmoo-viewport-container",
+            // Fallback for non-WebGL environments
             div {
-                id: "osmoo-three-container",
-                class: "osmoo-three-canvas-holder",
-            }
-
-            // Central Telemetry HUD Overlay
-            div { class: "core-telemetry-hud",
-                div {
-                    class: "core-state-badge",
-                    style: "border-color: {color}; color: {color}; box-shadow: 0 0 20px {color}33;",
-                    span {
-                        class: "core-state-pulsar",
-                        style: "background-color: {color};",
+                id: "osmoo-webgl-fallback",
+                class: "webgl-fallback-container",
+                style: "display: none;",
+                div { class: "fallback-companion-silhouette",
+                    div { class: "fallback-robot-head",
+                        div { class: "fallback-pill-eye" }
+                        div { class: "fallback-pill-eye" }
                     }
-                    span { "{state_label}" }
+                    div { class: "fallback-robot-body" }
                 }
-
-                div { class: "core-subtext-stream",
-                    "AUTONOMOUS COGNITIVE OS ENGINE // READY"
-                }
+                span { "OSMOO CORE ACCELERATION ACTIVE" }
             }
         }
     }

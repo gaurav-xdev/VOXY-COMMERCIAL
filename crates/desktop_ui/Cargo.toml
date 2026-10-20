@@ -31,6 +31,8 @@ num_cpus = "1"
 sysinfo = "0.33"
 dotenvy = { workspace = true }
 reqwest = { workspace = true }
+thiserror = { workspace = true }
+
 
 # Backend crates
 voxy-shared = { workspace = true }

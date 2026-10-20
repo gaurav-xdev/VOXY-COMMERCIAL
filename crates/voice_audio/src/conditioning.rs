@@ -30,8 +30,12 @@ pub struct ConditioningConfig {
     pub peak_ceiling: f32,
     /// Enable acoustic echo suppression when assistant audio is actively playing.
     pub enable_echo_suppression: bool,
-    /// Attenuation factor applied during active speaker playback (e.g. 0.05 = -26dB).
+    /// Attenuation factor applied to low-level speaker leakage during playback (default: 0.25).
     pub echo_attenuation: f32,
+    /// RMS threshold above which near-field user speech is detected during speaker playback (double-talk).
+    /// When microphone energy meets or exceeds this threshold, suppression is bypassed so the user's voice
+    /// is preserved at full gain for VAD and barge-in detection. (default: 0.035).
+    pub double_talk_threshold: f32,
 }
 
 impl Default for ConditioningConfig {
@@ -46,7 +50,8 @@ impl Default for ConditioningConfig {
             enable_limiter: true,
             peak_ceiling: 0.95,
             enable_echo_suppression: true,
-            echo_attenuation: 0.08,
+            echo_attenuation: 0.25,
+            double_talk_threshold: 0.035,
         }
     }
 }
@@ -123,13 +128,40 @@ impl AudioConditioner {
             self.hp_prev_y = prev_y;
         }
 
-        // 2. Acoustic Echo Suppression (AES)
-        // If speaker is active and playback audio is spilling into microphone,
-        // attenuate the microphone capture to prevent the assistant from transcribing its own output.
+        // 2. Acoustic Echo Suppression (AES) with Double-Talk Speech Preservation
+        //
+        // ARCHITECTURAL NOTE:
+        // This stage provides energy-dependent speaker ducking with double-talk preservation (AES),
+        // NOT full reference-adaptive acoustic echo cancellation (AEC). True adaptive AEC requires
+        // a playback-reference PCM stream correlated against the capture input via an adaptive filter
+        // (such as SpeexDSP or WebRTC AEC3).
+        //
+        // To prevent crushing genuine user barge-in attempts while the assistant is speaking:
+        // - If input energy meets or exceeds `double_talk_threshold`, the user is speaking over the speaker.
+        //   Suppression is bypassed (gain = 1.0) so VAD and STT receive the user's voice unattenuated.
+        // - If input energy is low (<= double_talk_threshold * 0.5), it is treated as ambient room reflection
+        //   or low-level speaker spill and attenuated by `echo_attenuation`.
+        // - Between 0.5x and 1.0x threshold, a smooth linear transition avoids abrupt gain pumping.
         if self.config.enable_echo_suppression && self.is_speaker_active {
-            let aec_gain = self.config.echo_attenuation;
-            for sample in samples.iter_mut() {
-                *sample *= aec_gain;
+            let input_rms = crate::calculate_rms(samples);
+            let dt_thresh = self.config.double_talk_threshold;
+
+            let aec_gain = if input_rms >= dt_thresh {
+                // Double-talk: user speech detected, preserve full volume for barge-in
+                1.0f32
+            } else if input_rms <= dt_thresh * 0.5 {
+                // Low-level echo/spill: apply attenuation
+                self.config.echo_attenuation
+            } else {
+                // Smooth interpolation between attenuated and unity gain
+                let t = (input_rms - dt_thresh * 0.5) / (dt_thresh * 0.5);
+                self.config.echo_attenuation + t * (1.0 - self.config.echo_attenuation)
+            };
+
+            if (aec_gain - 1.0).abs() > 0.001 {
+                for sample in samples.iter_mut() {
+                    *sample *= aec_gain;
+                }
             }
         }
 
@@ -264,38 +296,81 @@ mod tests {
     }
 
     #[test]
-    fn test_echo_suppression_when_speaker_active() {
+    fn test_echo_suppression_attenuates_low_level_spill() {
         let mut conditioner = AudioConditioner::new(ConditioningConfig {
             enable_high_pass: false,
             enable_noise_gate: false,
             enable_pre_emphasis: false,
             enable_limiter: false,
             enable_echo_suppression: true,
-            echo_attenuation: 0.05,
+            echo_attenuation: 0.20,
+            double_talk_threshold: 0.04,
             ..Default::default()
         });
 
-        // Loud spill from speaker: 0.8
-        let mut spill_samples = vec![0.8f32; 320];
+        // Low-level speaker spill (RMS = 0.015, well below double_talk_threshold * 0.5 = 0.02)
+        let mut spill_samples = vec![0.015f32; 320];
         conditioner.set_speaker_active(true);
         conditioner.process(&mut spill_samples);
 
         let max_spill = spill_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        // Attenuated by 0.20 -> 0.015 * 0.20 = 0.003
         assert!(
-            max_spill <= 0.05,
-            "Active echo suppression must attenuate speaker feedback: got {}",
+            max_spill <= 0.005,
+            "Low-level speaker spill must be attenuated: got {}",
             max_spill
         );
+    }
 
-        // When speaker turns off, full gain restored
-        conditioner.set_speaker_active(false);
-        let mut voice_samples = vec![0.8f32; 320];
-        conditioner.process(&mut voice_samples);
-        let max_voice = voice_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+    #[test]
+    fn test_user_speech_preserved_during_playback_for_barge_in() {
+        let mut conditioner = AudioConditioner::new(ConditioningConfig {
+            enable_high_pass: false,
+            enable_noise_gate: false,
+            enable_pre_emphasis: false,
+            enable_limiter: false,
+            enable_echo_suppression: true,
+            echo_attenuation: 0.20,
+            double_talk_threshold: 0.035,
+            ..Default::default()
+        });
+
+        // Genuine user speech while assistant is speaking (RMS = 0.15 >= double_talk_threshold)
+        let mut user_speech = vec![0.15f32; 320];
+        conditioner.set_speaker_active(true);
+        conditioner.process(&mut user_speech);
+
+        let max_speech = user_speech.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        // Must NOT be suppressed down to 0.03, must remain near 0.15 for VAD/barge-in detection
         assert!(
-            max_voice > 0.7,
-            "User voice must not be attenuated when speaker inactive: got {}",
-            max_voice
+            max_speech >= 0.14,
+            "User speech during double-talk must be preserved at full gain: got {}",
+            max_speech
+        );
+    }
+
+    #[test]
+    fn test_no_suppression_when_speaker_inactive() {
+        let mut conditioner = AudioConditioner::new(ConditioningConfig {
+            enable_high_pass: false,
+            enable_noise_gate: false,
+            enable_pre_emphasis: false,
+            enable_limiter: false,
+            enable_echo_suppression: true,
+            echo_attenuation: 0.20,
+            double_talk_threshold: 0.035,
+            ..Default::default()
+        });
+
+        conditioner.set_speaker_active(false);
+        let mut quiet_samples = vec![0.015f32; 320];
+        conditioner.process(&mut quiet_samples);
+
+        let max_val = quiet_samples.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(
+            (max_val - 0.015).abs() < 0.001,
+            "When speaker is inactive, no echo suppression should occur: got {}",
+            max_val
         );
     }
 

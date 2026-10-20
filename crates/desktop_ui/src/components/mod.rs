@@ -4,7 +4,9 @@ pub mod icons;
 pub mod onboarding_wizard;
 pub mod startup_splash;
 
-pub use assistant_core::{AssistantCore, CoreState, THREE_JS_CORE_SCRIPT};
+pub use assistant_core::{AssistantCore, CompanionMode, CoreState, THREE_JS_CORE_SCRIPT};
 pub use assistant_hud::{AssistantHud, ChatTurn, TelemetryStats};
-pub use onboarding_wizard::{OnboardingConfig, OnboardingWizard};
+#[allow(unused_imports)]
+pub use onboarding_wizard::{OnboardingConfig, OnboardingStep, OnboardingWizard};
 pub use startup_splash::StartupSplash;
+
