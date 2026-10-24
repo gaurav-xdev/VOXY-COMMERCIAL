@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use tokio::time::timeout;
 use tracing::{info, warn};
 
+use crate::activation::ActivationEngine;
 use crate::error::{Result, SkillsError};
 use crate::types::{SkillManifest, SkillPermission, SkillTrustLevel};
 use voxy_database::CommercialStore;
@@ -16,17 +17,31 @@ use voxy_tool_calling::{ToolContext, ToolRegistry, ToolResult};
 
 pub struct SkillRuntime {
     tool_registry: Arc<ToolRegistry>,
+    activation_engine: Arc<ActivationEngine>,
     approval_broker: Option<Arc<ApprovalBroker>>,
     store: Option<Arc<CommercialStore>>,
 }
 
 impl SkillRuntime {
     pub fn new(tool_registry: Arc<ToolRegistry>) -> Self {
+        let engine = Arc::new(ActivationEngine::new_embedded());
+        engine.register_tools(&tool_registry);
         Self {
             tool_registry,
+            activation_engine: engine,
             approval_broker: None,
             store: None,
         }
+    }
+
+    pub fn with_activation_engine(mut self, engine: Arc<ActivationEngine>) -> Self {
+        engine.register_tools(&self.tool_registry);
+        self.activation_engine = engine;
+        self
+    }
+
+    pub fn activation_engine(&self) -> &Arc<ActivationEngine> {
+        &self.activation_engine
     }
 
     pub fn with_approval_broker(mut self, broker: Arc<ApprovalBroker>) -> Self {

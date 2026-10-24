@@ -436,24 +436,19 @@ async fn test_external_capability_catalog_loading_and_integrity() {
     use crate::activation::{ActivationEngine, ExternalCapabilityCategory};
 
     let engine = ActivationEngine::new_embedded();
-    assert_eq!(engine.total_available(), 13);
+    assert!(engine.total_available() >= 70, "Catalog should have >= 70 capabilities, got {}", engine.total_available());
 
     let caps = engine.list_available();
-    assert!(caps
-        .iter()
-        .any(|c| c.category == ExternalCapabilityCategory::GeneralEngineering));
-    assert!(caps
-        .iter()
-        .any(|c| c.category == ExternalCapabilityCategory::FrontendUi));
-    assert!(caps
-        .iter()
-        .any(|c| c.category == ExternalCapabilityCategory::WorkflowOrchestration));
-    assert!(caps
-        .iter()
-        .any(|c| c.category == ExternalCapabilityCategory::CodingTools));
-    assert!(caps
-        .iter()
-        .any(|c| c.category == ExternalCapabilityCategory::WebResearch));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::GeneralEngineering));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::FrontendUi));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WorkflowOrchestration));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::CodingTools));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WebResearch));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::LanguageEngineering));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::SecurityHardening));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::ArchitectureDesign));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::QualityTesting));
+    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::OpenSourcePractices));
 
     // Verify pinned commit hashes exist for all external capabilities
     for cap in caps {
@@ -492,7 +487,11 @@ async fn test_activation_policy_available_not_equal_to_active() {
     let result = engine.evaluate_task(&backend_task);
     assert!(!result.active_capabilities.is_empty());
     for cap in &result.active_capabilities {
-        assert_eq!(cap.category, ExternalCapabilityCategory::GeneralEngineering);
+        assert!(
+            cap.category == ExternalCapabilityCategory::GeneralEngineering
+                || cap.category == ExternalCapabilityCategory::ArchitectureDesign
+                || cap.category == ExternalCapabilityCategory::QualityTesting
+        );
     }
     // Web research and UI kit must NOT be active
     assert!(!result
@@ -522,7 +521,10 @@ async fn test_activation_policy_available_not_equal_to_active() {
 
     let result_offline = engine.evaluate_task(&web_task_offline);
     assert!(
-        result_offline.active_capabilities.is_empty(),
+        !result_offline
+            .active_capabilities
+            .iter()
+            .any(|c| c.id == "web-research:firecrawl-extraction"),
         "Firecrawl must not activate when offline"
     );
     let rejection = result_offline
@@ -613,3 +615,271 @@ async fn test_activation_policy_available_not_equal_to_active() {
         .iter()
         .any(|c| c.id == "coding-tools:mcp-suite"));
 }
+
+// =========================================================================
+// ACCEPTANCE TESTS: SOTA, ADDY OSMANI, & SENIOR OPEN SOURCE SKILL UPGRADE
+// =========================================================================
+
+#[tokio::test]
+async fn test_phase2_three_repositories_provenance_and_licensing() {
+    use crate::activation::ActivationEngine;
+
+    let engine = ActivationEngine::new_embedded();
+    let caps = engine.list_available();
+
+    // 1. SOTA Skills
+    let sota_caps: Vec<_> = caps.iter().filter(|c| c.source_repo.contains("SOTA-skills")).collect();
+    assert_eq!(sota_caps.len(), 43, "Expected 43 SOTA skills");
+    for c in &sota_caps {
+        assert_eq!(c.version_pinned, "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef");
+        assert_eq!(c.author.as_deref(), Some("Martin Holovsky"));
+        assert_eq!(c.license.as_deref(), Some("CC-BY-4.0 / Apache-2.0"));
+    }
+
+    // 2. Addy Osmani Agent Skills
+    let addy_caps: Vec<_> = caps.iter().filter(|c| c.source_repo.contains("agent-skills")).collect();
+    assert_eq!(addy_caps.len(), 25, "Expected 25 Addy Osmani skills");
+    for c in &addy_caps {
+        assert_eq!(c.version_pinned, "aeac41d4d005999432bb7312f7ff06383a91d59d");
+        assert_eq!(c.author.as_deref(), Some("Addy Osmani"));
+        assert_eq!(c.license.as_deref(), Some("MIT"));
+    }
+
+    // 3. Senior Open Source Engineer Skill
+    let oss_cap = caps.iter().find(|c| c.id == "oss:senior-open-source-engineer");
+    assert!(oss_cap.is_some(), "Senior Open Source Engineer skill must be present");
+    let oss = oss_cap.unwrap();
+    assert_eq!(oss.version_pinned, "2cd5fdb18de8468dc2fd145999b41dbdea844c63");
+    assert_eq!(oss.author.as_deref(), Some("Mohit Kumar"));
+    assert_eq!(oss.license.as_deref(), Some("MIT"));
+}
+
+#[tokio::test]
+async fn test_phase3_autonomous_selection_rust_concurrency() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-rust-async",
+        "Fix race condition in async tokio channel and improve cancellation safety in Rust",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.len() <= 4, "Smallest effective set must not exceed 4");
+    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-rust" || c.id == "sota:sota-async-concurrency"));
+
+    // Conflicting languages must not be loaded
+    assert!(!active.active_capabilities.iter().any(|c| c.id.contains("python") || c.id.contains("ruby") || c.id.contains("php")));
+}
+
+#[tokio::test]
+async fn test_phase3_autonomous_selection_react_ui() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-react-modal",
+        "Build accessible React modal dialog component with keyboard focus trap and ARIA labels",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.len() <= 4);
+    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-frontend-design" || c.id == "addy:frontend-ui-engineering"));
+
+    // Backend language skills must not be loaded
+    assert!(!active.active_capabilities.iter().any(|c| c.id == "sota:sota-rust" || c.id.contains("kubernetes")));
+}
+
+#[tokio::test]
+async fn test_phase3_autonomous_selection_security_audit() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-sec-audit",
+        "Perform security audit on API endpoints: threat modeling, secret leakage, and SSRF prevention",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.len() <= 4);
+    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-code-security" || c.id == "sota:sota-threat-modeling" || c.id == "addy:security-and-hardening"));
+}
+
+#[tokio::test]
+async fn test_phase3_autonomous_selection_architecture() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-arch-design",
+        "Design system architecture boundaries and record architectural decisions with ADRs",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.len() <= 4);
+    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-architecture" || c.id == "addy:documentation-and-adrs"));
+}
+
+#[tokio::test]
+async fn test_phase3_autonomous_selection_bug_investigation() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-bug-fix",
+        "Investigate crash panic in worker loop, identify root cause and reproduce with test",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.len() <= 4);
+    assert!(active.active_capabilities.iter().any(|c| c.id == "addy:debugging-and-error-recovery" || c.id == "addy:test-driven-development"));
+}
+
+#[tokio::test]
+async fn test_phase3_documentation_only_excludes_heavy_engineering() {
+    use crate::activation::{ActivationEngine, TaskContext, TaskType};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-docs",
+        "Update README.md with setup instructions and documentation notes",
+        PathBuf::from("."),
+    );
+
+    assert_eq!(task.task_type, TaskType::Documentation);
+    let active = engine.evaluate_task(&task);
+
+    // Should NOT load heavy compilation, cloud, concurrency, or container skills
+    for cap in &active.active_capabilities {
+        assert!(!cap.id.contains("rust"));
+        assert!(!cap.id.contains("concurrency"));
+        assert!(!cap.id.contains("kubernetes"));
+        assert!(!cap.id.contains("c-cpp"));
+    }
+}
+
+#[tokio::test]
+async fn test_phase4_deterministic_conflict_resolution() {
+    use crate::activation::{ActivationEngine, TaskContext};
+    use std::path::PathBuf;
+
+    let engine = ActivationEngine::new_embedded();
+    let task = TaskContext::new(
+        "task-oss-pr",
+        "Contribute fix to open source repo following maintainer conventions and minimal diff",
+        PathBuf::from("."),
+    );
+
+    let active = engine.evaluate_task(&task);
+    assert!(active.active_capabilities.iter().any(|c| c.id == "oss:senior-open-source-engineer"));
+    assert!(!active.conflict_resolutions.is_empty());
+    assert!(active.conflict_resolutions[0].contains("priority 90"));
+}
+
+#[tokio::test]
+async fn test_phase6_instruction_sanitization_defense() {
+    use crate::activation::ActivationEngine;
+
+    let engine = ActivationEngine::new_embedded();
+    let rust_cap = engine.find_capability("sota:sota-rust").expect("sota:sota-rust must exist");
+
+    let instructions = engine.read_sanitized_instructions(rust_cap).expect("Should read instructions");
+    assert!(instructions.contains("<!-- OSMOO Engineering Capability: sota:sota-rust"));
+    assert!(instructions.contains("Martin Holovsky"));
+    assert!(!instructions.contains("<system>"));
+    assert!(!instructions.contains("IGNORE ALL PREVIOUS INSTRUCTIONS"));
+}
+
+#[tokio::test]
+async fn test_phase7_native_osmoo_skills_tools_lifecycle() {
+    use crate::activation::{ActivationEngine, SkillExecutionRecord};
+    use crate::tools::{
+        OsmooSkillsDiscoverTool, OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool,
+        OsmooSkillsVerifyExecutionTool,
+    };
+    use serde_json::json;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+    use voxy_tool_calling::{Tool, ToolContext};
+
+    let engine = Arc::new(ActivationEngine::new_embedded());
+    let store: Arc<Mutex<Vec<SkillExecutionRecord>>> = Arc::new(Mutex::new(Vec::new()));
+    let ctx = ToolContext::new("test-session");
+
+    // 1. Discover Tool
+    let discover_tool = OsmooSkillsDiscoverTool::new(Arc::clone(&engine));
+    let disc_res = discover_tool
+        .execute(json!({ "language": "rust" }), &ctx)
+        .await
+        .expect("Discover tool should succeed");
+    assert!(disc_res.success);
+    let matched_count = disc_res.data["total_matched"].as_u64().unwrap();
+    assert!(matched_count >= 1);
+
+    // 2. Evaluate Tool
+    let eval_tool = OsmooSkillsEvaluateTool::new(Arc::clone(&engine), Arc::clone(&store));
+    let eval_res = eval_tool
+        .execute(
+            json!({
+                "task_id": "test-task-101",
+                "prompt": "Fix deadlock and race condition in Rust async tokio service",
+                "language": "rust",
+                "max_skills": 3
+            }),
+            &ctx,
+        )
+        .await
+        .expect("Evaluate tool should succeed");
+    assert!(eval_res.success);
+    assert_eq!(eval_res.data["active_skills_count"].as_u64().unwrap(), 3);
+
+    // 3. Load Instructions Tool
+    let load_tool = OsmooSkillsLoadInstructionsTool::new(Arc::clone(&engine));
+    let load_res = load_tool
+        .execute(
+            json!({ "skill_ids": ["sota:sota-rust", "sota:sota-async-concurrency"] }),
+            &ctx,
+        )
+        .await
+        .expect("Load instructions tool should succeed");
+    assert!(load_res.success);
+    assert_eq!(load_res.data["loaded_count"].as_u64().unwrap(), 2);
+
+    // 4. Verify Execution Tool
+    let verify_tool = OsmooSkillsVerifyExecutionTool::new(Arc::clone(&engine), Arc::clone(&store));
+    let verify_res = verify_tool
+        .execute(
+            json!({
+                "task_id": "test-task-101",
+                "skill_id": "sota:sota-rust",
+                "check_name": "compilation_and_lint_check",
+                "status": "passed",
+                "evidence": "cargo check passed with 0 warnings"
+            }),
+            &ctx,
+        )
+        .await
+        .expect("Verify tool should succeed");
+    assert!(verify_res.success);
+
+    // 5. Test engine.register_tools into central ToolRegistry
+    let central_registry = voxy_tool_calling::ToolRegistry::new();
+    engine.register_tools(&central_registry);
+    let tools = central_registry.list_tools().await;
+    assert!(tools.iter().any(|t| t.name == "osmoo_skills_discover"));
+    assert!(tools.iter().any(|t| t.name == "osmoo_skills_evaluate"));
+    assert!(tools.iter().any(|t| t.name == "osmoo_skills_load_instructions"));
+    assert!(tools.iter().any(|t| t.name == "osmoo_skills_verify_execution"));
+}
+

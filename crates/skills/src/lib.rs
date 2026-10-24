@@ -6,13 +6,15 @@ pub mod event;
 pub mod runtime;
 #[cfg(test)]
 mod tests;
+pub mod tools;
 pub mod traits;
 pub mod types;
 pub mod workflow;
 
 pub use activation::{
     ActivationDecision, ActivationEngine, ActiveCapabilityContext, CapabilityRiskLevel,
-    ExternalCapability, ExternalCapabilityCatalog, ExternalCapabilityCategory, TaskContext,
+    CheckStatus, EngineeringCheckItem, ExternalCapability, ExternalCapabilityCatalog,
+    ExternalCapabilityCategory, SkillExecutionRecord, TaskContext, TaskType,
 };
 pub use capabilities::{
     CapabilityDescriptor, CapabilityId, CapabilityRegistry, InMemoryCapabilityRegistry,
@@ -21,6 +23,10 @@ pub use config::SkillsConfig;
 pub use error::{Result, SkillsError};
 pub use event::SkillsEvent;
 pub use runtime::SkillRuntime;
+pub use tools::{
+    OsmooSkillsDiscoverTool, OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool,
+    OsmooSkillsVerifyExecutionTool,
+};
 pub use traits::{Skill, SkillContext, SkillInput, SkillOutput, SkillRegistry};
 pub use types::{
     InvocationId, SkillId, SkillManifest, SkillPermission, SkillTrustLevel, WorkflowDefinition,
@@ -35,6 +41,10 @@ pub mod prelude {
     pub use crate::config::SkillsConfig;
     pub use crate::error::{Result, SkillsError};
     pub use crate::event::SkillsEvent;
+    pub use crate::tools::{
+        OsmooSkillsDiscoverTool, OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool,
+        OsmooSkillsVerifyExecutionTool,
+    };
     pub use crate::traits::{Skill, SkillContext, SkillInput, SkillOutput, SkillRegistry};
     pub use crate::types::{InvocationId, SkillId};
 }

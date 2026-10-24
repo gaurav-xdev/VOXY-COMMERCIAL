@@ -1,248 +1,2308 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-10-08T13:14:00Z",
-  "total_capabilities": 13,
+  "version": "2.0.0",
+  "last_updated": "2026-10-24T16:00:00Z",
+  "total_capabilities": 73,
   "capabilities": [
     {
-      "id": "general-eng:api-and-interface-design",
-      "name": "API and Interface Design",
+      "id": "sota:sota",
+      "name": "SOTA Sota",
       "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Design clean, predictable, evolvable APIs across REST, GraphQL, and internal interfaces.",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "Master router for the SOTA engineering skills library. Use this skill whenever the user asks to build, design, implement, refactor, harden, optimize, review, or audit an application, service, or codebase and the request spans more than one domain \u2014 or when you are unsure which specific sota-* skill applies. Also use when working on a codebase you do not own: reviewing a pull request or diff, responding to code review, evaluating someone else's patch, or preparing an upstream contribution \u2014 including mid-session, once you are already reading source, a diff, or CI config. It maps the task (build or audit mode) to the right domain and language skills (Rust, Go, C/C++, JVM, Python, JS/TS, .NET/C#, PHP, Ruby, Swift). Trigger keywords: SOTA, best practices, audit my code, security review, compliance, hardening, prod readiness, code quality, pull request, PR review, review comment, maintainer feedback, patch, diff, upstream, contribute, merge request.",
+      "trigger_tags": [
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-api-design",
+      "name": "SOTA Sota Api Design",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art API design and audit guidance (2026) covering REST/HTTP, GraphQL, gRPC, WebSockets/SSE/realtime, webhooks, versioning/evolution, and API security/operations. Use when designing or building any API surface (endpoints, schemas, protos, realtime channels, webhook senders/receivers) AND when auditing/reviewing existing APIs for correctness, evolvability, security, and operational robustness. Not for browser UI, rendering, or client-framework concerns \u2014 use sota-web-frameworks or sota-frontend-design. Trigger keywords: API, REST, GraphQL, gRPC, endpoint, websocket, SSE, realtime, WebRTC, webhook, versioning, OpenAPI, pagination, idempotency, rate limit, problem+json, protobuf, deprecation.",
       "trigger_tags": [
         "api",
-        "rest",
-        "graphql",
-        "endpoints",
-        "interface",
-        "contract",
-        "schema",
-        "types"
+        "api-design",
+        "design",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-api-design/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-architecture",
+      "name": "SOTA Sota Architecture",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art software and system architecture rules (2026) for both building and auditing. Use when designing, building, refactoring, or extending system architecture \u2014 boundaries, DDD, hexagonal/clean architecture, event-driven design, CQRS, sagas, messaging, caching, sharding, multi-tenancy, resilience, scalability, 12-factor/cloud-native \u2014 AND when auditing existing architecture for quality (design review, anti-patterns like distributed monolith or shared database, reliability/scalability assessment). Trigger keywords: architecture, system design, microservices, monolith, serverless, bounded context, DDD, aggregate, hexagonal, clean architecture, event-driven, Kafka, NATS, JetStream, messaging, pub/sub, stream, consumer, queue, saga, outbox, idempotency, CQRS, resilience, circuit breaker, retry, timeout, backpressure, caching, sharding, partitioning, multi-tenant, 12-factor, cloud-native, feature flag, ADR, scalability, anti-pattern, design review, architecture audit.",
+      "trigger_tags": [
+        "architecture",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-architecture/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-async-concurrency",
+      "name": "SOTA Sota Async Concurrency",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art rules for writing and auditing asynchronous and concurrent code across runtimes (Python asyncio, JS/Node, Go, Rust, JVM). Use when building anything with async/await, threads, processes, event loops, task groups, channels, or queues \u2014 and when auditing existing code for race conditions, deadlocks, leaked tasks, blocked event loops, missing cancellation, or backpressure failures. Not for latency/throughput profiling and optimization \u2014 use sota-performance. Trigger keywords: async, await, concurrency, parallelism, threads, race condition, deadlock, event loop, channels, queues, semaphore, mutex, cancellation, timeout, backpressure, task group, goroutine, tokio, asyncio.",
+      "trigger_tags": [
+        "async",
+        "async-concurrency",
+        "concurrency",
+        "sota"
+      ],
+      "target_roles": [
+        "qa",
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-async-concurrency/SKILL.md",
+      "required_checks": [
+        "performance_or_regression_verified",
+        "structured_concurrency_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-c-cpp",
+      "name": "SOTA Sota C Cpp",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art C and C++ engineering rules that Claude applies when writing or auditing C/C++. Covers modern idioms (RAII, value semantics, smart pointers, C++23), memory safety (lifetimes, bounds, sanitizers, hardening flags), undefined behavior, security (SEI CERT C/C++, MISRA, integer/buffer/format-string, injection), concurrency (C/C++ memory model, atomics, data races), build/tooling/CI (CMake, clang-tidy, cppcheck, ASan/UBSan/TSan, vcpkg/Conan, supply chain), and performance. Trigger keywords - C, C++, RAII, smart pointer, unique_ptr, shared_ptr, undefined behavior, UB, buffer overflow, use-after-free, sanitizer, ASan, UBSan, TSan, valgrind, CMake, clang-tidy, cppcheck, MISRA, CERT C, memory safety, std::thread, atomics, std::move. Use for BOTH building C/C++ libraries/systems and reviewing or auditing them. Owns firmware's LANGUAGE layer; does NOT own its SYSTEMS layer \u2014 ISRs, DMA coherency, MMIO, RTOS scheduling, priority inversion, WCET, linker scripts \u2014 unowned library-wide.",
+      "trigger_tags": [
+        "c-cpp",
+        "cpp",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "c",
+        "cpp"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_api-and-interface-design.md",
+      "doc_path": "manifests/sota/sota-c-cpp/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified",
+        "memory_bounds_check"
+      ],
+      "conflict_priority": 80,
       "enabled": true
     },
     {
-      "id": "general-eng:code-review-and-quality",
-      "name": "Code Review and Quality",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Production code quality audit, detecting antipatterns, security flaws, and performance regressions.",
+      "id": "sota:sota-cli-ux",
+      "name": "SOTA Sota Cli Ux",
+      "category": "frontend_ui",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art CLI and developer-tool UX guidance (2026) covering command and flag design, output and interaction (stdout/stderr, --json, TTY detection, exit codes, prompts), runtime behavior and lifecycle (signals, dry-run, idempotency, XDG paths, completions, telemetry), and distribution (packaging, checksums, docs). Use when designing or building any command line tool, subcommand, TUI, or developer tool \u2014 in any framework (argparse, click, typer, clap, cobra, oclif, commander) \u2014 AND when auditing an existing CLI for usability, scriptability, and compatibility. Not for shell-script correctness or security \u2014 use sota-shell-scripting. Trigger keywords: CLI, command line tool, flags, subcommands, terminal output, TUI, developer tool, argparse, clap, cobra, exit code, shell completion, man page, stdin, stdout.",
       "trigger_tags": [
-        "review",
-        "quality",
-        "audit",
-        "lint",
-        "static-analysis",
-        "pr",
-        "pull-request"
+        "cli",
+        "cli-ux",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "typescript",
+        "javascript",
+        "html",
+        "css"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_code-review-and-quality.md",
+      "doc_path": "manifests/sota/sota-cli-ux/SKILL.md",
+      "required_checks": [
+        "ui_accessibility_verified",
+        "responsive_layout_verified"
+      ],
+      "conflict_priority": 75,
       "enabled": true
     },
     {
-      "id": "general-eng:code-simplification",
-      "name": "Code Simplification and Refactoring",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Refactor complex code to eliminate dead paths, simplify control flow, and improve maintainability.",
+      "id": "sota:sota-cloud-infrastructure",
+      "name": "SOTA Sota Cloud Infrastructure",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art cloud infrastructure architecture (2026). Applies when designing, building, or auditing cloud environments on AWS, GCP, or Azure \u2014 account/project structure and landing zones, IAM and workload identity, VPC/network design, DNS/TLS/CDN, compute selection (serverless vs containers vs Kubernetes vs VMs), object storage and backup architecture, cost engineering (FinOps), and disaster recovery. Trigger keywords: cloud, AWS, GCP, Azure, Kubernetes, EKS, GKE, AKS, VPC, subnet, IAM, role, service account, serverless, Lambda, Cloud Run, Fargate, Terraform architecture, DNS, CDN, load balancer, FinOps, cost, rightsizing, disaster recovery, RTO, RPO, multi-region. Use for BOTH greenfield design and auditing existing infrastructure.",
       "trigger_tags": [
-        "refactor",
-        "simplify",
-        "clean",
-        "dead-code",
-        "complexity"
+        "cloud",
+        "cloud-infrastructure",
+        "infrastructure",
+        "sota"
       ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
       "required_permissions": [
-        "read_files",
-        "write_files"
+        "read_files"
       ],
       "network_required": false,
-      "risk_level": "modify",
-      "doc_path": "manifests/addyosmani_code-simplification.md",
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-cloud-infrastructure/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
       "enabled": true
     },
     {
-      "id": "general-eng:debugging-and-error-recovery",
-      "name": "Debugging and Error Recovery",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Systematic debugging, root-cause analysis, stack trace diagnosis, and error recovery protocols.",
+      "id": "sota:sota-code-security",
+      "name": "SOTA Sota Code Security",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "Secure coding and security auditing rules. Use whenever BUILDING or modifying code that crosses a trust boundary \u2014 endpoints, handlers, auth/login/signup, sessions, JWT/OAuth, file uploads, payments, multi-tenant features, crypto/secrets handling, parsers, CLI/exec wrappers, LLM agents or tool-calling \u2014 AND whenever AUDITING code for security (security review, vulnerability hunt, hardening, OWASP, CWE, secrets leak, \"is this code safe\") \u2014 AND whenever a control is already PRESENT and the question is whether it enforces anything (a gate that never fails, an empty comparand), even when that control lives in a shell script, a CI step or a config file. Trigger keywords: secure, security, vulnerability, audit, authn, authz, authentication, authorization, crypto, TLS, sanitize, validate, injection, SQLi, XSS, CSRF, SSRF, IDOR, JWT, OAuth, upload, rate limit, prompt injection, feed, parser, decompression bomb, webhook, deserialization, silent failure, fail-open, no-op control, business logic.",
       "trigger_tags": [
-        "debug",
-        "error",
-        "panic",
-        "crash",
-        "stacktrace",
-        "root-cause",
-        "fix",
-        "bug"
+        "code",
+        "code-security",
+        "security",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-code-security/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-confidential-computing",
+      "name": "SOTA Sota Confidential Computing",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art confidential computing and cryptographic PETs (2026) for BUILDING and AUDITING systems that protect workloads and data in use from the infrastructure they run on \u2014 the inverse of sandboxing. Covers TEE selection (AMD SEV-SNP, Intel TDX, ARM CCA realms, SGX enclaves, AWS Nitro Enclaves, NVIDIA confidential GPUs), memory encryption vs attested isolation (TME/TME-MK/MKTME), remote attestation (RATS RFC 9334, evidence appraisal, attest-then-release, RA-TLS, TCB recovery), confidential VMs/nodes/pods on Kubernetes (Confidential Containers/CoCo, Kata, Trustee KBS), and computing on encrypted data without hardware trust \u2014 FHE, MPC/threshold, ZKP, PSI/OPRF. Trigger keywords: confidential computing, TEE, enclave, SEV-SNP, TDX, ARM CCA, SGX, Nitro Enclaves, confidential VM, remote attestation, attestation report, KBS, CoCo, Kata, Trustee, MKTME, confidential GPU, FHE, homomorphic encryption, MPC, ZKP, zero-knowledge, PSI, data in use, COED.",
+      "trigger_tags": [
+        "computing",
+        "confidential",
+        "confidential-computing",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-confidential-computing/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-copywriting",
+      "name": "SOTA Sota Copywriting",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art marketing copywriting and content guidance (2026) covering positioning and value propositions, headlines and landing-page copy, CTAs and social proof, SEO content (search intent, E-E-A-T, Google spam policies), and the accuracy/legal layer \u2014 claim substantiation, FTC Endorsement Guides (2023) and the Consumer Reviews Rule (2024), testimonial consent, dark-pattern avoidance, and email-marketing law (CAN-SPAM, GDPR consent). Use when writing or reviewing ANY outward-facing content \u2014 landing pages, marketing sites, product pages, launch announcements, app-store listings, newsletters, cold/lifecycle email \u2014 AND when auditing existing copy for conversion quality, honesty, and legal exposure. Trigger keywords: copywriting, marketing copy, landing page, headline, CTA, value proposition, positioning, tagline, SEO, meta description, E-E-A-T, testimonial, social proof, case study, newsletter, email marketing, app store listing, launch post, pricing page, brand voice.",
+      "trigger_tags": [
+        "copywriting",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-copywriting/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-data-engineering",
+      "name": "SOTA Sota Data Engineering",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art data engineering rules (2026) for building and auditing data pipelines and analytics infrastructure. Covers architecture and modeling (ELT, lakehouse vs warehouse, dimensional models, medallion layering), pipeline and orchestration discipline (idempotency, incremental loads, backfills, dbt-style transformations), streaming and CDC (Kafka, exactly-once reality, schema evolution, Debezium-style capture), data quality and contracts, columnar storage and table-format performance (Parquet, Iceberg, Delta), and pipeline operations/governance. Use when designing, implementing, reviewing, or auditing batch/streaming pipelines, warehouses, or lakehouses. Trigger keywords: data pipeline, ETL, ELT, Kafka, streaming, data warehouse, dbt, Airflow, orchestration, data quality, lakehouse, Iceberg, Delta, CDC, Parquet, backfill, watermark, Spark, DuckDB, data contract, medallion, dimensional model.",
+      "trigger_tags": [
+        "data",
+        "data-engineering",
+        "engineering",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-data-engineering/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-databases",
+      "name": "SOTA Sota Databases",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art database engineering rules (2026) for designing, building, and auditing data layers. Covers engine selection, schema modeling, migrations, query and index craft, transactions and concurrency, reliability and scale, security, and vector/AI workloads. Use when designing a new data layer, writing or reviewing schemas/migrations/queries, debugging slow or contended database workloads, or auditing an existing database for correctness, performance, and security. Not for ETL or streaming data pipelines \u2014 use sota-data-engineering. Trigger keywords: database, SQL, Postgres, schema, migration, index, query, ORM, transaction, NoSQL, Redis, vector DB, pgvector, replication, partitioning, connection pool, RLS, EXPLAIN, deadlock, sharding, caching, SurrealDB, SurrealQL, Qdrant, multi-model, graph database.",
+      "trigger_tags": [
+        "databases",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-databases/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-detection-engineering",
+      "name": "SOTA Sota Detection Engineering",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art detection engineering, SOC, threat hunting, and incident response (2026). Use when BUILDING detective controls or SOC capability \u2014 Sigma/YARA/Falco/Tetragon/Suricata rules, detection-as-code, MITRE ATT&CK coverage, SIEM detections, alert triage and SOAR, threat hunts, threat-intel, deception, IR playbooks, or adversary emulation \u2014 AND when AUDITING detection & IR posture (can we detect this? does this alert fire?). Owns DETECTIVE controls, SOC workflow, hunting, and IR (sota-observability owns the telemetry pipeline). Trigger keywords: detection engineering, detection-as-code, Sigma, YARA, YARA-X, Falco, Tetragon, Suricata, SIEM, KQL, SPL, EQL, ATT&CK, Pyramid of Pain, threat hunting, threat intel, TIP, STIX, TAXII, IOC, IOA, TTP, SOC, alert fatigue, tuning, SOAR, runbook, incident response, IR playbook, NIST 800-61, PICERL, forensics, chain of custody, purple team, honeypot, honeytoken, canary, OCSF, MTTD, false positive, Active Directory, Kerberoasting, DCSync, golden ticket, ADCS, RBCD.",
+      "trigger_tags": [
+        "detection",
+        "detection-engineering",
+        "engineering",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-detection-engineering/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-devsecops",
+      "name": "SOTA Sota Devsecops",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art DevSecOps and software supply chain security (2026). Applies when building or auditing CI/CD pipelines, GitHub Actions workflows, supply chain controls, SBOM generation, SAST/secret-scanning gates, dependency management, container builds, container/artifact registries, IaC (Terraform), GitOps, deployment strategy, and a pre-commit hook that passes locally but fails in CI. Trigger keywords: CI/CD, pipeline, GitHub Actions, supply chain, SBOM, SAST, dependency, container build, container registry, registry security, Zot, Harbor, ECR, GAR, ACR, GHCR, immutable tags, pull-through cache, IaC, Terraform, deployment, provenance, SLSA, cosign, dependabot, renovate, unused dependency, unreached dependency, dead dependency, dependency removal, unmaintained upstream, pre-commit, local vs CI. Use for BOTH setting up new pipelines and auditing existing ones. Not for application code vulnerabilities (use sota-code-security) or in-cluster runtime hardening (use sota-kubernetes).",
+      "trigger_tags": [
+        "devsecops",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-devsecops/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-docs-workflow",
+      "name": "SOTA Sota Docs Workflow",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art documentation and engineering-collaboration guidance (2026) covering documentation architecture (Di\u00e1taxis, docs-as-code, READMEs, runbooks, onboarding, AI-readable docs), API/reference docs and changelogs, and the team workflow around code: pull requests, code review conduct, commit discipline, branching, and releases. Use when writing or structuring any documentation AND when auditing docs quality, and when designing or auditing collaboration workflow. Not for in-product UI microcopy (use sota-ux-writing) or marketing/landing-page copy (use sota-copywriting). Trigger keywords: documentation, docs, README, API docs, docstring, changelog, release notes, migration guide, code review, pull request, PR description, commit messages, conventional commits, branching, semver, onboarding, runbook, AGENTS.md, llms.txt, spec-driven development, SDD, Spec Kit, Kiro, specification, acceptance criteria, steering files.",
+      "trigger_tags": [
+        "docs",
+        "docs-workflow",
+        "sota",
+        "workflow"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-docs-workflow/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-dotnet",
+      "name": "SOTA Sota Dotnet",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art C# / .NET engineering rules (.NET LTS releases, modern C#) that Claude applies when writing or auditing .NET code. Covers modern idioms (records, nullable reference types, pattern matching, spans, file-scoped namespaces), API/null/immutability/`IDisposable` design, async/await & concurrency (ConfigureAwait, channels, cancellation, TPL), security (OWASP .NET, deserialization \u2014 BinaryFormatter removed in .NET 9, EF/Dapper SQL injection, ASP.NET Core auth, Data Protection, crypto), performance (GC, Span and Memory, BenchmarkDotNet, Native AOT), and build/tooling/CI (dotnet CLI, NuGet lockfiles & supply chain, Roslyn analyzers, nullable). Trigger keywords - C#, .NET, dotnet, ASP.NET Core, async, await, Task, record, nullable reference types, Span, EF Core, Dapper, LINQ, NuGet, Roslyn analyzer, BinaryFormatter, Native AOT, BenchmarkDotNet, IDisposable, ConfigureAwait. Use for BOTH building .NET services/libraries and auditing them.",
+      "trigger_tags": [
+        "dotnet",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-dotnet/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-frontend-design",
+      "name": "SOTA Sota Frontend Design",
+      "category": "frontend_ui",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art web design, UI/UX, and motion engineering standards (2026). Use when building OR auditing/reviewing user interfaces: components, pages, design systems, stylesheets, themes, forms, navigation, animations, or accessibility. Covers typography, color (OKLCH, dark mode), spacing/layout (grid, container queries, subgrid), design tokens and component APIs, UX patterns (forms, loading/empty/error states, destructive actions), WCAG 2.2 AA accessibility, motion design, and responsive/modern CSS. Trigger keywords: UI, UX, web design, CSS, component, accessibility, a11y, responsive, animation, motion design, design system, layout, typography, dark mode, design tokens, frontend review, WCAG.",
+      "trigger_tags": [
+        "design",
+        "frontend",
+        "frontend-design",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "typescript",
+        "javascript",
+        "html",
+        "css"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_debugging-and-error-recovery.md",
+      "doc_path": "manifests/sota/sota-frontend-design/SKILL.md",
+      "required_checks": [
+        "ui_accessibility_verified",
+        "responsive_layout_verified"
+      ],
+      "conflict_priority": 75,
       "enabled": true
     },
     {
-      "id": "general-eng:git-workflow-and-versioning",
-      "name": "Git Workflow and Versioning",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Atomic commit authoring, branch strategies, semver versioning, and changelog generation.",
+      "id": "sota:sota-golang",
+      "name": "SOTA Sota Golang",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Go engineering rules (supported Go releases) that Claude applies when writing new Go code or auditing existing Go code. Covers error handling, interface/package design, goroutine and channel correctness, net/http hardening, security (SQL, exec, path traversal, CSPRNG, TLS, supply chain), performance (pprof, allocations, GC, PGO), and tooling/CI. Trigger keywords - Go, golang, goroutine, channel, go.mod, errgroup, context.Context, pprof, govulncheck, net/http, slog. Use for BOTH building Go services/libraries/CLIs and reviewing or auditing Go codebases.",
       "trigger_tags": [
-        "git",
-        "commit",
-        "branch",
-        "merge",
-        "version",
-        "semver",
-        "tag",
-        "changelog"
+        "golang",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "go"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_git-workflow-and-versioning.md",
+      "doc_path": "manifests/sota/sota-golang/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified",
+        "goroutine_leak_check"
+      ],
+      "conflict_priority": 80,
       "enabled": true
     },
     {
-      "id": "general-eng:performance-optimization",
-      "name": "Performance Optimization",
+      "id": "sota:sota-identity-access",
+      "name": "SOTA Sota Identity Access",
       "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Profile, benchmark, and optimize CPU, memory, database queries, and async runtime performance.",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art identity and access management engineering (2026) for BUILDING/configuring identity infrastructure AND AUDITING it \u2014 federation, IdPs, authorization models, the joiner-mover-leaver lifecycle, privileged/break-glass access, workload identity, MFA/passkeys, and assurance levels; audits cover orphaned accounts, over-privileged roles, weak MFA, long-lived tokens, and SAML misconfig. Owns identity INFRASTRUCTURE and access-management DESIGN, not app-level login/session/JWT mechanics (sota-code-security owns those). Trigger keywords: IAM, IdP, OIDC, OAuth 2.1, PKCE, DPoP, PAR, RAR, JAR, FAPI, SAML, SCIM, provisioning, deprovisioning, RBAC, ABAC, ReBAC, Zanzibar, OpenFGA, SpiceDB, OPA, Cedar, Kanidm, Keycloak, Authentik, Zitadel, Entra, Okta, SSO, single logout, MFA, passkey, FIDO2, WebAuthn, step-up, conditional access, CAEP, PAM, break-glass, just-in-time, SPIFFE, access review, NIST 800-63, IAL, AAL, FAL, Active Directory, Kerberos, Kerberoasting, ADCS, RBCD, gMSA, dMSA, LAPS, krbtgt.",
+      "trigger_tags": [
+        "access",
+        "identity",
+        "identity-access",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-identity-access/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-javascript-typescript",
+      "name": "SOTA Sota Javascript Typescript",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art JavaScript and TypeScript engineering (2026) for both writing and auditing code. Covers strict TypeScript configuration and type design, language idioms and pitfalls, async patterns, Node.js backends, JS/TS-specific security (XSS, prototype pollution, supply chain, injection), frontend/React and Node performance, and testing/tooling. Use whenever building, reviewing, refactoring, or security-auditing code involving JavaScript, TypeScript, Node, npm, React, frontend code, tsconfig, package.json, vitest, or any .ts/.tsx/.js/.mjs files.",
+      "trigger_tags": [
+        "javascript",
+        "javascript-typescript",
+        "sota",
+        "typescript"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-javascript-typescript/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified",
+        "typescript_strict_check"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-jvm",
+      "name": "SOTA Sota Jvm",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art JVM engineering rules for Java and Kotlin that Claude applies when writing or auditing JVM code. Java LTS releases (virtual threads final since 21; structured concurrency still preview), modern Kotlin. Covers modern idioms (records, sealed types, pattern matching, Kotlin null-safety/coroutines), API/null/immutability design, concurrency (virtual threads, JMM, java.util.concurrent, coroutines), security (deserialization/gadget chains, XXE, JNDI/Log4Shell-class, injection, JCA crypto; SEI CERT Oracle Java + OWASP), performance (G1/ZGC, JFR, GraalVM), and build/tooling/CI (Maven/Gradle, dependency-check, Error Prone/NullAway, SpotBugs, ktlint/detekt). Trigger keywords - Java, Kotlin, JVM, JDK, Spring, record, sealed, virtual thread, Loom, coroutine, suspend, ObjectInputStream, deserialization, XXE, JNDI, Log4Shell, Maven, Gradle, G1, ZGC, GraalVM, JMH, Optional, null-safety. Use for BOTH building JVM services/libraries and reviewing or auditing them.",
+      "trigger_tags": [
+        "jvm",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-jvm/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-kubernetes",
+      "name": "SOTA Sota Kubernetes",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Kubernetes platform security and operations (2026) for cloud-managed (EKS/GKE/AKS) and self-hosted clusters (kubeadm, k3s/k0s, Talos). Use when building, operating, hardening, or auditing the cluster PLATFORM layer: control plane and etcd, API server/kubelet, RBAC, admission control and policy-as-code, GitOps controllers, operators/CRDs/admission webhooks, Helm/Kustomize supply chain, multi-tenancy, cluster lifecycle/upgrades/CVE response, and audit logging. Trigger keywords: Kubernetes, k8s, cluster, control plane, etcd, kube-apiserver, kubelet, RBAC, ClusterRole, ServiceAccount, admission controller, Pod Security Admission, PSA, Kyverno, Gatekeeper, OPA, ValidatingAdmissionPolicy, Argo CD, Flux, GitOps, operator, CRD, admission webhook, Helm, Kustomize, multi-tenancy, vCluster, Talos, k3s, k0s, kubeadm, EKS, GKE, AKS, CIS benchmark, kube-bench, audit log, version skew. NOT pod-level securityContext/seccomp (sota-sandboxing) or NetworkPolicy/CNI depth (sota-network-security).",
+      "trigger_tags": [
+        "kubernetes",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-kubernetes/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-llm-engineering",
+      "name": "SOTA Sota Llm Engineering",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art LLM application engineering rules for BUILDING and AUDITING LLM-powered features. Claude should use this skill whenever it is building, modifying, or reviewing anything that calls a language model \u2014 chat features, RAG pipelines, agents and tool use, structured extraction, classification, summarization, embeddings/vector search, evals and regression gates, prompt or context engineering, model selection/routing, fine-tuning decisions, or LLM cost/latency/observability work. Trigger keywords: LLM, AI feature, prompt, system prompt, context window, RAG, retrieval, embeddings, vector DB, rerank, chunking, agent, tool use, MCP, multi-agent, evals, golden set, LLM-as-judge, fine-tuning, model selection, routing, structured output, JSON schema, prompt caching, token budget, counting tokens, instruction file size, tokenizer, hallucination, grounding. Covers build-quality only \u2014 for prompt-injection/agent-security use sota-code-security rules/08 and sota-sandboxing rules/05.",
+      "trigger_tags": [
+        "engineering",
+        "llm",
+        "llm-engineering",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-llm-engineering/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-ml-engineering",
+      "name": "SOTA Sota Ml Engineering",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art ML engineering / MLOps rules (2026) for BUILDING and AUDITING production machine-learning systems \u2014 the training\u2192serving\u2192monitoring lifecycle of classical/predictive ML. Distinct from LLM apps (prompts/RAG/agents \u2192 sota-llm-engineering). Covers ML system architecture (feature stores, model registry, reproducibility), data & features (leakage, train/serve skew, versioning), training & experiment tracking, evaluation (ML Test Score, slices, regression gates), deployment/serving (canary/shadow, rollback), monitoring & drift (PSI/KS, retraining), and ML security & governance (poisoning, model extraction, unsafe pickle, MITRE ATLAS, NIST AI RMF, EU AI Act). Trigger keywords - MLOps, machine learning, ML pipeline, model training, feature store, model registry, experiment tracking, MLflow, model serving, data drift, concept drift, train/serve skew, data leakage, model monitoring, retraining, ML Test Score, model card, MITRE ATLAS. Use for BOTH building and auditing ML systems.",
+      "trigger_tags": [
+        "engineering",
+        "ml-engineering",
+        "sota"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-ml-engineering/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-mobile",
+      "name": "SOTA Sota Mobile",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art mobile engineering for building and auditing iOS and Android applications. Use when the task involves mobile apps in any form \u2014 native (Swift, SwiftUI, Kotlin, Jetpack Compose), cross-platform (React Native, Flutter, Kotlin Multiplatform), app store submission and review (App Store, Google Play, privacy manifests, data safety), push notifications (APNs, FCM), offline-first architecture and sync, mobile security (Keychain, Keystore, certificate pinning, app attestation, OWASP MASVS), mobile performance (startup, jank, battery, app size), or mobile release operations (phased rollouts, feature flags, forced updates, crash reporting, OTA updates). Trigger keywords: mobile, iOS, Android, Swift, SwiftUI, Kotlin, Jetpack Compose, React Native, Flutter, app store, push notifications, offline-first. Swift the language, on any target, is `sota-swift`.",
+      "trigger_tags": [
+        "mobile",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-mobile/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-network-security",
+      "name": "SOTA Sota Network Security",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art network security as a discipline (2026) for BOTH designing/building secure networks AND auditing segmentation and exposure. Use for zero-trust architecture, network segmentation and blast-radius control, Kubernetes NetworkPolicy/CiliumNetworkPolicy depth, service mesh and mTLS, edge/ingress/egress security (WAF, egress allowlisting, metadata-endpoint blocking), DNS/TLS/PKI transport and certificate lifecycle, and remote access (WireGuard, ZTNA, bastion vs identity-aware proxy). Triggers \u2014 network security, zero trust, ZTNA, microsegmentation, east-west traffic, lateral movement, NetworkPolicy, default-deny, Cilium, Hubble, service mesh, mTLS, Istio, Linkerd, SPIFFE, ingress, egress, WAF, CRS, Coraza, egress gateway, FQDN allowlist, IMDS, DNS firewall, DNSSEC, DoH, TLS 1.3, ACME, step-ca, private CA, bastion, identity-aware proxy, DDoS, email spoofing, SPF, DKIM, DMARC. Owns SECURITY posture on top of cloud network setup (sota-cloud-infrastructure owns VPC/subnet/DNS setup).",
+      "trigger_tags": [
+        "network",
+        "network-security",
+        "security",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-network-security/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-observability",
+      "name": "SOTA Sota Observability",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art observability and reliability engineering (2026). Use when instrumenting code (structured logging, metrics, distributed tracing with OpenTelemetry, SLOs, alerting, health endpoints) or auditing an existing codebase's observability posture (can on-call answer \"why is this request slow?\" and \"what broke at 3am?\"). Not for security detections, SIEM, or threat hunting \u2014 use sota-detection-engineering. Triggers: logging, metrics, tracing, monitoring, alerting, SLO, SLI, error budget, OpenTelemetry, OTel, Prometheus, Grafana, debugging production, incident, on-call, telemetry, instrumentation, health check, runbook, Sentry, crash reporting, profiling.",
+      "trigger_tags": [
+        "logging",
+        "metrics",
+        "observability",
+        "sota",
+        "tracing"
+      ],
+      "target_roles": [
+        "qa",
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-observability/SKILL.md",
+      "required_checks": [
+        "performance_or_regression_verified",
+        "structured_concurrency_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-performance",
+      "name": "SOTA Sota Performance",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art performance engineering for building fast systems and auditing existing code for bottlenecks. Use when the task involves performance, optimization, latency, profiling, slow code, memory usage, caching, or throughput \u2014 designing latency budgets, fixing N+1 and accidental-quadratic patterns, tuning allocation/GC pressure, network and I/O efficiency, cache architecture, Core Web Vitals, or setting up benchmarks and regression gates. Not for concurrency correctness (races, deadlocks, cancellation) \u2014 use sota-async-concurrency. Trigger keywords: performance, optimization, latency, profiling, slow, memory usage, caching, throughput, bottleneck, p99, flamegraph, Core Web Vitals.",
       "trigger_tags": [
         "performance",
-        "profile",
-        "benchmark",
-        "optimize",
-        "latency",
-        "memory",
-        "cpu",
-        "throughput"
+        "sota"
       ],
+      "target_roles": [
+        "qa",
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_performance-optimization.md",
+      "doc_path": "manifests/sota/sota-performance/SKILL.md",
+      "required_checks": [
+        "performance_or_regression_verified",
+        "structured_concurrency_verified"
+      ],
+      "conflict_priority": 80,
       "enabled": true
     },
     {
-      "id": "general-eng:planning-and-task-breakdown",
-      "name": "Planning and Task Breakdown",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Break down complex features into incremental, testable tasks with verification criteria.",
+      "id": "sota:sota-php",
+      "name": "SOTA Sota Php",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art PHP engineering (supported PHP branches) for both writing new PHP and auditing existing PHP code. Covers strict_types and modern idioms (enums, readonly, match, fibers, property hooks), OWASP-grade security (SQL injection, XSS, file uploads, LFI/RFI, unserialize/Phar object injection, sessions, password hashing, sodium, SSRF), framework-neutral web hardening, Composer supply chain and static analysis (PHPStan/Psalm levels, baselines), and runtime performance (OPcache, preloading, FPM tuning, JIT, N+1). Use whenever the task involves PHP source, composer.json, php.ini, FPM config, or a PHP framework \u2014 building features, scaffolding projects, reviewing PRs, or hunting bugs and vulnerabilities. Trigger keywords: PHP, composer, Laravel, Symfony, WordPress, PHPStan, Psalm, PHPUnit, Pest, PDO, php-fpm, OPcache, strict_types, phar, unserialize, htmlspecialchars.",
       "trigger_tags": [
-        "plan",
-        "breakdown",
-        "tasks",
-        "roadmap",
-        "spec",
-        "design-doc",
-        "steps"
+        "php",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-php/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-privacy-compliance",
+      "name": "SOTA Sota Privacy Compliance",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art privacy and compliance engineering guidance for building privacy-respecting systems and auditing existing code for privacy/compliance gaps. Use when work involves privacy, GDPR, PII, personal data, consent, data retention, deletion, DSAR (data subject access requests), SOC 2, ISO 27001, HIPAA, PCI DSS, compliance evidence, data residency/sovereignty, data classification, anonymization/pseudonymization, breach notification, or EU AI Act obligations \u2014 whether designing new data flows, implementing user-rights features (export/delete), preparing for an audit, or reviewing a codebase for places personal data is over-collected, under-protected, retained forever, or impossible to delete.",
+      "trigger_tags": [
+        "compliance",
+        "privacy",
+        "privacy-compliance",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-privacy-compliance/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-python",
+      "name": "SOTA Sota Python",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Python engineering for both writing new Python and auditing existing Python code. Covers uv-based tooling and project setup, strict typing, idioms and pitfalls, asyncio structured concurrency, security (injection, deserialization, supply chain), performance, and FastAPI/Django/pytest practice. Use whenever the task involves Python source, pyproject.toml, requirements files, or Python tooling \u2014 building features, scaffolding projects, reviewing PRs, or hunting bugs/vulnerabilities. Trigger keywords: Python, pip, uv, pyproject, asyncio, Django, FastAPI, pytest, type hints, mypy, ruff, pydantic, SQLAlchemy, venv.",
+      "trigger_tags": [
+        "python",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "python"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_planning-and-task-breakdown.md",
+      "doc_path": "manifests/sota/sota-python/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified",
+        "type_annotations_and_lint_check"
+      ],
+      "conflict_priority": 80,
       "enabled": true
     },
     {
-      "id": "general-eng:security-and-hardening",
-      "name": "Security and Hardening",
-      "category": "general_engineering",
-      "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Hardening guidelines, defense-in-depth, input sanitization, threat modeling, and OWASP alignment.",
+      "id": "sota:sota-ruby",
+      "name": "SOTA Sota Ruby",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Ruby engineering rules (supported Ruby releases) that Claude applies when writing or auditing Ruby. Covers modern idioms (frozen string literals, pattern matching, Data/Struct, RBS/Sorbet/Steep typing), security (SQL injection via ActiveRecord/Sequel, ERB/XSS escaping, mass assignment, CSRF, Marshal/YAML deserialization, command injection, ReDoS), framework-neutral web hardening (Rails/Sinatra/Hanami as neutral examples), supply chain and tooling (Bundler lockfile and checksums, bundler-audit, RuboCop/StandardRB, Brakeman, RSpec/Minitest, CI gates), and concurrency/performance (GVL, threads vs fibers vs Ractors, background-job idempotency, YJIT/ZJIT, GC and memory, N+1 queries). Trigger keywords: Ruby, gem, Gemfile, bundler, Rails, Sinatra, Hanami, Rack, ERB, ActiveRecord, Sequel, RSpec, minitest, RuboCop, Sorbet, RBS, Sidekiq, YJIT, Ractor, rake, ruby-lang. Use for BOTH building Ruby services/gems/CLIs and reviewing or auditing Ruby codebases.",
+      "trigger_tags": [
+        "ruby",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-ruby/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-rust",
+      "name": "SOTA Sota Rust",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Rust engineering (2026) for writing and auditing Rust code. Covers idiomatic ownership and API design, error handling and panic policy, unsafe discipline with Miri, async/tokio (cancellation safety, structured concurrency, graceful shutdown), security and supply chain (cargo audit/deny/vet, integer overflow, serde hardening, zeroize), performance (profiling, allocation reduction, release profiles), and tooling/CI (clippy policy, nextest, MSRV, feature hygiene, edition 2024). Use when writing new Rust code, reviewing or auditing existing Rust, designing crate APIs, debugging borrow checker or Send/Sync errors, or hardening Rust services. Triggers: Rust, cargo, crate, tokio, unsafe, lifetime, borrow checker, clippy, async Rust, Cargo.toml, thiserror, anyhow, serde, Miri, MSRV, std::process::Command, subprocess, spawn a process.",
+      "trigger_tags": [
+        "borrow checker",
+        "cargo",
+        "crate",
+        "lifetime",
+        "rust",
+        "sota",
+        "tokio",
+        "unsafe"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "rust"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-rust/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified",
+        "memory_or_type_safety_audit",
+        "unsafe_code_boundary_check"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-sandboxing",
+      "name": "SOTA Sota Sandboxing",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art sandboxing and isolation engineering (2026). Use when designing isolation for untrusted code, untrusted input parsing, multi-tenant workloads, or AI/agent execution \u2014 and when auditing existing systems for isolation gaps. Covers least privilege, defense in depth, isolation boundary selection (VM/microVM/gVisor/container/process/WASM), Linux primitives (namespaces, cgroups v2, seccomp-bpf, Landlock, AppArmor/SELinux, capabilities), Docker/OCI and Kubernetes hardening, privilege separation and broker patterns, subprocess hygiene, and agent tool/egress scoping. Trigger keywords \u2014 sandboxing, sandbox, isolation, least privilege, container hardening, container escape, seccomp, Landlock, namespaces, gVisor, Kata, Firecracker, microVM, pod security, untrusted code, untrusted input processing, risky parser, privilege separation, WASM sandbox, V8 isolate, agent code execution, egress allowlist, multi-tenant isolation.",
+      "trigger_tags": [
+        "sandboxing",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-sandboxing/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-secrets-management",
+      "name": "SOTA Sota Secrets Management",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art secrets management for building and auditing software. Use whenever a task involves creating, storing, injecting, rotating, or scanning for credentials \u2014 or reviewing code/infrastructure for secret leaks and misuse. BUILD mode: implementing secrets handling; AUDIT mode: sweeping a repo for leaked, hardcoded, or mishandled secrets. Trigger keywords: secret, secrets management, credential, API key, token, password, private key, signing key, JWT secret, TLS key, SSH key, database password, connection string, .env, dotenv, environment variable, Vault, OpenBao, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, KMS, envelope encryption, SOPS, age, sealed-secrets, external-secrets, workload identity, OIDC federation, SPIFFE, SPIRE, IAM role, GitHub Actions OIDC, short-lived credential, rotation, revocation, key expiry, gitleaks, trufflehog, secret scanning, leaked key, hardcoded secret, committed secret, git history purge, honeytoken, pre-commit hook, kid rotation.",
+      "trigger_tags": [
+        "management",
+        "secrets",
+        "secrets-management",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-secrets-management/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-security-compliance",
+      "name": "SOTA Sota Security Compliance",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art security & compliance engineering (2026) for the cybersecurity control frameworks and product-security regulations that drive architecture, code, and CI gates \u2014 not the organizational policy binder. Use when work must satisfy or be audited against NIST CSF 2.0, SP 800-53, SP 800-171 / CMMC, the Secure Software Development Framework (SSDF, SP 800-218), FedRAMP, the EU Cyber Resilience Act (CRA), or ISA/IEC 62443 (OT/ICS/embedded). Covers control-framework-as-code crosswalks (control \u2192 engineering mechanism \u2192 evidence), CUI boundaries, FIPS-validated crypto, SBOM + coordinated vulnerability disclosure + security-update obligations, secure-SDLC gates, and OT zones/conduits & security levels. Complements sota-privacy-compliance (personal data, GDPR, SOC 2, ISO 27001). Trigger keywords: compliance, NIST, CSF, 800-53, 800-171, CMMC, CUI, SSDF, FedRAMP, CRA, Cyber Resilience Act, SBOM, VEX, CVD, IEC 62443, OT security, ICS, security levels, zones and conduits, FIPS 140.",
+      "trigger_tags": [
+        "compliance",
+        "security",
+        "security-compliance",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-security-compliance/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-shell-scripting",
+      "name": "SOTA Sota Shell Scripting",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art shell scripting (bash and PowerShell, defensive) for writing and auditing shell scripts, CI scripts, init/deploy scripts, container entrypoints, and Makefile recipes \u2014 and equally for the ad-hoc commands you run yourself: a grep/find/rg sweep whose result you are about to report, a one-liner pasted from a checklist, a pipeline whose exit status or empty output you are about to believe. Use when creating, modifying, reviewing or hardening shell code, AND before trusting any conclusion a shell command produced \u2014 especially an ABSENCE (\"no matches\", \"0 results\"), which a quoting bug produces identically. Trigger keywords: bash, shell script, sh, zsh, shellcheck, shfmt, CI script, Makefile shell, entrypoint script, set -euo pipefail, dotfiles, install script, cron job, wrapper script, one-liner, command line, grep sweep, search the codebase, verify a claim, no matches found, empty output, exit status, word splitting, glob, PowerShell, pwsh, .ps1, Windows CI, ErrorActionPreference.",
+      "trigger_tags": [
+        "scripting",
+        "shell",
+        "shell-scripting",
+        "sota"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-shell-scripting/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-skill-security",
+      "name": "SOTA Sota Skill Security",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "Security for AI agent skills, plugins and instruction bundles (2026) \u2014 the supply chain of things that tell an agent what to do. Use when installing, authoring, reviewing, updating or auditing any skill, plugin, ruleset or agent file an agent loads as instructions, including your own; when a repository you do not fully trust contains agent-readable instruction files; and when deciding what an installed skill may reach. Covers provenance and pinning, review-before-install, the instruction trust boundary, precedence and shadowing between overlapping skills, capability minimisation, revocation, and auditing a skill for guidance that is confidently wrong. Not for prompt injection arriving in ordinary application data \u2014 use sota-code-security rules/08. Trigger keywords: skill, agent skill, SKILL.md, AGENTS.md, CLAUDE.md, .cursorrules, instruction file, plugin, marketplace, skill install, skill provenance, skill pinning, malicious skill, skill shadowing, agent trust boundary.",
       "trigger_tags": [
         "security",
-        "hardening",
-        "vulnerability",
-        "sanitize",
-        "auth",
-        "tokens",
-        "secret",
-        "rbac",
-        "injection"
+        "skill",
+        "skill-security",
+        "sota"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-skill-security/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-swift",
+      "name": "SOTA Sota Swift",
+      "category": "language_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art Swift engineering rules (Swift 6 language mode) that Claude applies when writing or auditing Swift on ANY target \u2014 server-side services (Vapor, Hummingbird, SwiftNIO), CLIs, libraries, packages and apps. Covers optionals and error handling, value types and API design, Swift 6 data-race safety (Sendable, actors, isolation, cancellation), ARC and retain cycles, unsafe pointers and strict memory safety, security (CryptoKit/swift-crypto, Codable and NSKeyedUnarchiver, SQLKit raw SQL, Process, path traversal, NIOSSL/AsyncHTTPClient TLS), server hardening (auth middleware, cookie defaults, release builds), performance, and SwiftPM supply chain (Package.resolved, plugins and macros, SBOM). Trigger keywords - Swift, SwiftPM, Package.swift, Package.resolved, Vapor, Hummingbird, SwiftNIO, async/await, actor, Sendable, @MainActor, Task, Codable, ARC, weak self, Unsafe pointer, Swift Testing, XCTest, SwiftLint, swift-format, server-side Swift. Use for BOTH building and auditing Swift code.",
+      "trigger_tags": [
+        "sota",
+        "swift"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-swift/SKILL.md",
+      "required_checks": [
+        "compilation_and_lint_check",
+        "idiomatic_patterns_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-testing",
+      "name": "SOTA Sota Testing",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art software testing strategy and practice (2026) for designing test strategy, writing unit/integration/e2e tests, or auditing test suites. Covers suite shape (pyramid/trophy/honeycomb), test design quality (behavior-first, AAA, determinism, smells), test doubles (mocks/fakes/stubs), test data (builders over fixtures), real-dependency integration (Testcontainers-style), contract testing (Pact/consumer-driven), e2e/UI strategy (selectors, auto-waiting, flake economics), property-based testing, fuzzing, mutation testing, approval testing, and suite health/CI (flaky-test policy, coverage philosophy, sharding). Trigger keywords - testing, test strategy, unit test, integration test, e2e, end-to-end, coverage, flaky tests, TDD, contract testing, property-based, mocking, fixtures, snapshot test, mutation testing, fuzzing, BDD, Gherkin, given-when-then, acceptance criteria, security testing, WSTG, IDOR test, authz test, abuse case, DAST. Use for BOTH building and auditing test suites.",
+      "trigger_tags": [
+        "sota",
+        "testing"
+      ],
+      "target_roles": [
+        "qa",
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-testing/SKILL.md",
+      "required_checks": [
+        "performance_or_regression_verified",
+        "structured_concurrency_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-threat-modeling",
+      "name": "SOTA Sota Threat Modeling",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art threat modeling for both designing new systems and auditing existing ones. Use when designing a feature, service, integration, or architecture that touches untrusted input, new trust boundaries, sensitive data, or third-party dependencies (BUILD mode), and when reviewing, auditing, or pen-test-scoping an existing codebase to reconstruct its implicit threat model and find gaps (AUDIT mode). Not for code-level vulnerability review \u2014 use sota-code-security. Trigger keywords: threat model, STRIDE, LINDDUN, PASTA, attack tree, kill chain, data flow diagram, DFD, trust boundary, attack surface, abuse case, security design review, security architecture review, risk rating, DREAD, CVSS, security requirements, secure design, security audit, gap analysis, prompt injection, excessive agency, threat catalog, mitigations, residual risk.",
+      "trigger_tags": [
+        "modeling",
+        "sota",
+        "threat",
+        "threat-modeling"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-threat-modeling/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-ux-writing",
+      "name": "SOTA Sota Ux Writing",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art UX writing and product-copy guidance (2026) covering voice and tone systems, plain language (ISO 24495-1), microcopy (buttons, labels, empty states, onboarding, notifications), error and feedback message craft, and the accessibility and localization of interface language (WCAG 2.2 language criteria, alt text, ICU pluralization, i18n-safe strings). Use when writing or reviewing ANY user-facing interface text \u2014 web, mobile, desktop, or CLI products \u2014 AND when auditing existing product copy for clarity, consistency, tone, accessibility, and localization readiness. Trigger keywords: UX writing, microcopy, product copy, content design, error message, empty state, button label, tooltip, onboarding copy, form label, placeholder, notification, toast, confirmation dialog, tone of voice, terminology, plain language, readability, alt text, i18n strings, localization, translation.",
+      "trigger_tags": [
+        "sota",
+        "ux-writing",
+        "writing"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/sota/sota-ux-writing/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "sota:sota-web-frameworks",
+      "name": "SOTA Sota Web Frameworks",
+      "category": "frontend_ui",
+      "source_repo": "https://github.com/martinholovsky/SOTA-skills.git",
+      "version_pinned": "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef",
+      "author": "Martin Holovsky",
+      "license": "CC-BY-4.0 / Apache-2.0",
+      "description": "State-of-the-art engineering rules (2026) for the JavaScript SSR meta-frameworks: React 19 + Next.js (App Router, React Server Components, Server Actions) and Vue 3 + Nuxt 4 (Nitro server routes, composables) \u2014 plus the cross-cutting concerns of server rendering: hydration correctness, SSR state serialization, the server/client trust boundary, and framework-specific security and CVEs. Use when building or auditing any React/Next or Vue/Nuxt app \u2014 components, RSC/client boundaries, Server Actions or Nitro routes, data fetching and caching, hydration mismatches, SSR/SSG/ISR strategy, or framework CVE exposure. Complements sota-javascript-typescript, sota-frontend-design, sota-code-security, and sota-performance. Trigger keywords: React, Next.js, App Router, React Server Components, RSC, Server Actions, use client, use server, Vue, Nuxt, Nitro, Pinia, composable, script setup, SSR, hydration, hydration mismatch, use cache, PPR, ISR, proxy.ts, middleware, useFetch, useState, runtimeConfig, CSP nonce, devalue.",
+      "trigger_tags": [
+        "frameworks",
+        "sota",
+        "web",
+        "web-frameworks"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "typescript",
+        "javascript",
+        "html",
+        "css"
       ],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
-      "doc_path": "manifests/addyosmani_security-and-hardening.md",
+      "doc_path": "manifests/sota/sota-web-frameworks/SKILL.md",
+      "required_checks": [
+        "ui_accessibility_verified",
+        "responsive_layout_verified"
+      ],
+      "conflict_priority": 75,
       "enabled": true
     },
     {
-      "id": "general-eng:test-driven-development",
-      "name": "Test Driven Development",
-      "category": "general_engineering",
+      "id": "addy:api-and-interface-design",
+      "name": "Addy Api And Interface Design",
+      "category": "architecture_design",
       "source_repo": "https://github.com/addyosmani/agent-skills.git",
-      "version_pinned": "1401c8b8030e023baeebb31781a6653fe8e93026",
-      "description": "Unit, integration, and property testing strategies with test isolation and boundary verification.",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Guides stable API and interface design. Use when designing APIs, module boundaries, or any public interface. Use when creating REST or GraphQL endpoints, defining type contracts between modules, or establishing boundaries between frontend and backend.",
       "trigger_tags": [
-        "test",
-        "tdd",
-        "unit-test",
-        "integration-test",
-        "coverage",
-        "mock",
-        "assert",
-        "regression"
+        "and",
+        "api",
+        "api-and-interface-design",
+        "design",
+        "interface"
       ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
       "required_permissions": [
-        "read_files",
-        "write_files"
+        "read_files"
       ],
       "network_required": false,
-      "risk_level": "modify",
-      "doc_path": "manifests/addyosmani_test-driven-development.md",
+      "risk_level": "read",
+      "doc_path": "manifests/addy/api-and-interface-design/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:browser-testing-with-devtools",
+      "name": "Addy Browser Testing With Devtools",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Tests in real browsers via Chrome DevTools MCP. Use when building or debugging anything that runs in a browser. Use when you need to inspect the DOM, capture console errors, analyze network requests, profile performance, or verify visual output with real runtime data. Requires the chrome-devtools MCP server to be configured.",
+      "trigger_tags": [
+        "browser",
+        "browser-testing-with-devtools",
+        "devtools",
+        "testing",
+        "with"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/browser-testing-with-devtools/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:ci-cd-and-automation",
+      "name": "Addy Ci Cd And Automation",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Automates CI/CD pipeline setup. Use when setting up or modifying build and deployment pipelines. Use when you need to automate quality gates, configure test runners in CI, or establish deployment strategies.",
+      "trigger_tags": [
+        "and",
+        "automation",
+        "cd",
+        "ci",
+        "ci-cd-and-automation"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/ci-cd-and-automation/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "addy:code-review-and-quality",
+      "name": "Addy Code Review And Quality",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch. Use when asked to review a diff or a pull request, even when the diff is pasted inline.",
+      "trigger_tags": [
+        "and",
+        "audit",
+        "code",
+        "code review",
+        "code-review-and-quality",
+        "diff",
+        "pr",
+        "quality",
+        "review"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/code-review-and-quality/SKILL.md",
+      "required_checks": [
+        "independent_diff_audit_passed",
+        "zero_regressions_verified"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:code-simplification",
+      "name": "Addy Code Simplification",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Simplifies code for clarity. Use when refactoring code for clarity without changing behavior. Use when code works but is harder to read, maintain, or extend than it should be. Use when reviewing code that has accumulated unnecessary complexity.",
+      "trigger_tags": [
+        "code",
+        "code-simplification",
+        "simplification"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/code-simplification/SKILL.md",
+      "required_checks": [
+        "dead_code_eliminated",
+        "no_behavioral_regression"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:constraint-driven-development",
+      "name": "Addy Constraint Driven Development",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Establishes a project's quality bar as a written contract and stops agents quietly lowering it. Interviews the user on which dimensions matter, supplies sane default thresholds when they have no number in mind, records everything in CONSTRAINTS.md, and watches the diff for a weakened bar \u2014 new @ts-ignore or eslint-disable suppressions, skipped or deleted tests, assertions stripped out, unimplemented stubs, thresholds edited down. Use when no quality bar is written down, when the user says \"set up constraints\" or \"define our standards\", when the user wants dimensions they care about \u2014 accessibility, web performance, coverage \u2014 set up as enforced constraints, when an agent keeps silencing checks or skipping tests to get to green, when you need a coverage or performance threshold and don't know what number to pick, or when an agent writes more code than anyone will read.",
+      "trigger_tags": [
+        "constraint",
+        "constraint-driven-development",
+        "development",
+        "driven"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/constraint-driven-development/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:context-engineering",
+      "name": "Addy Context Engineering",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Optimizes agent context setup. Use when starting a new session, when agent output quality degrades, when switching between tasks, or when you need to configure rules files and context for a project.",
+      "trigger_tags": [
+        "context",
+        "context-engineering",
+        "engineering"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/context-engineering/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "addy:debugging-and-error-recovery",
+      "name": "Addy Debugging And Error Recovery",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Guides systematic root-cause debugging. Use when tests fail, builds break, something that worked yesterday broke, behavior doesn't match expectations, or you encounter any unexpected error. Use when you need to figure out what broke and why \u2014 a systematic approach to finding and fixing the root cause rather than guessing.",
+      "trigger_tags": [
+        "and",
+        "bug",
+        "crash",
+        "debug",
+        "debugging",
+        "debugging-and-error-recovery",
+        "error",
+        "fix",
+        "investigation",
+        "panic",
+        "recovery",
+        "root-cause",
+        "stacktrace"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/debugging-and-error-recovery/SKILL.md",
+      "required_checks": [
+        "root_cause_identified",
+        "regression_test_added"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:deprecation-and-migration",
+      "name": "Addy Deprecation And Migration",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Manages deprecation and migration. Use when removing old systems, APIs, or features. Use when migrating users from one implementation to another. Use when migrating a database schema in production, such as renaming or dropping a column without downtime (expand/contract). Use when deciding whether to maintain or sunset existing code.",
+      "trigger_tags": [
+        "and",
+        "deprecation",
+        "deprecation-and-migration",
+        "migration"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/deprecation-and-migration/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:documentation-and-adrs",
+      "name": "Addy Documentation And Adrs",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Records decisions and documentation. Use when you need to document an architecture decision (ADR) or the reasoning behind a design choice, when changing public APIs, shipping features, or when you need to record context that future engineers and agents will need to understand the codebase.",
+      "trigger_tags": [
+        "adrs",
+        "and",
+        "documentation",
+        "documentation-and-adrs"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/documentation-and-adrs/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:doubt-driven-development",
+      "name": "Addy Doubt Driven Development",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Subjects every non-trivial decision to a fresh-context adversarial review before it stands. Use when you want every assumption cross-examined before proceeding, when stress-testing a plan for hidden failure modes, when correctness matters more than speed, when working in unfamiliar code, when stakes are high (production auth, security-sensitive logic, a high-stakes migration, irreversible operations), or any time a confident output would be cheaper to verify now than to debug later.",
+      "trigger_tags": [
+        "development",
+        "doubt",
+        "doubt-driven-development",
+        "driven"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/doubt-driven-development/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:frontend-ui-engineering",
+      "name": "Addy Frontend Ui Engineering",
+      "category": "frontend_ui",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Builds production-quality, accessible, responsive user-facing UIs. Use when building or modifying interfaces and pages, creating components, implementing layouts, meeting WCAG accessibility requirements, managing state, or when the output needs to look and feel production-quality rather than AI-generated.",
+      "trigger_tags": [
+        "engineering",
+        "frontend",
+        "frontend-ui-engineering",
+        "ui"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [
+        "typescript",
+        "javascript",
+        "html",
+        "css"
+      ],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/frontend-ui-engineering/SKILL.md",
+      "required_checks": [
+        "ui_accessibility_verified",
+        "responsive_layout_verified"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:git-workflow-and-versioning",
+      "name": "Addy Git Workflow And Versioning",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Structures git workflow practices. Use when making any code change. Use when committing, branching, resolving conflicts, splitting uncommitted work in a messy working tree into clean atomic commits, opening or reviewing a pull request (PR), pushing to a remote, or when you need to organize work across multiple parallel streams. Use when cutting a release, choosing a semantic version bump, tagging, or writing a changelog.",
+      "trigger_tags": [
+        "and",
+        "git",
+        "git-workflow-and-versioning",
+        "versioning",
+        "workflow"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/git-workflow-and-versioning/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:idea-refine",
+      "name": "Addy Idea Refine",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Refines raw ideas into sharp, actionable concepts through structured divergent and convergent thinking. Use when an idea is still vague, when you need to stress-test assumptions before committing to a plan, or when you want to expand options before converging on one. Triggers on \"ideate\", \"refine this idea\", or \"stress-test my plan\".",
+      "trigger_tags": [
+        "idea",
+        "idea-refine",
+        "refine"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/idea-refine/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "addy:incremental-implementation",
+      "name": "Addy Incremental Implementation",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Delivers changes incrementally in thin, verifiable slices. Use when implementing any feature or change that touches more than one file, or when picking up the next task from a plan. Use when rolling a change out behind a feature flag, when you're about to write a large amount of code at once, or when a task feels too big to land in one step.",
+      "trigger_tags": [
+        "implementation",
+        "incremental",
+        "incremental-implementation"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/incremental-implementation/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:interview-me",
+      "name": "Addy Interview Me",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Extracts what the user actually wants instead of what they think they should want. Achieves this through one-question-at-a-time interview until ~95% confidence about the underlying intent. Use when an ask is underspecified (\"build me X\" without \"for whom\" or \"why now\"), when the user explicitly invokes (\"interview me\", \"grill me\", \"are we sure?\", \"stress-test my thinking\"), or when you catch yourself silently filling in ambiguous requirements before any plan, spec, or code exists.",
+      "trigger_tags": [
+        "interview",
+        "interview-me",
+        "me"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/interview-me/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "addy:observability-and-instrumentation",
+      "name": "Addy Observability And Instrumentation",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Instruments code so production behavior is visible and diagnosable. Use when adding logging, metrics, tracing, or alerting. Use when shipping any feature that runs in production and you need evidence it works. Use when production issues are reported but you can't tell what happened from the available data.",
+      "trigger_tags": [
+        "and",
+        "instrumentation",
+        "observability",
+        "observability-and-instrumentation"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/observability-and-instrumentation/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:performance-optimization",
+      "name": "Addy Performance Optimization",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Optimizes application performance across frontend, backend, queries, and databases. Use when performance requirements exist, when you suspect performance regressions, when Core Web Vitals or load times need improvement, when N+1 query patterns need fixing, or when profiling reveals bottlenecks.",
+      "trigger_tags": [
+        "optimization",
+        "performance",
+        "performance-optimization"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/performance-optimization/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:planning-and-task-breakdown",
+      "name": "Addy Planning And Task Breakdown",
+      "category": "architecture_design",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Breaks work into ordered tasks. Use when you have a spec or clear requirements and need to break work into implementable tasks. Use when a task feels too large to start, when you need to estimate scope, or when parallel work is possible.",
+      "trigger_tags": [
+        "and",
+        "breakdown",
+        "planning",
+        "planning-and-task-breakdown",
+        "task"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/planning-and-task-breakdown/SKILL.md",
+      "required_checks": [
+        "architectural_boundaries_respected",
+        "design_tradeoffs_documented"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:security-and-hardening",
+      "name": "Addy Security And Hardening",
+      "category": "security_hardening",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Hardens code against vulnerabilities. Use when auditing an input handler for vulnerabilities, when handling user input, authentication, data storage, or external integrations, or when checking a login flow is safe against the OWASP Top Ten. Use when building any feature that accepts untrusted data, manages user sessions, or interacts with third-party services. Use when auditing dependencies for known vulnerabilities, triaging package-manager audit findings, or assessing supply-chain risk in a new package. Use when personal data or privacy compliance (GDPR, CCPA) is involved.",
+      "trigger_tags": [
+        "and",
+        "cve",
+        "hardening",
+        "security",
+        "security-and-hardening",
+        "threat",
+        "vulnerability"
+      ],
+      "target_roles": [
+        "security",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/security-and-hardening/SKILL.md",
+      "required_checks": [
+        "no_hardcoded_secrets",
+        "least_privilege_enforced",
+        "input_validation_and_sanitization"
+      ],
+      "conflict_priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "addy:shipping-and-launch",
+      "name": "Addy Shipping And Launch",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Prepares production launches. Use when preparing to deploy to production, or when asking what needs to be in place before shipping. Use when you need a pre-launch checklist, when setting up monitoring, when planning a staged rollout, or when you need a rollback strategy.",
+      "trigger_tags": [
+        "and",
+        "launch",
+        "shipping",
+        "shipping-and-launch"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/shipping-and-launch/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:source-driven-development",
+      "name": "Addy Source Driven Development",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Grounds every implementation decision in official documentation. Use when you want to verify an approach against the official docs before implementing it, or when you want authoritative, source-cited code free from outdated patterns. Use when building with any framework or library where correctness matters.",
+      "trigger_tags": [
+        "development",
+        "driven",
+        "source",
+        "source-driven-development"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/source-driven-development/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:spec-driven-development",
+      "name": "Addy Spec Driven Development",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Creates specs before coding. Use when starting a new project, feature, or significant change and no specification exists yet. Use when drafting a PRD or requirements document with objectives and scope, or when requirements are unclear, ambiguous, or only exist as a vague idea. Use when a single requirement spans several independently testable capabilities and needs decomposing into a capability map of modules before specifying.",
+      "trigger_tags": [
+        "development",
+        "driven",
+        "spec",
+        "spec-driven-development"
+      ],
+      "target_roles": [
+        "implementer",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/spec-driven-development/SKILL.md",
+      "required_checks": [
+        "local_conventions_followed",
+        "minimal_diff_verified"
+      ],
+      "conflict_priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "addy:test-driven-development",
+      "name": "Addy Test Driven Development",
+      "category": "quality_testing",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Drives development with tests using the red-green-refactor loop. Use when implementing any logic, fixing any bug, or changing any behavior. Use when you need to prove that code works, when a bug report arrives, or when you're about to modify existing functionality. Use when asked to add tests to a function, fix a bug in it or change its behavior, even when the code is pasted inline and the request does not mention tests.",
+      "trigger_tags": [
+        "development",
+        "driven",
+        "red-green-refactor",
+        "regression",
+        "tdd",
+        "test",
+        "test-driven-development",
+        "unit test"
+      ],
+      "target_roles": [
+        "qa",
+        "reviewer",
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/test-driven-development/SKILL.md",
+      "required_checks": [
+        "failing_test_written_first",
+        "all_unit_and_regression_tests_pass"
+      ],
+      "conflict_priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "addy:using-agent-skills",
+      "name": "Addy Using Agent Skills",
+      "category": "general_engineering",
+      "source_repo": "https://github.com/addyosmani/agent-skills.git",
+      "version_pinned": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+      "author": "Addy Osmani",
+      "license": "MIT",
+      "description": "Discovers and invokes agent skills. Use when starting a session, or when you need to decide which skill or workflow applies to the piece of work at hand. This is the meta-skill that governs how all other skills are discovered and invoked.",
+      "trigger_tags": [
+        "agent",
+        "skills",
+        "using",
+        "using-agent-skills"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/addy/using-agent-skills/SKILL.md",
+      "required_checks": [],
+      "conflict_priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "oss:senior-open-source-engineer",
+      "name": "Senior Open Source Engineer",
+      "category": "open_source_practices",
+      "source_repo": "https://github.com/mohitdebian/Senior-Open-Source-Engineer-Skill.git",
+      "version_pinned": "2cd5fdb18de8468dc2fd145999b41dbdea844c63",
+      "author": "Mohit Kumar",
+      "license": "MIT",
+      "description": "Behave like a senior software engineer contributing to a mature open-source repository. Use when the task involves selecting high-value issues, fixing bugs, implementing scoped features, reviewing repository architecture, matching project conventions, preparing PR-ready changes, creating repository-appropriate tests, or documenting engineering learnings. Favor small diffs, existing abstractions, maintainability, and maintainer-friendly changes over speed or code volume.",
+      "trigger_tags": [
+        "open source",
+        "oss",
+        "contribute",
+        "maintainer",
+        "minimal diff",
+        "repo adaptation",
+        "pr",
+        "pull request",
+        "issue",
+        "senior dev",
+        "architecture learning",
+        "native style",
+        "ponytail"
+      ],
+      "target_roles": [
+        "architect",
+        "implementer",
+        "qa",
+        "reviewer"
+      ],
+      "languages": [],
+      "required_permissions": [
+        "read_files"
+      ],
+      "network_required": false,
+      "risk_level": "read",
+      "doc_path": "manifests/mohit/senior-open-source-engineer/SKILL.md",
+      "required_checks": [
+        "repository_conventions_inspected",
+        "minimal_diff_verified",
+        "native_test_style_followed",
+        "maintainer_friendly_pr_format"
+      ],
+      "conflict_priority": 90,
       "enabled": true
     },
     {
       "id": "frontend-ui:pmndrs-uikit",
-      "name": "PMNDRS UIKit 3D and Spatial UI",
+      "name": "pmndrs / uikit Spatial 3D UI",
       "category": "frontend_ui",
       "source_repo": "https://github.com/pmndrs/uikit.git",
-      "version_pinned": "7fbb8bb04478bfcf337274f42824ba004014a3e2",
-      "description": "3D and React Three Fiber UI kit components, layout engine, font glyph rendering, and glassmorphism themes.",
+      "version_pinned": "5a81dbf7b11d35aeaebeba5d9284ba5f22f518e1",
+      "author": "pmndrs",
+      "license": "MIT",
+      "description": "3D Spatial user interface components and layouts with Three.js / React Three Fiber.",
       "trigger_tags": [
-        "frontend",
-        "ui",
-        "uikit",
+        "3d",
+        "webgl",
+        "three.js",
         "r3f",
-        "threejs",
-        "3d-ui",
+        "uikit",
         "spatial",
-        "react-three-fiber",
-        "css-3d"
+        "spatial-ui",
+        "threejs"
+      ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [
+        "typescript",
+        "javascript"
       ],
       "required_permissions": [
         "read_files"
@@ -250,31 +2310,46 @@
       "network_required": false,
       "risk_level": "read",
       "doc_path": "manifests/pmndrs_uikit.md",
+      "required_checks": [
+        "ui_accessibility_verified"
+      ],
+      "conflict_priority": 70,
       "enabled": true
     },
     {
       "id": "workflow:temporal-orchestration",
-      "name": "Temporal Workflow Orchestration",
+      "name": "Temporal Durable Workflow Engine",
       "category": "workflow_orchestration",
       "source_repo": "https://github.com/temporalio/temporal.git",
-      "version_pinned": "d7f7d26196d21622bce2bb120b7d7d10998b9740",
-      "description": "Durable execution patterns, event history replay, activity retries, saga compensation, and stateful workflows.",
+      "version_pinned": "994ba6f5f92275f0a0d9fcfbe55928f090d81005",
+      "author": "Temporal Technologies",
+      "license": "MIT",
+      "description": "Durable, fault-tolerant stateful workflows and activity compensations.",
       "trigger_tags": [
         "workflow",
         "temporal",
         "orchestration",
         "durable",
+        "compensation",
         "saga",
-        "long-running",
-        "retry-policy",
-        "compensation"
+        "async-workflow",
+        "retry-policy"
       ],
+      "target_roles": [
+        "architect",
+        "implementer"
+      ],
+      "languages": [],
       "required_permissions": [
         "read_files"
       ],
       "network_required": false,
       "risk_level": "read",
       "doc_path": "manifests/temporal_workflows.md",
+      "required_checks": [
+        "architectural_boundaries_respected"
+      ],
+      "conflict_priority": 75,
       "enabled": true
     },
     {
@@ -283,6 +2358,8 @@
       "category": "coding_tools",
       "source_repo": "https://github.com/xyTom/coding-tools-mcp.git",
       "version_pinned": "d7c2dda48bcedbd066c7dbc24a1b63205384d269",
+      "author": "xyTom",
+      "license": "MIT",
       "description": "Standardized coding primitives over MCP contract: patch application, AST search, diff verification, and process isolation.",
       "trigger_tags": [
         "coding",
@@ -294,14 +2371,21 @@
         "ripgrep",
         "patch-engine"
       ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
       "required_permissions": [
         "read_files",
-        "write_files",
-        "code_harness_access"
+        "write_files"
       ],
       "network_required": false,
       "risk_level": "modify",
       "doc_path": "manifests/coding_tools_mcp_spec.md",
+      "required_checks": [
+        "compilation_and_lint_check"
+      ],
+      "conflict_priority": 75,
       "enabled": true
     },
     {
@@ -310,6 +2394,8 @@
       "category": "web_research",
       "source_repo": "https://github.com/firecrawl/firecrawl.git",
       "version_pinned": "7cca3edf968ebb40593d0fb92064d241bc89f8e3",
+      "author": "Firecrawl",
+      "license": "Apache-2.0",
       "description": "Intelligent web scraping, clean markdown extraction, sitemap crawling, and structured search data capture.",
       "trigger_tags": [
         "web-research",
@@ -321,14 +2407,18 @@
         "web-search",
         "documentation-crawl"
       ],
+      "target_roles": [
+        "implementer"
+      ],
+      "languages": [],
       "required_permissions": [
-        "read_files",
-        "network_access",
-        "research_access"
+        "read_files"
       ],
       "network_required": true,
       "risk_level": "privileged",
       "doc_path": "manifests/firecrawl_firecrawl-build-scrape.md",
+      "required_checks": [],
+      "conflict_priority": 70,
       "enabled": true
     }
   ]
