@@ -2,9 +2,11 @@
 mod tests {
     use voxy_desktop_ui::components::assistant_core::{CompanionMode, CoreState};
     use voxy_desktop_ui::components::onboarding_wizard::{OnboardingConfig, OnboardingStep};
-    use voxy_desktop_ui::fixtures::{DEFAULT_MODELS, PROVIDER_CATALOG, SUBSCRIPTION_PLANS, VOICE_CATALOG};
-    use voxy_desktop_ui::views::settings::{SettingsFormState, SettingsTab};
+    use voxy_desktop_ui::fixtures::{
+        DEFAULT_MODELS, PROVIDER_CATALOG, SUBSCRIPTION_PLANS, VOICE_CATALOG,
+    };
     use voxy_desktop_ui::views::auth::AuthMode;
+    use voxy_desktop_ui::views::settings::{SettingsFormState, SettingsTab};
 
     #[test]
     fn test_core_state_labels_and_strings() {
@@ -145,13 +147,21 @@ mod tests {
             for i in (0..positions.len()).step_by(3) {
                 let u = (i / 3) as f32;
                 let wave = (t * 2.5 + u * 0.05).sin() * 0.02;
-                positions[i] += if positions[i] > 0.0 { wave * 0.01 } else { -wave * 0.01 };
+                positions[i] += if positions[i] > 0.0 {
+                    wave * 0.01
+                } else {
+                    -wave * 0.01
+                };
             }
         }
         let elapsed = start.elapsed();
 
         // 10 frames of 14,000 particles should complete easily in under 200ms even in unoptimized debug mode
-        assert!(elapsed.as_millis() < 200, "Particle math must execute well within frame budget: elapsed = {:?}", elapsed);
+        assert!(
+            elapsed.as_millis() < 200,
+            "Particle math must execute well within frame budget: elapsed = {:?}",
+            elapsed
+        );
         assert_eq!(positions.len(), 42000);
     }
 
@@ -188,4 +198,3 @@ mod tests {
         }
     }
 }
-

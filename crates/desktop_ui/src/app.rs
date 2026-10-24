@@ -29,7 +29,8 @@ pub fn App() -> Element {
         vec![ChatTurn {
             id: 1,
             sender: "OSMOO Core".to_string(),
-            text: "OSMOO AI Operating Companion online. Ready for multimodal interaction.".to_string(),
+            text: "OSMOO AI Operating Companion online. Ready for multimodal interaction."
+                .to_string(),
             timestamp: "System Init".to_string(),
             is_user: false,
         }]
@@ -41,7 +42,6 @@ pub fn App() -> Element {
     });
 
     let discovered_models = use_signal(Vec::new);
-
 
     // Initial Startup Splash Telemetry Task
     use_effect(move || {
@@ -68,16 +68,25 @@ pub fn App() -> Element {
 
             // Hydrate historical chat turns from SQLite if available
             if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
-                if let Ok(crate::backend::BackendResult::ChatHistory(turns)) =
-                    dispatcher.dispatch(crate::backend::BackendCommand::GetChatHistory { limit: 50, offset: 0 }).await
+                if let Ok(crate::backend::BackendResult::ChatHistory(turns)) = dispatcher
+                    .dispatch(crate::backend::BackendCommand::GetChatHistory {
+                        limit: 50,
+                        offset: 0,
+                    })
+                    .await
                 {
                     if !turns.is_empty() {
                         chat_sig.set(turns);
                     }
                 }
 
-                if let Ok(crate::backend::BackendResult::SystemTelemetry { daemon_connected, active_llm, .. }) =
-                    dispatcher.dispatch(crate::backend::BackendCommand::GetSystemTelemetry).await
+                if let Ok(crate::backend::BackendResult::SystemTelemetry {
+                    daemon_connected,
+                    active_llm,
+                    ..
+                }) = dispatcher
+                    .dispatch(crate::backend::BackendCommand::GetSystemTelemetry)
+                    .await
                 {
                     telem_sig.set(TelemetryStats {
                         daemon_connected,
@@ -111,7 +120,6 @@ pub fn App() -> Element {
             }
         });
     });
-
 
     // Background IPC Listener
     use_effect(move || {
@@ -322,5 +330,4 @@ pub fn App() -> Element {
             }
         }
     }
-
 }

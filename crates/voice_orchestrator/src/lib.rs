@@ -665,10 +665,20 @@ impl VoicePipeline {
             }
         };
 
+        let gen_cancel = cancel_token.clone();
         let generate = async {
-            if let Err(err) = fut.await {
-                tracing::error!("[VOICE] Streaming LLM generation error: {err}");
-                self.set_state(CompanionState::Error, Some(err));
+            tokio::select! {
+                _ = gen_cancel.cancelled() => {
+                    tracing::info!("[VOICE] Streaming LLM generation future aborted by barge-in cancellation");
+                }
+                res = fut => {
+                    if let Err(err) = res {
+                        tracing::error!("[VOICE] Streaming LLM generation error: {err}");
+                        if !gen_cancel.is_cancelled() {
+                            self.set_state(CompanionState::Error, Some(err));
+                        }
+                    }
+                }
             }
         };
 
@@ -1016,5 +1026,40 @@ mod tests {
         for (orig, dec) in original_samples.iter().zip(decoded.iter()) {
             assert!((orig - dec).abs() < 1e-3);
         }
+    }
+
+    #[tokio::test]
+    async fn test_streaming_response_aborts_hanging_future_on_barge_in() {
+        let stt = Arc::new(MockSttEngine::new("test"));
+        let tts = Arc::new(MockTtsEngine::new());
+        let mut sim_config = VoicePipelineConfig::default();
+        sim_config.audio.allow_virtual_fallback = true;
+        let pipeline = Arc::new(VoicePipeline::new(sim_config, stt, tts, None).unwrap());
+
+        let (_tx, rx) = mpsc::channel(16);
+        let cancel_token = CancellationToken::new();
+
+        // Future that hangs indefinitely unless dropped/cancelled
+        let hanging_fut: BoxFuture<'static, Result<(), String>> = Box::pin(async {
+            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            Ok(())
+        });
+
+        let cancel_clone = cancel_token.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            cancel_clone.cancel();
+        });
+
+        let start = std::time::Instant::now();
+        pipeline
+            .run_streaming_response(hanging_fut, rx, cancel_token)
+            .await;
+        let elapsed = start.elapsed();
+
+        assert!(
+            elapsed < std::time::Duration::from_millis(1500),
+            "Streaming response must abort promptly on cancellation, took {elapsed:?}"
+        );
     }
 }

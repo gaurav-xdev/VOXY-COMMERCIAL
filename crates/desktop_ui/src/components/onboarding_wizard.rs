@@ -1,7 +1,5 @@
 use crate::components::assistant_core::CompanionMode;
-use crate::components::icons::{
-    IconCheck, IconChevronRight, IconRobot, IconSparkles,
-};
+use crate::components::icons::{IconCheck, IconChevronRight, IconRobot, IconSparkles};
 use crate::fixtures::{PROVIDER_CATALOG, SUBSCRIPTION_PLANS, VOICE_CATALOG};
 use dioxus::prelude::*;
 
@@ -20,7 +18,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OnboardingConfig {
-
     pub assistant_name: String,
     pub companion_mode: CompanionMode,
     pub primary_llm: String,

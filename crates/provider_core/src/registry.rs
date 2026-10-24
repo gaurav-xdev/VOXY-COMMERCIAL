@@ -256,6 +256,10 @@ impl DefaultProviderRegistry {
             providers: RwLock::new(HashMap::new()),
         }
     }
+
+    pub fn register_sync(&self, provider: ProviderInfo) {
+        self.providers.write().insert(provider.id.clone(), provider);
+    }
 }
 
 impl Default for DefaultProviderRegistry {
@@ -267,7 +271,7 @@ impl Default for DefaultProviderRegistry {
 #[async_trait]
 impl ProviderRegistry for DefaultProviderRegistry {
     async fn register(&self, provider: ProviderInfo) -> Result<()> {
-        self.providers.write().insert(provider.id.clone(), provider);
+        self.register_sync(provider);
         Ok(())
     }
 

@@ -10,7 +10,6 @@ mod views;
 pub use backend::{BackendCommand, BackendDispatcher, BackendError, BackendResult};
 pub use supervisor::{Supervisor, SupervisorConfig, SupervisorStatus, WindowsJobObject};
 
-
 use std::sync::{Arc, OnceLock};
 use tracing_subscriber::EnvFilter;
 
@@ -143,7 +142,6 @@ pub fn get_dispatcher() -> BackendDispatcher {
         .get_or_init(|| BackendDispatcher::new(get_bridge()))
         .clone()
 }
-
 
 pub fn get_runtime() -> &'static tokio::runtime::Runtime {
     TOKIO_RT.get_or_init(|| {
@@ -412,7 +410,9 @@ fn main() {
         return;
     }
 
-    let _ = supervisor.start_all();
+    if let Err(e) = supervisor.start_all() {
+        tracing::warn!("Supervisor component launch completed with degraded services: {e}");
+    }
 
     if daemon_only {
         tracing::info!("Running OSMOO in daemon-only supervisor mode. Press Ctrl+C to terminate.");
@@ -428,10 +428,17 @@ fn main() {
     let bridge = init_bridge();
     BRIDGE.set(bridge).ok();
 
+    let icon_bytes = include_bytes!("app_icon_32.rgba");
+    let window_icon = dioxus::desktop::tao::window::Icon::from_rgba(icon_bytes.to_vec(), 32, 32).ok();
+
     let mut window_builder = dioxus::desktop::WindowBuilder::new()
         .with_title("OSMOO — Windows AI Operating Companion")
         .with_inner_size(dioxus::desktop::LogicalSize::new(1280.0, 820.0))
         .with_resizable(true);
+
+    if let Some(icon) = window_icon {
+        window_builder = window_builder.with_window_icon(Some(icon));
+    }
 
     if is_autostart {
         window_builder = window_builder.with_visible(false);

@@ -63,13 +63,19 @@ mod platform {
     /// Converts logical coordinates to physical pixel coordinates based on DPI scale.
     pub fn logical_to_physical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
         let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
-        (((x as f64) * scale).round() as i32, ((y as f64) * scale).round() as i32)
+        (
+            ((x as f64) * scale).round() as i32,
+            ((y as f64) * scale).round() as i32,
+        )
     }
 
     /// Converts physical pixel coordinates to logical coordinates based on DPI scale.
     pub fn physical_to_logical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
         let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
-        (((x as f64) / scale).round() as i32, ((y as f64) / scale).round() as i32)
+        (
+            ((x as f64) / scale).round() as i32,
+            ((y as f64) / scale).round() as i32,
+        )
     }
 
     fn to_wstring(s: &str) -> Vec<u16> {
@@ -98,6 +104,7 @@ mod platform {
         fn GetWindowTextLengthW(hWnd: Hwnd) -> i32;
         fn GetClassNameW(hWnd: Hwnd, lpClassName: *mut u16, nMaxCount: i32) -> i32;
         fn IsWindowVisible(hWnd: Hwnd) -> i32;
+        fn IsWindowEnabled(hWnd: Hwnd) -> i32;
         fn GetForegroundWindow() -> Hwnd;
         fn SetForegroundWindow(hWnd: Hwnd) -> i32;
         fn ShowWindow(hWnd: Hwnd, nCmdShow: i32) -> i32;
@@ -406,8 +413,10 @@ mod platform {
 
     impl Win32Automation {
         pub fn mouse_click(x: i32, y: i32, button: MouseButton) -> Result<()> {
-            unsafe {
-                SetCursorPos(x, y);
+            if unsafe { SetCursorPos(x, y) } == 0 {
+                return Err(crate::error::action_err(format!(
+                    "SetCursorPos failed to position cursor at ({x}, {y})"
+                )));
             }
 
             let (down_flag, up_flag) = match button {
@@ -446,26 +455,46 @@ mod platform {
         }
 
         pub fn mouse_move(x: i32, y: i32) -> Result<()> {
-            unsafe { SetCursorPos(x, y) };
+            if unsafe { SetCursorPos(x, y) } == 0 {
+                return Err(crate::error::action_err(format!(
+                    "SetCursorPos failed to position cursor at ({x}, {y})"
+                )));
+            }
             Ok(())
         }
 
         pub fn mouse_drag(from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Result<()> {
-            unsafe {
-                SetCursorPos(from_x, from_y);
-                let mut down = build_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, from_x, from_y);
-                SendInput(1, &mut down, std::mem::size_of::<INPUT>() as i32);
+            if unsafe { SetCursorPos(from_x, from_y) } == 0 {
+                return Err(crate::error::action_err(format!(
+                    "SetCursorPos failed to position cursor at ({from_x}, {from_y})"
+                )));
+            }
+            let mut down = build_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, from_x, from_y);
+            let sent = unsafe { SendInput(1, &mut down, std::mem::size_of::<INPUT>() as i32) };
+            if sent != 1 {
+                return Err(crate::error::action_err(
+                    "mouse_drag: SendInput down failed",
+                ));
+            }
 
-                SetCursorPos(to_x, to_y);
-                let mut up = build_mouse_input(MOUSEEVENTF_LEFTUP, 0, to_x, to_y);
-                SendInput(1, &mut up, std::mem::size_of::<INPUT>() as i32);
+            if unsafe { SetCursorPos(to_x, to_y) } == 0 {
+                return Err(crate::error::action_err(format!(
+                    "SetCursorPos failed to position cursor at ({to_x}, {to_y})"
+                )));
+            }
+            let mut up = build_mouse_input(MOUSEEVENTF_LEFTUP, 0, to_x, to_y);
+            let sent = unsafe { SendInput(1, &mut up, std::mem::size_of::<INPUT>() as i32) };
+            if sent != 1 {
+                return Err(crate::error::action_err("mouse_drag: SendInput up failed"));
             }
             Ok(())
         }
 
         pub fn scroll(x: i32, y: i32, delta_x: i32, delta_y: i32) -> Result<()> {
-            unsafe {
-                SetCursorPos(x, y);
+            if unsafe { SetCursorPos(x, y) } == 0 {
+                return Err(crate::error::action_err(format!(
+                    "SetCursorPos failed to position cursor at ({x}, {y})"
+                )));
             }
 
             if delta_y != 0 {
@@ -1060,7 +1089,7 @@ mod platform {
                     name: title.clone(),
                     control_type,
                     bounds: rect_to_dto(rect),
-                    is_enabled: true,
+                    is_enabled: unsafe { IsWindowEnabled(hwnd) != 0 },
                     is_visible: unsafe { IsWindowVisible(hwnd) != 0 },
                     text: if title.is_empty() { None } else { Some(title) },
                     children: vec![],
@@ -1116,12 +1145,18 @@ mod platform {
 
     pub fn logical_to_physical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
         let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
-        (((x as f64) * scale).round() as i32, ((y as f64) * scale).round() as i32)
+        (
+            ((x as f64) * scale).round() as i32,
+            ((y as f64) * scale).round() as i32,
+        )
     }
 
     pub fn physical_to_logical(x: i32, y: i32, dpi_scale: f64) -> (i32, i32) {
         let scale = if dpi_scale > 0.0 { dpi_scale } else { 1.0 };
-        (((x as f64) / scale).round() as i32, ((y as f64) / scale).round() as i32)
+        (
+            ((x as f64) / scale).round() as i32,
+            ((y as f64) / scale).round() as i32,
+        )
     }
 
     pub struct Win32Automation;
@@ -1304,23 +1339,34 @@ impl AutomationBackend for WindowsUiaBackend {
     }
 
     async fn click(&self, x: i32, y: i32, button: MouseButton) -> Result<()> {
-        Win32Automation::mouse_click(x, y, button)
+        let scale = self.inner.read().dpi_scale();
+        let (px, py) = platform::logical_to_physical(x, y, scale);
+        Win32Automation::mouse_click(px, py, button)
     }
 
     async fn double_click(&self, x: i32, y: i32) -> Result<()> {
-        Win32Automation::mouse_double_click(x, y)
+        let scale = self.inner.read().dpi_scale();
+        let (px, py) = platform::logical_to_physical(x, y, scale);
+        Win32Automation::mouse_double_click(px, py)
     }
 
     async fn move_mouse(&self, x: i32, y: i32) -> Result<()> {
-        Win32Automation::mouse_move(x, y)
+        let scale = self.inner.read().dpi_scale();
+        let (px, py) = platform::logical_to_physical(x, y, scale);
+        Win32Automation::mouse_move(px, py)
     }
 
     async fn drag(&self, from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Result<()> {
-        Win32Automation::mouse_drag(from_x, from_y, to_x, to_y)
+        let scale = self.inner.read().dpi_scale();
+        let (p_from_x, p_from_y) = platform::logical_to_physical(from_x, from_y, scale);
+        let (p_to_x, p_to_y) = platform::logical_to_physical(to_x, to_y, scale);
+        Win32Automation::mouse_drag(p_from_x, p_from_y, p_to_x, p_to_y)
     }
 
     async fn scroll(&self, x: i32, y: i32, delta_x: i32, delta_y: i32) -> Result<()> {
-        Win32Automation::scroll(x, y, delta_x, delta_y)
+        let scale = self.inner.read().dpi_scale();
+        let (px, py) = platform::logical_to_physical(x, y, scale);
+        Win32Automation::scroll(px, py, delta_x, delta_y)
     }
 
     async fn type_text(&self, text: &str, interval_ms: u64) -> Result<()> {
@@ -1531,5 +1577,16 @@ mod tests {
         assert_eq!(inner.dpi_scale(), 1.0);
         let _ = inner.initialize();
         assert!(inner.dpi_scale() > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_windows_uia_backend_mouse_scaling() {
+        let backend = WindowsUiaBackend::new();
+        assert_eq!(backend.name().await, "windows-uia");
+        // Verify DPI scale defaults to valid positive value
+        let scale = backend.inner.read().dpi_scale();
+        assert!(scale > 0.0);
+        let (px, py) = platform::logical_to_physical(100, 200, scale);
+        assert!(px > 0 && py > 0);
     }
 }

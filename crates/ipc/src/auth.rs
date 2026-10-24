@@ -428,11 +428,17 @@ mod tests {
 
         // Tamper with resource to target sensitive system file
         token.capabilities[0].resource = Some("/etc/shadow".to_string());
-        assert!(!token.verify_signature(secret), "Tampered resource must fail verification");
+        assert!(
+            !token.verify_signature(secret),
+            "Tampered resource must fail verification"
+        );
 
         // Tamper by removing resource
         token.capabilities[0].resource = None;
-        assert!(!token.verify_signature(secret), "Removed resource must fail verification");
+        assert!(
+            !token.verify_signature(secret),
+            "Removed resource must fail verification"
+        );
     }
 
     #[test]
@@ -450,11 +456,19 @@ mod tests {
 
         // Tamper with constraints (e.g. remove restriction)
         token.capabilities[0].constraints.remove(0);
-        assert!(!token.verify_signature(secret), "Removed constraint must fail verification");
+        assert!(
+            !token.verify_signature(secret),
+            "Removed constraint must fail verification"
+        );
 
         // Tamper with constraint text
-        token.capabilities[0].constraints.push("max_size:10GB".to_string());
-        assert!(!token.verify_signature(secret), "Altered constraint must fail verification");
+        token.capabilities[0]
+            .constraints
+            .push("max_size:10GB".to_string());
+        assert!(
+            !token.verify_signature(secret),
+            "Altered constraint must fail verification"
+        );
     }
 
     #[test]
@@ -465,30 +479,41 @@ mod tests {
             resource: None,
             constraints: vec![],
         }];
-        let token =
-            CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
+        let token = CapabilityToken::issue_signed("client-a", "voxy-auth", claims, 3600, secret);
 
         assert!(token.verify_signature(secret));
 
         // Tamper subject
         let mut t1 = token.clone();
         t1.subject = "client-b".to_string();
-        assert!(!t1.verify_signature(secret), "Tampered subject must fail verification");
+        assert!(
+            !t1.verify_signature(secret),
+            "Tampered subject must fail verification"
+        );
 
         // Tamper issuer
         let mut t2 = token.clone();
         t2.issuer = "rogue-auth".to_string();
-        assert!(!t2.verify_signature(secret), "Tampered issuer must fail verification");
+        assert!(
+            !t2.verify_signature(secret),
+            "Tampered issuer must fail verification"
+        );
 
         // Tamper expires_at (attempt lifetime extension)
         let mut t3 = token.clone();
         t3.expires_at = t3.expires_at + chrono::Duration::hours(24);
-        assert!(!t3.verify_signature(secret), "Tampered expiry must fail verification");
+        assert!(
+            !t3.verify_signature(secret),
+            "Tampered expiry must fail verification"
+        );
 
         // Tamper ID
         let mut t4 = token.clone();
         t4.id = uuid::Uuid::new_v4();
-        assert!(!t4.verify_signature(secret), "Tampered ID must fail verification");
+        assert!(
+            !t4.verify_signature(secret),
+            "Tampered ID must fail verification"
+        );
     }
 
     #[test]

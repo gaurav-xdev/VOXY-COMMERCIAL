@@ -1,7 +1,6 @@
 use crate::components::assistant_core::CompanionMode;
 use crate::components::icons::{
-    IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings,
-    IconStopCircle,
+    IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings, IconStopCircle,
 };
 use dioxus::prelude::*;
 
@@ -15,7 +14,6 @@ pub struct ChatTurn {
     pub timestamp: String,
     pub is_user: bool,
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TelemetryStats {

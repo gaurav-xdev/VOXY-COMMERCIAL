@@ -19,7 +19,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SettingsFormState {
-
     pub assistant_name: String,
     pub primary_llm: String,
     pub ollama_model: String,

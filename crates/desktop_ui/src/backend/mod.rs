@@ -9,6 +9,12 @@ use parking_lot::RwLock;
 use voxy_cognition::IntentInput;
 use voxy_database::{ConversationStore, MessageRole};
 use voxy_ipc::ClientCommand;
+use voxy_model_router::{ModelRouter, RoutingMode};
+use voxy_provider_core::{
+    DefaultProviderRegistry, ProviderCapability, ProviderHealth, ProviderInfo, ProviderKind,
+    ProviderStatus,
+};
+use voxy_tool_calling::{ToolContext, ToolRegistry};
 
 use crate::bridge::AppBridge;
 use crate::components::assistant_hud::ChatTurn;
@@ -20,16 +26,142 @@ use crate::views::settings::SettingsFormState;
 pub struct BackendDispatcher {
     bridge: AppBridge,
     default_conversation_id: Arc<RwLock<Option<String>>>,
+    model_router: Arc<ModelRouter>,
+    tool_registry: Arc<ToolRegistry>,
 }
 
 impl BackendDispatcher {
     pub fn new(bridge: AppBridge) -> Self {
+        let primary_llm = bridge.settings.get().models.provider;
+        let model_router = Self::create_default_model_router(&primary_llm);
+        let tool_registry = Arc::new(ToolRegistry::with_builtins());
         let dispatcher = Self {
             bridge,
             default_conversation_id: Arc::new(RwLock::new(None)),
+            model_router,
+            tool_registry,
         };
         let _ = GLOBAL_DISPATCHER.set(dispatcher.clone());
         dispatcher
+    }
+
+    pub fn with_router_and_tools(
+        bridge: AppBridge,
+        model_router: Arc<ModelRouter>,
+        tool_registry: Arc<ToolRegistry>,
+    ) -> Self {
+        let dispatcher = Self {
+            bridge,
+            default_conversation_id: Arc::new(RwLock::new(None)),
+            model_router,
+            tool_registry,
+        };
+        let _ = GLOBAL_DISPATCHER.set(dispatcher.clone());
+        dispatcher
+    }
+
+    pub fn model_router(&self) -> &Arc<ModelRouter> {
+        &self.model_router
+    }
+
+    pub fn tool_registry(&self) -> &Arc<ToolRegistry> {
+        &self.tool_registry
+    }
+
+    pub fn create_default_model_router(settings_provider: &str) -> Arc<ModelRouter> {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let router = Arc::new(ModelRouter::new(registry.clone()));
+
+        // 1. Ollama (Local)
+        let ollama = Arc::new(voxy_ollama::OllamaProvider::default());
+        let ollama_info = ProviderInfo {
+            id: "ollama".into(),
+            name: "Ollama (Local)".into(),
+            kind: ProviderKind::Local,
+            capability: ProviderCapability::Llm,
+            status: ProviderStatus::Available,
+            models: vec![],
+            health: ProviderHealth::new_healthy(None),
+            base_url: Some("http://127.0.0.1:11434".into()),
+            priority: 1,
+        };
+        registry.register_sync(ollama_info);
+        router.register_llm("ollama", ollama);
+
+        // 2. OpenAI Cloud
+        if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+            if !key.trim().is_empty() {
+                let config = voxy_openai::OpenAIConfig {
+                    api_key: key.into(),
+                    ..Default::default()
+                };
+                let openai = Arc::new(voxy_openai::OpenAIProvider::new(config));
+                let openai_info = ProviderInfo {
+                    id: "openai".into(),
+                    name: "OpenAI Cloud".into(),
+                    kind: ProviderKind::Cloud,
+                    capability: ProviderCapability::Llm,
+                    status: ProviderStatus::Available,
+                    models: vec![],
+                    health: ProviderHealth::new_healthy(None),
+                    base_url: None,
+                    priority: 2,
+                };
+                registry.register_sync(openai_info);
+                router.register_llm("openai", openai);
+            }
+        }
+
+        // 3. Anthropic Claude
+        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+            if !key.trim().is_empty() {
+                let anthropic = Arc::new(voxy_anthropic::AnthropicProvider::new(key));
+                let anthropic_info = ProviderInfo {
+                    id: "anthropic".into(),
+                    name: "Anthropic Claude".into(),
+                    kind: ProviderKind::Cloud,
+                    capability: ProviderCapability::Llm,
+                    status: ProviderStatus::Available,
+                    models: vec![],
+                    health: ProviderHealth::new_healthy(None),
+                    base_url: None,
+                    priority: 3,
+                };
+                registry.register_sync(anthropic_info);
+                router.register_llm("anthropic", anthropic);
+            }
+        }
+
+        // 4. Gemini Cloud
+        if let Ok(key) = std::env::var("GEMINI_API_KEY") {
+            if !key.trim().is_empty() {
+                let gemini = Arc::new(voxy_gemini::GeminiProvider::new(key));
+                let gemini_info = ProviderInfo {
+                    id: "gemini".into(),
+                    name: "Google Gemini".into(),
+                    kind: ProviderKind::Cloud,
+                    capability: ProviderCapability::Llm,
+                    status: ProviderStatus::Available,
+                    models: vec![],
+                    health: ProviderHealth::new_healthy(None),
+                    base_url: None,
+                    priority: 4,
+                };
+                registry.register_sync(gemini_info);
+                router.register_llm("gemini", gemini);
+            }
+        }
+
+        let mode = match settings_provider.to_lowercase().as_str() {
+            "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
+            "openai" => RoutingMode::ForceProvider("openai".into()),
+            "anthropic" | "claude" => RoutingMode::ForceProvider("anthropic".into()),
+            "gemini" => RoutingMode::ForceProvider("gemini".into()),
+            _ => RoutingMode::Auto,
+        };
+        router.set_mode(mode);
+
+        router
     }
 
     pub fn get_global() -> Option<BackendDispatcher> {
@@ -38,8 +170,6 @@ impl BackendDispatcher {
             .cloned()
             .or_else(|| AppBridge::get_global().map(Self::new))
     }
-
-
 
     /// Helper to construct an isolated dispatcher for integration tests.
     pub async fn create_for_test(test_dir: &Path) -> Self {
@@ -58,14 +188,10 @@ impl BackendDispatcher {
         let _ = def_cfg.save_to_file(&cfg_file);
 
         let config_manager = Arc::new(
-            voxy_config::ConfigManager::new(voxy_config::FileConfigProvider::new(
-                cfg_file,
-            ))
-            .await
-            .expect("test ConfigManager"),
+            voxy_config::ConfigManager::new(voxy_config::FileConfigProvider::new(cfg_file))
+                .await
+                .expect("test ConfigManager"),
         );
-
-
 
         let cognition: Arc<dyn voxy_cognition::CognitiveEngine> = Arc::new(
             voxy_cognition::InMemoryCognitiveEngine::new(voxy_cognition::CognitionConfig::default()),
@@ -78,14 +204,14 @@ impl BackendDispatcher {
             Arc::new(engine)
         };
 
-
         struct DummyPersonality;
         #[async_trait::async_trait]
         impl voxy_personality::PersonalityManager for DummyPersonality {
             async fn load_profile(
                 &self,
                 _id: &str,
-            ) -> voxy_personality::Result<Box<dyn voxy_personality::PersonalityProfile>> {
+            ) -> voxy_personality::Result<Box<dyn voxy_personality::PersonalityProfile>>
+            {
                 Ok(Box::new(DummyProfile))
             }
             async fn save_profile(
@@ -102,7 +228,8 @@ impl BackendDispatcher {
             }
             async fn default_profile(
                 &self,
-            ) -> voxy_personality::Result<Box<dyn voxy_personality::PersonalityProfile>> {
+            ) -> voxy_personality::Result<Box<dyn voxy_personality::PersonalityProfile>>
+            {
                 Ok(Box::new(DummyProfile))
             }
         }
@@ -131,11 +258,9 @@ impl BackendDispatcher {
                 voxy_personality::CommunicationStyle::Professional
             }
             fn set_communication_style(&mut self, _s: voxy_personality::CommunicationStyle) {}
-
         }
 
-        let personality: Arc<dyn voxy_personality::PersonalityManager> =
-            Arc::new(DummyPersonality);
+        let personality: Arc<dyn voxy_personality::PersonalityManager> = Arc::new(DummyPersonality);
 
         let security = Arc::new(voxy_security::GuardianEngine::new(
             voxy_security::CapabilityRegistry::new(),
@@ -146,12 +271,14 @@ impl BackendDispatcher {
         let plugins = Arc::new(voxy_plugin_runtime::PluginManager::new());
         let health = Arc::new(voxy_health::HealthMonitor::new(5000));
         let downloads = Arc::new(
-            voxy_desktop_runtime::download::DownloadManager::new(2, Some(test_dir.to_str().unwrap()))
-                .expect("downloads"),
+            voxy_desktop_runtime::download::DownloadManager::new(
+                2,
+                Some(test_dir.to_str().unwrap()),
+            )
+            .expect("downloads"),
         );
         let notifications = Arc::new(
-            voxy_desktop_runtime::notifications::NotificationManager::new()
-                .expect("notifications"),
+            voxy_desktop_runtime::notifications::NotificationManager::new().expect("notifications"),
         );
 
         let conv_db_path = test_dir.join("conversations.db");
@@ -182,7 +309,10 @@ impl BackendDispatcher {
             ..Default::default()
         };
         use voxy_database::StorageProvider;
-        commercial_sqlite.connect(&db_cfg).await.expect("commercial db");
+        commercial_sqlite
+            .connect(&db_cfg)
+            .await
+            .expect("commercial db");
         let commercial_store = Arc::new(voxy_database::CommercialStore::new(commercial_sqlite));
         let _ = commercial_store.initialize_schema().await;
 
@@ -204,8 +334,7 @@ impl BackendDispatcher {
             rate_limiter,
         ));
         let auth = Arc::new(crate::bridge::AuthBridge::new(api_router));
-        let window_tracker =
-            Arc::new(voxy_desktop_runtime::window_manager::WindowTracker::new());
+        let window_tracker = Arc::new(voxy_desktop_runtime::window_manager::WindowTracker::new());
 
         let bridge = AppBridge::new(
             event_bus,
@@ -280,7 +409,10 @@ impl BackendDispatcher {
                     primary_llm: snapshot.models.provider,
                     ollama_model: snapshot.models.model,
                     autolaunch: true,
-                    stt_provider: snapshot.voice.stt_provider.unwrap_or_else(|| "groq".to_string()),
+                    stt_provider: snapshot
+                        .voice
+                        .stt_provider
+                        .unwrap_or_else(|| "groq".to_string()),
                     tts_provider: snapshot
                         .voice
                         .tts_provider
@@ -321,11 +453,20 @@ impl BackendDispatcher {
                 current.voice.sample_rate = form.audio_sample_rate;
                 current.voice.wake_word_sensitivity = form.vad_sensitivity as f64;
 
-
                 self.bridge
                     .settings
                     .update(current)
                     .map_err(|e| BackendError::Settings(e.to_string()))?;
+
+                // Update model router mode dynamically
+                let router_mode = match form.primary_llm.to_lowercase().as_str() {
+                    "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
+                    "openai" => RoutingMode::ForceProvider("openai".into()),
+                    "anthropic" | "claude" => RoutingMode::ForceProvider("anthropic".into()),
+                    "gemini" => RoutingMode::ForceProvider("gemini".into()),
+                    _ => RoutingMode::Auto,
+                };
+                self.model_router.set_mode(router_mode);
 
                 // Notify IPC daemon of routing change if connected
                 let _ = self
@@ -352,45 +493,85 @@ impl BackendDispatcher {
                 // 1. Persist user turn in SQLite
                 self.bridge
                     .conversations
-                    .add_message(
-                        &conv_id,
-                        MessageRole::User,
-                        trimmed,
-                        None,
-                        None,
-                    )
+                    .add_message(&conv_id, MessageRole::User, trimmed, None, None)
                     .await
                     .map_err(BackendError::Storage)?;
 
-                // 2. Dispatch to Cognitive Engine
-                let intent_input = IntentInput {
-                    raw_text: trimmed.to_string(),
-                    context: None,
-                    source: "desktop_hud".to_string(),
-                    metadata: std::collections::HashMap::new(),
-                };
-
-                let cog_res = self
-                    .bridge
-                    .cognition
-                    .process(&intent_input)
-                    .await
-                    .map_err(|e| BackendError::Cognition(e.to_string()))?;
-
-                let assistant_text = if let Some(out_str) = cog_res.result.as_str() {
-                    out_str.to_string()
-                } else if !cog_res.result.is_null() {
-                    cog_res.result.to_string()
+                // 2. Check for native tool execution intent first
+                let assistant_text = if let Some(tool_output) = self.try_execute_native_tool(trimmed).await? {
+                    tool_output
                 } else {
-                    format!(
-                        "Understood query: {}. Primary intent '{}' processed with confidence {:.1}%.",
-                        trimmed,
-                        cog_res.intent.primary_action,
-                        cog_res.confidence.value * 100.0
-                    )
+                    // 3. AI Reasoning via ModelRouter with Memory Context
+                    let mut augmented_prompt = trimmed.to_string();
+                    let query = voxy_memory::MemoryQuery {
+                        query_text: Some(trimmed.to_string()),
+                        memory_types: None,
+                        states: None,
+                        tags: None,
+                        time_range: None,
+                        min_importance: Some(0.3),
+                        max_results: 3,
+                        include_embeddings: false,
+                        source_filter: None,
+                    };
+                    if let Ok(results) = self.bridge.memory.search(&query).await {
+                        if !results.is_empty() {
+                            let context_lines: Vec<String> = results
+                                .into_iter()
+                                .map(|r| r.item.content.to_string())
+                                .collect();
+                            augmented_prompt = format!(
+                                "Context from persistent memory:\n{}\n\nUser request: {}",
+                                context_lines.join("\n"),
+                                trimmed
+                            );
+                        }
+                    }
+
+                    match self.model_router.route_complete(&augmented_prompt).await {
+                        Ok(reply) if !reply.trim().is_empty() => reply,
+                        Ok(_) | Err(_) => {
+                            // When LLM cannot be reached or returns empty, invoke cognitive engine or smart operational guide
+                            let intent_input = IntentInput {
+                                raw_text: trimmed.to_string(),
+                                context: None,
+                                source: "desktop_hud".to_string(),
+                                metadata: std::collections::HashMap::new(),
+                            };
+
+                            match self.bridge.cognition.process(&intent_input).await {
+                                Ok(cog_res) => {
+                                    if let Some(out_str) = cog_res.result.as_str() {
+                                        out_str.to_string()
+                                    } else if !cog_res.result.is_null()
+                                        && cog_res.result != serde_json::json!({"status": "processed"})
+                                    {
+                                        cog_res.result.to_string()
+                                    } else {
+                                        format!(
+                                            "OSMOO Core: Understood query '{}' (Intent: {}).\n\n\
+                                            Note: No active LLM endpoint (Ollama local / OpenAI / Anthropic / Gemini) could complete this query.\n\
+                                            • For local AI: Ensure Ollama is running (`ollama run llama3.2:3b`).\n\
+                                            • For cloud AI: Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY in Settings.\n\
+                                            • Desktop tools: You can run 'system info', 'list windows', or 'list processes' directly.",
+                                            trimmed,
+                                            cog_res.intent.primary_action
+                                        )
+                                    }
+                                }
+                                Err(_) => {
+                                    format!(
+                                        "OSMOO Core: No active LLM endpoint responded for query '{}'.\n\
+                                        Ensure Ollama is running on localhost:11434 or configure cloud provider credentials in Settings.",
+                                        trimmed
+                                    )
+                                }
+                            }
+                        }
+                    }
                 };
 
-                // 3. Persist assistant turn in SQLite
+                // 4. Persist assistant turn in SQLite
                 self.bridge
                     .conversations
                     .add_message(
@@ -403,7 +584,31 @@ impl BackendDispatcher {
                     .await
                     .map_err(BackendError::Storage)?;
 
-                // 4. Also forward over IPC if daemon active
+                // 5. Store turn into persistent episodic memory
+                let memory_item = voxy_memory::MemoryItem {
+                    id: voxy_memory::MemoryId(uuid::Uuid::new_v4().to_string()),
+                    memory_type: voxy_memory::MemoryType::Episodic,
+                    state: voxy_memory::MemoryState::Active,
+                    content: serde_json::json!({
+                        "user": trimmed,
+                        "assistant": assistant_text,
+                    }),
+                    importance: 0.5,
+                    timestamp: chrono::Utc::now(),
+                    last_accessed: chrono::Utc::now(),
+                    access_count: 1,
+                    context_tags: vec!["conversation".to_string(), "hud".to_string()],
+                    source: "desktop_hud".to_string(),
+                    version: 1,
+                    ttl: None,
+                    metadata: std::collections::HashMap::new(),
+                    embedding: None,
+                    parent_id: None,
+                    related_ids: vec![],
+                };
+                let _ = self.bridge.memory.store(memory_item).await;
+
+                // 6. Also forward over IPC if daemon active
                 let _ = self
                     .bridge
                     .ipc
@@ -434,7 +639,6 @@ impl BackendDispatcher {
 
                 Ok(BackendResult::EmergencyStopTriggered)
             }
-
 
             BackendCommand::GetChatHistory { limit, offset } => {
                 let conv_id = self.ensure_active_conversation().await?;
@@ -469,11 +673,17 @@ impl BackendDispatcher {
                 let daemon_conn = *self.bridge.ipc.watch_connected().borrow();
                 let snapshot = self.bridge.settings.get();
 
+                let mut sys = sysinfo::System::new();
+                sys.refresh_memory();
+                sys.refresh_cpu_all();
+                let cpu_usage_pct = sys.global_cpu_usage();
+                let memory_used_mb = sys.used_memory() / (1024 * 1024);
+
                 Ok(BackendResult::SystemTelemetry {
                     daemon_connected: daemon_conn,
                     active_llm: snapshot.models.provider,
-                    cpu_usage_pct: 0.0, // HealthMonitor can provide fine-grained telemetry
-                    memory_used_mb: 0,
+                    cpu_usage_pct,
+                    memory_used_mb,
                 })
             }
 
@@ -516,7 +726,180 @@ impl BackendDispatcher {
             }
         }
     }
+
+    /// Evaluates user queries for native Windows desktop operations and executes
+    /// the corresponding registered tool if matched.
+    async fn try_execute_native_tool(&self, prompt: &str) -> Result<Option<String>, BackendError> {
+        let lower = prompt.trim().to_lowercase();
+        let ctx = ToolContext::new("desktop_operator_hud").with_confirmation(true);
+
+        if lower == "system info"
+            || lower == "specs"
+            || lower == "pc info"
+            || lower == "os info"
+            || lower == "telemetry"
+            || lower == "system telemetry"
+        {
+            match self
+                .tool_registry
+                .execute("system_info", serde_json::json!({}), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let formatted = format!(
+                        "🖥️ **OSMOO Native System Diagnostics**\n\
+                        • **Operating System**: {}\n\
+                        • **Version**: {}\n\
+                        • **Architecture**: {}\n\
+                        • **Host Name**: {}\n\
+                        • **Displays Attached**: {}\n\
+                        • **Execution Time**: {}ms",
+                        res.data.get("os").and_then(|v| v.as_str()).unwrap_or("Windows"),
+                        res.data.get("version").and_then(|v| v.as_str()).unwrap_or("Unknown"),
+                        res.data.get("arch").and_then(|v| v.as_str()).unwrap_or("x86_64"),
+                        res.data.get("hostname").and_then(|v| v.as_str()).unwrap_or("localhost"),
+                        res.data
+                            .get("displays")
+                            .and_then(|v| v.as_array())
+                            .map(|a| a.len())
+                            .unwrap_or(1),
+                        res.duration_ms
+                    );
+                    return Ok(Some(formatted));
+                }
+                Err(e) => return Ok(Some(format!("System info execution failed: {e}"))),
+            }
+        }
+
+        if lower == "list windows"
+            || lower == "show windows"
+            || lower == "windows"
+            || lower == "active windows"
+        {
+            match self
+                .tool_registry
+                .execute("window_list", serde_json::json!({}), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let windows = res.data.get("windows").and_then(|v| v.as_array());
+                    let mut out = String::from("🪟 **Active Windows**:\n");
+                    if let Some(list) = windows {
+                        for (i, win) in list.iter().take(15).enumerate() {
+                            let title = win
+                                .get("title")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("<Untitled>");
+                            let class_name =
+                                win.get("class_name").and_then(|v| v.as_str()).unwrap_or("");
+                            out.push_str(&format!("{}. **{}** `[{}]`\n", i + 1, title, class_name));
+                        }
+                        if list.len() > 15 {
+                            out.push_str(&format!("*... and {} more windows.*\n", list.len() - 15));
+                        }
+                    } else {
+                        out.push_str("No active top-level windows detected.\n");
+                    }
+                    return Ok(Some(out));
+                }
+                Err(e) => return Ok(Some(format!("Window listing failed: {e}"))),
+            }
+        }
+
+        if lower == "list processes"
+            || lower == "processes"
+            || lower == "ps"
+            || lower == "top processes"
+            || lower == "running processes"
+        {
+            match self
+                .tool_registry
+                .execute("process_list", serde_json::json!({}), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let procs = res.data.get("processes").and_then(|v| v.as_array());
+                    let mut out = String::from("⚙️ **Running Processes (Sample)**:\n");
+                    if let Some(list) = procs {
+                        for (i, proc) in list.iter().take(15).enumerate() {
+                            let name =
+                                proc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown");
+                            let pid = proc.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
+                            let mem = proc
+                                .get("memory_bytes")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0)
+                                / (1024 * 1024);
+                            out.push_str(&format!(
+                                "{}. `{}` (PID: {}, Memory: {} MB)\n",
+                                i + 1,
+                                name,
+                                pid,
+                                mem
+                            ));
+                        }
+                        if list.len() > 15 {
+                            out.push_str(&format!("*Total processes running: {}*\n", list.len()));
+                        }
+                    }
+                    return Ok(Some(out));
+                }
+                Err(e) => return Ok(Some(format!("Process listing failed: {e}"))),
+            }
+        }
+
+        if lower == "screenshot"
+            || lower == "take screenshot"
+            || lower == "capture screen"
+        {
+            match self
+                .tool_registry
+                .execute("system_screenshot", serde_json::json!({}), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let dims = format!(
+                        "{}x{}",
+                        res.data.get("width").and_then(|v| v.as_u64()).unwrap_or(0),
+                        res.data.get("height").and_then(|v| v.as_u64()).unwrap_or(0)
+                    );
+                    return Ok(Some(format!(
+                        "📸 **Desktop Screenshot Captured**\n• Dimensions: {}\n• Execution: {}ms",
+                        dims, res.duration_ms
+                    )));
+                }
+                Err(e) => return Ok(Some(format!("Screenshot capture failed: {e}"))),
+            }
+        }
+
+        if lower == "git status" {
+            match self
+                .tool_registry
+                .execute("coding_git_status", serde_json::json!({}), &ctx)
+                .await
+            {
+                Ok(res) => {
+                    let branch = res
+                        .data
+                        .get("branch")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+                    let clean = res
+                        .data
+                        .get("clean")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    return Ok(Some(format!(
+                        "📦 **Git Repository Status**\n• Branch: `{}`\n• Working Tree Clean: **{}**",
+                        branch, clean
+                    )));
+                }
+                Err(e) => return Ok(Some(format!("Git status failed: {e}"))),
+            }
+        }
+
+        Ok(None)
+    }
 }
 
 static GLOBAL_DISPATCHER: std::sync::OnceLock<BackendDispatcher> = std::sync::OnceLock::new();
-

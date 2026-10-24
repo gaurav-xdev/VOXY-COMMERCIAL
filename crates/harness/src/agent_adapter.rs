@@ -92,7 +92,10 @@ pub trait CodingAgentAdapter: Send + Sync {
     fn capabilities(&self) -> AgentCapabilities;
 
     /// Execute a task within the bounded workspace with least-privilege guarantees.
-    async fn execute_task(&self, task: &CodingTask) -> Result<TaskExecutionResult, AgentAdapterError>;
+    async fn execute_task(
+        &self,
+        task: &CodingTask,
+    ) -> Result<TaskExecutionResult, AgentAdapterError>;
 }
 
 /// Helper to search the system PATH for a binary name with common extensions.
@@ -127,7 +130,13 @@ impl ClaudeCodeAdapter {
                 return None;
             }
         }
-        find_in_path(&["claude.cmd", "claude.exe", "claude.bat", "claude.ps1", "claude"])
+        find_in_path(&[
+            "claude.cmd",
+            "claude.exe",
+            "claude.bat",
+            "claude.ps1",
+            "claude",
+        ])
     }
 }
 
@@ -140,9 +149,7 @@ impl CodingAgentAdapter for ClaudeCodeAdapter {
     fn check_availability(&self) -> AgentAvailability {
         match self.resolve_binary() {
             Some(path) => {
-                let output = std::process::Command::new(&path)
-                    .arg("--version")
-                    .output();
+                let output = std::process::Command::new(&path).arg("--version").output();
                 match output {
                     Ok(out) if out.status.success() => {
                         let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -170,7 +177,10 @@ impl CodingAgentAdapter for ClaudeCodeAdapter {
         }
     }
 
-    async fn execute_task(&self, task: &CodingTask) -> Result<TaskExecutionResult, AgentAdapterError> {
+    async fn execute_task(
+        &self,
+        task: &CodingTask,
+    ) -> Result<TaskExecutionResult, AgentAdapterError> {
         let binary = self
             .resolve_binary()
             .ok_or_else(|| AgentAdapterError::AgentNotInstalled("claude".to_string()))?;
@@ -191,7 +201,12 @@ impl CodingAgentAdapter for ClaudeCodeAdapter {
         let str_args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
         let runner = SandboxedRunner::new(&task.workspace_root);
         let output = runner
-            .run_command(binary.to_str().unwrap_or("claude"), &str_args, None, task.timeout)
+            .run_command(
+                binary.to_str().unwrap_or("claude"),
+                &str_args,
+                None,
+                task.timeout,
+            )
             .await?;
 
         let success = output.was_success;
@@ -240,9 +255,7 @@ impl CodingAgentAdapter for CodexCliAdapter {
     fn check_availability(&self) -> AgentAvailability {
         match self.resolve_binary() {
             Some(path) => {
-                let output = std::process::Command::new(&path)
-                    .arg("--version")
-                    .output();
+                let output = std::process::Command::new(&path).arg("--version").output();
                 match output {
                     Ok(out) if out.status.success() => {
                         let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -270,7 +283,10 @@ impl CodingAgentAdapter for CodexCliAdapter {
         }
     }
 
-    async fn execute_task(&self, task: &CodingTask) -> Result<TaskExecutionResult, AgentAdapterError> {
+    async fn execute_task(
+        &self,
+        task: &CodingTask,
+    ) -> Result<TaskExecutionResult, AgentAdapterError> {
         let binary = self
             .resolve_binary()
             .ok_or_else(|| AgentAdapterError::AgentNotInstalled("codex".to_string()))?;
@@ -286,7 +302,12 @@ impl CodingAgentAdapter for CodexCliAdapter {
         let args = ["exec", &task.prompt];
         let runner = SandboxedRunner::new(&task.workspace_root);
         let output = runner
-            .run_command(binary.to_str().unwrap_or("codex"), &args, None, task.timeout)
+            .run_command(
+                binary.to_str().unwrap_or("codex"),
+                &args,
+                None,
+                task.timeout,
+            )
             .await?;
 
         let success = output.was_success;
@@ -357,7 +378,10 @@ mod tests {
         let adapter = ClaudeCodeAdapter::new(None);
         let avail = adapter.check_availability();
         match avail {
-            AgentAvailability::Available { version, executable_path } => {
+            AgentAvailability::Available {
+                version,
+                executable_path,
+            } => {
                 assert!(executable_path.exists());
                 assert!(!version.is_empty());
             }
@@ -373,7 +397,10 @@ mod tests {
         let adapter = CodexCliAdapter::new(None);
         let avail = adapter.check_availability();
         match avail {
-            AgentAvailability::Available { version, executable_path } => {
+            AgentAvailability::Available {
+                version,
+                executable_path,
+            } => {
                 assert!(executable_path.exists());
                 assert!(!version.is_empty());
             }
@@ -386,8 +413,12 @@ mod tests {
 
     #[test]
     fn test_uninstalled_adapter_honest_reporting() {
-        let nonexistent_adapter = ClaudeCodeAdapter::new(Some(PathBuf::from("C:\\fake\\nonexistent_claude.exe")));
-        assert_eq!(nonexistent_adapter.check_availability(), AgentAvailability::NotInstalled);
+        let nonexistent_adapter =
+            ClaudeCodeAdapter::new(Some(PathBuf::from("C:\\fake\\nonexistent_claude.exe")));
+        assert_eq!(
+            nonexistent_adapter.check_availability(),
+            AgentAvailability::NotInstalled
+        );
     }
 
     #[test]

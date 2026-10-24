@@ -102,11 +102,9 @@ impl AppBridge {
         bridge
     }
 
-
     pub fn get_global() -> Option<AppBridge> {
         GLOBAL_BRIDGE.get().cloned()
     }
 }
 
 static GLOBAL_BRIDGE: std::sync::OnceLock<AppBridge> = std::sync::OnceLock::new();
-

@@ -9,4 +9,3 @@ pub use assistant_hud::{AssistantHud, ChatTurn, TelemetryStats};
 #[allow(unused_imports)]
 pub use onboarding_wizard::{OnboardingConfig, OnboardingStep, OnboardingWizard};
 pub use startup_splash::StartupSplash;
-

@@ -59,7 +59,6 @@ fn default_sample_rate() -> u32 {
     48000
 }
 
-
 impl Default for VoiceSettings {
     fn default() -> Self {
         Self {
@@ -80,7 +79,6 @@ impl Default for VoiceSettings {
         }
     }
 }
-
 
 /// Model settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -360,7 +358,6 @@ impl SettingsManager {
 
     /// Create a new settings manager with a custom file path.
     pub fn with_path(path: std::path::PathBuf) -> Result<Self> {
-
         let (change_tx, _) = broadcast::channel(16);
 
         let settings = if path.exists() {
@@ -377,7 +374,6 @@ impl SettingsManager {
             change_tx,
         })
     }
-
 
     /// Get current settings.
     pub fn get(&self) -> SettingsSnapshot {

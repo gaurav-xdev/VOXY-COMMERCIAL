@@ -17,7 +17,6 @@ pub enum CoreState {
     Offline,
 }
 
-
 impl CoreState {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -32,7 +31,6 @@ impl CoreState {
 
     #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
-
         match self {
             Self::Idle => "IDLE // READY",
             Self::Listening => "LISTENING // AUDIO STREAM",
@@ -299,10 +297,12 @@ pub fn AssistantCore(state: CoreState, mode: CompanionMode) -> Element {
 
     // Trigger state changes in JavaScript
     use_effect(use_reactive!(|(mode_str, state_str)| {
-        tracing::trace!("AssistantCore state updated: mode={}, state={}", mode_str, state_str);
+        tracing::trace!(
+            "AssistantCore state updated: mode={}, state={}",
+            mode_str,
+            state_str
+        );
     }));
-
-
 
     rsx! {
         div {

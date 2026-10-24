@@ -642,12 +642,16 @@ mod tests {
         let store = Arc::new(voxy_database::CommercialStore::new(sqlite));
         store.initialize_schema().await.expect("schema init");
 
-        let auth_middleware = Arc::new(voxy_api_server::middleware::AuthMiddleware::new(store.clone()));
+        let auth_middleware = Arc::new(voxy_api_server::middleware::AuthMiddleware::new(
+            store.clone(),
+        ));
         let rate_limiter = Arc::new(voxy_api_server::middleware::RateLimitMiddleware::new(
             120,
             std::time::Duration::from_secs(60),
         ));
-        let handlers = Arc::new(voxy_api_server::handlers::ApiHandlers::new(store, None, None));
+        let handlers = Arc::new(voxy_api_server::handlers::ApiHandlers::new(
+            store, None, None,
+        ));
         let router = Arc::new(voxy_api_server::router::ApiRouter::new(
             handlers,
             auth_middleware,
@@ -662,33 +666,54 @@ mod tests {
 
         // 2. Register new operator
         let reg_res = auth_bridge
-            .register("operator@osmoo.io", "SuperSecurePass123!", Some("Operator".to_string()))
+            .register(
+                "operator@osmoo.io",
+                "SuperSecurePass123!",
+                Some("Operator".to_string()),
+            )
             .await;
         assert!(reg_res.is_ok(), "Registration must succeed: {:?}", reg_res);
 
         // 3. Login with wrong password fails
-        let bad_login = auth_bridge.login("operator@osmoo.io", "WrongPassword!").await;
+        let bad_login = auth_bridge
+            .login("operator@osmoo.io", "WrongPassword!")
+            .await;
         assert!(bad_login.is_err(), "Invalid password must fail closed");
         assert!(!auth_bridge.is_authenticated());
 
         // 4. Login with correct credentials succeeds and saves session
-        let good_login = auth_bridge.login("operator@osmoo.io", "SuperSecurePass123!").await;
+        let good_login = auth_bridge
+            .login("operator@osmoo.io", "SuperSecurePass123!")
+            .await;
         assert!(good_login.is_ok(), "Login must succeed: {:?}", good_login);
         assert!(auth_bridge.is_authenticated());
-        assert!(session_file.exists(), "Session file must be written to disk");
+        assert!(
+            session_file.exists(),
+            "Session file must be written to disk"
+        );
 
         // 5. Session restoration from disk
         let restored_bridge = AuthBridge::with_session_path(router.clone(), session_file.clone());
-        assert!(restored_bridge.is_authenticated(), "Session must restore across restarts");
+        assert!(
+            restored_bridge.is_authenticated(),
+            "Session must restore across restarts"
+        );
         let sess = restored_bridge.current_session().unwrap();
         assert_eq!(sess.email, "operator@osmoo.io");
 
         // 6. Corrupt session file handling
         let corrupt_dir = tempfile::tempdir().expect("tempdir");
         let corrupt_session_file = corrupt_dir.path().join("corrupt_session.json");
-        std::fs::write(&corrupt_session_file, b"NOT_A_VALID_ENCRYPTED_OR_JSON_PAYLOAD").unwrap();
+        std::fs::write(
+            &corrupt_session_file,
+            b"NOT_A_VALID_ENCRYPTED_OR_JSON_PAYLOAD",
+        )
+        .unwrap();
         let corrupt_bridge = AuthBridge::with_session_path(router.clone(), corrupt_session_file);
-        assert!(!corrupt_bridge.is_authenticated(), "Corrupted session file must fail closed");
+        assert!(
+            !corrupt_bridge.is_authenticated(),
+            "Corrupted session file must fail closed"
+        );
 
         // 7. Expired session handling
         let expired_dir = tempfile::tempdir().expect("tempdir");
@@ -704,14 +729,24 @@ mod tests {
         let enc = dpapi::protect(expired_json.as_bytes()).unwrap();
         std::fs::write(&expired_session_file, enc).unwrap();
 
-        let expired_bridge = AuthBridge::with_session_path(router.clone(), expired_session_file.clone());
-        assert!(!expired_bridge.is_authenticated(), "Expired session must not be active");
-        assert!(!expired_session_file.exists(), "Expired session file must be automatically removed");
+        let expired_bridge =
+            AuthBridge::with_session_path(router.clone(), expired_session_file.clone());
+        assert!(
+            !expired_bridge.is_authenticated(),
+            "Expired session must not be active"
+        );
+        assert!(
+            !expired_session_file.exists(),
+            "Expired session file must be automatically removed"
+        );
 
         // 8. Logout invalidates in-memory and removes disk file
         let logout_res = auth_bridge.logout().await;
         assert!(logout_res.is_ok());
         assert!(!auth_bridge.is_authenticated());
-        assert!(!session_file.exists(), "Session file must be deleted on logout");
+        assert!(
+            !session_file.exists(),
+            "Session file must be deleted on logout"
+        );
     }
 }

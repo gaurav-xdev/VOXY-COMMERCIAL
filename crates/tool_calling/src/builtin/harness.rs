@@ -240,13 +240,84 @@ impl Tool for HarnessRunCommandTool {
     }
 }
 
+use parking_lot::RwLock;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
+
+/// Snapshot for patch rollback.
+#[derive(Debug, Clone)]
+pub struct PatchRollbackSnapshot {
+    pub id: String,
+    pub session_id: String,
+    pub workspace_root: PathBuf,
+    pub file_path: PathBuf,
+    pub existed: bool,
+    pub original_content: String,
+    pub created_at: Instant,
+    pub rolled_back: bool,
+}
+
+/// In-memory bounded rollback store for patch modifications.
+pub struct PatchRollbackStore {
+    entries: RwLock<HashMap<String, PatchRollbackSnapshot>>,
+}
+
+impl PatchRollbackStore {
+    pub fn new() -> Self {
+        Self {
+            entries: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn insert(&self, entry: PatchRollbackSnapshot) {
+        let mut map = self.entries.write();
+        if map.len() >= 1000 {
+            let mut items: Vec<_> = map.iter().map(|(k, v)| (k.clone(), v.created_at)).collect();
+            items.sort_by_key(|(_, t)| *t);
+            for (k, _) in items.iter().take(200) {
+                map.remove(k);
+            }
+        }
+        map.insert(entry.id.clone(), entry);
+    }
+
+    pub fn get(&self, id: &str) -> Option<PatchRollbackSnapshot> {
+        self.entries.read().get(id).cloned()
+    }
+
+    pub fn mark_rolled_back(&self, id: &str) {
+        if let Some(entry) = self.entries.write().get_mut(id) {
+            entry.rolled_back = true;
+        }
+    }
+}
+
+impl Default for PatchRollbackStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+static GLOBAL_PATCH_ROLLBACK_STORE: OnceLock<Arc<PatchRollbackStore>> = OnceLock::new();
+
+pub fn get_patch_rollback_store() -> Arc<PatchRollbackStore> {
+    GLOBAL_PATCH_ROLLBACK_STORE
+        .get_or_init(|| Arc::new(PatchRollbackStore::new()))
+        .clone()
+}
+
 /// Apply a patch to repository files with automatic snapshot rollback.
 pub struct HarnessApplyPatchTool {
     metadata: ToolMetadata,
+    rollback_store: Arc<PatchRollbackStore>,
 }
 
 impl HarnessApplyPatchTool {
     pub fn new() -> Self {
+        Self::with_rollback_store(get_patch_rollback_store())
+    }
+
+    pub fn with_rollback_store(store: Arc<PatchRollbackStore>) -> Self {
         Self {
             metadata: ToolMetadata::new(
                 "harness_apply_patch",
@@ -263,7 +334,12 @@ impl HarnessApplyPatchTool {
                 }
             }))
             .with_rollback(true),
+            rollback_store: store,
         }
+    }
+
+    pub fn rollback_store(&self) -> Arc<PatchRollbackStore> {
+        Arc::clone(&self.rollback_store)
     }
 }
 
@@ -292,11 +368,44 @@ impl Tool for HarnessApplyPatchTool {
             .ok_or_else(|| ToolError::InvalidParams("Missing 'modified_content'".into()))?;
 
         let root = resolve_repo_root(&params, ctx);
+        let full_path = root.join(file_path);
+
+        // Pre-validate path containment and protected files
+        voxy_harness::validate_path(&root, Path::new(file_path))
+            .map_err(|e| ToolError::SecurityViolation(format!("Path validation failed: {}", e)))?;
+
+        // Read pre-modification snapshot
+        let (existed, original_content) = if full_path.exists() {
+            (
+                true,
+                std::fs::read_to_string(&full_path).map_err(|e| {
+                    ToolError::ExecutionFailed(format!(
+                        "Failed to read target file {:?}: {}",
+                        full_path, e
+                    ))
+                })?,
+            )
+        } else {
+            (false, String::new())
+        };
+
+        let token = format!("patch_rb_{}", uuid::Uuid::new_v4().simple());
         let mut patch_engine = PatchEngine::new(&root);
 
         let diff = patch_engine
             .apply_modification(Path::new(file_path), modified_content)
             .map_err(|e| ToolError::ExecutionFailed(format!("Patch engine error: {}", e)))?;
+
+        self.rollback_store.insert(PatchRollbackSnapshot {
+            id: token.clone(),
+            session_id: ctx.session_id.clone(),
+            workspace_root: root.canonicalize().unwrap_or(root.clone()),
+            file_path: full_path,
+            existed,
+            original_content,
+            created_at: Instant::now(),
+            rolled_back: false,
+        });
 
         Ok(ToolResult::success(json!({
             "file_path": file_path,
@@ -304,13 +413,53 @@ impl Tool for HarnessApplyPatchTool {
         }))
         .with_observation(format!("Applied patch to {:?}", file_path))
         .with_verification("Verified patch written and snapshot recorded")
+        .with_rollback_token(token)
         .with_duration_ms(start.elapsed().as_millis() as u64))
     }
 
-    async fn rollback(&self, _token: &str) -> Result<()> {
-        let mut engine =
-            PatchEngine::new(std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-        let _ = engine.rollback_all();
+    async fn rollback(&self, token: &str) -> Result<()> {
+        let entry = self.rollback_store.get(token).ok_or_else(|| {
+            ToolError::ExecutionFailed(format!(
+                "Rollback failed: unknown or expired patch rollback token '{}'",
+                token
+            ))
+        })?;
+
+        // Re-validate containment at rollback time
+        if !voxy_harness::path_is_contained(&entry.file_path, &entry.workspace_root) {
+            return Err(ToolError::SecurityViolation(format!(
+                "Rollback target {:?} escapes workspace root {:?}",
+                entry.file_path, entry.workspace_root
+            )));
+        }
+
+        if entry.rolled_back {
+            return Ok(());
+        }
+
+        if entry.existed {
+            tokio::fs::write(&entry.file_path, &entry.original_content)
+                .await
+                .map_err(|e| {
+                    ToolError::ExecutionFailed(format!(
+                        "Failed to restore original file content during patch rollback {:?}: {}",
+                        entry.file_path, e
+                    ))
+                })?;
+        } else if tokio::fs::try_exists(&entry.file_path).await.map_err(|e| {
+            ToolError::ExecutionFailed(format!("Failed to stat {:?}: {}", entry.file_path, e))
+        })? {
+            tokio::fs::remove_file(&entry.file_path)
+                .await
+                .map_err(|e| {
+                    ToolError::ExecutionFailed(format!(
+                        "Failed to remove created file during patch rollback {:?}: {}",
+                        entry.file_path, e
+                    ))
+                })?;
+        }
+
+        self.rollback_store.mark_rolled_back(token);
         Ok(())
     }
 }
@@ -375,13 +524,70 @@ impl Tool for HarnessParseDiagnosticsTool {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct TransactionRollbackSnapshot {
+    pub id: String,
+    pub session_id: String,
+    pub workspace_root: PathBuf,
+    pub files: Vec<(PathBuf, bool, String)>,
+    pub created_at: Instant,
+    pub rolled_back: bool,
+}
+
+pub struct TransactionRollbackStore {
+    entries: RwLock<HashMap<String, TransactionRollbackSnapshot>>,
+}
+
+impl TransactionRollbackStore {
+    pub fn new() -> Self {
+        Self {
+            entries: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn insert(&self, entry: TransactionRollbackSnapshot) {
+        let mut map = self.entries.write();
+        if map.len() >= 1000 {
+            let mut items: Vec<_> = map.iter().map(|(k, v)| (k.clone(), v.created_at)).collect();
+            items.sort_by_key(|(_, t)| *t);
+            for (k, _) in items.iter().take(200) {
+                map.remove(k);
+            }
+        }
+        map.insert(entry.id.clone(), entry);
+    }
+
+    pub fn get(&self, id: &str) -> Option<TransactionRollbackSnapshot> {
+        self.entries.read().get(id).cloned()
+    }
+
+    pub fn mark_rolled_back(&self, id: &str) {
+        if let Some(entry) = self.entries.write().get_mut(id) {
+            entry.rolled_back = true;
+        }
+    }
+}
+
+static GLOBAL_TX_ROLLBACK_STORE: OnceLock<Arc<TransactionRollbackStore>> = OnceLock::new();
+
+pub fn get_tx_rollback_store() -> Arc<TransactionRollbackStore> {
+    GLOBAL_TX_ROLLBACK_STORE
+        .get_or_init(|| Arc::new(TransactionRollbackStore::new()))
+        .clone()
+}
+
 /// Apply multiple file patches in an atomic transaction with rollback and secret checks.
 pub struct HarnessApplyPatchTransactionTool {
     metadata: ToolMetadata,
+    rollback_store: Arc<TransactionRollbackStore>,
 }
 
 impl HarnessApplyPatchTransactionTool {
     pub fn new() -> Self {
+        Self::with_rollback_store(get_tx_rollback_store())
+    }
+
+    pub fn with_rollback_store(store: Arc<TransactionRollbackStore>) -> Self {
         Self {
             metadata: ToolMetadata::new(
                 "harness_apply_patch_transaction",
@@ -409,7 +615,12 @@ impl HarnessApplyPatchTransactionTool {
             }))
             .with_rollback(true)
             .with_confirmation(true),
+            rollback_store: store,
         }
+    }
+
+    pub fn rollback_store(&self) -> Arc<TransactionRollbackStore> {
+        Arc::clone(&self.rollback_store)
     }
 }
 
@@ -434,6 +645,7 @@ impl Tool for HarnessApplyPatchTransactionTool {
 
         let root = resolve_repo_root(&params, ctx);
         let mut tx = voxy_harness::PatchTransaction::new(&root);
+        let mut pre_snapshots = Vec::new();
 
         for patch_item in patches_val {
             let path_str = patch_item
@@ -447,6 +659,14 @@ impl Tool for HarnessApplyPatchTransactionTool {
                     ToolError::InvalidParams("Patch item missing 'modified_content'".into())
                 })?;
 
+            let full = root.join(path_str);
+            let (existed, orig) = if full.exists() {
+                (true, std::fs::read_to_string(&full).unwrap_or_default())
+            } else {
+                (false, String::new())
+            };
+            pre_snapshots.push((full, existed, orig));
+
             tx.add_change(path_str, content);
         }
 
@@ -457,6 +677,16 @@ impl Tool for HarnessApplyPatchTransactionTool {
         // Commit transaction to lock in changes
         tx.commit();
 
+        let token = format!("patch_tx_rb_{}", uuid::Uuid::new_v4().simple());
+        self.rollback_store.insert(TransactionRollbackSnapshot {
+            id: token.clone(),
+            session_id: ctx.session_id.clone(),
+            workspace_root: root.canonicalize().unwrap_or(root),
+            files: pre_snapshots,
+            created_at: Instant::now(),
+            rolled_back: false,
+        });
+
         let count = diffs.len();
         Ok(ToolResult::success(json!({
             "files_modified": count,
@@ -464,7 +694,51 @@ impl Tool for HarnessApplyPatchTransactionTool {
         }))
         .with_observation(format!("Atomically applied {} file patches", count))
         .with_verification("All files modified cleanly with boundary and secret validation")
+        .with_rollback_token(token)
         .with_duration_ms(start.elapsed().as_millis() as u64))
+    }
+
+    async fn rollback(&self, token: &str) -> Result<()> {
+        let entry = self.rollback_store.get(token).ok_or_else(|| {
+            ToolError::ExecutionFailed(format!(
+                "Rollback failed: unknown or expired transaction rollback token '{}'",
+                token
+            ))
+        })?;
+
+        if entry.rolled_back {
+            return Ok(());
+        }
+
+        for (path, existed, original) in &entry.files {
+            if !voxy_harness::path_is_contained(path, &entry.workspace_root) {
+                return Err(ToolError::SecurityViolation(format!(
+                    "Rollback target {:?} escapes workspace root {:?}",
+                    path, entry.workspace_root
+                )));
+            }
+
+            if *existed {
+                tokio::fs::write(path, original).await.map_err(|e| {
+                    ToolError::ExecutionFailed(format!(
+                        "Failed to restore original file content during transaction rollback {:?}: {}",
+                        path, e
+                    ))
+                })?;
+            } else if tokio::fs::try_exists(path).await.map_err(|e| {
+                ToolError::ExecutionFailed(format!("Failed to stat {:?}: {}", path, e))
+            })? {
+                tokio::fs::remove_file(path).await.map_err(|e| {
+                    ToolError::ExecutionFailed(format!(
+                        "Failed to remove created file during transaction rollback {:?}: {}",
+                        path, e
+                    ))
+                })?;
+            }
+        }
+
+        self.rollback_store.mark_rolled_back(token);
+        Ok(())
     }
 }
 
@@ -475,5 +749,117 @@ fn resolve_repo_root(params: &serde_json::Value, ctx: &ToolContext) -> PathBuf {
         cwd.clone()
     } else {
         std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_harness_apply_patch_tool_and_rollback() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("voxy_patch_test_{}", uuid::Uuid::new_v4().simple()));
+        let _ = tokio::fs::create_dir_all(&temp_dir).await;
+
+        let sample_file = temp_dir.join("code.rs");
+        tokio::fs::write(
+            &sample_file,
+            "fn main() {\n    println!(\"original\");\n}\n",
+        )
+        .await
+        .unwrap();
+
+        let ctx = ToolContext::new("test-session").with_working_dir(temp_dir.clone());
+        let patch_tool = HarnessApplyPatchTool::new();
+
+        // 1. Apply patch
+        let res = patch_tool
+            .execute(
+                json!({
+                    "file_path": "code.rs",
+                    "modified_content": "fn main() {\n    println!(\"patched\");\n}\n"
+                }),
+                &ctx,
+            )
+            .await
+            .expect("Patch application should succeed");
+
+        assert!(res.success);
+        let token = res.rollback_token.expect("Must have rollback token");
+        let content_after_patch = tokio::fs::read_to_string(&sample_file).await.unwrap();
+        assert!(content_after_patch.contains("patched"));
+
+        // 2. Rollback with valid token
+        patch_tool
+            .rollback(&token)
+            .await
+            .expect("Rollback should succeed");
+        let content_after_rb = tokio::fs::read_to_string(&sample_file).await.unwrap();
+        assert_eq!(
+            content_after_rb,
+            "fn main() {\n    println!(\"original\");\n}\n"
+        );
+
+        // 3. Repeated rollback is idempotent
+        patch_tool
+            .rollback(&token)
+            .await
+            .expect("Repeated rollback is idempotent");
+
+        // 4. Forged token is rejected with error
+        let forged_err = patch_tool
+            .rollback("patch_rb_fake123")
+            .await
+            .expect_err("Forged token fails");
+        assert!(matches!(forged_err, ToolError::ExecutionFailed(_)));
+
+        let _ = tokio::fs::remove_dir_all(&temp_dir).await;
+    }
+
+    #[tokio::test]
+    async fn test_harness_apply_patch_transaction_tool_and_rollback() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "voxy_patch_tx_test_{}",
+            uuid::Uuid::new_v4().simple()
+        ));
+        let _ = tokio::fs::create_dir_all(&temp_dir).await;
+
+        let f1 = temp_dir.join("a.txt");
+        let f2 = temp_dir.join("b.txt");
+        tokio::fs::write(&f1, "Original A").await.unwrap();
+        tokio::fs::write(&f2, "Original B").await.unwrap();
+
+        let ctx = ToolContext::new("test-session").with_working_dir(temp_dir.clone());
+        let tx_tool = HarnessApplyPatchTransactionTool::new();
+
+        let res = tx_tool
+            .execute(
+                json!({
+                    "patches": [
+                        { "file_path": "a.txt", "modified_content": "Modified A" },
+                        { "file_path": "b.txt", "modified_content": "Modified B" }
+                    ]
+                }),
+                &ctx,
+            )
+            .await
+            .unwrap();
+
+        assert!(res.success);
+        let token = res
+            .rollback_token
+            .expect("Must have transaction rollback token");
+
+        assert_eq!(tokio::fs::read_to_string(&f1).await.unwrap(), "Modified A");
+        assert_eq!(tokio::fs::read_to_string(&f2).await.unwrap(), "Modified B");
+
+        // Rollback
+        tx_tool.rollback(&token).await.unwrap();
+
+        assert_eq!(tokio::fs::read_to_string(&f1).await.unwrap(), "Original A");
+        assert_eq!(tokio::fs::read_to_string(&f2).await.unwrap(), "Original B");
+
+        let _ = tokio::fs::remove_dir_all(&temp_dir).await;
     }
 }

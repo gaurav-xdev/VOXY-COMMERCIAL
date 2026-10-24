@@ -55,12 +55,117 @@ pub struct CommandOutput {
     pub stderr: String,
     pub duration: Duration,
     pub was_success: bool,
+    pub stdout_truncated: bool,
+    pub stderr_truncated: bool,
 }
 
 pub struct SandboxedRunner {
     repo_root: PathBuf,
     emergency_stop: Arc<AtomicBool>,
     strip_sensitive_env: bool,
+    isolate_env: bool,
+    allowed_env_vars: Vec<String>,
+    max_stdout_bytes: usize,
+    max_stderr_bytes: usize,
+}
+
+const DEFAULT_MAX_OUTPUT_BYTES: usize = 1024 * 1024; // 1 MB
+
+const SAFE_ENV_ALLOWLIST_WINDOWS: &[&str] = &[
+    "SYSTEMROOT",
+    "SYSTEMDRIVE",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+    "TEMP",
+    "TMP",
+    "PATH",
+    "USERPROFILE",
+    "LOCALAPPDATA",
+    "APPDATA",
+    "PROGRAMFILES",
+    "PROGRAMFILES(X86)",
+    "PROGRAMDATA",
+    "ALLUSERSPROFILE",
+    "COMPUTERNAME",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
+    "PROCESSOR_ARCHITECTURE",
+    "PROCESSOR_IDENTIFIER",
+    "PROCESSOR_LEVEL",
+    "PROCESSOR_REVISION",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+];
+
+#[allow(dead_code)]
+const SAFE_ENV_ALLOWLIST_UNIX: &[&str] = &[
+    "PATH",
+    "HOME",
+    "USER",
+    "SHELL",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "TERM",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+];
+
+fn is_sensitive_key(key: &str) -> bool {
+    let upper = key.to_uppercase();
+    upper.contains("KEY")
+        || upper.contains("SECRET")
+        || upper.contains("TOKEN")
+        || upper.contains("PASSWORD")
+        || upper.contains("PASSWD")
+        || upper.contains("CREDENTIAL")
+        || upper.contains("AUTH")
+        || upper.contains("PRIVATE")
+        || upper.contains("BEARER")
+        || upper.contains("CERTIFICATE")
+        || upper.contains("SIGNATURE")
+        || upper.contains("SESSION")
+}
+
+async fn read_bounded_pipe<R: tokio::io::AsyncRead + Unpin + Send + 'static>(
+    reader: Option<R>,
+    max_bytes: usize,
+) -> (String, bool) {
+    let mut reader = match reader {
+        Some(r) => r,
+        None => return (String::new(), false),
+    };
+
+    let mut buf = vec![0u8; 8192];
+    let mut collected = Vec::new();
+    let mut truncated = false;
+
+    loop {
+        match reader.read(&mut buf).await {
+            Ok(0) => break,
+            Ok(n) => {
+                if collected.len() < max_bytes {
+                    let remaining = max_bytes - collected.len();
+                    let take = remaining.min(n);
+                    collected.extend_from_slice(&buf[..take]);
+                    if take < n {
+                        truncated = true;
+                    }
+                } else {
+                    truncated = true;
+                    // Drain remaining bytes without buffering to prevent child deadlock
+                }
+            }
+            Err(_) => break,
+        }
+    }
+
+    let mut text = String::from_utf8_lossy(&collected).into_owned();
+    if truncated {
+        text.push_str("\n[TRUNCATED: output exceeded maximum byte limit]");
+    }
+    (text, truncated)
 }
 
 impl SandboxedRunner {
@@ -68,7 +173,11 @@ impl SandboxedRunner {
         Self {
             repo_root: repo_root.as_ref().to_path_buf(),
             emergency_stop: Arc::new(AtomicBool::new(false)),
-            strip_sensitive_env: false,
+            strip_sensitive_env: true,
+            isolate_env: true,
+            allowed_env_vars: Vec::new(),
+            max_stdout_bytes: DEFAULT_MAX_OUTPUT_BYTES,
+            max_stderr_bytes: DEFAULT_MAX_OUTPUT_BYTES,
         }
     }
 
@@ -77,9 +186,33 @@ impl SandboxedRunner {
         self
     }
 
+    /// Enable or disable default-deny environment isolation.
+    pub fn with_env_isolation(mut self, isolate: bool) -> Self {
+        self.isolate_env = isolate;
+        self
+    }
+
+    /// Whitelist an additional environment variable key for the child process.
+    pub fn with_allow_env_var(mut self, var_name: impl Into<String>) -> Self {
+        self.allowed_env_vars.push(var_name.into());
+        self
+    }
+
     /// Enable or disable stripping known sensitive credentials from child process environment.
     pub fn with_stripped_sensitive_env(mut self, strip: bool) -> Self {
         self.strip_sensitive_env = strip;
+        self
+    }
+
+    /// Set maximum allowed stdout capture bytes before truncation occurs.
+    pub fn with_max_stdout_bytes(mut self, bytes: usize) -> Self {
+        self.max_stdout_bytes = bytes;
+        self
+    }
+
+    /// Set maximum allowed stderr capture bytes before truncation occurs.
+    pub fn with_max_stderr_bytes(mut self, bytes: usize) -> Self {
+        self.max_stderr_bytes = bytes;
         self
     }
 
@@ -190,42 +323,48 @@ impl SandboxedRunner {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        if self.strip_sensitive_env {
-            const SENSITIVE_KEYS: &[&str] = &[
-                "AWS_SECRET_ACCESS_KEY",
-                "AWS_SESSION_TOKEN",
-                "GITHUB_TOKEN",
-                "GH_TOKEN",
-                "OPENAI_API_KEY",
-                "ANTHROPIC_API_KEY",
-                "GROQ_API_KEY",
-                "CARTESIA_API_KEY",
-            ];
-            for key in SENSITIVE_KEYS {
-                cmd.env_remove(key);
+        if self.isolate_env {
+            cmd.env_clear();
+
+            #[cfg(target_os = "windows")]
+            let allowlist = SAFE_ENV_ALLOWLIST_WINDOWS;
+            #[cfg(not(target_os = "windows"))]
+            let allowlist = SAFE_ENV_ALLOWLIST_UNIX;
+
+            for (k, v) in std::env::vars() {
+                let k_upper = k.to_uppercase();
+                let is_allowed = allowlist
+                    .iter()
+                    .any(|allowed| allowed.eq_ignore_ascii_case(&k))
+                    || self
+                        .allowed_env_vars
+                        .iter()
+                        .any(|extra| extra.eq_ignore_ascii_case(&k));
+
+                if is_allowed && !is_sensitive_key(&k_upper) {
+                    cmd.env(&k, &v);
+                }
+            }
+        } else if self.strip_sensitive_env {
+            for (k, _) in std::env::vars() {
+                if is_sensitive_key(&k) {
+                    cmd.env_remove(&k);
+                }
             }
         }
 
         let mut child = cmd.spawn()?;
 
-        let mut stdout_pipe = child.stdout.take();
-        let mut stderr_pipe = child.stderr.take();
+        let stdout_pipe = child.stdout.take();
+        let stderr_pipe = child.stderr.take();
 
-        let stdout_task = tokio::spawn(async move {
-            let mut out = String::new();
-            if let Some(ref mut p) = stdout_pipe {
-                let _ = p.read_to_string(&mut out).await;
-            }
-            out
-        });
+        let max_stdout = self.max_stdout_bytes;
+        let stdout_task =
+            tokio::spawn(async move { read_bounded_pipe(stdout_pipe, max_stdout).await });
 
-        let stderr_task = tokio::spawn(async move {
-            let mut err = String::new();
-            if let Some(ref mut p) = stderr_pipe {
-                let _ = p.read_to_string(&mut err).await;
-            }
-            err
-        });
+        let max_stderr = self.max_stderr_bytes;
+        let stderr_task =
+            tokio::spawn(async move { read_bounded_pipe(stderr_pipe, max_stderr).await });
 
         let stop_token = self.emergency_stop.clone();
         let pid = child.id();
@@ -297,8 +436,8 @@ impl SandboxedRunner {
             }
         };
 
-        let stdout = stdout_task.await.unwrap_or_default();
-        let stderr = stderr_task.await.unwrap_or_default();
+        let (stdout, stdout_truncated) = stdout_task.await.unwrap_or_default();
+        let (stderr, stderr_truncated) = stderr_task.await.unwrap_or_default();
 
         let duration = start.elapsed();
 
@@ -308,6 +447,8 @@ impl SandboxedRunner {
             stderr,
             duration,
             was_success: status.success(),
+            stdout_truncated,
+            stderr_truncated,
         })
     }
 }
@@ -472,6 +613,81 @@ mod tests {
             assert!(
                 !stdout.contains("sk-secret-test-key-12345"),
                 "Sensitive key must not leak to child process: got {stdout}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_runner_bounded_output_truncation() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path()).with_max_stdout_bytes(64);
+
+        #[cfg(target_os = "windows")]
+        let out = runner
+            .run_command(
+                "cmd.exe",
+                &[
+                    "/c",
+                    "echo 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+                ],
+                None,
+                Duration::from_secs(5),
+            )
+            .await
+            .expect("Command should succeed");
+
+        #[cfg(not(target_os = "windows"))]
+        let out = runner
+            .run_command(
+                "echo",
+                &["1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"],
+                None,
+                Duration::from_secs(5),
+            )
+            .await
+            .expect("Command should succeed");
+
+        assert!(
+            out.stdout_truncated,
+            "Output exceeding limit must be marked as truncated"
+        );
+        assert!(out
+            .stdout
+            .contains("[TRUNCATED: output exceeded maximum byte limit]"));
+    }
+
+    #[tokio::test]
+    async fn test_runner_default_deny_env_isolation() {
+        let dir = tempdir().unwrap();
+        let runner = SandboxedRunner::new(dir.path()).with_env_isolation(true);
+
+        std::env::set_var("CUSTOM_SENSITIVE_SECRET", "super-secret-pass-val");
+        std::env::set_var("UNLISTED_EXTERNAL_VAR", "unlisted-arbitrary-val");
+
+        #[cfg(target_os = "windows")]
+        let out = runner
+            .run_command(
+                "cmd.exe",
+                &[
+                    "/c",
+                    "echo S=%CUSTOM_SENSITIVE_SECRET% U=%UNLISTED_EXTERNAL_VAR%",
+                ],
+                None,
+                Duration::from_secs(5),
+            )
+            .await
+            .expect("Command should succeed");
+
+        #[cfg(target_os = "windows")]
+        {
+            let stdout = out.stdout.trim();
+            assert!(
+                !stdout.contains("super-secret-pass-val"),
+                "Sensitive secret must not leak under default-deny env isolation"
+            );
+            assert!(
+                !stdout.contains("unlisted-arbitrary-val"),
+                "Unlisted environment variable must not leak under default-deny env isolation"
             );
         }
     }

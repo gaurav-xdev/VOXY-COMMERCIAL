@@ -12,8 +12,8 @@ pub mod sandbox_runner;
 pub mod secret_scanner;
 
 pub use agent_adapter::{
-    AgentAdapterError, AgentAdapterRegistry, AgentAvailability, AgentCapabilities, ClaudeCodeAdapter,
-    CodingAgentAdapter, CodingTask, CodexCliAdapter, TaskExecutionResult,
+    AgentAdapterError, AgentAdapterRegistry, AgentAvailability, AgentCapabilities,
+    ClaudeCodeAdapter, CodexCliAdapter, CodingAgentAdapter, CodingTask, TaskExecutionResult,
 };
 pub use diagnostic_parser::{
     DiagnosticItem, DiagnosticParser, DiagnosticReport, DiagnosticSeverity,

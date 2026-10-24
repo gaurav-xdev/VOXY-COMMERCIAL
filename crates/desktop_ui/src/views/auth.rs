@@ -10,10 +10,7 @@ pub enum AuthMode {
 }
 
 #[component]
-pub fn AuthView(
-    on_success: EventHandler<()>,
-    on_cancel: EventHandler<()>,
-) -> Element {
+pub fn AuthView(on_success: EventHandler<()>, on_cancel: EventHandler<()>) -> Element {
     let mut mode = use_signal(|| AuthMode::SignIn);
     let mut email_input = use_signal(String::new);
     let mut password_input = use_signal(String::new);
@@ -22,7 +19,6 @@ pub fn AuthView(
     let mut is_loading = use_signal(|| false);
 
     let cur_mode = *mode.read();
-
 
     rsx! {
         div { class: "modal-overlay",

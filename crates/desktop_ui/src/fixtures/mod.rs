@@ -136,7 +136,8 @@ pub const DEFAULT_MODELS: &[ModelCatalogItem] = &[
         provider: "Ollama",
         parameter_size: "3.2B",
         context_window: "128k",
-        description: "Optimized for lightweight local desktop edge devices and quick companion responses.",
+        description:
+            "Optimized for lightweight local desktop edge devices and quick companion responses.",
         latency_tier: "Instant (<25ms)",
         is_local: true,
     },
@@ -166,7 +167,8 @@ pub const DEFAULT_MODELS: &[ModelCatalogItem] = &[
         provider: "Anthropic",
         parameter_size: "Undisclosed",
         context_window: "200k",
-        description: "State-of-the-art code generation, architecture planning, and tool orchestration.",
+        description:
+            "State-of-the-art code generation, architecture planning, and tool orchestration.",
         latency_tier: "Standard Cloud",
         is_local: false,
     },

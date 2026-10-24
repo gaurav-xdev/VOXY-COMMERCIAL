@@ -454,9 +454,7 @@ impl AuthMiddleware {
         // Cryptographic HMAC-SHA256 signature verification: fails closed if missing or empty
         let secret_guard = self.signing_secret.read();
         let secret = secret_guard.as_ref().ok_or_else(|| {
-            AuthError::AuthenticationFailed(
-                "Signing secret not configured; failing closed".into(),
-            )
+            AuthError::AuthenticationFailed("Signing secret not configured; failing closed".into())
         })?;
         if secret.is_empty() {
             return Err(AuthError::AuthenticationFailed(
@@ -636,21 +634,27 @@ mod tests {
         let mw_unconfigured = AuthMiddleware::new(100).with_trusted_token("valid-token-123");
         let req = make_auth_request("valid-token-123", vec!["audio:capture".to_string()]);
         let err = mw_unconfigured.authenticate(&req);
-        assert!(matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret not configured")));
+        assert!(
+            matches!(err, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret not configured"))
+        );
 
         // 2. Empty secret in authenticate fails closed
         let mw_empty = AuthMiddleware::new(100)
             .with_signing_secret(b"")
             .with_trusted_token("valid-token-123");
         let err2 = mw_empty.authenticate(&req);
-        assert!(matches!(err2, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is empty")));
+        assert!(
+            matches!(err2, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is empty"))
+        );
 
         // 3. Weak secret (< 16 bytes) in authenticate fails closed
         let mw_weak = AuthMiddleware::new(100)
             .with_signing_secret(b"short-key")
             .with_trusted_token("valid-token-123");
         let err_weak = mw_weak.authenticate(&req);
-        assert!(matches!(err_weak, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is too weak")));
+        assert!(
+            matches!(err_weak, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is too weak"))
+        );
 
         // 4. Unconfigured secret in validate_request fails closed even if session exists
         let mw_configured = AuthMiddleware::new(100)
@@ -658,17 +662,23 @@ mod tests {
             .with_trusted_token("valid-token-123");
         let resp = mw_configured.authenticate(&req).unwrap();
         let session_id = resp.session_id.unwrap();
-        assert!(mw_configured.validate_request(&session_id, "audio:capture").is_ok());
+        assert!(mw_configured
+            .validate_request(&session_id, "audio:capture")
+            .is_ok());
 
         // Now clear the secret on the middleware
         *mw_configured.signing_secret.write() = None;
         let err3 = mw_configured.validate_request(&session_id, "audio:capture");
-        assert!(matches!(err3, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret not configured")));
+        assert!(
+            matches!(err3, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret not configured"))
+        );
 
         // Set empty secret
         *mw_configured.signing_secret.write() = Some(vec![]);
         let err4 = mw_configured.validate_request(&session_id, "audio:capture");
-        assert!(matches!(err4, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is empty")));
+        assert!(
+            matches!(err4, Err(AuthError::AuthenticationFailed(ref msg)) if msg.contains("Signing secret is empty"))
+        );
     }
 
     #[test]
@@ -778,7 +788,10 @@ mod tests {
             client_name: "api-client".to_string(),
         };
         let res = mw.authenticate(&req);
-        assert!(res.is_ok(), "ApiKey authentication must succeed with valid key");
+        assert!(
+            res.is_ok(),
+            "ApiKey authentication must succeed with valid key"
+        );
     }
 
     #[test]
@@ -793,14 +806,13 @@ mod tests {
 
         // 1. Low-privilege client requests its allowed capability -> SUCCEEDS
         let req_viewer_ok = make_auth_request("guest-token", vec!["file:read".to_string()]);
-        let resp_viewer = mw.authenticate(&req_viewer_ok).expect("Viewer request for file:read must succeed");
+        let resp_viewer = mw
+            .authenticate(&req_viewer_ok)
+            .expect("Viewer request for file:read must succeed");
         assert_eq!(resp_viewer.token.as_ref().unwrap().subject, "guest-user");
 
         // 2. Low-privilege client requests administrative / higher privilege capability -> STRICTLY REJECTED
-        let req_priv_esc = make_auth_request(
-            "guest-token",
-            vec!["automation:write".to_string()],
-        );
+        let req_priv_esc = make_auth_request("guest-token", vec!["automation:write".to_string()]);
         let err_esc = mw.authenticate(&req_priv_esc);
         assert!(
             matches!(err_esc, Err(AuthError::AuthenticationFailed(ref msg))
@@ -811,7 +823,9 @@ mod tests {
 
         // 3. Admin client requests high privilege capability -> SUCCEEDS
         let req_admin_ok = make_auth_request("admin-token", vec!["automation:write".to_string()]);
-        let resp_admin = mw.authenticate(&req_admin_ok).expect("Admin request for automation:write must succeed");
+        let resp_admin = mw
+            .authenticate(&req_admin_ok)
+            .expect("Admin request for automation:write must succeed");
         assert_eq!(resp_admin.token.as_ref().unwrap().subject, "admin-agent");
     }
 

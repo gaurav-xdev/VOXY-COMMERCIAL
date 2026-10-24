@@ -138,6 +138,18 @@ impl WindowsJobObject {
             Ok(())
         }
     }
+
+    /// Returns true if the Windows Job Object has a valid active OS handle.
+    pub fn is_active(&self) -> bool {
+        #[cfg(windows)]
+        {
+            !self.handle.is_invalid()
+        }
+        #[cfg(not(windows))]
+        {
+            false
+        }
+    }
 }
 
 impl Drop for WindowsJobObject {
@@ -365,13 +377,18 @@ impl Supervisor {
     }
 
     /// Start all configured supervised services (daemon and overlay).
+    /// Returns Ok(()) if all requested autostart components started successfully.
+    /// Returns Err(SupervisorError) if any requested autostart component fails to launch.
     pub fn start_all(&self) -> Result<(), SupervisorError> {
+        let mut errors = Vec::new();
+
         if self.config.autostart_daemon {
             match self.start_daemon() {
                 Ok(Some(pid)) => info!(pid, "Supervised daemon online"),
                 Ok(None) => {}
                 Err(e) => {
-                    warn!(error = %e, "Could not start supervised daemon; continuing in standalone mode")
+                    warn!(error = %e, "Could not start supervised daemon");
+                    errors.push(format!("daemon: {e}"));
                 }
             }
         }
@@ -381,9 +398,17 @@ impl Supervisor {
                 Ok(Some(pid)) => info!(pid, "Supervised overlay online"),
                 Ok(None) => {}
                 Err(e) => {
-                    warn!(error = %e, "Could not start supervised overlay; continuing without overlay")
+                    warn!(error = %e, "Could not start supervised overlay");
+                    errors.push(format!("overlay: {e}"));
                 }
             }
+        }
+
+        if !errors.is_empty() {
+            return Err(SupervisorError::LaunchFailed(
+                "supervised_services".to_string(),
+                std::io::Error::new(std::io::ErrorKind::Other, errors.join("; ")),
+            ));
         }
 
         Ok(())
@@ -521,7 +546,7 @@ impl Supervisor {
             overlay_pid: overlay_child.map(|c| c.pid),
             pipe_name: self.config.pipe_name.clone(),
             is_shutting_down: self.is_shutting_down.load(Ordering::SeqCst),
-            job_object_active: true,
+            job_object_active: self.job_object.is_active(),
         }
     }
 }
@@ -614,5 +639,34 @@ mod tests {
             }
             other => panic!("Expected AssignProcessFailed, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_job_object_is_active() {
+        let job = WindowsJobObject::new().expect("Job object init failed");
+        #[cfg(windows)]
+        assert!(
+            job.is_active(),
+            "WindowsJobObject should have a valid active handle on Windows"
+        );
+        #[cfg(not(windows))]
+        assert!(!job.is_active());
+    }
+
+    #[test]
+    fn test_supervisor_start_all_propagates_error_on_missing_binaries() {
+        let cfg = SupervisorConfig {
+            daemon_bin: Some(PathBuf::from("non_existent_daemon_path_12345.exe")),
+            overlay_bin: Some(PathBuf::from("non_existent_overlay_path_12345.exe")),
+            autostart_daemon: true,
+            autostart_overlay: false,
+            ..Default::default()
+        };
+        let supervisor = Supervisor::new(cfg).unwrap();
+        let res = supervisor.start_all();
+        assert!(
+            res.is_err(),
+            "start_all must fail when required binary is missing"
+        );
     }
 }

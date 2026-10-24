@@ -94,20 +94,91 @@ pub fn redact_secrets(input: &str) -> String {
 ///
 /// Handles structured log lines (JSON) and plain text.
 pub fn filter_log_line(line: &str) -> String {
-    // Try JSON parsing first
-    if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(line) {
+    let has_trailing_newline = line.ends_with('\n');
+    let trimmed = line.trim_end_matches(['\r', '\n']);
+
+    let result = if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(trimmed) {
         filter_json_value(&mut parsed);
-        return serde_json::to_string(&parsed).unwrap_or_else(|_| line.to_string());
+        serde_json::to_string(&parsed).unwrap_or_else(|_| trimmed.to_string())
+    } else {
+        let lower = trimmed.to_lowercase();
+        let mut matched = false;
+        for pattern in SECRET_PATTERNS {
+            if lower.contains(pattern) {
+                matched = true;
+                break;
+            }
+        }
+        if matched {
+            "[REDACTED - sensitive data filtered]".to_string()
+        } else {
+            trimmed.to_string()
+        }
+    };
+
+    if has_trailing_newline {
+        format!("{result}\n")
+    } else {
+        result
+    }
+}
+
+/// Sanitize multiline crash logs or panic messages by filtering each line for sensitive secrets.
+pub fn sanitize_crash_text(input: &str) -> String {
+    input
+        .lines()
+        .map(filter_log_line)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// An `io::Write` wrapper that buffers and applies secret redaction to log streams.
+pub struct RedactingWriter<W> {
+    inner: W,
+}
+
+impl<W> RedactingWriter<W> {
+    pub fn new(inner: W) -> Self {
+        Self { inner }
+    }
+}
+
+impl<W: std::io::Write> std::io::Write for RedactingWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        let text = String::from_utf8_lossy(buf);
+        let filtered = filter_log_line(&text);
+        self.inner.write_all(filtered.as_bytes())?;
+        Ok(buf.len())
     }
 
-    // Plain text: redact lines containing sensitive patterns
-    let lower = line.to_lowercase();
-    for pattern in SECRET_PATTERNS {
-        if lower.contains(pattern) {
-            return "[REDACTED - sensitive data filtered]".to_string();
-        }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
     }
-    line.to_string()
+}
+
+/// A `MakeWriter` adapter that wraps writers in `RedactingWriter`.
+pub struct RedactingMakeWriter<M> {
+    inner: M,
+}
+
+impl<M> RedactingMakeWriter<M> {
+    pub fn new(inner: M) -> Self {
+        Self { inner }
+    }
+}
+
+impl<'a, M> tracing_subscriber::fmt::MakeWriter<'a> for RedactingMakeWriter<M>
+where
+    M: tracing_subscriber::fmt::MakeWriter<'a>,
+{
+    type Writer = RedactingWriter<M::Writer>;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        RedactingWriter::new(self.inner.make_writer())
+    }
 }
 
 /// Recursively filter sensitive fields in a JSON value.
@@ -161,25 +232,33 @@ pub fn init_logging(config: &LoggingConfig) -> Result<()> {
         // In production, this is acceptable as logging lives for the process lifetime.
         std::mem::forget(_guard);
 
+        let writer = RedactingMakeWriter::new(non_blocking);
+
         if config.json_format() {
             tracing_subscriber::fmt()
                 .with_env_filter(filter)
                 .json()
-                .with_writer(non_blocking)
+                .with_writer(writer)
                 .init();
         } else {
             tracing_subscriber::fmt()
                 .with_env_filter(filter)
-                .with_writer(non_blocking)
+                .with_writer(writer)
                 .init();
         }
     } else if config.json_format() {
+        let writer = RedactingMakeWriter::new(std::io::stdout);
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .json()
+            .with_writer(writer)
             .init();
     } else {
-        tracing_subscriber::fmt().with_env_filter(filter).init();
+        let writer = RedactingMakeWriter::new(std::io::stdout);
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(writer)
+            .init();
     }
 
     tracing::info!(
@@ -250,15 +329,28 @@ pub fn write_crash_log(panic_info: &std::panic::PanicInfo) {
 
     let backtrace = std::backtrace::Backtrace::force_capture();
 
+    let raw_message = panic_info
+        .payload()
+        .downcast_ref::<String>()
+        .cloned()
+        .or_else(|| {
+            panic_info
+                .payload()
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+        })
+        .unwrap_or_else(|| "unknown panic".to_string());
+
+    let safe_message = sanitize_crash_text(&raw_message);
+    let safe_backtrace = sanitize_crash_text(&format!("{}", backtrace));
+
     let crash_log = serde_json::json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "level": "CRASH",
         "thread": thread_name,
-        "message": panic_info.payload().downcast_ref::<String>().unwrap_or(
-            &panic_info.payload().downcast_ref::<&str>().unwrap_or(&"unknown panic").to_string()
-        ).clone(),
+        "message": safe_message,
         "location": panic_info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown".to_string()),
-        "backtrace": format!("{}", backtrace),
+        "backtrace": safe_backtrace,
     });
 
     // Write to stderr (last resort if logging is down)
@@ -394,5 +486,32 @@ mod tests {
     fn cleanup_old_logs_does_not_panic() {
         let dir = tempfile::tempdir().unwrap();
         cleanup_old_logs(dir.path(), "voxy.log", 5);
+    }
+
+    #[test]
+    fn test_sanitize_crash_text_removes_sensitive_information() {
+        let crash_raw = "Panic at thread main:\nFailed with password=supersecretpass\nStack frame 0: login(token=secrettoken123)\nStack frame 1: normal_function()";
+        let sanitized = sanitize_crash_text(crash_raw);
+
+        assert!(!sanitized.contains("supersecretpass"));
+        assert!(!sanitized.contains("secrettoken123"));
+        assert!(sanitized.contains("normal_function()"));
+        assert!(sanitized.contains("[REDACTED - sensitive data filtered]"));
+    }
+
+    #[test]
+    fn test_redacting_writer_filters_stream() {
+        use std::io::Write;
+        let mut buffer = Vec::new();
+        let mut writer = RedactingWriter::new(&mut buffer);
+
+        let log_entry =
+            "{\"service\":\"auth\",\"api_key\":\"sk-live-secret-test\",\"status\":\"ok\"}\n";
+        writer.write_all(log_entry.as_bytes()).unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(!output.contains("sk-live-secret-test"));
+        assert!(output.contains("\"api_key\":\"[REDACTED]\""));
+        assert!(output.contains("\"service\":\"auth\""));
     }
 }

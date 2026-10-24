@@ -50,6 +50,14 @@ voxy-ipc = { path = "../ipc" }
 voxy-companion-intelligence = { path = "../companion_intelligence" }
 voxy-api-server = { path = "../api_server" }
 voxy-billing = { path = "../billing" }
+voxy-model-router = { path = "../model_router" }
+voxy-provider-core = { path = "../provider_core" }
+voxy-ollama = { path = "../ollama" }
+voxy-anthropic = { path = "../anthropic" }
+voxy-openai = { path = "../openai" }
+voxy-gemini = { path = "../gemini" }
+voxy-tool-calling = { path = "../tool_calling" }
+voxy-automation = { path = "../automation" }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
