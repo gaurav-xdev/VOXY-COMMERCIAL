@@ -15,6 +15,8 @@ voxy-event-bus = { workspace = true }
 voxy-tool-calling = { path = "../tool_calling" }
 voxy-security = { path = "../security" }
 voxy-database = { path = "../database" }
+voxy-harness = { path = "../harness" }
+walkdir = "2"
 tokio = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }

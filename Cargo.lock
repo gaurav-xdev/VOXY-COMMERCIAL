@@ -8639,12 +8639,14 @@ dependencies = [
  "uuid",
  "voxy-database",
  "voxy-event-bus",
+ "voxy-harness",
  "voxy-personality",
  "voxy-provider-core",
  "voxy-security",
  "voxy-shared",
  "voxy-tool-calling",
  "voxy-world-model",
+ "walkdir",
 ]
 
 [[package]]

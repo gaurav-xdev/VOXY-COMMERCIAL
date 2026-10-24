@@ -399,3 +399,395 @@ impl Tool for OsmooSkillsVerifyExecutionTool {
         }
     }
 }
+
+use crate::benchmarks::MultiLanguageBenchmarkHarness;
+use crate::code_review::IndependentCodeReviewer;
+use crate::engineering_workflow::{EngineeringTaskSpec, ProductionEngineeringWorkflow};
+use crate::language_profiles::{LanguageProfileRegistry, RepositoryLanguageDetector, SupportedLanguage};
+use crate::toolchains::ToolchainRegistry;
+
+/// Tool 5: Inspect compiler, linter, and test toolchains across all 10 languages.
+pub struct OsmooToolchainsInspectTool {
+    metadata: ToolMetadata,
+}
+
+impl OsmooToolchainsInspectTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_toolchains_inspect",
+            "Inspect compiler, test runner, and linter toolchain availability across all 10 core languages (Rust, TS, JS, Python, C, C++, C#, Java, Go, SQL).",
+            ToolCategory::Coding,
+            RiskTier::Read,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "properties": {
+                "language": { "type": "string", "description": "Optional language filter (rust, typescript, python, c, cpp, csharp, java, go, sql)" },
+                "workspace_root": { "type": "string", "description": "Optional repository root path" }
+            }
+        }));
+
+        Self { metadata }
+    }
+}
+
+impl Default for OsmooToolchainsInspectTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooToolchainsInspectTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
+        let lang_str = params.get("language").and_then(|v| v.as_str());
+
+        let registry = ToolchainRegistry::new(root);
+        let langs_to_check = if let Some(s) = lang_str {
+            SupportedLanguage::from_str_loose(s).map(|l| vec![l]).unwrap_or_default()
+        } else {
+            SupportedLanguage::all().to_vec()
+        };
+
+        let mut reports = Vec::new();
+        for lang in langs_to_check {
+            let tools = registry.inspect_toolchain(lang).await;
+            reports.push(json!({
+                "language": lang.as_str(),
+                "tools": tools,
+            }));
+        }
+
+        Ok(ToolResult::success(json!({
+            "workspace_root": root,
+            "toolchains": reports,
+        })).with_observation(format!("Inspected toolchains across {} languages", reports.len())))
+    }
+}
+
+/// Tool 6: Detect programming languages, frameworks, and manifests across a repository.
+pub struct OsmooProjectDetectLanguagesTool {
+    metadata: ToolMetadata,
+}
+
+impl OsmooProjectDetectLanguagesTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_project_detect_languages",
+            "Scan workspace repository files and build manifests to detect all active languages and polyglot architecture.",
+            ToolCategory::Coding,
+            RiskTier::Read,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "properties": {
+                "workspace_root": { "type": "string", "description": "Optional repository root path" }
+            }
+        }));
+
+        Self { metadata }
+    }
+}
+
+impl Default for OsmooProjectDetectLanguagesTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooProjectDetectLanguagesTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
+        let result = RepositoryLanguageDetector::detect(root);
+
+        Ok(ToolResult::success(json!({
+            "workspace_root": result.workspace_root,
+            "total_code_files": result.total_code_files,
+            "primary_language": result.primary_language.map(|l| l.as_str()),
+            "is_polyglot": result.is_polyglot,
+            "detected_languages": result.detected_languages,
+        })).with_observation(format!(
+            "Detected {} code files across {} languages (primary: {:?}, polyglot: {})",
+            result.total_code_files,
+            result.detected_languages.len(),
+            result.primary_language.map(|l| l.as_str()),
+            result.is_polyglot
+        )))
+    }
+}
+
+/// Tool 7: Get authoritative language profile engineering guidance.
+pub struct OsmooLanguageProfileGetTool {
+    metadata: ToolMetadata,
+    registry: LanguageProfileRegistry,
+}
+
+impl OsmooLanguageProfileGetTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_language_profile_get",
+            "Retrieve authoritative language profile standards, official docs, idiomatic patterns, anti-patterns, security rules, and review checklists for any of the 10 core languages.",
+            ToolCategory::Coding,
+            RiskTier::Read,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "required": ["language"],
+            "properties": {
+                "language": { "type": "string", "description": "Target language (rust, typescript, javascript, python, c, cpp, csharp, java, go, sql)" }
+            }
+        }));
+
+        Self {
+            metadata,
+            registry: LanguageProfileRegistry::new(),
+        }
+    }
+}
+
+impl Default for OsmooLanguageProfileGetTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooLanguageProfileGetTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let lang_str = params.get("language").and_then(|v| v.as_str()).unwrap_or("");
+        if let Some(profile) = self.registry.get_by_name(lang_str) {
+            Ok(ToolResult::success(json!(profile))
+                .with_observation(format!("Retrieved authoritative engineering profile for {}", profile.name)))
+        } else {
+            Ok(ToolResult::failure(format!(
+                "Unsupported language '{}'. Supported: rust, typescript, javascript, python, c, cpp, csharp, java, go, sql",
+                lang_str
+            )))
+        }
+    }
+}
+
+/// Tool 8: Run the 8-step production engineering workflow.
+pub struct OsmooEngineeringWorkflowRunTool {
+    metadata: ToolMetadata,
+}
+
+impl OsmooEngineeringWorkflowRunTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_engineering_workflow_run",
+            "Execute the 8-step production software engineering lifecycle (Understand, Plan, Baseline, Implement, Verify Continuously, Review Independently, Correct, Report).",
+            ToolCategory::Coding,
+            RiskTier::Modify,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "required": ["title", "description"],
+            "properties": {
+                "task_id": { "type": "string" },
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "target_languages": { "type": "array", "items": { "type": "string" } },
+                "target_files": { "type": "array", "items": { "type": "string" } },
+                "diff": { "type": "string", "description": "Optional code diff to review" },
+                "workspace_root": { "type": "string" }
+            }
+        }));
+
+        Self { metadata }
+    }
+}
+
+impl Default for OsmooEngineeringWorkflowRunTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooEngineeringWorkflowRunTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
+        let task_id = params.get("task_id").and_then(|v| v.as_str()).unwrap_or("task-eng-01");
+        let title = params.get("title").and_then(|v| v.as_str()).unwrap_or("");
+        let description = params.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let diff = params.get("diff").and_then(|v| v.as_str());
+
+        let target_langs = params
+            .get("target_languages")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().and_then(SupportedLanguage::from_str_loose))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let target_files = params
+            .get("target_files")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let spec = EngineeringTaskSpec {
+            task_id: task_id.to_string(),
+            title: title.to_string(),
+            description: description.to_string(),
+            target_languages: target_langs,
+            target_files,
+        };
+
+        let workflow = ProductionEngineeringWorkflow::new(root);
+        let summary = workflow.run_workflow(&spec, diff).await;
+
+        Ok(ToolResult::success(json!(summary)).with_observation(format!(
+            "Workflow finished across 8 stages. Ready for merge: {}",
+            summary.ready_for_merge
+        )))
+    }
+}
+
+/// Tool 9: Independent multi-language code review of diffs without self-approval.
+pub struct OsmooCodeReviewDiffTool {
+    metadata: ToolMetadata,
+    reviewer: IndependentCodeReviewer,
+}
+
+impl OsmooCodeReviewDiffTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_code_review_diff",
+            "Perform independent static code review on diffs across all 10 languages (security, memory safety, concurrency, SQL injection, error handling).",
+            ToolCategory::Coding,
+            RiskTier::Read,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "required": ["diff"],
+            "properties": {
+                "diff": { "type": "string", "description": "Git diff or multi-file diff string" }
+            }
+        }));
+
+        Self {
+            metadata,
+            reviewer: IndependentCodeReviewer::new(),
+        }
+    }
+}
+
+impl Default for OsmooCodeReviewDiffTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooCodeReviewDiffTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let diff = params
+            .get("diff")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| voxy_tool_calling::ToolError::InvalidParams("Missing 'diff'".into()))?;
+
+        let report = self.reviewer.review_diff(diff);
+
+        Ok(ToolResult::success(json!(report)).with_observation(report.summary.clone()))
+    }
+}
+
+/// Tool 10: Run reproducible 10-language engineering benchmark suite.
+pub struct OsmooBenchmarkRunTool {
+    metadata: ToolMetadata,
+}
+
+impl OsmooBenchmarkRunTool {
+    pub fn new() -> Self {
+        let metadata = ToolMetadata::new(
+            "osmoo_benchmark_run",
+            "Execute the reproducible 10-language software engineering benchmark suite and return scorecards.",
+            ToolCategory::Coding,
+            RiskTier::Read,
+        )
+        .with_schema(json!({
+            "type": "object",
+            "properties": {}
+        }));
+
+        Self { metadata }
+    }
+}
+
+impl Default for OsmooBenchmarkRunTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for OsmooBenchmarkRunTool {
+    fn metadata(&self) -> &ToolMetadata {
+        &self.metadata
+    }
+
+    async fn execute(
+        &self,
+        _params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let harness = MultiLanguageBenchmarkHarness::new();
+        let scorecard = harness.execute_benchmark();
+
+        Ok(ToolResult::success(json!(scorecard)).with_observation(format!(
+            "Benchmark passed {}/{} ({}%) across 10 languages",
+            scorecard.passed_cases, scorecard.total_cases, scorecard.pass_rate_percent
+        )))
+    }
+}
+

@@ -154,6 +154,18 @@ pub struct ActiveCapabilityContext {
     pub required_checks: Vec<EngineeringCheckItem>,
 }
 
+/// Lifecycle event tracking across task execution to prevent conflating discovery, loading, execution, and verification.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SkillLifecycleEvent {
+    SkillDiscovered { skill_id: String, source_repo: String },
+    SkillLoaded { skill_id: String, instruction_bytes: usize },
+    SkillInstructionsApplied { skill_id: String, task_id: String },
+    ToolExecuted { tool_name: String, success: bool, duration_ms: u64 },
+    VerificationPassed { check_name: String, evidence: String },
+    VerificationFailed { check_name: String, error: String },
+}
+
 /// Record of verified skill execution for a task.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillExecutionRecord {
@@ -163,6 +175,8 @@ pub struct SkillExecutionRecord {
     pub active_skills: Vec<String>,
     pub required_checks: Vec<EngineeringCheckItem>,
     pub conflict_resolutions: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_events: Vec<SkillLifecycleEvent>,
     pub all_passed: bool,
     pub completed_at: Option<String>,
 }
@@ -280,6 +294,18 @@ impl TaskContext {
         self
     }
 
+    /// Automatically scans workspace repository files and manifests to discover active languages.
+    pub fn with_workspace_detection(mut self, workspace_path: impl AsRef<std::path::Path>) -> Self {
+        let det = crate::language_profiles::RepositoryLanguageDetector::detect(workspace_path);
+        for lang_ev in det.detected_languages {
+            let name = lang_ev.language.as_str().to_string();
+            if !self.detected_languages.contains(&name) {
+                self.detected_languages.push(name);
+            }
+        }
+        self
+    }
+
     fn infer_task_type(prompt: &str) -> TaskType {
         let p = prompt.to_lowercase();
         if p.contains("scrape") || p.contains("crawl") || p.contains("firecrawl") {
@@ -311,19 +337,30 @@ impl TaskContext {
         if p.contains("rust") || p.contains("cargo") || p.contains("tokio") || p.contains("clippy") {
             langs.push("rust".into());
         }
-        if p.contains("python") || p.contains("pytest") || p.contains("pip") {
+        if p.contains("python") || p.contains("pytest") || p.contains("pip") || p.contains("django") || p.contains("fastapi") {
             langs.push("python".into());
         }
-        if p.contains("typescript") || p.contains("react") || p.contains("javascript") || p.contains("npm") {
+        if p.contains("typescript") || p.contains("react") || p.contains("javascript") || p.contains("npm") || p.contains("node") || p.contains("nextjs") {
             langs.push("typescript".into());
             langs.push("javascript".into());
         }
-        if p.contains("c++") || p.contains("cpp") || p.contains("clang") {
+        if p.contains("c++") || p.contains("cpp") || p.contains("cmake") {
             langs.push("cpp".into());
             langs.push("c".into());
+        } else if p.contains(" c ") || p.contains("ansi c") || p.contains("gcc") || p.contains("clang") {
+            langs.push("c".into());
+        }
+        if p.contains("c#") || p.contains("csharp") || p.contains("dotnet") || p.contains(".net") || p.contains("csproj") {
+            langs.push("csharp".into());
+        }
+        if p.contains("java") || p.contains("jvm") || p.contains("maven") || p.contains("gradle") || p.contains("spring") {
+            langs.push("java".into());
         }
         if p.contains("golang") || p.contains("go ") || p.contains("goroutine") {
             langs.push("go".into());
+        }
+        if p.contains("sql") || p.contains("postgres") || p.contains("sqlite") || p.contains("database") || p.contains("migration") {
+            langs.push("sql".into());
         }
         langs
     }
@@ -720,6 +757,7 @@ impl ActivationEngine {
             active_skills: ctx.active_capabilities.iter().map(|c| c.id.clone()).collect(),
             required_checks: ctx.required_checks.clone(),
             conflict_resolutions: ctx.conflict_resolutions.clone(),
+            lifecycle_events: Vec::new(),
             all_passed: false,
             completed_at: None,
         }
@@ -764,16 +802,24 @@ impl ActivationEngine {
         Ok(())
     }
 
-    /// Registers the 4 OSMOO internal skill tools into any ToolRegistry.
+    /// Registers the 10 OSMOO internal software engineering and skill tools into any ToolRegistry.
     pub fn register_tools(self: &std::sync::Arc<Self>, registry: &voxy_tool_calling::ToolRegistry) {
         use crate::tools::{
-            OsmooSkillsDiscoverTool, OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool,
-            OsmooSkillsVerifyExecutionTool,
+            OsmooBenchmarkRunTool, OsmooCodeReviewDiffTool, OsmooEngineeringWorkflowRunTool,
+            OsmooLanguageProfileGetTool, OsmooProjectDetectLanguagesTool, OsmooSkillsDiscoverTool,
+            OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool, OsmooSkillsVerifyExecutionTool,
+            OsmooToolchainsInspectTool,
         };
         let store = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new()));
         registry.register_sync(std::sync::Arc::new(OsmooSkillsDiscoverTool::new(std::sync::Arc::clone(self))));
         registry.register_sync(std::sync::Arc::new(OsmooSkillsEvaluateTool::new(std::sync::Arc::clone(self), std::sync::Arc::clone(&store))));
         registry.register_sync(std::sync::Arc::new(OsmooSkillsLoadInstructionsTool::new(std::sync::Arc::clone(self))));
         registry.register_sync(std::sync::Arc::new(OsmooSkillsVerifyExecutionTool::new(std::sync::Arc::clone(self), store)));
+        registry.register_sync(std::sync::Arc::new(OsmooToolchainsInspectTool::new()));
+        registry.register_sync(std::sync::Arc::new(OsmooProjectDetectLanguagesTool::new()));
+        registry.register_sync(std::sync::Arc::new(OsmooLanguageProfileGetTool::new()));
+        registry.register_sync(std::sync::Arc::new(OsmooEngineeringWorkflowRunTool::new()));
+        registry.register_sync(std::sync::Arc::new(OsmooCodeReviewDiffTool::new()));
+        registry.register_sync(std::sync::Arc::new(OsmooBenchmarkRunTool::new()));
     }
 }
