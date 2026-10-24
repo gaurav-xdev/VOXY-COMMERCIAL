@@ -50,6 +50,13 @@ impl BackendDispatcher {
         let kodus_engine = Arc::new(voxy_kodus_review::KodusReviewEngine::new(".", kodus_bridge, kodus_security));
         tool_registry.register_sync(Arc::new(voxy_kodus_review::KodusInternalReviewTool::new(kodus_engine)));
 
+        // Initialize OSMOO Trinity & SwarmClaw Multi-Agent Engine (accessible exclusively to OSMOO)
+        let swarm_security = voxy_trinity_swarm::SwarmSecurityBoundary::new();
+        let swarm_bridge = voxy_trinity_swarm::SwarmProviderBridge::new(model_router.clone(), swarm_security.clone());
+        let swarm_coordinator = Arc::new(voxy_trinity_swarm::SwarmCoordinator::new(swarm_bridge, swarm_security, "."));
+        tool_registry.register_sync(Arc::new(voxy_trinity_swarm::OsmooSwarmOrchestratorTool::new(swarm_coordinator.clone())));
+        tool_registry.register_sync(Arc::new(voxy_trinity_swarm::OsmooSwarmStatusTool::new(swarm_coordinator)));
+
         let dispatcher = Self {
             bridge,
             default_conversation_id: Arc::new(RwLock::new(None)),
