@@ -82,11 +82,16 @@ impl ToolRegistry {
         registry
     }
 
-    fn register_builtin_sync(&self, tool: Arc<dyn Tool>) {
+    /// Synchronously register a tool into the registry if possible.
+    pub fn register_sync(&self, tool: Arc<dyn Tool>) {
         let name = tool.metadata().name.clone();
         if let Ok(mut lock) = self.tools.try_write() {
             lock.insert(name, tool);
         }
+    }
+
+    fn register_builtin_sync(&self, tool: Arc<dyn Tool>) {
+        self.register_sync(tool);
     }
 
     /// Register a tool into the registry.

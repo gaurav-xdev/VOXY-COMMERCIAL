@@ -35,6 +35,15 @@ impl BackendDispatcher {
         let primary_llm = bridge.settings.get().models.provider;
         let model_router = Self::create_default_model_router(&primary_llm);
         let tool_registry = Arc::new(ToolRegistry::with_builtins());
+
+        // Initialize OSMOO Sovereign Video Studio Enclave (accessible exclusively to OSMOO)
+        let enclave_path = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("crates/video_studio/enclave");
+        let video_enclave = voxy_video_studio::VideoStudioEnclave::new(enclave_path);
+        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioPipelineTool::new(video_enclave.clone())));
+        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioInspectTool::new(video_enclave)));
+
         let dispatcher = Self {
             bridge,
             default_conversation_id: Arc::new(RwLock::new(None)),
