@@ -502,3 +502,25 @@ pub fn IconSparkles(class: Option<String>, size: Option<u32>) -> Element {
         }
     }
 }
+
+#[component]
+pub fn IconLayers(class: Option<String>, size: Option<u32>) -> Element {
+    let s = size.unwrap_or(16);
+    let c = class.unwrap_or_else(|| "svg-icon".to_string());
+    rsx! {
+        svg {
+            class: "{c}",
+            width: "{s}",
+            height: "{s}",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            polygon { points: "12 2 2 7 12 12 22 7 12 2" }
+            polyline { points: "2 17 12 22 22 17" }
+            polyline { points: "2 12 12 17 22 12" }
+        }
+    }
+}

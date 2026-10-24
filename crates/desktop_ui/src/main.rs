@@ -3,6 +3,7 @@ pub mod backend;
 mod bridge;
 mod components;
 pub mod fixtures;
+pub mod overlay;
 mod styles;
 pub mod supervisor;
 mod views;
@@ -328,10 +329,8 @@ fn init_bridge() -> AppBridge {
     })
 }
 
-static SUPERVISOR: OnceLock<Arc<Supervisor>> = OnceLock::new();
-
 pub fn get_supervisor() -> Option<Arc<Supervisor>> {
-    SUPERVISOR.get().cloned()
+    supervisor::get_global()
 }
 
 fn main() {
@@ -370,7 +369,15 @@ fn main() {
         println!("  --daemon-only        Run background daemon under supervision without GUI");
         println!("  --no-daemon          Launch UI without auto-spawning background daemon");
         println!("  --no-overlay         Launch without auto-spawning overlay");
+        println!("  --overlay            Launch directly in Desktop Overlay mode");
         println!("  -a, --autostart      Start minimized to system tray");
+        return;
+    }
+
+    // Direct Desktop Overlay Mode inside unified OSMOO.exe
+    if args.iter().any(|arg| arg == "--overlay") {
+        tracing::info!("Launching unified OSMOO.exe directly in Desktop Overlay Mode");
+        overlay::run_overlay();
         return;
     }
 
@@ -392,7 +399,7 @@ fn main() {
     let supervisor = match Supervisor::new(supervisor_config) {
         Ok(sup) => {
             let sup = Arc::new(sup);
-            let _ = SUPERVISOR.set(sup.clone());
+            supervisor::set_global(sup.clone());
             sup
         }
         Err(e) => {

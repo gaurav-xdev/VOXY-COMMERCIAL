@@ -1,17 +1,17 @@
 # Graph Report - VOXY-COMMERCIAL  (2026-10-24)
 
 ## Corpus Check
-- 1393 files · ~1,092,940 words
+- 1403 files · ~1,100,350 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 32 file(s) not represented in the graph (top: .toml 6, .bat 5, (none) 3)
 
 ## Summary
-- 24543 nodes · 48023 edges · 1044 communities (874 shown, 170 thin omitted)
+- 24667 nodes · 48192 edges · 1080 communities (890 shown, 190 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 1558 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `29f70506`
+- Built from commit: `b7268b1b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,13 +31,13 @@
 - goal_engine_v2.rs
 - voxy-shared
 - sqlite.rs
-- Value
+- Rect
 - agent_runtime/src/orchestrator.rs
 - RuntimeManagerError
 - vision/src/coordinator.rs
-- OfficeScope
+- office/src/lib.rs
 - DefaultSystemCoordinator
-- FalMedia
+- PriceQuoteRequired
 - production_validation.rs
 - sqlite_engine.rs
 - conversation/src/session.rs
@@ -50,10 +50,10 @@
 - corpus_builder.py
 - MemoryItem
 - metrics/src/lib.rs
-- InMemoryCognitiveEngine
+- UiHierarchy
 - dependency/src/graph.rs
 - security/src/auth.rs
-- voice_audio/src/lib.rs
+- AudioCaptureHandle
 - VoicePipeline
 - decision_engine.rs
 - context/tests/integration_tests.rs
@@ -68,7 +68,7 @@
 - companion_intelligence/src/lib.rs
 - ssrf.rs
 - Urgency
-- security/src/lib.rs
+- AutomationBackend
 - ExecutionContext
 - EmotionalStateMachine
 - SwarmTask
@@ -81,8 +81,7 @@
 - probe_output
 - WorldModelEvent
 - background.rs
-- ToolContext
-- ipc/src/lib.rs
+- Win32Automation
 - VOXY Health Architecture Design
 - RecoveryEngine
 - PresenceEngine
@@ -114,25 +113,24 @@
 - curiosity.rs
 - replay.rs
 - signed.rs
-- ToolMetadata
-- VadDetector
+- DaemonMessage
+- HybridBackend
 - voice_tts/src/lib.rs
 - knowledge_validation.rs
 - MemoryImportanceEngine
-- ToolResult
+- ToolMetadata
 - runtime/src/scheduler.rs
 - rollback.rs
 - OpenClawBackend
 - CapabilityManifest
 - WeatherContext
 - hub.rs
-- duration
 - companion_moments.rs
 - SystemComponent
 - identity.rs
 - Cognitive Loop
 - windows_capture.rs
-- AutomationBackend
+- ElementSelector
 - Value
 - brain/src/session.rs
 - src/tests.rs
@@ -141,7 +139,7 @@
 - logging/src/lib.rs
 - security/src/audit.rs
 - security/src/defense.rs
-- .run_command
+- GreenScreenComposite
 - CognitionEvent
 - brain/tests/integration_tests.rs
 - desktop_ui/src/main.rs
@@ -153,7 +151,7 @@
 - integration/src/pipeline.rs
 - kernel/src/lib.rs
 - SqliteMemoryEngine
-- personality/src/lib.rs
+- VisualState
 - goals.rs
 - src/events.rs
 - MemoryApi
@@ -171,7 +169,7 @@
 - Capability
 - context/src/lib.rs
 - bridge/auth.rs
-- VisualState
+- src/components/mode_views.rs
 - dodo_client.rs
 - HyperFramesCompose
 - ConversationError
@@ -197,18 +195,18 @@
 - TaskGraph
 - watchdog.rs
 - SkillPermission
-- pipecat_pipeline.py
+- DepthDrawer
 - Supervisor
-- watcher.rs
+- DesktopWatcher
 - Skill
 - experience_replay.rs
-- tool_calling/src/lib.rs
+- VoxyIpcServer
 - AuditLogEntry
 - StdResult
 - report.rs
 - ProviderError
 - secrets.rs
-- guard.rs
+- HeartbeatTracker
 - consent.rs
 - ErrorKind
 - PresenceRenderer
@@ -220,7 +218,7 @@
 - ContextProvider
 - download.rs
 - sdk.rs
-- ToolCategory
+- ui.rs
 - IntelligenceError
 - Corpus
 - WindowsPlatform
@@ -230,9 +228,9 @@
 - database/src/lib.rs
 - openai/src/client.rs
 - skill_discovery.rs
-- Root.tsx
+- CinematicRenderer.tsx
 - ComponentState
-- CostTracker
+- config_model.py
 - DefaultInterruptionManager
 - TaskHandle
 - WasapiLoopbackCapture
@@ -265,32 +263,32 @@
 - vram_manager.rs
 - IpcError
 - task_graph.rs
-- ui_state_test.rs
+- ClientCommand
 - pipecat_pipeline.py
 - skills/src/lib.rs
-- platform_core/src/traits.rs
-- security/src/auth.rs
+- platform_core/src/lib.rs
+- tcp_loopback.rs
 - playbook_loader.py
 - assembled.rs
 - ConversationEvent
 - InMemoryBargeInManager
 - BackendCommand
 - HardwareError
-- watchdog.rs
+- selftest.rs
 - OrchestratorEvent
 - ProviderHealth
-- A2AMessage
+- NodeType
 - shared/src/lib.rs
 - notifications.rs
-- CalibrationSample
+- AdaptiveThreshold
 - health.rs
 - version.rs
-- builtin/memory.rs
+- tool_calling/src/lib.rs
 - SandboxedRunner
-- threejs_world.py
+- ThreeJSWorld
 - human_dynamics/src/confidence.rs
 - 2. Core Components
-- hardware/src/lib.rs
+- GpuVendor
 - model_lifecycle.rs
 - SearchFilters
 - CancellationToken
@@ -301,31 +299,31 @@
 - push_to_talk.rs
 - CapRecorder
 - icons.rs
-- ManagedService
+- capture_screenshot
 - overlay/src/main.rs
 - protocol.rs
 - ToolRegistry
 - journal.rs
-- SwarmCoordinator
+- human_dynamics/src/types.rs
 - delta.rs
 - providers/memory.rs
 - backup.rs
 - FeatureFlags
 - world_model/src/traits.rs
-- SchemaMedia
+- OllamaProvider
 - learning/src/engine.rs
 - package.json
 - VisionError
 - AudioReactive
 - MemoryEvent
-- agent_runtime/src/lib.rs
+- RuntimeGuard
 - Attention System
 - resolveAsset
 - OwnerCommandCenter
 - ConfigError
-- sys
+- detect_project.py
 - ContextInvalidation
-- home/src/traits.rs
+- HomeManager
 - CentralTelemetry
 - OpenAIConfig
 - ResourceGovernor
@@ -335,9 +333,9 @@
 - CognitiveError
 - priority.rs
 - shortcuts.rs
-- provider_core/src/lib.rs
+- brain/tests/integration_tests.rs
 - OrchestratorError
-- error
+- runtime_guard/src/lib.rs
 - shared/src/traits.rs
 - Goal Manager
 - HyperFrames Skill (Layer 2)
@@ -350,18 +348,18 @@
 - health/src/diagnostics.rs
 - HomeEvent
 - pipecat.rs
-- WindowCloseTool
+- shutdown.rs
 - pipeline_loader.py
 - Asset Director - Documentary Montage Pipeline
 - Planner
 - MemoryError
-- SttProvider
+- provider_core/src/lib.rs
 - conflict.rs
 - TaskType
 - HeadTracker
 - OpenAIProvider
 - AutoReframe
-- api_server/src/lib.rs
+- ApiResponseEnvelope
 - entitlement.rs
 - Alert
 - DecisionEngine
@@ -398,13 +396,13 @@
 - Contributing to VOXY
 - VOXY Storage Architecture Design
 - PluginError
-- BOOL
+- human_dynamics/src/engine.rs
 - HunyuanCloudVideo
 - ToolResult
 - Tool Orchestration
 - MissionCompanion
 - providers/device.rs
-- Quantization
+- LocalModelMetadata
 - Frame
 - LearningError
 - trinity_swarm/src/lib.rs
@@ -416,12 +414,12 @@
 - AutoLauncher
 - CompanionPersonality
 - RoomType
-- OfficeAuditTrail
+- style.rs
 - LearningEvent
 - RetrievalEngine
 - IntentType
 - Severity
-- voice_tts/src/lib.rs
+- SentenceChunker
 - verify.sh
 - Executive Producer — Talking Head Pipeline
 - providers/environment.rs
@@ -455,9 +453,9 @@
 - Executive Producer — Explainer Pipeline
 - KlingClient
 - LocalModelDiscovery
-- Tool
+- threejs_asset_catalog.py
 - PolicyEnforcementMode
-- cognitive_orchestrator/src/lib.rs
+- GeminiProvider
 - SystemComponent
 - Code Review and Quality
 - CompressionEngine
@@ -475,11 +473,11 @@
 - Executive Producer — Animation Pipeline
 - Process
 - WorkflowStatus
-- SwarmBlackboard
+- RelationshipLevel
 - ActivationEngine
 - VOXY Dependency Validation Report
 - ReinforcementSignal
-- voxy_live_system.py
+- inspect_laptop_endpoint.py
 - repo_indexer.rs
 - SettingsTab
 - VOXY Deployment Guide
@@ -487,10 +485,10 @@
 - AuditContract
 - TaskStatus
 - Injectable
-- prompt.rs
+- src/activity.rs
 - Conversation Context
 - source_media_review.py
-- IntelligenceConfig
+- migration.rs
 - VideoUnderstand
 - Version
 - GraphState
@@ -503,14 +501,14 @@
 - ModelStatus
 - ProjectPhase
 - Video Stitching Strategy Skill
-- Platform
+- VisionRuntime
 - Process — Standard Path (Corpus + CLIP Retrieval)
 - Git Workflow and Versioning
 - FrameFlags
 - Phase 26 STT Stability Report
 - certification.rs
 - Context Management
-- sdk.rs
+- DesktopEventBridge
 - OnboardingStep
 - ConversationConfig
 - GrokImage
@@ -522,7 +520,7 @@
 - styles/mod.rs
 - build.sh
 - OSMOO Desktop Backend Integration Implementation Plan
-- BackendCommand
+- ActiveTask
 - API and Interface Design
 - Hardening Controls
 - The 20 Anti-Patterns
@@ -576,19 +574,19 @@
 - Unified Brain Orchestrator
 - simulation/src/lib.rs
 - ExecutorError
-- AgentAction
-- CompanionState
+- companion/src/lib.rs
+- AzureTTS
 - Master Product Completion & Single-EXE Release Plan: OSMOO
 - VOXY KNOWLEDGE SYNCHRONIZATION REPORT
 - OPERATION ZERO MOCKS - Audit Report
 - .ingest
 - PHASE 24 — Windows Production Voice Validation Report
-- OPERATION TITAN POLISH — Product Polish Report
+- RealtimeAudioSession
 - Review & Adversarial Challenge Report — Milestones M3 & M4
 - Production Validation Report
 - DeviceRegistry
-- platform_core/src/lib.rs
-- AuthMode
+- WindowPlatform
+- relationship.rs
 - CompanionError
 - VOXY System Architecture
 - 3. Detailed Component Design
@@ -600,7 +598,7 @@
 - BRIEFING — 2026-10-14T03:18:00Z
 - BRIEFING — 2026-10-14T03:05:00Z
 - Lifecycle
-- fmt
+- GroundingError
 - 2. Test Classification: Real OS/Hardware vs. Mocks/Fixtures
 - Phase 28 — Sub-1-Second First-Audio Latency Engineering Report
 - OSMOO E2E Test Infrastructure Specification
@@ -610,12 +608,13 @@
 - Added
 - Context Module Dependency Graph
 - Companion Intelligence Engine — Architecture
+- TrustEngine
 - Remotion Skill
 - Temporal—durable execution platform
 - VOXY Recovery Flow
 - PHANTOM Desktop Runtime — Benchmark Report
 - PHASE 23 — VOICE VERIFICATION REPORT
-- 3. Detailed Component Design
+- voxy_protocol.rs
 - VOXY Voice Runtime Performance Benchmark Report
 - VOXY Voice Runtime Performance Benchmark Report
 - Gravitas -- Delegation Reference
@@ -683,20 +682,20 @@
 - 15. Implementation Plan
 - 16. Event Replay
 - OSMOO Production Release Verification Report
-- PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION
+- RuntimeSnapshot
 - OSMOO FINAL PRODUCTION & LAUNCH VERIFICATION AUDIT REPORT
 - .add
 - Execution Progress
 - HDR Update Sequence
 - Asset Director - Avatar Spokesperson Pipeline
-- AuditEventType
+- home/src/traits.rs
 - INDEX.md
 - ComfyUIClient
 - Process
 - Process
 - pexels.py
 - Process
-- ConversationMemory
+- humor.rs
 - Issue 3: Sandbox Runner Isolation Guarantees & Host Credential Leakage
 - Issue 4: Windows UI Automation & DPI Scaling Incompleteness
 - Issue 2: Process Supervision Failure Handling (Fail-Closed Enforcement)
@@ -772,7 +771,7 @@
 - GeminiOmniVideo
 - JimengVideo
 - MiniMaxVideo
-- result
+- AnthropicClient
 - score_slideshow_risk
 - properties
 - properties
@@ -784,6 +783,7 @@
 - Process
 - Process
 - PixabayMusic
+- .execute
 - Autonomous Software Engineering / Code Harness Enhancement for OSMOO
 - SignalType
 - playbook_generator.py
@@ -799,7 +799,7 @@
 - ._hydrate_candidate
 - SoraVideo
 - ToolDescription
-- PatchError
+- DeliveryPromise
 - ScheduledTask
 - Subscription
 - Protocol
@@ -829,7 +829,7 @@
 - RiskLevel
 - SubtitleGen
 - RemotionCaptionBurn
-- AudioDevice
+- MemoryMoments
 - InMemoryTaskHandle
 - OfflineSyncProvider
 - Diagram Generation Usage for OpenMontage
@@ -842,8 +842,8 @@
 - Process
 - ScreenRecorder
 - unsplash.py
-- backup_restore_e2e.rs
-- SystemInfoTool
+- .estimate_requirements
+- CostTracker
 - SwarmCapability
 - Decision Communication Contract
 - type
@@ -869,7 +869,7 @@
 - Process
 - Idea Director - Screen Demo Pipeline
 - Process
-- RealtimeAudioSession
+- ConversationContextProvider
 - SunoMusic
 - DashscopeImage
 - MiniMaxImage
@@ -893,10 +893,10 @@
 - Idea Director — Talking Head Pipeline
 - Process
 - AzureSpeechToText
-- GuardianContract
+- AccessDecision
 - PolicyCondition
 - PolicyContract
-- ApprovalRiskLevel
+- .new
 - PolicyEffect
 - OpenMontage - Shared Project Context
 - ObservabilityError
@@ -905,8 +905,8 @@
 - WhisperX / Transcription Skill
 - LTX-2 — Prompting Guide
 - Video Editing Skill
-- skills/INDEX.md
 - Pipeline Stage Director Skills
+- AudioError
 - Capability Extension Protocol
 - Process
 - Process
@@ -935,16 +935,16 @@
 - Process
 - FreesoundMusic
 - MusicLibrary
-- FalElevenLabsTTS
+- brain/src/types.rs
 - InvocationId
 - Ink Theater — hand-drawn "moving art" (creative skill)
 - VEO 3.1 / VEO 3 — Prompting Guide
 - Creative Intake
 - Process
-- Step 4: Progressive Reveal and Concept Design
+- cognitive_orchestrator/src/config.rs
 - LipSync
-- ExportBundle
-- ApiKeysConfig
+- human_dynamics/tests/integration_tests.rs
+- style_bridge
 - Credentials
 - Process — Fast Path (Direct Search)
 - Sora 2 — Prompting Guide
@@ -954,19 +954,17 @@
 - Proposal Director - Character Animation Pipeline
 - Proposal Director — Cinematic Pipeline
 - Executive Producer - Documentary Montage Pipeline
-- LoggingConfig
-- PatchTransaction
-- FalElevenLabsMusic
+- Upscale
+- AudioRingBuffer
 - .execute
-- HiggsFieldVideo
-- AdaptiveThreshold
-- RouterError
-- list_schemas
-- OfficeError
-- ComfyUIImage
-- EventBusConfig
+- argparse
+- DatabaseError
+- Quantization
+- ScreenshotScene.tsx
+- .reserve
+- AudioRuntime
 - DependencyError
-- AuthError
+- SendInput
 - shot_prompt_builder.py
 - KPIGrid.tsx
 - Voice Performance Director
@@ -975,8 +973,8 @@
 - Executive Producer - Character Animation Pipeline
 - Rig Plan Director - Character Animation Pipeline
 - Script Director - Character Animation Pipeline
-- calendar_connector.rs
-- spreadsheet_connector.rs
+- .estimate
+- cost_tracker.py
 - DarefulSource
 - ESASource
 - JAXASource
@@ -987,23 +985,54 @@
 - Research Director - Character Animation Pipeline
 - Scene Director - Character Animation Pipeline
 - MixkitSource
-- NARASource
+- voice_audio/src/lib.rs
 - NOAASource
-- InsightType
+- GuardianContract
 - secret_scanner.rs
-- FilesystemConnector
-- InsightStatus
+- ModelFamily
+- SceneTrigger
 - operation_routes
-- LoggingError
+- .default
 - reset_default_asset_cache
 - fonts.d.ts
 - _load_dotenv
-- SignatureVerdict
+- MockLlm
 - reset_default_cache
-- BrowserCloseTool
-- BrowserOpenTool
-- ProcessInfoTool
-- DocumentConnector
+- src/components/computer_control.rs
+- parse_dt
+- overlay/components/computer_control.rs
+- overlay/components/mode_views.rs
+- LinuxPlatform
+- MacOSPlatform
+- ModelInfo
+- dashboard.rs
+- TaskStatus
+- BuildInfo
+- SkillRuntime
+- src/components/context_layer.rs
+- overlay/components/context_layer.rs
+- GovernorError
+- ScheduleSpec
+- BrowserConfig
+- MiniMaxFalVideo
+- PipecatState
+- verify.py
+- CoreEntity
+- CoreEntity
+- FeatureFlagError
+- ModelFormat
+- HomeConfig
+- BreakerState
+- ReflectionError
+- sdk/src/lib.rs
+- .execute
+- LocalDiffusion
+- VidevoSource
+- variation_checker.py
+- src/client_js.rs
+- overlay/client_js.rs
+- overlay/styles.rs
+- RUNTIME
 
 ## God Nodes (most connected - your core abstractions)
 1. `ToolResult` - 517 edges
@@ -1024,31 +1053,31 @@
   PHASE_2_3_ARCHITECTURE.md → crates/video_studio/enclave/tools/tool_registry.py
 - `Key Milestones Delivered:` --references--> `ToolRegistry`  [INFERRED]
   PHASE_2_3_VERIFICATION_REPORT.md → crates/video_studio/enclave/tools/tool_registry.py
-- `4. Runtime & Security Boundary Enforcement` --references--> `ToolRegistry`  [INFERRED]
-  PHASE_2_8_ARCHITECTURE.md → crates/video_studio/enclave/tools/tool_registry.py
 - `Key Enhancements Delivered:` --references--> `build()`  [INFERRED]
   PHASE_2_4_VERIFICATION_REPORT.md → crates/video_studio/enclave/tools/graphics/templates/blender-world-runtime.py
+- `Key Enhancements Delivered:` --references--> `ToolRegistry`  [INFERRED]
+  PHASE_2_4_VERIFICATION_REPORT.md → crates/video_studio/enclave/tools/tool_registry.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (1044 total, 170 thin omitted)
+## Communities (1080 total, 190 thin omitted)
 
 ### Community 0 - "windows_uia.rs"
 Cohesion: 0.02
-Nodes (115): BitBlt(), BITMAP, BITMAPINFO, BITMAPINFOHEADER, build_mouse_input(), build_mouse_input_raw(), build_window_target(), char_to_vk() (+107 more)
+Nodes (96): BitBlt(), BITMAP, BITMAPINFO, BITMAPINFOHEADER, build_window_target(), CloseWindow(), CreateCompatibleBitmap(), CreateCompatibleDC() (+88 more)
 
 ### Community 2 - "duration"
 Cohesion: 0.04
-Nodes (37): DatabaseConfig, MessageRole, Assistant, System, User, role_to_str(), setup_isolated_fixture(), test_isolated_coding_harness_workflow() (+29 more)
+Nodes (36): DatabaseConfig, DatabaseKind, DuckDb, Postgres, Remote, Sqlite, setup_isolated_fixture(), test_isolated_coding_harness_workflow() (+28 more)
 
 ### Community 3 - "orchestrator/src/lib.rs"
 Cohesion: 0.02
-Nodes (23): make_test_task(), make_test_task_with_id(), test_default_cancellation_manager(), test_default_interruption_manager(), test_default_system_coordinator_background_task(), test_default_system_coordinator_cancel_task(), test_default_system_coordinator_submit_task(), test_default_system_coordinator_submit_when_paused() (+15 more)
+Nodes (22): make_test_task(), make_test_task_with_id(), test_default_cancellation_manager(), test_default_interruption_manager(), test_default_system_coordinator_background_task(), test_default_system_coordinator_cancel_task(), test_default_system_coordinator_submit_task(), test_default_system_coordinator_submit_when_paused() (+14 more)
 
 ### Community 4 - "VideoCompose"
-Cohesion: 0.04
-Nodes (11): Remotion scene types available in `remotion-composer/`, classify_from_brief(), DeliveryPromise, PromiseType, AspectRatio, ffmpeg_output_args(), get_profile(), get_profiles_for_platform() (+3 more)
+Cohesion: 0.02
+Nodes (13): Remotion scene types available in `remotion-composer/`, AspectRatio, ffmpeg_output_args(), get_profile(), get_profiles_for_platform(), MediaProfile, VisualQA, AudioMixer (+5 more)
 
 ### Community 5 - "CapturedFrame"
 Cohesion: 0.05
@@ -1059,24 +1088,24 @@ Cohesion: 0.06
 Nodes (57): already_running_error(), cancel_workflow(), capacity_limit(), complete_workflow(), event_log(), not_found_error(), pause_resume_workflow(), register_workflow() (+49 more)
 
 ### Community 7 - "CommercialStore"
-Cohesion: 0.05
-Nodes (29): AuthIdentityRecord, CommercialStore, ConsentRecord, EntitlementRecord, get_commercial_migrations(), OtpCodeRecord, PlanRecord, ScopedMemoryRecord (+21 more)
+Cohesion: 0.04
+Nodes (25): AuthIdentityRecord, CommercialStore, ConsentRecord, get_commercial_migrations(), OtpCodeRecord, ScopedMemoryRecord, SessionRecord, SkillRecord (+17 more)
 
 ### Community 8 - "Rect"
-Cohesion: 0.04
-Nodes (38): Rect, rect_creation(), rect_serialization(), make_test_frame(), test_provider_creates(), test_recognize(), test_recognize_with_default_language(), WindowsOcrProvider (+30 more)
+Cohesion: 0.07
+Nodes (16): TestOcrProvider, NoopOcrProvider, TestOcrProvider, make_test_frame(), merge_ocr_results(), OcrEngine, OcrState, test_filter_by_confidence() (+8 more)
 
 ### Community 9 - "handlers.rs"
-Cohesion: 0.06
-Nodes (22): ApiError, BadRequest, Forbidden, Internal, NotFound, RateLimitExceeded, Unauthorized, ApiHandlers (+14 more)
+Cohesion: 0.04
+Nodes (34): ApiError, BadRequest, Forbidden, Internal, NotFound, RateLimitExceeded, Unauthorized, ApiHandlers (+26 more)
 
 ### Community 10 - "cognition/src/lib.rs"
 Cohesion: 0.03
-Nodes (21): test_action_id_hash(), test_goal_creation(), test_goal_id_newtype(), test_plan_step_creation(), test_step_id_newtype(), test_validation_result_creation(), ActionId, ConfidenceLevel (+13 more)
+Nodes (15): test_action_id_hash(), test_goal_creation(), test_goal_id_newtype(), test_plan_step_creation(), test_step_id_newtype(), test_validation_result_creation(), ActionId, GoalId (+7 more)
 
 ### Community 11 - "RemoteDatabase"
-Cohesion: 0.09
-Nodes (9): RemoteConfig, RemoteDatabase, test_remote_connect_no_server(), test_remote_disconnect(), test_remote_health_disconnected(), test_remote_new(), test_remote_unsupported_execute(), test_remote_unsupported_query() (+1 more)
+Cohesion: 0.12
+Nodes (3): RemoteConfig, RemoteDatabase, test_remote_connect_no_server()
 
 ### Community 12 - "goal_engine_v2.rs"
 Cohesion: 0.07
@@ -1087,12 +1116,12 @@ Cohesion: 0.10
 Nodes (81): osmoo-e2e-tests, voxy-agent-runtime, voxy-anthropic, voxy-api-server, voxy-automation, voxy-billing, voxy-brain, voxy-capability-manifest (+73 more)
 
 ### Community 14 - "sqlite.rs"
-Cohesion: 0.08
-Nodes (38): AUDIT_COLUMNS, CONV_COLUMNS, cosine_similarity(), MSG_COLUMNS, rusqlite_value_to_json(), SqliteDatabase, test_auto_migrate_applies_all_migrations(), test_backup_file_created() (+30 more)
-
-### Community 15 - "Value"
 Cohesion: 0.09
-Nodes (16): ContextId, ContextSource, Activity, Audio, Conversation, Device, Emotional, Environment (+8 more)
+Nodes (39): AUDIT_COLUMNS, CONV_COLUMNS, cosine_similarity(), MSG_COLUMNS, rusqlite_value_to_json(), SqliteDatabase, test_auto_migrate_applies_all_migrations(), test_backup_file_created() (+31 more)
+
+### Community 15 - "Rect"
+Cohesion: 0.09
+Nodes (21): Rect, rect_creation(), rect_serialization(), make_test_frame(), test_provider_creates(), test_recognize(), test_recognize_with_default_language(), WindowsOcrProvider (+13 more)
 
 ### Community 17 - "agent_runtime/src/orchestrator.rs"
 Cohesion: 0.05
@@ -1103,27 +1132,27 @@ Cohesion: 0.20
 Nodes (7): RuntimeManagerError, DependencyCycle, HealthCheckFailed, RestartFailed, RuntimeNotFound, ShutdownFailed, StartupFailed
 
 ### Community 19 - "vision/src/coordinator.rs"
-Cohesion: 0.06
-Nodes (16): Observation, test_find_element_by_text(), test_observe_all_displays(), test_observe_screen(), test_observe_window(), test_refresh_displays(), TestCaptureProvider, VisionConfig (+8 more)
+Cohesion: 0.08
+Nodes (10): Observation, test_find_element_by_text(), test_observe_all_displays(), test_observe_screen(), test_observe_window(), test_refresh_displays(), TestCaptureProvider, VisionConfig (+2 more)
 
-### Community 20 - "OfficeScope"
-Cohesion: 0.11
-Nodes (15): OfficeScope, CalendarRead, CalendarWrite, DocumentRead, DocumentWrite, EmailDraft, EmailRead, EmailSend (+7 more)
+### Community 20 - "office/src/lib.rs"
+Cohesion: 0.04
+Nodes (36): AuditStatus, Cancelled, Denied, Failed, Success, OfficeAuditEvent, OfficeAuditTrail, CalendarConnector (+28 more)
 
 ### Community 21 - "DefaultSystemCoordinator"
 Cohesion: 0.06
 Nodes (3): DefaultSystemCoordinator, SystemCoordinator, uuid_cor_id()
 
-### Community 22 - "FalMedia"
-Cohesion: 0.08
-Nodes (10): FalMedia, BriaFalImage, Flux3FalImage, GeminiFalImage, IdeogramFalImage, OpenAIFalImage, Flux3Video, H3MaxVideo (+2 more)
+### Community 22 - "PriceQuoteRequired"
+Cohesion: 0.02
+Nodes (43): MistralSTT, CartesiaTTS, ElevenLabsSoundtrack, ElevenLabsTTS, FalElevenLabsTTS, GrokTTS, HeyGenCatalogTTS, HeyGenTTS (+35 more)
 
 ### Community 23 - "production_validation.rs"
-Cohesion: 0.05
-Nodes (45): test_assembled_context_creation(), test_assembled_context_fusion_fields(), ContextId, make_assembled_context(), make_goal(), make_plan_with_steps(), make_snapshot(), test_bench_context_fusion_latency() (+37 more)
+Cohesion: 0.06
+Nodes (46): test_reflection_engine(), test_assembled_context_creation(), test_assembled_context_fusion_fields(), ContextId, make_assembled_context(), make_goal(), make_plan_with_steps(), make_snapshot() (+38 more)
 
 ### Community 24 - "sqlite_engine.rs"
-Cohesion: 0.06
+Cohesion: 0.08
 Nodes (16): BehaviorAnalysis, ExperienceAnalysis, HabitDetection, HermesClassification, HermesEngine, PatternDetection, PreferenceExtraction, ReflectionLearning (+8 more)
 
 ### Community 25 - "conversation/src/session.rs"
@@ -1131,24 +1160,24 @@ Cohesion: 0.06
 Nodes (15): ConversationSession, InMemorySession, InMemorySessionManager, SessionId, SessionManager, SessionMetadata, SessionState, Active (+7 more)
 
 ### Community 26 - "daemon/src/main.rs"
-Cohesion: 0.06
-Nodes (25): CHAT_MSG_ID, create_llm_provider(), create_ollama_provider(), detect_cpu_features(), detect_simd(), get_memory_usage(), main(), measure_stage_ms() (+17 more)
+Cohesion: 0.03
+Nodes (26): CHAT_MSG_ID, conversation_memory_keeps_newest_when_over_budget(), conversation_memory_no_trim_with_large_budget(), conversation_memory_trims_to_character_budget(), ConversationMemory, detect_cpu_features(), detect_simd(), get_memory_usage() (+18 more)
 
 ### Community 27 - "companion_intelligence/src/conversation.rs"
 Cohesion: 0.08
-Nodes (18): ConversationContext, ConversationIntelligence, ConversationMemory, ConversationTurn, create_test_turn(), Entity, ReferenceResolver, sanitize_conversation_text() (+10 more)
+Nodes (19): ConversationContext, ConversationIntelligence, ConversationMemory, ConversationTurn, create_test_turn(), Entity, ReferenceCandidate, ReferenceResolver (+11 more)
 
 ### Community 28 - "NodeId"
-Cohesion: 0.04
-Nodes (36): EdgeType, AssignedTo, ConnectedTo, Created, Custom, DependsOn, Dislikes, Likes (+28 more)
+Cohesion: 0.07
+Nodes (12): GraphEdge, GraphNode, GraphQuery, KnowledgeGraph, NodeId, InMemoryKnowledgeGraph, test_graph_edge_creation(), test_graph_node_creation() (+4 more)
 
 ### Community 29 - "Speaker"
 Cohesion: 0.05
 Nodes (7): AudioConfig, HardwareConfig, VideoConfig, Camera, HardwareMonitor, Microphone, Speaker
 
 ### Community 30 - "MemoryItem"
-Cohesion: 0.10
-Nodes (5): MemorySynapse, MockMemoryApi, next_memory_id(), SynapseStats, test_synapse_creation()
+Cohesion: 0.07
+Nodes (6): MemorySynapse, MockHermesEngine, MockMemoryApi, next_memory_id(), SynapseStats, test_synapse_creation()
 
 ### Community 32 - "boot.rs"
 Cohesion: 0.07
@@ -1156,7 +1185,7 @@ Nodes (35): abort_does_not_change_phase_status(), boot_duration(), boot_sequence
 
 ### Community 33 - "corpus_builder.py"
 Cohesion: 0.03
-Nodes (38): _as_feature_tensor(), embed_images(), embed_texts(), _load(), pool_frames(), ClipRecord, get_default_cache(), _op_diversify() (+30 more)
+Nodes (36): _as_feature_tensor(), embed_images(), embed_texts(), _load(), pool_frames(), ClipRecord, get_default_cache(), _op_diversify() (+28 more)
 
 ### Community 34 - "MemoryItem"
 Cohesion: 0.06
@@ -1166,25 +1195,25 @@ Nodes (6): EpisodicMemory, ProceduralMemory, SemanticMemory, ShortTermMemory, Ve
 Cohesion: 0.06
 Nodes (13): Counter, counter_increments(), Gauge, gauge_operations(), Histogram, histogram_records(), MetricsRegistry, prometheus_export() (+5 more)
 
-### Community 36 - "InMemoryCognitiveEngine"
-Cohesion: 0.11
-Nodes (15): InMemoryCognitiveEngine, CognitiveState, AnalyzingIntent, AssemblingContext, Completed, DecomposingGoals, Executing, Failed (+7 more)
+### Community 36 - "UiHierarchy"
+Cohesion: 0.09
+Nodes (24): ChangeDetector, ChangeState, make_test_frame(), test_detects_element_appeared(), test_detects_pixel_changes(), test_hierarchy_no_changes(), test_no_changes_on_first_frame(), ChangeKind (+16 more)
 
 ### Community 37 - "dependency/src/graph.rs"
 Cohesion: 0.08
 Nodes (25): DependencyGraph, spec(), test_all_nodes(), test_cycle_detection(), test_cycle_detection_self_loop(), test_dependencies_of(), test_dependents_of(), test_graph_add_and_remove_nodes() (+17 more)
 
 ### Community 38 - "security/src/auth.rs"
-Cohesion: 0.14
-Nodes (12): DatabaseEncryption, test_decrypt_invalid_data(), test_decrypt_wrong_key(), test_encrypt_decrypt_empty(), test_encrypt_decrypt_large(), test_encrypt_decrypt_roundtrip(), test_from_base64_key(), test_from_hex_key() (+4 more)
-
-### Community 39 - "voice_audio/src/lib.rs"
 Cohesion: 0.06
-Nodes (20): AudioCaptureHandle, AudioConfig, AudioDeviceManager, AudioError, BufferUnderflow, DeviceBusy, DeviceNotFound, HostError (+12 more)
+Nodes (21): DatabaseEncryption, test_decrypt_invalid_data(), test_decrypt_wrong_key(), test_encrypt_decrypt_empty(), test_encrypt_decrypt_large(), test_encrypt_decrypt_roundtrip(), test_from_base64_key(), test_from_hex_key() (+13 more)
+
+### Community 39 - "AudioCaptureHandle"
+Cohesion: 0.15
+Nodes (3): AudioCaptureHandle, AudioPlaybackHandle, test_audio_capture_handle_physical_stream_semantics()
 
 ### Community 40 - "VoicePipeline"
-Cohesion: 0.07
-Nodes (15): decode_wav_checked(), decode_wav_to_f32(), parse_wav_bytes(), PipelineError, Audio, NotInitialized, Stt, Supervisor (+7 more)
+Cohesion: 0.03
+Nodes (47): create_stt_engine(), CompanionState, Error, Idle, Interrupted, Listening, Responding, Speaking (+39 more)
 
 ### Community 41 - "decision_engine.rs"
 Cohesion: 0.08
@@ -1195,8 +1224,8 @@ Cohesion: 0.06
 Nodes (28): make_snapshot(), MockProvider, test_cache_basic_operations(), test_cache_eviction(), test_cache_ttl_expiration(), test_confidence_effective_calculation(), test_confidence_floor_filtering(), test_conflict_resolver_detection() (+20 more)
 
 ### Community 43 - "StorageProvider"
-Cohesion: 0.06
-Nodes (22): DatabaseKind, DuckDb, Postgres, Remote, Sqlite, get_all_migrations(), get_core_migrations(), MigrationRunner (+14 more)
+Cohesion: 0.09
+Nodes (9): AppliedMigration, create_duckdb_provider(), create_postgres_provider(), create_remote_provider(), create_sqlite_provider(), create_storage_provider(), HealthStatus, SearchResult (+1 more)
 
 ### Community 44 - "memory/src/lib.rs"
 Cohesion: 0.04
@@ -1216,7 +1245,7 @@ Nodes (33): InMemoryPlanner, Plan, PlanAction, Abort, Continue, Pause, Reschedul
 
 ### Community 48 - "platform_windows/src/platform.rs"
 Cohesion: 0.04
-Nodes (68): BitBlt(), BITMAPINFO, BITMAPINFOHEADER, capture_screenshot(), close_window(), collect_monitors(), CreateCompatibleBitmap(), CreateCompatibleDC() (+60 more)
+Nodes (72): BITMAPINFO, BITMAPINFOHEADER, close_window(), CloseHandle(), CreateToolhelp32Snapshot(), DIB_RGB_COLORS, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, enum_windows_callback() (+64 more)
 
 ### Community 49 - "AuthProvider"
 Cohesion: 0.14
@@ -1238,9 +1267,9 @@ Nodes (34): SecurityError, ApprovalError, CapabilityAlreadyRegistered, Capabilit
 Cohesion: 0.33
 Nodes (5): Urgency, Critical, High, Low, Medium
 
-### Community 55 - "security/src/lib.rs"
-Cohesion: 0.04
-Nodes (3): RedactingWriter<W>, test_tar_extraction_clean_rollback_on_traversal(), test_tar_extraction_rejects_symlink_escape()
+### Community 55 - "AutomationBackend"
+Cohesion: 0.06
+Nodes (4): BackendPair, HybridBuilder, HybridConfig, AutomationBackend
 
 ### Community 56 - "ExecutionContext"
 Cohesion: 0.07
@@ -1251,8 +1280,8 @@ Cohesion: 0.11
 Nodes (21): EmotionalConfig, EmotionalSignal, EmotionalSnapshot, EmotionalStateMachine, EmotionState, EmotionType, Bored, Busy (+13 more)
 
 ### Community 58 - "SwarmTask"
-Cohesion: 0.05
-Nodes (28): test_swarmclaw_blackboard_and_handoff(), test_trinity_a2a_message_routing(), TaskGraph, AgentId, AgentRole, Architect, QaTester, Reviewer (+20 more)
+Cohesion: 0.03
+Nodes (50): SwarmCoordinator, SwarmError, AccessDenied, CanaryFailed, Cancelled, CyclicDependency, HarnessError, InvalidHandoff (+42 more)
 
 ### Community 59 - "cognitive_orchestrator/src/orchestrator.rs"
 Cohesion: 0.08
@@ -1263,24 +1292,24 @@ Cohesion: 0.10
 Nodes (31): add_relationship(), archived_not_in_query(), forgetting_algorithm(), importance_scoring(), ImportanceFactors, LongTermMemoryV2, memory_count(), memory_creation() (+23 more)
 
 ### Community 61 - "archive.rs"
-Cohesion: 0.07
-Nodes (39): ArchiveRollbackTracker, ArchiveSecurityError, CompressedSizeExceeded, EntryCountExceeded, EntrySizeExceeded, IllegalLinkDetected, IllegalStreamDetected, IoError (+31 more)
+Cohesion: 0.06
+Nodes (41): ArchiveRollbackTracker, ArchiveSecurityError, CompressedSizeExceeded, EntryCountExceeded, EntrySizeExceeded, IllegalLinkDetected, IllegalStreamDetected, IoError (+33 more)
 
 ### Community 62 - "agent_adapter.rs"
 Cohesion: 0.10
 Nodes (14): AgentAdapterRegistry, AgentAvailability, Available, Blocked, NotInstalled, AgentCapabilities, ClaudeCodeAdapter, CodexCliAdapter (+6 more)
 
 ### Community 63 - "approval.rs"
-Cohesion: 0.12
-Nodes (21): ApprovalBroker, ApprovalDecision, ApprovalRequest, ApprovalStatus, Approved, Cancelled, Denied, Expired (+13 more)
+Cohesion: 0.10
+Nodes (27): ApprovalBroker, ApprovalDecision, ApprovalRequest, ApprovalRiskLevel, Destructive, LowRisk, Modify, Privileged (+19 more)
 
 ### Community 64 - "ContextPriority"
-Cohesion: 0.08
-Nodes (23): ConfidenceEngine, make_snapshot(), test_composite_score_ordering(), test_effective_confidence_fresh(), test_effective_confidence_stale(), test_filter_by_confidence(), test_meets_confidence_floor(), test_priority_bonus() (+15 more)
+Cohesion: 0.05
+Nodes (39): ConfidenceEngine, make_snapshot(), test_composite_score_ordering(), test_effective_confidence_fresh(), test_effective_confidence_stale(), test_filter_by_confidence(), test_meets_confidence_floor(), test_priority_bonus() (+31 more)
 
 ### Community 65 - "probe_output"
 Cohesion: 0.03
-Nodes (27): _api_key(), _download_file(), CogVideoVideo, GeminiOmniFalVideo, HeyGenVideo, HunyuanVideo, KlingVideo, LTXVideoModal (+19 more)
+Nodes (25): _api_key(), _download_file(), CogVideoVideo, GeminiOmniFalVideo, HeyGenVideo, KlingVideo, LTXVideoModal, RunwayVideo (+17 more)
 
 ### Community 66 - "WorldModelEvent"
 Cohesion: 0.07
@@ -1288,15 +1317,11 @@ Nodes (23): SynapseState, ContextEmitter, test_emit_application_launched(), test
 
 ### Community 67 - "background.rs"
 Cohesion: 0.09
-Nodes (26): BackgroundRuntime, curiosity_task(), experience_replay_task(), goal_progress_task(), health_monitor_task(), knowledge_validation_task(), knowledge_validation_worker_task(), KnowledgeValidationSubmitter (+18 more)
+Nodes (24): BackgroundRuntime, curiosity_task(), experience_replay_task(), goal_progress_task(), health_monitor_task(), knowledge_validation_task(), knowledge_validation_worker_task(), KnowledgeValidationSubmitter (+16 more)
 
-### Community 68 - "ToolContext"
-Cohesion: 0.08
-Nodes (12): CodingGitDiffTool, CodingGitStatusTool, CodingSearchTextTool, resolve_repo_root(), get_tx_rollback_store(), HarnessApplyPatchTransactionTool, resolve_repo_root(), test_harness_apply_patch_tool_and_rollback() (+4 more)
-
-### Community 69 - "ipc/src/lib.rs"
-Cohesion: 0.02
-Nodes (71): IpcBridge, constant_time_eq(), DaemonStateSnapshot, handle_client_connection(), read_framed_message(), VoxyIpcClient, VoxyIpcServer, write_framed_message() (+63 more)
+### Community 68 - "Win32Automation"
+Cohesion: 0.10
+Nodes (18): build_mouse_input(), build_mouse_input_raw(), char_to_vk(), INPUT, key_to_vk(), logical_to_physical(), physical_to_logical(), send_key() (+10 more)
 
 ### Community 71 - "VOXY Health Architecture Design"
 Cohesion: 0.04
@@ -1307,63 +1332,63 @@ Cohesion: 0.06
 Nodes (11): RecoveryContext, RecoveryEngine, RecoveryStrategy, Abort, Diagnostic, FocusWindow, ResetInput, RestoreWindow (+3 more)
 
 ### Community 73 - "PresenceEngine"
-Cohesion: 0.12
-Nodes (17): PresenceEngine, PresenceEvent, PresenceSnapshot, PresenceState, Celebrating, EmergencyMode, FocusMode, Idle (+9 more)
+Cohesion: 0.07
+Nodes (30): PresenceEngine, PresenceEvent, PresenceEventType, AchievementUnlocked, ActivityDetected, EmergencyAlert, SleepTimerExpired, SystemEvent (+22 more)
 
 ### Community 74 - "Message"
 Cohesion: 0.08
-Nodes (13): Conversation, ConversationStats, ConversationStore, InMemoryConversationStore, Message, test_conversation_create(), test_delete_cascades(), test_in_memory_search_messages() (+5 more)
+Nodes (14): Conversation, ConversationStats, ConversationStore, InMemoryConversationStore, Message, MessageRole, Assistant, System (+6 more)
 
 ### Community 75 - "human_dynamics/src/policy.rs"
 Cohesion: 0.08
-Nodes (31): PolicyConfig, PolicyEngine, PolicyViolation, test_action(), test_meeting_interruption_blocked(), test_no_violation_normal_speech(), test_protect_before_obey(), ProtectionEngine (+23 more)
+Nodes (32): PolicyConfig, ProtectionConfig, PolicyEngine, PolicyViolation, test_action(), test_meeting_interruption_blocked(), test_no_violation_normal_speech(), test_protect_before_obey() (+24 more)
 
 ### Community 76 - "VideoStudioEnclave"
-Cohesion: 0.08
-Nodes (9): collect_markdown_files(), VideoStudioEnclave, StudioPipelineEngine, VideoProductionRequest, constant_time_eq(), EnclaveAccessController, test_enclave_access_authorized_for_osmoo_only(), VideoStudioInspectTool (+1 more)
+Cohesion: 0.05
+Nodes (25): collect_markdown_files(), VideoStudioEnclave, StudioError, EnclaveNotFound, Io, PipelineError, ProcessFailed, SecurityViolation (+17 more)
 
 ### Community 77 - "agentic_loop.rs"
 Cohesion: 0.07
 Nodes (27): ActionVerification, AgenticOperationLoop, AgentPlanner, DesktopObservation, HeuristicAgentPlanner, LoopState, Acting, AwaitingApproval (+19 more)
 
 ### Community 78 - "self_improvement.rs"
-Cohesion: 0.14
-Nodes (17): analyze_patterns(), BehaviorPattern, correction_count_increases(), engine_creation(), fast_operation_no_insight(), high_impact_insights(), ImprovementError, InsightNotFound (+9 more)
+Cohesion: 0.09
+Nodes (30): analyze_patterns(), BehaviorPattern, correction_count_increases(), engine_creation(), fast_operation_no_insight(), high_impact_insights(), ImprovementError, InsightNotFound (+22 more)
 
 ### Community 79 - "patch_engine.rs"
-Cohesion: 0.24
-Nodes (11): PatchEngine, PatchSnapshot, path_is_contained(), strip_verbatim_prefix(), test_cargo_lock_and_env_and_ssh_rejection(), test_empty_existing_file_rollback_preserves_file(), test_harness_patch_generation_and_rollback(), test_path_traversal_rejection() (+3 more)
+Cohesion: 0.13
+Nodes (25): contains_symlink_or_reparse(), FilePatch, is_symlink_or_reparse_point(), PatchEngine, PatchError, BoundaryViolation, FileNotFound, Io (+17 more)
 
 ### Community 80 - "ProactiveEngine"
 Cohesion: 0.09
 Nodes (23): CooldownEntry, create_test_context(), ProactiveConfig, ProactiveEngine, ProactiveSuggestion, SuggestionContext, SuggestionType, BreakReminder (+15 more)
 
 ### Community 81 - "EventBus"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (22): EventBridge, ABSOLUTE_MAX_TOPICS, bus_error_conversion(), BusError, SerializationFailed, SubscriberQueueFull, SubscriptionDropped, TopicNotFound (+14 more)
 
 ### Community 82 - "MoodState"
-Cohesion: 0.05
-Nodes (29): InMemoryPersonalityProfile, PersonalityConfig, PersonalityEvent, MoodChanged, ProfileLoaded, ProfileSaved, StyleChanged, TraitUpdated (+21 more)
+Cohesion: 0.03
+Nodes (32): InMemoryPersonalityManager, InMemoryPersonalityProfile, PersonalityConfig, PersonalityEvent, MoodChanged, ProfileLoaded, ProfileSaved, StyleChanged (+24 more)
 
 ### Community 83 - "ProviderInfo"
-Cohesion: 0.08
-Nodes (20): DefaultProviderRegistry, Unavailable, ModelCapabilities, ModelInfo, ProviderInfo, ProviderRegistry, ProviderStatus, Available (+12 more)
+Cohesion: 0.10
+Nodes (15): DefaultProviderRegistry, ProviderInfo, ProviderRegistry, ProviderStatus, Available, Busy, Degraded, Unavailable (+7 more)
 
 ### Community 84 - "PatchRollbackStore"
 Cohesion: 0.24
 Nodes (4): get_patch_rollback_store(), HarnessApplyPatchTool, PatchRollbackSnapshot, PatchRollbackStore
 
 ### Community 85 - "cognitive_orchestrator/src/reflection.rs"
-Cohesion: 0.08
-Nodes (28): IntegrationConfig, OrchestratorConfig, ReflectionConfig, RiskLevel, Critical, High, Low, Medium (+20 more)
+Cohesion: 0.11
+Nodes (23): ReflectionSubmitter, ReflectionConfig, ConversationRecord, Lesson, LessonCategory, ContextAwareness, KnowledgeGap, ResponseQuality (+15 more)
 
 ### Community 86 - "Mood"
 Cohesion: 0.08
 Nodes (18): BasePersonality, Mood, Calm, Cheerful, Excited, Focused, Playful, Serious (+10 more)
 
 ### Community 87 - "Turn"
-Cohesion: 0.06
+Cohesion: 0.07
 Nodes (17): InMemoryTurnManager, Turn, TurnManager, TurnSource, Internal, Interruption, SystemResponse, UserInput (+9 more)
 
 ### Community 88 - "Topics"
@@ -1387,7 +1412,7 @@ Cohesion: 0.07
 Nodes (28): make_adaptive_threshold(), make_behavior_pattern(), make_calibration_sample(), make_feedback_entry(), make_memory_item(), make_preference_entry(), make_reinforcement_signal(), make_strategy_effectiveness() (+20 more)
 
 ### Community 93 - "ContextManager"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (10): ContextManager, ContextSnapshotSet, ManagerConfig, MockProvider, test_manager_cache(), test_manager_collect(), test_manager_collect_one(), test_manager_health_check() (+2 more)
 
 ### Community 94 - "planning.rs"
@@ -1403,12 +1428,12 @@ Cohesion: 0.07
 Nodes (16): json_codec_roundtrip(), json_codec_with_payload(), JsonCodec, Transport, transport_addr_custom(), TransportAddr, Custom, InMemory (+8 more)
 
 ### Community 97 - "WorldContext"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (20): create_rich_test_item(), create_test_item(), InMemoryMemoryPipeline, MemoryPhase, Classification, HermesAnalysis, ImportanceAnalysis, Indexing (+12 more)
 
 ### Community 98 - "voice_stt/src/lib.rs"
-Cohesion: 0.09
-Nodes (22): create_stt_engine(), DEFAULT_MULTILINGUAL_PROMPT, encode_wav_16k_mono(), GroqSttEngine, LocalWhisperSttEngine, MockSttEngine, SttEngine, SttError (+14 more)
+Cohesion: 0.10
+Nodes (20): DEFAULT_MULTILINGUAL_PROMPT, encode_wav_16k_mono(), GroqSttEngine, LocalWhisperSttEngine, MockSttEngine, SttError, EmptyAudio, LocalModelError (+12 more)
 
 ### Community 99 - "curiosity.rs"
 Cohesion: 0.10
@@ -1419,20 +1444,16 @@ Cohesion: 0.07
 Nodes (23): DeliveryGuarantee, AtLeastOnce, AtMostOnce, ExactlyOnce, EventMetadata, EventStore, RecoveryCheckpoint, replay_state_variants() (+15 more)
 
 ### Community 101 - "signed.rs"
-Cohesion: 0.13
-Nodes (19): artifact_expired(), artifact_revoked_signer(), artifact_tampered_content(), artifact_unknown_signer(), artifact_valid_signature(), ArtifactType, Model, Plugin (+11 more)
+Cohesion: 0.11
+Nodes (25): artifact_expired(), artifact_revoked_signer(), artifact_tampered_content(), artifact_unknown_signer(), artifact_valid_signature(), ArtifactType, Model, Plugin (+17 more)
 
-### Community 102 - "ToolMetadata"
+### Community 102 - "DaemonMessage"
 Cohesion: 0.06
-Nodes (11): BrowserFetchTool, BrowserWaitTool, HarnessIndexTool, HarnessParseDiagnosticsTool, HarnessRunCommandTool, HarnessSearchTool, ProcessKillTool, ProcessListTool (+3 more)
-
-### Community 103 - "VadDetector"
-Cohesion: 0.06
-Nodes (21): ActivationMode, AutoVad, Muted, PushToTalk, WakeWord, test_push_to_talk_mode(), test_vad_silence_to_speech_to_utterance(), VadDetector (+13 more)
+Nodes (28): IpcBridge, DaemonMessage, ApprovalRequested, ApprovalResolved, AudioEnergy, ChatMessage, CursorUpdate, EmergencyStopChanged (+20 more)
 
 ### Community 104 - "voice_tts/src/lib.rs"
-Cohesion: 0.09
-Nodes (11): create_tts_engine(), ChatterboxTtsEngine, CloudTtsEngine, LocalTtsEngine, TtsEngine, TtsError, EmptyText, MissingApiKey (+3 more)
+Cohesion: 0.08
+Nodes (15): create_tts_engine(), ChatterboxTtsEngine, CloudTtsEngine, LocalTtsEngine, MockTtsEngine, test_chatterbox_tts_properties(), test_empty_tts_rejection(), test_mock_tts_synthesis() (+7 more)
 
 ### Community 105 - "knowledge_validation.rs"
 Cohesion: 0.10
@@ -1442,44 +1463,36 @@ Nodes (26): KnowledgeValidationConfig, KnowledgeItem, KnowledgeValidator, make_i
 Cohesion: 0.11
 Nodes (21): create_test_memory(), ImportanceConfig, ImportanceLevel, Critical, High, Low, Medium, Negligible (+13 more)
 
-### Community 107 - "ToolResult"
-Cohesion: 0.05
-Nodes (14): BrowserAttachTool, BrowserDownloadTool, BrowserExtractTool, BrowserGetUrlTool, BrowserLaunchTool, BrowserListPagesTool, BrowserNavigateTool, BrowserObserveTool (+6 more)
+### Community 107 - "ToolMetadata"
+Cohesion: 0.02
+Nodes (56): BrowserAttachTool, BrowserCloseTool, BrowserDownloadTool, BrowserExtractTool, BrowserFetchTool, BrowserGetUrlTool, BrowserLaunchTool, BrowserListPagesTool (+48 more)
 
 ### Community 108 - "runtime/src/scheduler.rs"
 Cohesion: 0.16
-Nodes (9): InMemoryScheduler, TaskEntry, test_scheduler_cancel(), test_scheduler_cancel_not_found(), test_scheduler_pause_resume(), test_scheduler_schedule(), test_scheduler_status(), test_scheduler_submit_and_list() (+1 more)
+Nodes (7): InMemoryScheduler, test_scheduler_cancel(), test_scheduler_cancel_not_found(), test_scheduler_pause_resume(), test_scheduler_status(), test_scheduler_submit_and_list(), test_scheduler_task_counts()
 
 ### Community 109 - "rollback.rs"
 Cohesion: 0.10
 Nodes (24): bulk_rollback_status_update(), pending_rollbacks(), rollback_execute(), rollback_expired(), rollback_not_found(), rollback_register_and_can_rollback(), rollback_since(), RollbackManager (+16 more)
-
-### Community 110 - "OpenClawBackend"
-Cohesion: 0.09
-Nodes (3): base64_decode(), base64_encode(), OpenClawBackend
 
 ### Community 111 - "CapabilityManifest"
 Cohesion: 0.08
 Nodes (20): ManifestError, DuplicateId, InvalidManifest, NotFound, SerializationError, ValidationError, CapabilityManifest, ManifestCategory (+12 more)
 
 ### Community 112 - "WeatherContext"
-Cohesion: 0.07
-Nodes (32): GreetingConfig, GreetingEngine, GreetingTemplate, test_greeting_dedup(), test_greeting_max_per_session(), test_greeting_morning(), test_greeting_return(), Greeting (+24 more)
+Cohesion: 0.09
+Nodes (24): GreetingConfig, GreetingEngine, GreetingTemplate, test_greeting_dedup(), test_greeting_max_per_session(), test_greeting_morning(), test_greeting_return(), TimeContext (+16 more)
 
 ### Community 113 - "hub.rs"
 Cohesion: 0.11
 Nodes (16): aggregate_healthy(), aggregate_unhealthy(), event_bus_accessible(), hub_creation(), mark_started(), register_duplicate_fails(), register_service(), register_with_dependencies() (+8 more)
 
-### Community 114 - "duration"
-Cohesion: 0.05
-Nodes (12): GLOBAL_FILE_ROLLBACK_STORE, ToolError, ConfirmationRequired, ExecutionFailed, InvalidParams, IoError, NotFound, PermissionDenied (+4 more)
-
 ### Community 115 - "companion_moments.rs"
-Cohesion: 0.09
-Nodes (32): CompanionMoment, MomentContext, MomentEngine, MomentType, BatteryLow, CodeCompiled, DailyDebrief, DownloadComplete (+24 more)
+Cohesion: 0.14
+Nodes (19): CompanionMoment, MomentContext, MomentEngine, test_battery_warning(), test_daily_debrief(), test_daily_debrief_not_fired_with_zero_tasks(), test_focused_work(), test_focused_work_not_fired_below_threshold() (+11 more)
 
 ### Community 117 - "identity.rs"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (10): deactivate_identity(), find_by_type(), hierarchy_lookup(), Identity, identity_creation(), identity_registration(), IdentityHierarchy, IdentityId (+2 more)
 
 ### Community 118 - "Cognitive Loop"
@@ -1490,13 +1503,13 @@ Nodes (46): 1. Rapid Successive Inputs, 1. Stage Timeout, 2. Interrupted Mid-Cyc
 Cohesion: 0.10
 Nodes (23): BitBlt(), BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), GetDC() (+15 more)
 
-### Community 120 - "AutomationBackend"
-Cohesion: 0.03
-Nodes (24): BackendPair, HybridBackend, HybridBuilder, HybridConfig, AutomationBackend, AutomationCapability, ElementDetection, Hybrid (+16 more)
+### Community 120 - "ElementSelector"
+Cohesion: 0.07
+Nodes (15): base64_decode(), base64_encode(), AutomationCapability, ElementDetection, Hybrid, Keyboard, Mouse, Ocr (+7 more)
 
 ### Community 121 - "Value"
-Cohesion: 0.10
-Nodes (13): test_emergency_stop_aborts_tool_execution(), test_parse_tool_call_valid(), ToolCall, ToolRegistry, ToolResult, Value, Bool, Bytes (+5 more)
+Cohesion: 0.06
+Nodes (21): test_emergency_stop_aborts_tool_execution(), test_parse_tool_call_valid(), ToolCall, ToolRegistry, ToolResult, Value, Bool, Bytes (+13 more)
 
 ### Community 122 - "brain/src/session.rs"
 Cohesion: 0.15
@@ -1507,55 +1520,51 @@ Cohesion: 0.08
 Nodes (12): test_capability_id_newtype(), CapabilityDescriptor, CapabilityId, CapabilityRegistry, InMemoryCapabilityRegistry, test_capability_descriptor_creation(), test_capability_id_creation(), test_registry_find() (+4 more)
 
 ### Community 124 - "goal_manager.rs"
-Cohesion: 0.12
-Nodes (20): GoalManagerConfig, Goal, GoalManager, GoalProgress, GoalStatus, Active, Cancelled, Completed (+12 more)
+Cohesion: 0.11
+Nodes (18): GoalManagerConfig, Goal, GoalManager, GoalProgress, GoalStatus, Active, Cancelled, Completed (+10 more)
 
 ### Community 125 - "FileRollbackStore"
-Cohesion: 0.09
-Nodes (14): FileDeleteTool, FileListTool, FileReadTool, FileRollbackEntry, FileRollbackStore, FileWriteTool, get_file_rollback_store(), resolve_and_validate_path() (+6 more)
+Cohesion: 0.10
+Nodes (16): is_protected_file(), FileDeleteTool, FileListTool, FileReadTool, FileRollbackEntry, FileRollbackStore, FileWriteTool, get_file_rollback_store() (+8 more)
 
 ### Community 126 - "logging/src/lib.rs"
-Cohesion: 0.07
-Nodes (29): cleanup_old_logs(), cleanup_old_logs_does_not_panic(), create_span(), create_span_works(), filter_json_preserves_non_sensitive(), filter_json_redacts_sensitive_fields(), filter_json_value(), filter_log_line() (+21 more)
+Cohesion: 0.05
+Nodes (32): cleanup_old_logs(), cleanup_old_logs_does_not_panic(), create_span(), create_span_works(), filter_json_preserves_non_sensitive(), filter_json_redacts_sensitive_fields(), filter_json_value(), filter_log_line() (+24 more)
 
 ### Community 127 - "security/src/audit.rs"
-Cohesion: 0.11
-Nodes (16): audit_chain_integrity(), audit_chain_tamper_detection(), audit_entry_integrity_check(), audit_export_json(), audit_log_records_entry(), audit_max_entries(), audit_query_by_event_category(), audit_query_by_subject() (+8 more)
+Cohesion: 0.06
+Nodes (30): audit_chain_integrity(), audit_chain_tamper_detection(), audit_entry_integrity_check(), audit_export_json(), audit_log_records_entry(), audit_max_entries(), audit_query_by_event_category(), audit_query_by_subject() (+22 more)
 
 ### Community 128 - "security/src/defense.rs"
 Cohesion: 0.11
 Nodes (20): AutoDefense, decay_reduces_scores(), DefenseAction, None, PermBan, RateLimited, TempBan, Warned (+12 more)
-
-### Community 129 - ".run_command"
-Cohesion: 0.03
-Nodes (8): FrameSampler, VisualQA, AudioMixer, ToolCommandError, Upscale, GreenScreenComposite, GreenScreenProcessor, SilenceCutter
 
 ### Community 130 - "CognitionEvent"
 Cohesion: 0.07
 Nodes (25): AssembledContext, ContextAssembler, ContextAssemblyInput, ContextSource, ExternalService, Personality, SystemState, UserHistory (+17 more)
 
 ### Community 131 - "brain/tests/integration_tests.rs"
-Cohesion: 0.08
-Nodes (21): make_brain(), make_input(), MockCognitiveEngine, test_brain_cancel_turn(), test_brain_events(), test_brain_health_check(), test_brain_init_and_shutdown(), test_brain_latency_tracking() (+13 more)
+Cohesion: 0.05
+Nodes (26): MockCognitiveEngine, InMemoryCognitiveEngine, IntentInput, test_cognitive_result_creation(), test_goal_decomposition_creation(), test_intent_id_newtype(), CognitiveEngine, CognitiveResult (+18 more)
 
 ### Community 132 - "desktop_ui/src/main.rs"
-Cohesion: 0.11
-Nodes (11): Runtime, BRIDGE, DISPATCHER, get_bridge(), get_dispatcher(), get_runtime(), get_supervisor(), init_bridge() (+3 more)
+Cohesion: 0.10
+Nodes (10): Runtime, BRIDGE, DISPATCHER, get_bridge(), get_dispatcher(), get_runtime(), init_bridge(), main() (+2 more)
 
 ### Community 133 - "security/src/policy.rs"
 Cohesion: 0.12
 Nodes (27): condition_custom(), condition_resource_match(), condition_trust_level(), default_rules_complete_matrix(), default_rules_evaluated_in_priority_order(), default_rules_no_shadowing(), make_input(), policy_allow_rule() (+19 more)
 
-### Community 134 - "ordering"
-Cohesion: 0.09
-Nodes (10): RUNTIME, BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, Chrome, Custom, Edge (+2 more)
-
 ### Community 135 - "UiElementKind"
-Cohesion: 0.04
-Nodes (45): UiAnalysisProvider, UiElementKind, Button, CheckBox, ComboBox, Dialog, DropDown, Footer (+37 more)
+Cohesion: 0.05
+Nodes (37): UiElementKind, Button, CheckBox, ComboBox, Dialog, DropDown, Footer, Generic (+29 more)
+
+### Community 136 - "MockAutomationBackend"
+Cohesion: 0.05
+Nodes (18): AgentAction, Click, CustomTool, DoubleClick, Drag, FocusWindow, KeyCombination, KeyPress (+10 more)
 
 ### Community 137 - "query.rs"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (17): ALLOWED_OPERATORS, QueryBuilder, QueryOp, Insert, Select, test_build_compound(), test_build_insert(), test_build_insert_without_columns() (+9 more)
 
 ### Community 138 - "integration/src/pipeline.rs"
@@ -1563,16 +1572,16 @@ Cohesion: 0.08
 Nodes (28): MockFailingHandler, MockInputHandler, MockSttHandler, pipeline_creation(), pipeline_execute_success(), pipeline_execute_with_failure(), pipeline_request_from_audio(), pipeline_request_from_text() (+20 more)
 
 ### Community 139 - "kernel/src/lib.rs"
-Cohesion: 0.11
-Nodes (13): Kernel, kernel_creates(), kernel_initializes(), kernel_start_and_shutdown(), service_registry_creation(), service_registry_get_service(), service_registry_health_check(), service_registry_missing_dependency() (+5 more)
+Cohesion: 0.05
+Nodes (19): FlagService, Kernel, kernel_creates(), kernel_initializes(), kernel_start_and_shutdown(), ManagedService, Outcome, Err (+11 more)
 
 ### Community 140 - "SqliteMemoryEngine"
-Cohesion: 0.10
-Nodes (6): noop_graph(), noop_hermes(), SqliteMemoryEngine, test_sqlite_memory_empty_path_rejected(), test_sqlite_memory_fts5_triggers(), test_sqlite_memory_wal_mode_and_persistence_across_restart()
+Cohesion: 0.11
+Nodes (4): SqliteMemoryEngine, test_sqlite_memory_empty_path_rejected(), test_sqlite_memory_fts5_triggers(), test_sqlite_memory_wal_mode_and_persistence_across_restart()
 
-### Community 141 - "personality/src/lib.rs"
+### Community 141 - "VisualState"
 Cohesion: 0.06
-Nodes (3): InMemoryPersonalityManager, PersonalityManager, PersonalityProfile
+Nodes (28): ChatMessage, DesktopMode, Compact, ComputerControl, EdgeDock, Floating, FullExperience, Minimal (+20 more)
 
 ### Community 142 - "goals.rs"
 Cohesion: 0.10
@@ -1587,11 +1596,11 @@ Cohesion: 0.09
 Nodes (3): MemoryBridge, MemoryApi, MemoryStats
 
 ### Community 145 - "Explainer.tsx"
-Cohesion: 0.06
-Nodes (63): Cut types (`cut.type`), Overlay types (`overlay.type`), CalloutBox(), CalloutBoxProps, CalloutType, TYPE_DEFAULTS, BarAnimationStyle, BarChart() (+55 more)
+Cohesion: 0.05
+Nodes (84): Cut types (`cut.type`), Overlay types (`overlay.type`), CalloutBox(), CalloutBoxProps, CalloutType, TYPE_DEFAULTS, buildPages(), CaptionOverlay() (+76 more)
 
 ### Community 146 - "event_bridge.rs"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (15): AgentCompletedEvent, DecisionResultEvent, event_bridge_creation(), EventBridge, GoalCompletedEvent, ImprovementInsightEvent, LlmResponseEvent, MemoryStoredEvent (+7 more)
 
 ### Community 147 - "TrustLevel"
@@ -1607,28 +1616,28 @@ Cohesion: 0.08
 Nodes (17): StateMachineError, InvalidTransition, StateNotFound, invalid_transition(), LifecycleState, Busy, Created, Failed (+9 more)
 
 ### Community 150 - "model_router/src/lib.rs"
-Cohesion: 0.10
-Nodes (25): BreakerEntry, BreakerState, Closed, HalfOpen, Open, make_provider(), ModelRouter, RouterConfig (+17 more)
+Cohesion: 0.13
+Nodes (20): make_provider(), ModelRouter, RouterConfig, RoutingMode, Auto, CloudOnly, ForceModel, ForceProvider (+12 more)
 
 ### Community 151 - "cursor.rs"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (26): AutomationAction, ConfirmationStatus, Approved, Pending, Rejected, TimedOut, DestructiveActionGuard, RiskEvaluation (+18 more)
 
 ### Community 152 - "VeoVideo"
 Cohesion: 0.04
-Nodes (10): GoogleTTS, get_access_token(), get_genai_client(), has_google_credentials(), resolve_google_location(), resolve_project_id(), service_account_configured(), _dims_to_aspect_ratio() (+2 more)
+Nodes (11): GeminiTTS, GoogleTTS, get_access_token(), get_genai_client(), has_google_credentials(), resolve_google_location(), resolve_project_id(), service_account_configured() (+3 more)
 
 ### Community 153 - "FreshnessEngine"
 Cohesion: 0.11
 Nodes (17): FreshnessEngine, FreshnessStatus, Aging, Expired, Fresh, Stale, Unknown, make_snapshot() (+9 more)
 
 ### Community 154 - "brain/src/engine.rs"
-Cohesion: 0.05
-Nodes (20): BrainConfig, ComponentHealth, Degraded, Healthy, Unhealthy, extract_response_text(), HealthReport, UnifiedBrainEngine (+12 more)
+Cohesion: 0.06
+Nodes (18): ComponentHealth, Degraded, Healthy, Unhealthy, extract_response_text(), HealthReport, UnifiedBrainEngine, LatencySnapshot (+10 more)
 
 ### Community 155 - "PriorityTaskScheduler"
 Cohesion: 0.10
-Nodes (4): NoopTaskScheduler, PriorityTaskScheduler, TaskSchedulerInternal, OrchestratorTask
+Nodes (3): NoopTaskScheduler, PriorityTaskScheduler, TaskSchedulerInternal
 
 ### Community 156 - "Capability"
 Cohesion: 0.10
@@ -1639,40 +1648,36 @@ Cohesion: 0.09
 Nodes (10): ContextError, AssemblyError, CacheError, Cancelled, NotFound, ProviderError, ProviderNotFound, Serialization (+2 more)
 
 ### Community 158 - "bridge/auth.rs"
-Cohesion: 0.14
-Nodes (12): EntitlementCheckResponse, AuthBridge, AuthSession, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData(), CryptUnprotectData(), DataBlob, LocalFree() (+4 more)
+Cohesion: 0.10
+Nodes (14): EntitlementCheckResponse, RateLimitMiddleware, ApiRouter, AuthBridge, AuthSession, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData(), CryptUnprotectData() (+6 more)
 
-### Community 159 - "VisualState"
-Cohesion: 0.08
-Nodes (18): ContextBottomBar(), ContextTopBar(), CoreEntity(), CompactModeView(), EdgeDockView(), MinimalView(), VisualState, Disabled (+10 more)
+### Community 159 - "src/components/mode_views.rs"
+Cohesion: 0.57
+Nodes (3): CompactModeView(), EdgeDockView(), MinimalView()
 
 ### Community 160 - "dodo_client.rs"
 Cohesion: 0.09
 Nodes (18): BillingInterval, Month, Year, CheckoutSessionResponse, CreateCheckoutSessionRequest, CustomerPayload, DodoEnvironment, Live (+10 more)
-
-### Community 161 - "HyperFramesCompose"
-Cohesion: 0.07
-Nodes (6): _first(), _font(), _motion_easing(), _render_design_md(), style_bridge(), HyperFramesCompose
 
 ### Community 162 - "ConversationError"
 Cohesion: 0.08
 Nodes (21): ConversationError, BargeInFailed, ContextError, InterruptionNotAllowed, InvalidConfig, InvalidStateTransition, Personality, PersonalityHookFailed (+13 more)
 
 ### Community 163 - "WakeState"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (9): InMemoryWakeStateManager, is_valid_transition(), WakeState, Asleep, Awake, Dozing, Listening, Processing (+1 more)
 
 ### Community 164 - "BehaviorState"
-Cohesion: 0.02
-Nodes (115): BehaviorEngine, test_initial_state(), test_invalid_transition(), test_suggest_deep_focus(), test_suggest_sleeping(), test_transition_cooldown(), test_valid_transition(), TransitionRecord (+107 more)
+Cohesion: 0.09
+Nodes (21): BehaviorEngine, test_initial_state(), test_invalid_transition(), test_suggest_deep_focus(), test_suggest_sleeping(), test_transition_cooldown(), test_valid_transition(), TransitionRecord (+13 more)
 
 ### Community 165 - "SecurityMonitor"
 Cohesion: 0.13
 Nodes (13): alerts_filter_by_threshold(), category_filter(), critical_unmitigated_filter(), ForensicsEvent, max_events_eviction(), mitigate_event(), recent_events_ordering(), record_and_retrieve() (+5 more)
 
 ### Community 166 - "AppConfig"
-Cohesion: 0.13
-Nodes (9): config_manager_set_and_get(), config_manager_subscribe(), ConfigManager, file_provider_load_save(), FileConfigProvider, config_bridge_creation(), ConfigBridge, propagate_config_to_settings() (+1 more)
+Cohesion: 0.10
+Nodes (11): config_manager_set_and_get(), config_manager_subscribe(), ConfigManager, default_config(), default_config_creates(), file_provider_load_save(), FileConfigProvider, config_bridge_creation() (+3 more)
 
 ### Community 167 - "dodo_e2e_lifecycle.rs"
 Cohesion: 0.17
@@ -1683,8 +1688,8 @@ Cohesion: 0.07
 Nodes (9): InMemorySelfMonitor, test_self_monitor(), HealthStatus, Critical, Degraded, Healthy, LatencyRecord, SelfMonitor (+1 more)
 
 ### Community 169 - "PresenceSystem"
-Cohesion: 0.12
-Nodes (16): PresenceSnapshot, PresenceState, Alert, Blinking, Breathing, Focused, LookingAround, Pulsing (+8 more)
+Cohesion: 0.08
+Nodes (25): PresenceSnapshot, PresenceState, Alert, Blinking, Breathing, Focused, LookingAround, Pulsing (+17 more)
 
 ### Community 170 - "ContextCache"
 Cohesion: 0.14
@@ -1699,7 +1704,7 @@ Cohesion: 0.16
 Nodes (18): recovery_abort(), recovery_abort_when_normal_returns_none(), recovery_cannot_enter_twice(), recovery_enter_and_exit(), recovery_exit_when_normal_returns_err(), recovery_record_rotation(), recovery_record_tokens_revoked(), recovery_record_verification() (+10 more)
 
 ### Community 174 - "Response"
-Cohesion: 0.24
+Cohesion: 0.20
 Nodes (6): EchoHandler, handle_echo_request(), handle_unknown_method(), IPCServer, server_creation(), server_start_stop()
 
 ### Community 175 - "Decision Pipeline"
@@ -1707,16 +1712,16 @@ Cohesion: 0.04
 Nodes (45): 1. Contradictory Instructions, 1. Intent Recognition Failure, 2. Impossible Request, 2. No Viable Options, 3. Partially Impossible Request, 3. Risk Assessment Overload, 4. Circular Request, 4. Scoring Conflict (+37 more)
 
 ### Community 176 - "ProviderCapability"
-Cohesion: 0.11
-Nodes (20): CapabilityDiscovery, CapabilityMatch, CapabilityScore, DefaultCapabilityDiscovery, make_provider(), test_default_discovery_finds_best(), test_default_discovery_no_match(), test_default_discovery_unavailable_lower_score() (+12 more)
+Cohesion: 0.13
+Nodes (17): CapabilityDiscovery, CapabilityMatch, CapabilityScore, DefaultCapabilityDiscovery, make_provider(), test_default_discovery_finds_best(), test_default_discovery_no_match(), test_default_discovery_unavailable_lower_score() (+9 more)
 
 ### Community 177 - "ReflectionReport"
-Cohesion: 0.13
-Nodes (15): InMemoryReflectionEngine, test_reflection_engine(), test_reflection_report_creation(), ContextChange, InsightSource, Context, Execution, GoalAlignment (+7 more)
+Cohesion: 0.14
+Nodes (14): InMemoryReflectionEngine, test_reflection_report_creation(), ContextChange, InsightSource, Context, Execution, GoalAlignment, Planning (+6 more)
 
 ### Community 178 - "ActivityKind"
-Cohesion: 0.06
-Nodes (25): ActivityKind, Browsing, Coding, Communication, Debugging, Designing, Documenting, Gaming (+17 more)
+Cohesion: 0.09
+Nodes (21): ActivityKind, Browsing, Coding, Communication, Debugging, Designing, Documenting, Gaming (+13 more)
 
 ### Community 179 - "InMemoryContextTracker"
 Cohesion: 0.08
@@ -1735,44 +1740,44 @@ Cohesion: 0.13
 Nodes (9): GraphError, CycleDetected, EmptyGraph, InvalidTransition, NodeNotFound, SelfDependency, TaskGraph, TaskGraphExecutor (+1 more)
 
 ### Community 183 - "watchdog.rs"
-Cohesion: 0.09
-Nodes (17): failure_count_tracking(), recovery_manager_clear(), recovery_manager_no_actions(), recovery_manager_register_and_execute(), recovery_manager_with_fn(), RecoveryAction, NotifyAdmin, ReloadConfig (+9 more)
+Cohesion: 0.05
+Nodes (28): config_defaults(), config_serde_roundtrip(), config_validation_ok(), HealthConfig, HealthError, CheckFailed, InvalidConfig, NotFound (+20 more)
 
 ### Community 184 - "SkillPermission"
 Cohesion: 0.08
 Nodes (23): SkillManifest, SkillPermission, BrowserAccess, CodeHarnessAccess, ComputerControl, DeleteFiles, MemoryRead, MemoryWrite (+15 more)
 
-### Community 185 - "pipecat_pipeline.py"
-Cohesion: 0.10
-Nodes (13): Entry points & process boundaries, Identity, Known structural smells confirmed this session, Major subsystems (Graphify communities, source-verified), OSMOO / VOXY Codebase Map, Text pipeline of daemon chat (main.rs), AudioRawFrame, CancelFrame (+5 more)
+### Community 185 - "DepthDrawer"
+Cohesion: 0.09
+Nodes (12): DepthDrawer(), DrawerTab, Automation, Conversation, Settings, Telemetry, DepthDrawer(), DrawerTab (+4 more)
 
 ### Community 186 - "Supervisor"
-Cohesion: 0.10
-Nodes (20): Supervisor, SupervisorConfig, SupervisorError, AssignProcessFailed, BinaryNotFound, JobObjectInitFailed, LaunchFailed, ShutdownError (+12 more)
+Cohesion: 0.06
+Nodes (31): get_supervisor(), get_global(), GLOBAL_SUPERVISOR, set_global(), Supervisor, SupervisorConfig, SupervisorError, AssignProcessFailed (+23 more)
 
-### Community 187 - "watcher.rs"
-Cohesion: 0.04
-Nodes (32): ActivityClassification, ActivityClassifier, ActivityType, Browsing, Coding, Communication, Gaming, Idle (+24 more)
+### Community 187 - "DesktopWatcher"
+Cohesion: 0.14
+Nodes (5): ApplicationInfo, DesktopSnapshot, DesktopWatcher, DesktopWatcherState, ProjectInfo
 
 ### Community 188 - "Skill"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (7): test_skill_id_newtype(), test_skill_id_creation(), Skill, SkillInput, SkillOutput, SkillRegistry, SkillId
 
 ### Community 189 - "experience_replay.rs"
 Cohesion: 0.17
 Nodes (14): ExperienceReplayConfig, ExperienceEntry, ExperienceReplay, ExperienceScores, make_entry(), MAX_REPLAY_RESULTS, ReplayResult, test_add_entry() (+6 more)
 
-### Community 190 - "tool_calling/src/lib.rs"
-Cohesion: 0.07
-Nodes (5): get_test_enclave(), test_access_enforcement_blocks_direct_user(), test_enclave_enumerates_installed_pipelines_and_skills(), test_pipeline_tool_blocks_unauthorized_user(), test_skills_loader_registers_capabilities()
+### Community 190 - "VoxyIpcServer"
+Cohesion: 0.11
+Nodes (4): constant_time_eq(), DaemonStateSnapshot, handle_client_connection(), VoxyIpcServer
 
 ### Community 191 - "AuditLogEntry"
 Cohesion: 0.14
 Nodes (8): AuditLogEntry, AuditLogStore, InMemoryAuditLogStore, make_entry(), test_clear(), test_count(), test_record_and_retrieve(), test_verify_chain()
 
 ### Community 192 - "StdResult"
-Cohesion: 0.15
-Nodes (4): SqliteAuditLogStore, SqliteConversationStore, test_conversation_store_fts5_search_and_triggers(), test_wal_mode_on_disk()
+Cohesion: 0.14
+Nodes (3): SqliteAuditLogStore, SqliteConversationStore, test_conversation_store_fts5_search_and_triggers()
 
 ### Community 193 - "report.rs"
 Cohesion: 0.11
@@ -1780,15 +1785,15 @@ Nodes (15): ComponentType, Cpu, Custom, Database, EventBus, Ipc, Memory, Service
 
 ### Community 194 - "ProviderError"
 Cohesion: 0.11
-Nodes (14): ChatCompletionResponse, ChatMessage, OpenAIClient, ProviderError, AuthenticationFailed, CapabilityNotAvailable, ConnectionFailed, InvalidResponse (+6 more)
+Nodes (14): ModelInfo, ModelsResponse, OpenAIClient, ProviderError, AuthenticationFailed, CapabilityNotAvailable, ConnectionFailed, InvalidResponse (+6 more)
 
 ### Community 195 - "secrets.rs"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (8): SecretEntry, SecretVault, vault_clear(), vault_delete(), vault_list_keys(), vault_requires_master_key(), vault_rotation(), vault_store_and_retrieve()
 
-### Community 196 - "guard.rs"
-Cohesion: 0.04
-Nodes (28): dashboard_from_snapshot(), dashboard_html_not_empty(), DashboardData, escape_html(), generate_html(), dashboard_generation(), get_memory_usage(), guard_creation() (+20 more)
+### Community 196 - "HeartbeatTracker"
+Cohesion: 0.14
+Nodes (9): GuardConfig, check_all_alive_empty(), HeartbeatConfig, HeartbeatEntry, HeartbeatTracker, register_and_beat(), tracker_creation(), unregister() (+1 more)
 
 ### Community 197 - "consent.rs"
 Cohesion: 0.16
@@ -1803,12 +1808,12 @@ Cohesion: 0.10
 Nodes (8): PresenceRenderer, PresenceState, Error, Idle, Listening, Speaking, Thinking, test_presence_state_colors()
 
 ### Community 200 - "BaseTool"
-Cohesion: 0.03
-Nodes (52): AudioEnergy, AudioProbe, AudioEnhance, ComfyUIMusic, GoogleMusic, BaseTool, Determinism, ExecutionMode (+44 more)
+Cohesion: 0.04
+Nodes (47): AudioEnergy, AudioProbe, probe_duration(), CompositionValidator, AudioEnhance, FalElevenLabsMusic, GoogleMusic, InworldTTS (+39 more)
 
 ### Community 201 - "FishAudioTTS"
-Cohesion: 0.04
-Nodes (19): imported_plugin_names(), main(), sha256(), asset_cache_enabled(), get_default_asset_cache(), emit_event(), infer_project_dir(), read_events() (+11 more)
+Cohesion: 0.05
+Nodes (13): asset_cache_enabled(), get_default_asset_cache(), emit_event(), infer_project_dir(), read_events(), FishAudioTTS, _cache_execute(), wrapper() (+5 more)
 
 ### Community 202 - "guardian.rs"
 Cohesion: 0.19
@@ -1823,28 +1828,28 @@ Cohesion: 0.06
 Nodes (25): AppearanceSettings, AutomationSettings, DeveloperSettings, MemorySettings, ModelSettings, PerformanceSettings, PluginSettings, PrivacySettings (+17 more)
 
 ### Community 205 - "ContextProvider"
-Cohesion: 0.15
-Nodes (6): ContextProvider, ContextRegistry, MockProvider, test_collect_all(), test_register_and_collect(), test_unregister()
+Cohesion: 0.18
+Nodes (5): ContextRegistry, MockProvider, test_collect_all(), test_register_and_collect(), test_unregister()
 
 ### Community 206 - "download.rs"
 Cohesion: 0.11
 Nodes (13): do_download(), download_cancel_nonexistent(), download_progress_empty(), DownloadManager, DownloadProgress, DownloadState, DownloadStatus, Cancelled (+5 more)
 
 ### Community 207 - "sdk.rs"
-Cohesion: 0.16
-Nodes (10): MockPlugin, Plugin, PluginError, AlreadyRegistered, InitFailed, LoadFailed, NotFound, PlatformMismatch (+2 more)
+Cohesion: 0.06
+Nodes (33): default_plugin_registry(), DefaultPlatformQuery, enabled_plugins_only(), initialize_all_plugins(), invoke_nonexistent_plugin(), invoke_unknown_command(), list_plugins(), MockPlugin (+25 more)
 
-### Community 208 - "ToolCategory"
-Cohesion: 0.07
-Nodes (17): KodusInternalReviewTool, ResearchInvestigateTool, RiskTier, Destructive, LowRisk, Modify, Privileged, Read (+9 more)
+### Community 208 - "ui.rs"
+Cohesion: 0.12
+Nodes (9): UiAnalysisProvider, SemanticElement, make_test_frame(), test_classify_element(), test_find_elements_by_type(), test_ui_analyzer_no_provider(), test_ui_analyzer_with_provider(), TestUiProvider (+1 more)
 
 ### Community 209 - "IntelligenceError"
 Cohesion: 0.17
 Nodes (12): IntelligenceError, Config, Conversation, Decision, Emotional, InvalidState, MemoryImportance, Personality (+4 more)
 
 ### Community 211 - "WindowsPlatform"
-Cohesion: 0.06
-Nodes (17): FileSystemPlatform, FileInfo, maximize_window(), minimize_window(), move_window(), resize_window(), restore_window(), set_foreground_window() (+9 more)
+Cohesion: 0.08
+Nodes (13): AudioPlatform, AudioDevice, enumerate_audio_input_devices(), enumerate_audio_output_devices(), waveInGetNumDevs(), waveOutGetNumDevs(), windows_display_enumeration(), windows_filesystem_operations() (+5 more)
 
 ### Community 212 - "integrity.rs"
 Cohesion: 0.14
@@ -1859,28 +1864,28 @@ Cohesion: 0.14
 Nodes (13): threat_clear_old_events(), threat_event_recording(), threat_rapid_failure_detection(), threat_severity_filter(), threat_unhandled_tracking(), ThreatDetector, ThreatEvent, ThreatSeverity (+5 more)
 
 ### Community 215 - "database/src/lib.rs"
-Cohesion: 0.06
-Nodes (9): DatabaseError, BackupFailed, ConnectionFailed, EncryptionFailed, IO, MigrationFailed, NotFound, QueryFailed (+1 more)
+Cohesion: 0.07
+Nodes (7): make_store(), populate_store(), test_backup_registry_list_and_delete(), test_entitlement_integrity_preserved_post_restore(), test_full_backup_restore_cycle(), test_multiple_backups_restore_latest(), test_subscription_status_integrity_post_restore()
 
 ### Community 216 - "openai/src/client.rs"
-Cohesion: 0.18
-Nodes (16): Choice, EmbeddingData, EmbeddingResponse, ModelInfo, ModelsResponse, parse_stream_frame(), parse_stream_frame_detects_error_object(), parse_stream_frame_extracts_delta_content() (+8 more)
+Cohesion: 0.13
+Nodes (16): ChatCompletionResponse, ChatMessage, Choice, EmbeddingData, EmbeddingResponse, parse_stream_frame(), parse_stream_frame_detects_error_object(), parse_stream_frame_extracts_delta_content() (+8 more)
 
 ### Community 217 - "skill_discovery.rs"
 Cohesion: 0.17
 Nodes (14): SkillDiscoveryConfig, MAX_ACTION_HISTORY, MAX_PATTERNS, MAX_SUGGESTIONS, SkillDiscovery, SkillSuggestion, TaskPattern, test_detect_patterns_above_threshold() (+6 more)
 
-### Community 218 - "Root.tsx"
-Cohesion: 0.06
-Nodes (49): Composition Authoring Mode — Templated vs Atelier, signalFromTomorrowWithMusicFixture, CinematicBaseScene, CinematicCaptionConfig, CinematicRendererProps, CinematicScene, CinematicSoundtrack, CinematicTitleScene (+41 more)
+### Community 218 - "CinematicRenderer.tsx"
+Cohesion: 0.14
+Nodes (19): Composition Authoring Mode — Templated vs Atelier, signalFromTomorrowWithMusicFixture, CinematicBaseScene, CinematicCaptionConfig, CinematicRendererProps, CinematicScene, CinematicSoundtrack, CinematicTitleScene (+11 more)
 
 ### Community 219 - "ComponentState"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (12): all_states(), ComponentState, Degraded, Failed, Initializing, Running, Stopped, Unknown (+4 more)
 
-### Community 220 - "CostTracker"
-Cohesion: 0.05
-Nodes (14): BudgetConfig, BudgetMode, CheckpointConfig, CheckpointPolicy, LLMConfig, OpenMontageConfig, OutputConfig, PathsConfig (+6 more)
+### Community 220 - "config_model.py"
+Cohesion: 0.21
+Nodes (8): BudgetConfig, BudgetMode, CheckpointConfig, CheckpointPolicy, LLMConfig, OpenMontageConfig, OutputConfig, PathsConfig
 
 ### Community 221 - "DefaultInterruptionManager"
 Cohesion: 0.12
@@ -1888,7 +1893,7 @@ Nodes (8): DefaultInterruptionManager, InterruptionEvent, InterruptionManager, I
 
 ### Community 223 - "WasapiLoopbackCapture"
 Cohesion: 0.11
-Nodes (5): CameraGestureThread, main(), VoxyLiveServer, VoxyVoiceEngine, WasapiLoopbackCapture
+Nodes (4): CameraGestureThread, VoxyLiveServer, VoxyVoiceEngine, WasapiLoopbackCapture
 
 ### Community 225 - "micro.rs"
 Cohesion: 0.13
@@ -1899,11 +1904,11 @@ Cohesion: 0.17
 Nodes (11): ContextFusionEngine, FreshnessEngine, FreshnessEngineExt, FusionStats, make_snapshot(), test_fuse_basic(), test_fuse_deterministic_output(), test_fuse_empty() (+3 more)
 
 ### Community 227 - "HealthMonitor"
-Cohesion: 0.16
+Cohesion: 0.14
 Nodes (7): check_all_empty(), check_not_found(), HealthMonitor, monitor_creation(), register_and_check(), remove_check(), set_state_tracker()
 
 ### Community 228 - "token.rs"
-Cohesion: 0.15
+Cohesion: 0.13
 Nodes (11): CapabilityToken, grant_creation(), PermissionGrant, token_creation(), token_expired_fails_validation(), token_hmac_sign_and_verify(), token_tampered_payload_rejected(), token_tampered_signature_rejected() (+3 more)
 
 ### Community 229 - "workflow_learning.rs"
@@ -1915,12 +1920,12 @@ Cohesion: 0.19
 Nodes (20): acknowledge_nonexistent_alert(), AgentId, AgentSnapshot, command_center_creation(), CpuMetrics, GoalId, GoalProgress, GoalSnapshot (+12 more)
 
 ### Community 231 - "silence.rs"
-Cohesion: 0.13
-Nodes (18): AttentionState, SilenceConfig, make_attention(), SilenceDecision, Silent, Speak, SilenceIntelligence, SilenceReason (+10 more)
+Cohesion: 0.14
+Nodes (17): AttentionState, make_attention(), SilenceDecision, Silent, Speak, SilenceIntelligence, SilenceReason, AnnoyanceThreshold (+9 more)
 
 ### Community 232 - "app.rs"
-Cohesion: 0.10
-Nodes (19): App(), AssistantCore(), CompanionMode, ParticleOrb, Robot, CoreState, Error, Idle (+11 more)
+Cohesion: 0.06
+Nodes (22): App(), AssistantCore(), CompanionMode, ParticleOrb, Robot, CoreState, Error, Idle (+14 more)
 
 ### Community 233 - "FusionPolicy"
 Cohesion: 0.13
@@ -1931,24 +1936,24 @@ Cohesion: 0.11
 Nodes (10): ActivityContextProvider, ActivityType, Active, AppInteraction, Idle, Listening, Reading, test_collect_app_interaction() (+2 more)
 
 ### Community 235 - "WindowTracker"
-Cohesion: 0.08
-Nodes (10): DesktopRuntime, RuntimeConfig, save_load_state(), TrackedWindow, WindowState, Hidden, Maximized, Minimized (+2 more)
+Cohesion: 0.10
+Nodes (8): save_load_state(), TrackedWindow, WindowState, Hidden, Maximized, Minimized, Normal, WindowTracker
 
 ### Community 237 - "MessageType"
 Cohesion: 0.08
 Nodes (23): MessageType, AuthRequest, AuthResponse, CancelAck, CancelRequest, EventNotify, EventPublish, EventSubscribe (+15 more)
 
 ### Community 238 - "memory/src/preferences.rs"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (8): Preference, PreferenceStats, PreferenceTracker, PreferenceTrackerState, test_stable_preference(), test_to_memory_items(), test_track_app_usage(), test_tracker_creation()
 
 ### Community 239 - "ReasoningOutput"
-Cohesion: 0.08
-Nodes (17): ConfidenceEstimator, InMemoryConfidenceEstimator, InMemoryReasoner, test_reasoner(), Reasoner, ReasoningInput, ReasoningOutput, ReasoningStep (+9 more)
+Cohesion: 0.06
+Nodes (23): ConfidenceEstimator, InMemoryConfidenceEstimator, InMemoryReasoner, test_reasoner(), Reasoner, ReasoningInput, ReasoningOutput, ReasoningStep (+15 more)
 
 ### Community 240 - "companion_intelligence/src/lib.rs"
 Cohesion: 0.08
-Nodes (14): ExperienceSnapshot, PresenceEventType, AchievementUnlocked, ActivityDetected, EmergencyAlert, SleepTimerExpired, SystemEvent, TaskCompleted (+6 more)
+Nodes (14): MomentType, BatteryLow, CodeCompiled, DailyDebrief, DownloadComplete, FocusedWork, GoodMorning, GoodNight (+6 more)
 
 ### Community 241 - "PluginManager"
 Cohesion: 0.06
@@ -1998,21 +2003,21 @@ Nodes (21): IpcError, AlreadyConnected, AuthFailed, Cancelled, CapabilityDenied,
 Cohesion: 0.25
 Nodes (18): executor_next_batch(), executor_skip_dependents_on_failure(), graph_add_dependency(), graph_add_node(), graph_cancel_all(), graph_creation(), graph_critical_path(), graph_cycle_detection() (+10 more)
 
-### Community 253 - "ui_state_test.rs"
+### Community 253 - "ClientCommand"
 Cohesion: 0.08
-Nodes (11): DEFAULT_MODELS, ModelCatalogItem, PROVIDER_CATALOG, ProviderCatalogItem, SUBSCRIPTION_PLANS, SubscriptionTier, VOICE_CATALOG, VoiceModelItem (+3 more)
+Nodes (18): VoxyIpcClient, ClientCommand, ClientHandshake, ConfirmAction, EmergencyStop, HeartbeatPong, InterruptSpeech, RequestHardwareStatus (+10 more)
 
 ### Community 254 - "pipecat_pipeline.py"
-Cohesion: 0.10
-Nodes (7): EndFrame, main(), feed_and_stop(), PipecatVoiceService, _stdin_reader_worker(), stdin_supervisor_loop(), TextFrame
+Cohesion: 0.05
+Nodes (20): Entry points & process boundaries, Identity, Known structural smells confirmed this session, Major subsystems (Graphify communities, source-verified), OSMOO / VOXY Codebase Map, Text pipeline of daemon chat (main.rs), AudioRawFrame, CancelFrame (+12 more)
 
-### Community 256 - "platform_core/src/traits.rs"
-Cohesion: 0.08
-Nodes (14): DisplayPlatform, NetworkPlatform, Platform, ProcessPlatform, DisplayInfo, NetworkInfo, NetworkInterface, PlatformInfo (+6 more)
+### Community 256 - "platform_core/src/lib.rs"
+Cohesion: 0.04
+Nodes (19): PlatformRegistry, DisplayPlatform, FileSystemPlatform, InputPlatform, NetworkPlatform, Platform, ProcessPlatform, DisplayInfo (+11 more)
 
-### Community 257 - "security/src/auth.rs"
-Cohesion: 0.10
-Nodes (9): AuthPasswordHasher, AuthRateLimiter, RateLimitEntry, SessionTokenManager, test_argon2id_password_hash_and_verify(), test_argon2id_wrong_password_fails(), test_rate_limiter_brute_force_block(), test_rate_limiter_reset_on_success() (+1 more)
+### Community 257 - "tcp_loopback.rs"
+Cohesion: 0.13
+Nodes (10): read_framed_message(), write_framed_message(), authenticated_sidecar_receives_snapshot_and_delivers_command(), handle_sidecar_connection(), handshake_frame(), start_fails_closed_without_token(), TcpLoopbackServer, text_frame() (+2 more)
 
 ### Community 258 - "playbook_loader.py"
 Cohesion: 0.07
@@ -2031,52 +2036,56 @@ Cohesion: 0.14
 Nodes (5): BargeInConfig, BargeInManager, InMemoryBargeInManager, InterruptionEvent, SignalPacket
 
 ### Community 262 - "BackendCommand"
-Cohesion: 0.08
-Nodes (17): BackendError, Auth, Cognition, Ipc, Settings, Storage, Validation, BackendResult (+9 more)
+Cohesion: 0.05
+Nodes (25): BackendCommand, CompleteOnboarding, EmergencyStop, GetChatHistory, GetSystemTelemetry, LoadSettings, SaveSettings, SendPrompt (+17 more)
 
 ### Community 263 - "HardwareError"
 Cohesion: 0.09
 Nodes (21): HardwareError, AudioError, DeviceBusy, DeviceError, DeviceNotFound, IO, PermissionDenied, UnsupportedOperation (+13 more)
 
-### Community 264 - "watchdog.rs"
-Cohesion: 0.09
-Nodes (20): GracefulShutdown, ShutdownPriority, Background, Final, Flush, Services, ShutdownStep, test_execute_shutdown() (+12 more)
+### Community 264 - "selftest.rs"
+Cohesion: 0.20
+Nodes (9): concurrent_registration(), empty_runner(), register_and_run_all(), results_summary(), run_one(), SelfTestResult, SelfTestRunner, SelfTestSummary (+1 more)
 
 ### Community 265 - "OrchestratorEvent"
 Cohesion: 0.08
 Nodes (20): OrchestratorEvent, AuditEvent, BackgroundTaskCompleted, BackgroundTaskStarted, EmergencyOverride, GuardianOverrideActivated, GuardianOverrideDeactivated, PipelineCompleted (+12 more)
 
 ### Community 266 - "ProviderHealth"
-Cohesion: 0.11
-Nodes (10): TtsProvider, HealthStatus, AuthenticationFailed, Checking, Degraded, Healthy, RateLimited, Unknown (+2 more)
+Cohesion: 0.10
+Nodes (11): TtsProvider, HealthStatus, AuthenticationFailed, Checking, Degraded, Healthy, RateLimited, Unavailable (+3 more)
 
-### Community 267 - "A2AMessage"
-Cohesion: 0.11
-Nodes (13): A2AMessage, A2AMessageBus, A2AMessageType, ArtifactSubmission, CanaryCheck, FailureAlert, Handoff, ProgressUpdate (+5 more)
+### Community 267 - "NodeType"
+Cohesion: 0.07
+Nodes (25): EdgeType, AssignedTo, ConnectedTo, Created, Custom, DependsOn, Dislikes, Likes (+17 more)
 
 ### Community 269 - "notifications.rs"
 Cohesion: 0.17
 Nodes (11): Notification, notification_clear_history(), notification_history(), notification_manager_send(), NotificationManager, NotificationPriority, Critical, High (+3 more)
+
+### Community 270 - "AdaptiveThreshold"
+Cohesion: 0.17
+Nodes (6): ConfidenceCalibration, AdaptiveThresholds, AdaptiveThreshold, BehaviorPattern, CalibrationSample, UserPreferenceProfile
 
 ### Community 271 - "health.rs"
 Cohesion: 0.13
 Nodes (7): LlmBenchmarkRunner, NoopHealthChecker, ProviderBenchmarkResult, ProviderHealthChecker, test_benchmark_runner_creation(), test_noop_health_checker(), test_noop_is_healthy()
 
 ### Community 272 - "version.rs"
-Cohesion: 0.09
-Nodes (10): BuildInfo, current_version(), default_version(), version(), version_creation(), version_full(), version_partial_eq(), version_with_build_metadata() (+2 more)
-
-### Community 273 - "builtin/memory.rs"
 Cohesion: 0.14
-Nodes (7): calculate_relevance(), MemoryForgetTool, MemoryRecallTool, MemoryStoreTool, setup_test_store(), test_memory_store_recall_quarantine_and_isolation(), test_memory_store_rejects_secrets()
+Nodes (9): current_version(), default_version(), version(), version_creation(), version_full(), version_partial_eq(), version_with_build_metadata(), version_with_prerelease() (+1 more)
+
+### Community 273 - "tool_calling/src/lib.rs"
+Cohesion: 0.04
+Nodes (26): PromptInjectionDefense, SanitizedContent, test_clean_content_preserved(), test_sanitization_detects_and_neutralizes_injection(), calculate_relevance(), MemoryForgetTool, MemoryRecallTool, MemoryStoreTool (+18 more)
 
 ### Community 274 - "SandboxedRunner"
 Cohesion: 0.09
 Nodes (21): CommandOutput, DEFAULT_MAX_OUTPUT_BYTES, is_sensitive_key(), ProcessIsolationLevel, RestrictedProcess, read_bounded_pipe(), RunnerError, EmergencyStopAborted (+13 more)
 
-### Community 275 - "threejs_world.py"
-Cohesion: 0.11
-Nodes (9): AzureTTS, MAITTS, _clamp(), _color(), _integer(), _number(), _slug(), ThreeJSWorld (+1 more)
+### Community 275 - "ThreeJSWorld"
+Cohesion: 0.26
+Nodes (7): _clamp(), _color(), _integer(), _number(), _slug(), ThreeJSWorld, _vec()
 
 ### Community 276 - "human_dynamics/src/confidence.rs"
 Cohesion: 0.14
@@ -2086,9 +2095,9 @@ Nodes (13): ConfidenceEngine, test_average_confidence(), test_high_confidence(),
 Cohesion: 0.04
 Nodes (44): 1. Overview, 2.10 Guardian Mode, 2.11 Recovery Mode, 2.12 Secure Shutdown, 2.14.1 Guardian Decision Flow, 2.14.2 Guardian Implementation, 2.14.3 Risk Analyzer, 2.14 Guardian Policy Engine (+36 more)
 
-### Community 278 - "hardware/src/lib.rs"
-Cohesion: 0.05
-Nodes (21): CompatibilityEngine, CompatibilityTier, CpuOnly, FullGpu, Incompatible, PartialOffload, ModelResourceEstimate, test_estimate_7b_q4_requirements() (+13 more)
+### Community 278 - "GpuVendor"
+Cohesion: 0.13
+Nodes (11): GpuInfo, GpuVendor, Amd, Intel, Nvidia, Other, Qualcomm, Software (+3 more)
 
 ### Community 279 - "model_lifecycle.rs"
 Cohesion: 0.13
@@ -2096,7 +2105,7 @@ Nodes (10): ManagedModel, ModelLifecycleInfo, ModelLifecycleManager, ModelLifecy
 
 ### Community 280 - "SearchFilters"
 Cohesion: 0.12
-Nodes (3): filters_for(), SearchFilters, LibraryOfCongressSource
+Nodes (3): filters_for(), SearchFilters, NARASource
 
 ### Community 281 - "CancellationToken"
 Cohesion: 0.18
@@ -2107,48 +2116,52 @@ Cohesion: 0.10
 Nodes (10): RuntimeLifecycle, RuntimeState, Created, Failed, Initializing, Paused, Running, Stopped (+2 more)
 
 ### Community 283 - "sanitizer.rs"
-Cohesion: 0.13
-Nodes (12): MAX_CONTEXT_LENGTH, MAX_INPUT_LENGTH, sanitize_context(), sanitize_llm_output(), sanitize_user_input(), SanitizedInput, test_sanitize_context_injection(), test_sanitize_context_window_title() (+4 more)
+Cohesion: 0.07
+Nodes (23): detect_injection_patterns(), LAYER_1_IDENTITY, LAYER_2_SECURITY, LAYER_3_CAPABILITIES, LAYER_4_CONVERSATION, SystemPromptBuilder, test_delimiter_injection_blocked(), test_injection_detection() (+15 more)
 
 ### Community 284 - "overlay/src/types.rs"
 Cohesion: 0.06
-Nodes (26): ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon(), DepthDrawer(), DrawerTab, Automation, Conversation (+18 more)
+Nodes (28): ChatMessage, DesktopMode, Compact, ComputerControl, EdgeDock, Floating, FullExperience, Minimal (+20 more)
 
 ### Community 285 - "Reviewer — Meta Skill"
 Cohesion: 0.05
 Nodes (40): At compose stage:, At compose stage:, At compose stage (when composition_mode == "atelier"):, At edit stage:, At edit stage:, At proposal stage:, At publish stage:, At publish stage (when composition_mode == "atelier"): (+32 more)
 
 ### Community 286 - "push_to_talk.rs"
-Cohesion: 0.08
-Nodes (9): ptt_barge_in(), ptt_creation(), ptt_force_deactivate(), ptt_toggle(), PttState, Active, Barging, Idle (+1 more)
+Cohesion: 0.07
+Nodes (11): DesktopRuntime, RuntimeConfig, ptt_barge_in(), ptt_creation(), ptt_force_deactivate(), ptt_toggle(), PttState, Active (+3 more)
 
 ### Community 287 - "CapRecorder"
 Cohesion: 0.18
 Nodes (5): CapRecorder, _find_cap_binary(), _find_cap_recordings_dir(), _get_recent_recordings(), _is_cap_running()
 
 ### Community 288 - "icons.rs"
-Cohesion: 0.15
-Nodes (22): IconAlertCircle(), IconArrowLeft(), IconCheck(), IconChevronRight(), IconCpu(), IconEye(), IconEyeOff(), IconLock() (+14 more)
-
-### Community 289 - "ManagedService"
 Cohesion: 0.09
-Nodes (6): FlagService, ManagedService, Outcome, Err, Ok, outcome_to_result()
+Nodes (36): IconAlertCircle(), IconArrowLeft(), IconCheck(), IconChevronRight(), IconCpu(), IconEye(), IconEyeOff(), IconLayers() (+28 more)
+
+### Community 289 - "capture_screenshot"
+Cohesion: 0.11
+Nodes (21): BitBlt(), capture_screenshot(), collect_monitors(), CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), EnumDisplayMonitors() (+13 more)
 
 ### Community 290 - "overlay/src/main.rs"
-Cohesion: 0.10
-Nodes (8): CLIENT_JS, App(), APP_STATE, get_app_state(), get_ipc_client(), GlobalAppState, IPC_CLIENT, main()
+Cohesion: 0.07
+Nodes (14): App(), APP_STATE, get_app_state(), get_ipc_client(), GlobalAppState, IPC_CLIENT, main(), App() (+6 more)
 
 ### Community 291 - "protocol.rs"
 Cohesion: 0.10
 Nodes (10): EventMessage, Heartbeat, IPC_PROTOCOL_VERSION, MAX_FRAME_SIZE, MethodCall, MethodError, MethodResponse, StreamClose (+2 more)
 
+### Community 292 - "ToolRegistry"
+Cohesion: 0.06
+Nodes (7): ToolRegistry, 1. Executive Summary & Mission, 2. Relational Schema: Migration 105 (`skills_and_workflows`), 3. Skill Manifest Specification, 4. Runtime & Security Boundary Enforcement, PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION, Subsystem: Skills + Workflows Ecosystem
+
 ### Community 293 - "journal.rs"
 Cohesion: 0.21
 Nodes (7): AiActionEntry, AiActionJournal, journal_entry_confidence(), journal_mark_rollback(), journal_query_by_subject(), journal_query_by_tool(), journal_records_action()
 
-### Community 294 - "SwarmCoordinator"
-Cohesion: 0.10
-Nodes (5): SwarmCoordinator, SwarmProviderBridge, constant_time_eq(), SwarmSecurityBoundary, SwarmCollaborationWorkflow
+### Community 294 - "human_dynamics/src/types.rs"
+Cohesion: 0.12
+Nodes (21): HdrInput, RecoveryAction, RecoveryRecord, TrustEvent, TrustEventKind, Correction, FalseAlarm, ManualOverride (+13 more)
 
 ### Community 295 - "delta.rs"
 Cohesion: 0.23
@@ -2159,20 +2172,20 @@ Cohesion: 0.19
 Nodes (6): make_memory(), MemoryContextProvider, MemoryEntry, test_add_and_remove_memory(), test_collect_memory(), test_lru_eviction()
 
 ### Community 297 - "backup.rs"
-Cohesion: 0.22
-Nodes (7): BackupEntry, BackupManager, REGISTRY_FILE, test_backup_manager_create_list(), test_backup_manager_delete(), test_backup_manager_restore(), test_backup_manager_restore_nonexistent()
+Cohesion: 0.25
+Nodes (6): BackupEntry, BackupManager, test_backup_manager_create_list(), test_backup_manager_delete(), test_backup_manager_restore(), test_backup_manager_restore_nonexistent()
 
 ### Community 298 - "FeatureFlags"
 Cohesion: 0.16
 Nodes (7): feature_flag_operations(), FeatureFlags, FeatureFlagValue, Bool, Float, Integer, String
 
 ### Community 299 - "world_model/src/traits.rs"
-Cohesion: 0.05
-Nodes (21): WorldSnapshot, ApplicationInfo, DesktopState, WindowInfo, WorkspaceInfo, ConnectedDevice, AmbientConditions, Location (+13 more)
+Cohesion: 0.08
+Nodes (12): WorldSnapshot, DesktopState, WindowInfo, WorkspaceInfo, ConnectedDevice, AmbientConditions, Location, test_user_environment_default() (+4 more)
 
-### Community 300 - "SchemaMedia"
-Cohesion: 0.10
-Nodes (7): AtlasRefreshImage, Flux3ReplicateImage, GeminiReplicateImage, SchemaMedia, LTXAPIVideo, WanAtlasVideo, WanReplicateVideo
+### Community 300 - "OllamaProvider"
+Cohesion: 0.11
+Nodes (6): OllamaProvider, test_ollama_complete_connection_error(), test_ollama_embedding_error(), test_ollama_health_no_server(), test_ollama_provider_creation(), test_ollama_with_custom_config()
 
 ### Community 301 - "learning/src/engine.rs"
 Cohesion: 0.12
@@ -2194,17 +2207,17 @@ Nodes (7): AudioReactive, test_audio_reactive_creation(), test_glow_intensity(),
 Cohesion: 0.12
 Nodes (14): MemoryEvent, ConsolidationRun, ForgettingRun, GraphEdgeAdded, GraphNodeAdded, HermesClassification, ItemArchived, ItemCompressed (+6 more)
 
-### Community 306 - "agent_runtime/src/lib.rs"
-Cohesion: 0.12
-Nodes (3): Agent, agent_runtime_creates(), AgentRuntime
+### Community 306 - "RuntimeGuard"
+Cohesion: 0.13
+Nodes (7): dashboard_generation(), get_memory_usage(), guard_creation(), heartbeat_tracking(), register_subsystem(), RuntimeGuard, set_metadata()
 
 ### Community 307 - "Attention System"
 Cohesion: 0.05
 Nodes (43): 1. Attention Overflow, 1. Simultaneous User Inputs, 2. Focus Starvation, 2. Interrupt During Critical Operation, 3. Attention Deadlock, 3. Priority Inversion, 4. Attention Fragmentation, 4. Attention Livelock (+35 more)
 
 ### Community 308 - "resolveAsset"
-Cohesion: 0.07
-Nodes (36): CardFlash(), CollageBurst(), CollageBurstProps, CollageCard(), CollageClip, CollageTransition, { fontFamily: playfairFamily }, { fontFamily: playfairItalic } (+28 more)
+Cohesion: 0.09
+Nodes (27): CardFlash(), CollageBurst(), CollageBurstProps, CollageCard(), CollageClip, CollageTransition, { fontFamily: playfairFamily }, { fontFamily: playfairItalic } (+19 more)
 
 ### Community 309 - "OwnerCommandCenter"
 Cohesion: 0.21
@@ -2214,28 +2227,28 @@ Nodes (13): add_and_retrieve_logs(), log_buffer_respects_limit(), LogEntry, LogL
 Cohesion: 0.17
 Nodes (11): config_error_into_voxy_error(), ConfigError, FileNotFound, Io, Json, ParseError, Toml, ValidationFailed (+3 more)
 
-### Community 311 - "sys"
-Cohesion: 0.17
-Nodes (8): count_source_files(), detect_language(), main(), suggest_budget(), main(), detect_language(), run_verification(), main()
+### Community 311 - "detect_project.py"
+Cohesion: 0.39
+Nodes (4): count_source_files(), detect_language(), main(), suggest_budget()
 
 ### Community 312 - "ContextInvalidation"
 Cohesion: 0.21
 Nodes (9): ContextInvalidation, InvalidationResult, make_snapshot(), test_check_expired(), test_check_fresh(), test_check_needs_refresh(), test_clear_invalidation(), test_consecutive_invalidation_tracking() (+1 more)
 
-### Community 313 - "home/src/traits.rs"
-Cohesion: 0.06
-Nodes (16): HomeConfig, test_home_config_defaults(), ClimateSettings, EnvironmentConfig, HomeManager, ProjectSpec, RoomSpec, SceneConfig (+8 more)
+### Community 313 - "HomeManager"
+Cohesion: 0.13
+Nodes (3): HomeManager, ProjectSpec, RoomSpec
 
 ### Community 314 - "CentralTelemetry"
 Cohesion: 0.14
 Nodes (15): acknowledge_alert(), alert_max_limit(), alert_on_high_errors(), alert_on_high_latency(), CentralTelemetry, clear(), get_metrics(), no_alert_within_thresholds() (+7 more)
 
 ### Community 317 - "ResourceGovernor"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (4): concurrency_tracking(), governor_creation(), memory_tracking(), ResourceGovernor
 
 ### Community 318 - "archive_org.py"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (7): ArchiveOrgSource, _license_from_collection(), _looks_like_year(), _parse_length(), _pick_video_file(), _safe_int(), _to_text()
 
 ### Community 319 - "checkpoint.py"
@@ -2243,11 +2256,11 @@ Cohesion: 0.12
 Nodes (18): _archive_superseded_checkpoint(), _checkpoint_path(), CheckpointValidationError, _decision_log_path(), _enforce_stage_prerequisites(), get_completed_stages(), get_latest_checkpoint(), get_next_stage() (+10 more)
 
 ### Community 320 - "VisualPresenceConfig"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (12): RenderingConfig, VisualPresenceConfig, EventIntegration, ExperienceOutput, DesktopActivityChanged, DesktopFocusChanged, DesktopIdle, MoodChanged (+4 more)
 
 ### Community 321 - "CognitiveError"
-Cohesion: 0.12
+Cohesion: 0.10
 Nodes (16): CognitiveError, Cancelled, Curiosity, ExperienceReplay, GoalManager, Integration, KnowledgeValidation, Orchestrator (+8 more)
 
 ### Community 322 - "priority.rs"
@@ -2258,13 +2271,17 @@ Nodes (9): ContextPriorityResolver, make_snapshot(), SOURCE_PRIORITY_HIERARCHY, 
 Cohesion: 0.23
 Nodes (5): Modifiers, Shortcut, shortcut_register(), shortcut_unregister_all(), ShortcutManager
 
+### Community 324 - "brain/tests/integration_tests.rs"
+Cohesion: 0.19
+Nodes (17): make_brain(), make_input(), test_brain_cancel_turn(), test_brain_events(), test_brain_health_check(), test_brain_init_and_shutdown(), test_brain_latency_tracking(), test_brain_multiple_turns() (+9 more)
+
 ### Community 325 - "OrchestratorError"
 Cohesion: 0.11
 Nodes (17): OrchestratorError, AutomationError, CancellationError, GuardianOverride, HomeError, IntegrationError, InterruptionError, InvalidConfig (+9 more)
 
-### Community 326 - "error"
-Cohesion: 0.04
-Nodes (41): config_defaults(), config_serde_roundtrip(), config_validation_ok(), HealthConfig, HealthError, CheckFailed, InvalidConfig, NotFound (+33 more)
+### Community 326 - "runtime_guard/src/lib.rs"
+Cohesion: 0.17
+Nodes (7): GuardError, HeartbeatMissed, InvalidConfig, MaxRestartsExceeded, NotRunning, SelfHealingFailed, SubsystemNotFound
 
 ### Community 327 - "shared/src/traits.rs"
 Cohesion: 0.10
@@ -2279,12 +2296,12 @@ Cohesion: 0.06
 Nodes (34): Adding a new scene type, Existing synthetic-UI components, Remotion Composer — Scene & Overlay Cheat Sheet, ScreenshotStep, RenderedLine, RenderedPill, TerminalScene(), TerminalSceneProps (+26 more)
 
 ### Community 331 - "SubscriptionStatus"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (9): SubscriptionStatus, Active, Cancelled, Expired, PastDue, PaymentFailed, Pending, Refunded (+1 more)
 
 ### Community 332 - "BrainEvent"
-Cohesion: 0.09
-Nodes (22): BrainEvent, CognitionProcessed, CognitionProcessing, CompanionUpdated, CompanionUpdating, ContextCollected, ContextCollecting, HdrUpdated (+14 more)
+Cohesion: 0.12
+Nodes (15): BrainEvent, CognitionProcessed, CognitionProcessing, CompanionUpdated, CompanionUpdating, ContextCollected, ContextCollecting, HdrUpdated (+7 more)
 
 ### Community 333 - "CognitionError"
 Cohesion: 0.15
@@ -2295,8 +2312,8 @@ Cohesion: 0.23
 Nodes (7): ActionValidator, ValidationResult, ValidationStatus, Approved, Rejected, RequiresConsent, RequiresReview
 
 ### Community 335 - "CompanionConfig"
-Cohesion: 0.08
-Nodes (17): CompanionConfig, ConversationConfig, MemoryConfig, MissionConfig, PresenceConfig, ScoreWeights, CompanionEngine, make_input() (+9 more)
+Cohesion: 0.12
+Nodes (12): CompanionConfig, ConversationConfig, MemoryConfig, MissionConfig, PresenceConfig, ScoreWeights, SilenceConfig, make_input() (+4 more)
 
 ### Community 336 - "DeviceStatus"
 Cohesion: 0.15
@@ -2307,16 +2324,16 @@ Cohesion: 0.22
 Nodes (9): diagnostics_collect_all(), diagnostics_cpu_info(), diagnostics_hostname(), diagnostics_memory_total(), diagnostics_os_info(), diagnostics_serde(), diagnostics_uptime(), DiagnosticsReport (+1 more)
 
 ### Community 338 - "HomeEvent"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (12): HomeEvent, DeviceAdded, DeviceRemoved, DeviceStatusChanged, EnvironmentChanged, ProjectCreated, ProjectDeleted, RoomAdded (+4 more)
 
 ### Community 339 - "pipecat.rs"
-Cohesion: 0.05
-Nodes (38): assign_sidecar_to_job_object(), build_spawn_command(), default_restart_backoff_ms(), DEFAULT_SIDECAR_SHUTDOWN_GRACE_MS, default_startup_timeout_secs(), PipecatConfig, PipecatState, Degraded (+30 more)
+Cohesion: 0.08
+Nodes (24): assign_sidecar_to_job_object(), build_spawn_command(), PipecatConfig, PipecatSupervisor, resolve_python_path_for(), resolve_script_path_for(), spawn_stderr_drain_thread(), spawn_supervision_loop() (+16 more)
 
-### Community 340 - "WindowCloseTool"
-Cohesion: 0.09
-Nodes (5): WindowCloseTool, WindowFocusTool, WindowListTool, WindowMaximizeTool, WindowMinimizeTool
+### Community 340 - "shutdown.rs"
+Cohesion: 0.16
+Nodes (11): GracefulShutdown, ShutdownPriority, Background, Final, Flush, Services, ShutdownStep, test_execute_shutdown() (+3 more)
 
 ### Community 341 - "pipeline_loader.py"
 Cohesion: 0.08
@@ -2334,9 +2351,9 @@ Nodes (43): 1. Plan Stagnation, 1. Plan Without Dependencies, 2. Plan Over-optim
 Cohesion: 0.12
 Nodes (15): MemoryError, CompressionError, ConsolidationError, ForgettingError, GraphError, HermesError, ImportanceError, InvalidConfig (+7 more)
 
-### Community 345 - "SttProvider"
+### Community 345 - "provider_core/src/lib.rs"
 Cohesion: 0.11
-Nodes (4): MockLlm, MockStt, MockTts, SttProvider
+Nodes (3): MockStt, SttProvider, VisionProvider
 
 ### Community 346 - "conflict.rs"
 Cohesion: 0.26
@@ -2351,15 +2368,15 @@ Cohesion: 0.19
 Nodes (6): HeadTrackingConfig, HeadTracker, test_head_tracker_creation(), test_head_tracker_disabled(), test_head_tracker_start_stop(), test_head_tracker_update()
 
 ### Community 349 - "OpenAIProvider"
-Cohesion: 0.07
-Nodes (3): OpenAIProvider, test_openai_complete_connection_error(), test_openai_provider_creation()
-
-### Community 351 - "api_server/src/lib.rs"
 Cohesion: 0.06
-Nodes (19): ApiErrorBody, ApiResponseEnvelope, ApiResponseEnvelope<T>, CreateCheckoutRequest, CreateCheckoutResponse, EntitlementCheckRequest, RegisterRequest, RegisterResponse (+11 more)
+Nodes (4): OpenAIProvider, test_openai_complete_connection_error(), test_openai_provider_creation(), EmbeddingProvider
+
+### Community 351 - "ApiResponseEnvelope"
+Cohesion: 0.18
+Nodes (5): ApiErrorBody, ApiResponseEnvelope, ApiResponseEnvelope<T>, ApiRequest, ApiResponse
 
 ### Community 352 - "entitlement.rs"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (11): EntitlementEngine, FeatureFlag, CloudVoice, CodingHarness, ComputerControl, MultiAgentTeams, OfficeAutomation, PriorityCloudRouting (+3 more)
 
 ### Community 353 - "Alert"
@@ -2379,7 +2396,7 @@ Cohesion: 0.31
 Nodes (20): AuthRequest, authenticate_and_validate(), cleanup_expired_sessions(), make_auth_request(), make_middleware(), rate_limiting(), reject_insufficient_capabilities(), reject_no_token() (+12 more)
 
 ### Community 357 - "hotreload.rs"
-Cohesion: 0.21
+Cohesion: 0.22
 Nodes (4): hot_reload_manager_default(), hot_reloader_subscribe(), HotReloader, HotReloadManager
 
 ### Community 358 - "PlanId"
@@ -2395,8 +2412,8 @@ Cohesion: 0.05
 Nodes (43): 1. No Evidence, 1. Reasoning Loop, 2. Contradiction, 2. Contradictory Evidence, 3. Ambiguous Evidence, 3. Insufficient Evidence, 4. Circular Reasoning, 4. Reasoning Bias (+35 more)
 
 ### Community 361 - "ExperienceLayer"
-Cohesion: 0.13
-Nodes (5): ExperienceLayer, test_experience_layer_creation(), test_process_emotional_signal(), test_process_presence_event(), test_voice_parameters()
+Cohesion: 0.11
+Nodes (7): ExperienceOutput, ExperienceLayer, test_experience_layer_creation(), test_process_emotional_signal(), test_process_presence_event(), test_voice_parameters(), VoiceParameters
 
 ### Community 362 - "SpatialMotion"
 Cohesion: 0.26
@@ -2407,16 +2424,16 @@ Cohesion: 0.06
 Nodes (31): Animation Styles, Art Movements, Audio Descriptions, Camera Angle (relative to subject), Camera Height (relative to ground), Camera Movements, Camera Shot Types, Cinematic Styles (+23 more)
 
 ### Community 364 - "AttentionScore"
-Cohesion: 0.06
-Nodes (17): AttentionFactors, AttentionRecommendation, Alert, FocusPrimary, Idle, Pause, Resume, SwitchTask (+9 more)
+Cohesion: 0.07
+Nodes (10): AttentionFactors, AttentionScore, AttentionSystem, ContextSummary, Diagnostics, DiagnosticsSnapshot, LatencyDiagnostics, InMemoryAttentionSystem (+2 more)
 
 ### Community 365 - "Task Manager"
 Cohesion: 0.05
 Nodes (43): 1. Task Starvation, 1. Task Without Dependencies, 2. Task Deadlock, 2. Task With Circular Dependencies, 3. Resource Exhaustion, 3. Task With Unrealistic Deadline, 4. Task Abandonment, 4. Task Thrashing (+35 more)
 
 ### Community 366 - "super"
-Cohesion: 0.03
-Nodes (28): safe_launch_application(), test_safe_launch_blocks_command_injection(), SubscriptionStateMachine, ExperienceOutput, ReferenceCandidate, VoiceParameters, default_config(), default_config_creates() (+20 more)
+Cohesion: 0.02
+Nodes (42): safe_launch_application(), test_safe_launch_blocks_command_injection(), DEFAULT_MODEL, DEFAULT_RESEND_API_URL, ENV_LOCK, SendEmailRequest, SubscriptionStateMachine, MAX_GOALS (+34 more)
 
 ### Community 367 - "RuntimeError"
 Cohesion: 0.14
@@ -2439,20 +2456,20 @@ Cohesion: 0.23
 Nodes (9): IdeError, LaunchFailed, NotFound, IdeLauncher, SupportedIde, Cursor, IntelliJ, VSCode (+1 more)
 
 ### Community 374 - "AuthMiddleware"
-Cohesion: 0.11
-Nodes (6): AuthenticationFailed, AuthMiddleware, RateLimiter, SessionInfo, test_cannot_register_empty_or_whitespace_tokens(), TrustedIdentity
+Cohesion: 0.08
+Nodes (12): AuthError, AuthenticationFailed, InsufficientCapabilities, NoToken, RateLimited, TokenExpired, TokenUnsigned, AuthMiddleware (+4 more)
 
 ### Community 375 - "Self-Monitoring"
 Cohesion: 0.05
 Nodes (42): 1. Monitoring Blind Spot, 1. No Metrics Available, 2. Alert Storm, 2. Conflicting Alerts, 3. False Positives, 3. Monitoring System Failure, 4. False Alarm, 4. Monitoring Overhead (+34 more)
 
 ### Community 376 - "GestureTracker"
-Cohesion: 0.11
-Nodes (5): GestureServiceServer, GestureTracker, main(), VoiceUdpProtocol, run_hardware_gesture_benchmark()
+Cohesion: 0.08
+Nodes (10): GestureServiceServer, GestureTracker, main(), VoiceUdpProtocol, run_hardware_gesture_benchmark(), IAudioCaptureClient, IAudioClient, IMMDevice (+2 more)
 
 ### Community 377 - "MemoryMoments"
-Cohesion: 0.11
-Nodes (16): MemoryEntry, SharedJourney, test_max_entries(), test_record_and_retrieve(), test_used_count_limits(), MemoryMoments, StoredMoment, test_max_references() (+8 more)
+Cohesion: 0.17
+Nodes (11): MemoryEntry, SharedJourney, test_max_entries(), test_record_and_retrieve(), test_used_count_limits(), MemoryKind, Achievement, Milestone (+3 more)
 
 ### Community 378 - "AutomationConfig"
 Cohesion: 0.20
@@ -2467,8 +2484,8 @@ Cohesion: 0.05
 Nodes (42): 1. Event Bus Optimization, 2. Memory System Optimization, 3. Task Graph Optimization, 4. Goal Engine Optimization, 5. Audio System Optimization, 6. LLM Provider Optimization, Alert Thresholds, Benchmark Categories (+34 more)
 
 ### Community 381 - "companion/src/types.rs"
-Cohesion: 0.13
-Nodes (16): CompanionInput, MemoryMoment, MissionState, Active, Completed, Idle, SessionId, UserPresence (+8 more)
+Cohesion: 0.09
+Nodes (24): CompanionInput, CompanionOutput, ExpressionMetadata, Greeting, GreetingKind, CheckIn, Milestone, Morning (+16 more)
 
 ### Community 382 - "GuardianEvent"
 Cohesion: 0.14
@@ -2476,7 +2493,7 @@ Nodes (11): GuardianEvent, AccessDenied, AccessGranted, AccessRequested, AuditLo
 
 ### Community 384 - "orchestrator/src/types.rs"
 Cohesion: 0.08
-Nodes (23): test_job_id_creation(), test_job_id_hash_and_eq(), test_job_ticket_creation(), JobId, JobState, Cancelled, Completed, Failed (+15 more)
+Nodes (25): test_job_id_creation(), test_job_id_hash_and_eq(), test_job_ticket_creation(), test_orchestrator_task_creation(), JobId, JobState, Cancelled, Completed (+17 more)
 
 ### Community 385 - "Contributing to VOXY"
 Cohesion: 0.05
@@ -2490,29 +2507,29 @@ Nodes (38): 10.1 Provider Conformance Tests, 10.2 Property-Based Tests, 10.3 Cha
 Cohesion: 0.14
 Nodes (11): PluginError, Crashed, DependencyMissing, ExecutionFailed, InvalidManifest, IPCFailed, LoadFailed, NotFound (+3 more)
 
-### Community 388 - "BOOL"
-Cohesion: 0.10
-Nodes (26): CloseHandle(), CreateToolhelp32Snapshot(), enum_windows_callback(), enumerate_windows(), EnumWindows(), get_foreground_window(), get_process_info(), GetForegroundWindow() (+18 more)
+### Community 388 - "human_dynamics/src/engine.rs"
+Cohesion: 0.20
+Nodes (10): BrainConfig, HdrConfig, HumanDynamicsEngine, make_input(), test_engine_latency(), test_engine_no_action(), test_engine_produces_output(), test_engine_protection_blocks() (+2 more)
 
 ### Community 390 - "ToolResult"
 Cohesion: 0.02
-Nodes (44): Tool Class Naming Convention, When Building New Tools, MistralSTT, CartesiaTTS, ElevenLabsSoundtrack, ElevenLabsTTS, GeminiTTS, GrokTTS (+36 more)
+Nodes (28): Tool Class Naming Convention, When Building New Tools, list_schemas(), load_schema(), validate_artifact(), DashscopeTTS, MusicGen, OpenAITTS (+20 more)
 
 ### Community 391 - "Tool Orchestration"
 Cohesion: 0.06
 Nodes (33): 1. Parallel by Default, 2. Tool Selection Hierarchy, 3. Never Retry Verbatim, 4. Confirm Before Destructive Actions, After implementation, After write, Always capture output, Always read before write (+25 more)
 
 ### Community 392 - "MissionCompanion"
-Cohesion: 0.25
-Nodes (4): MissionCompanion, test_auto_complete_on_activity_change(), test_mission_lifecycle(), test_return_summary()
+Cohesion: 0.14
+Nodes (10): CompanionEngine, make_input(), test_engine_latency(), test_engine_records_milestone(), test_engine_update(), test_engine_update_count(), MissionCompanion, test_auto_complete_on_activity_change() (+2 more)
 
 ### Community 393 - "providers/device.rs"
-Cohesion: 0.19
+Cohesion: 0.16
 Nodes (5): DeviceContextProvider, generate_device_id(), test_capabilities(), test_collect_device(), test_generate_device_id()
 
-### Community 394 - "Quantization"
-Cohesion: 0.08
-Nodes (28): LocalModelMetadata, ModelFamily, DeepSeek, Gemma, Llama, Mistral, Other, Phi (+20 more)
+### Community 394 - "LocalModelMetadata"
+Cohesion: 0.40
+Nodes (3): LocalModelMetadata, Other, ModelScanner
 
 ### Community 395 - "Frame"
 Cohesion: 0.27
@@ -2523,8 +2540,8 @@ Cohesion: 0.15
 Nodes (12): LearningError, BehaviorError, CalibrationError, EvolutionError, FeedbackError, InvalidConfig, MemoryAccessError, PolicyError (+4 more)
 
 ### Community 397 - "trinity_swarm/src/lib.rs"
-Cohesion: 0.09
-Nodes (7): create_test_router(), test_full_mission_execution_via_coordinator(), test_tool_calling_access_denial_for_untrusted_users(), setup_test_coordinator(), test_collaboration_workflow_bounded_loop(), test_end_to_end_trinity_swarm_mission_execution(), test_orchestrator_tool_and_status_tool_security_enforcement()
+Cohesion: 0.03
+Nodes (31): Agent, agent_runtime_creates(), AgentRuntime, ProviderKind, Cloud, Local, is_privileged_tool(), map_tool_to_permission() (+23 more)
 
 ### Community 398 - "SkillsError"
 Cohesion: 0.15
@@ -2546,21 +2563,17 @@ Nodes (28): Animation Durations, Applying to OpenMontage, Broadcast Standard, Ca
 Cohesion: 0.32
 Nodes (5): ConversationTiming, test_exchange_count(), test_pacing_complex_topic(), test_pacing_simple_topic(), ConversationPacing
 
-### Community 403 - "AutoLauncher"
-Cohesion: 0.26
-Nodes (3): autolaunch_creation(), autolaunch_exe_path(), AutoLauncher
-
 ### Community 404 - "CompanionPersonality"
-Cohesion: 0.12
-Nodes (13): CompanionPersonality, test_formality(), test_interrupt_respects_protectiveness(), test_personality_express(), test_robot_personality(), ExpressionMetadata, OrbState, Alert (+5 more)
+Cohesion: 0.18
+Nodes (5): CompanionPersonality, test_formality(), test_interrupt_respects_protectiveness(), test_personality_express(), test_robot_personality()
 
 ### Community 405 - "RoomType"
 Cohesion: 0.17
 Nodes (10): RoomType, Bathroom, Bedroom, Custom, Garage, Hallway, Kitchen, LivingRoom (+2 more)
 
-### Community 406 - "OfficeAuditTrail"
+### Community 406 - "style.rs"
 Cohesion: 0.16
-Nodes (7): AuditStatus, Cancelled, Denied, Failed, Success, OfficeAuditEvent, OfficeAuditTrail
+Nodes (14): StyleConfig, StyleEngine, test_companion_style(), test_focus_adapts(), test_formality_clamped(), test_professional_style(), test_time_pressure_adapts(), InteractionStyle (+6 more)
 
 ### Community 408 - "LearningEvent"
 Cohesion: 0.17
@@ -2574,9 +2587,9 @@ Nodes (14): IntentAnalysis, IntentAnalyzer, IntentType, Command, Communication, 
 Cohesion: 0.10
 Nodes (8): Severity, Critical, Debug, Error, Info, Warning, error_context_display(), ErrorContext
 
-### Community 412 - "voice_tts/src/lib.rs"
-Cohesion: 0.17
-Nodes (8): MockTtsEngine, SentenceChunker, test_chatterbox_tts_properties(), test_empty_tts_rejection(), test_mock_tts_synthesis(), test_sentence_chunker_flush_trailing(), test_sentence_chunker_punctuation_breaks(), test_sentence_chunker_url_and_abbrev_preservation()
+### Community 412 - "SentenceChunker"
+Cohesion: 0.35
+Nodes (4): SentenceChunker, test_sentence_chunker_flush_trailing(), test_sentence_chunker_punctuation_breaks(), test_sentence_chunker_url_and_abbrev_preservation()
 
 ### Community 413 - "verify.sh"
 Cohesion: 0.58
@@ -2595,24 +2608,24 @@ Cohesion: 0.29
 Nodes (4): clipboard_clear(), clipboard_creation(), clipboard_read(), ClipboardManager
 
 ### Community 418 - "Candidate"
-Cohesion: 0.10
-Nodes (4): Candidate, CoverrSource, Pond5PublicDomainSource, VidevoSource
+Cohesion: 0.09
+Nodes (4): Candidate, CoverrSource, LibraryOfCongressSource, Pond5PublicDomainSource
 
 ### Community 419 - "2. Subsystem List"
 Cohesion: 0.06
 Nodes (31): 1. Architecture Overview, 2.1 Presence System (`crates/companion/src/purpose/presence.rs`), 2.2 Conversation Engine (`crates/companion/src/purpose/conversation.rs`), 2.3 Voice Personality (`crates/personality/src/purpose/voice.rs`), 2.4 Memory Synapse (`crates/companion/src/purpose/memory.rs`), 2.5 Desktop Presence (`crates/world_model/src/purpose/awareness.rs`), 2.6 Proactive Beacon (`crates/companion/src/purpose/proactive.rs`), 2.7 Companion Moments (`crates/companion/src/purpose/moments.rs`) (+23 more)
 
 ### Community 420 - "VisualPresenceError"
-Cohesion: 0.19
+Cohesion: 0.17
 Nodes (5): OverlayConfig, DesktopOverlay, test_overlay_click_through_toggle(), test_overlay_creation(), test_overlay_resize()
 
 ### Community 421 - "IntegrationError"
-Cohesion: 0.18
+Cohesion: 0.11
 Nodes (10): IntegrationError, BootFailed, Config, Container, EventBridge, PipelineStageFailed, RecoveryFailed, ServiceAlreadyRegistered (+2 more)
 
 ### Community 422 - ".provider_menu_summary"
-Cohesion: 0.13
-Nodes (10): Composition Runtimes (Inside video_compose), Critical Rule: Motion-Required Requests, Mandatory Preflight, Provider Menu (Mandatory at Preflight), Setup Offer Protocol, Step 3: Animation Approach Selection, Step 3a: Tool Availability Scan, Step 3b: Animation Approach Decision Matrix (+2 more)
+Cohesion: 0.12
+Nodes (11): Composition Runtimes (Inside video_compose), Critical Rule: Motion-Required Requests, Mandatory Preflight, Provider Menu (Mandatory at Preflight), Setup Offer Protocol, Step 3: Greet and Orient, Step 3: Animation Approach Selection, Step 3a: Tool Availability Scan (+3 more)
 
 ### Community 425 - "TaskNode"
 Cohesion: 0.25
@@ -2647,8 +2660,8 @@ Cohesion: 0.20
 Nodes (7): StreamOpen, StreamType, Binary, Event, File, Text, Video
 
 ### Community 433 - "grounding.rs"
-Cohesion: 0.05
-Nodes (44): ChangeDetector, ChangeState, make_test_frame(), test_detects_element_appeared(), test_detects_pixel_changes(), test_hierarchy_no_changes(), test_no_changes_on_first_frame(), GroundingEngine (+36 more)
+Cohesion: 0.11
+Nodes (20): GroundingEngine, GroundingState, make_test_hierarchy(), test_ground_by_accessibility_id(), test_ground_by_coordinates(), test_ground_by_hierarchy_path(), test_ground_by_spatial(), test_ground_by_text() (+12 more)
 
 ### Community 434 - "TaskNodeState"
 Cohesion: 0.20
@@ -2687,8 +2700,8 @@ Cohesion: 0.07
 Nodes (29): 10. Future Robotics Compatible, 1. Local-First Cognition, 2. Event-Driven Architecture, 3. Model-Agnostic Inference, 4. Multi-Agent Ready, 5. Low Latency, 6. Production Ready, 7. Rust-Friendly (+21 more)
 
 ### Community 443 - "config/src/types.rs"
-Cohesion: 0.08
-Nodes (13): ConfigProvider, AppConfig, config_getters(), config_schema_version(), config_serializes_json(), config_serializes_toml(), default_config_valid(), default_schema_version() (+5 more)
+Cohesion: 0.04
+Nodes (16): ConfigProvider, ApiKeysConfig, AppConfig, config_getters(), config_schema_version(), config_serializes_json(), config_serializes_toml(), default_config_valid() (+8 more)
 
 ### Community 444 - "Executive Producer — Explainer Pipeline"
 Cohesion: 0.07
@@ -2698,17 +2711,17 @@ Nodes (27): After ASSETS stage:, After COMPOSE stage:, After EDIT stage:, After 
 Cohesion: 0.03
 Nodes (36): KlingTTS, KlingAvatar, KlingLipSync, DependencyError, KlingOfficialImage, account_usage_hint_for_error(), _cache_key(), get_account_costs() (+28 more)
 
-### Community 447 - "Tool"
-Cohesion: 0.09
-Nodes (4): ToolRegistry, Tool, OsmooSwarmOrchestratorTool, OsmooSwarmStatusTool
+### Community 447 - "threejs_asset_catalog.py"
+Cohesion: 0.13
+Nodes (7): imported_plugin_names(), main(), sha256(), _hash_file(), _download(), _sha256(), ThreeJSAssetCatalog
 
 ### Community 448 - "PolicyEnforcementMode"
 Cohesion: 0.28
 Nodes (7): GuardianConfig, PolicyEnforcementMode, AuditOnly, Disabled, Enforce, WarnOnly, test_guardian_config_defaults()
 
-### Community 449 - "cognitive_orchestrator/src/lib.rs"
-Cohesion: 0.14
-Nodes (4): DefaultPlatformQuery, platform_capabilities(), PlatformCapabilities, PlatformQuery
+### Community 449 - "GeminiProvider"
+Cohesion: 0.13
+Nodes (5): GeminiProvider, test_gemini_available_models(), test_gemini_complete_no_api_key(), test_gemini_provider_creation(), test_gemini_with_custom_model()
 
 ### Community 450 - "SystemComponent"
 Cohesion: 0.07
@@ -2718,21 +2731,17 @@ Nodes (25): ComponentStatus, Degraded, Healthy, Paused, Starting, Stopping, Unhe
 Cohesion: 0.07
 Nodes (29): 1. Correctness, 2. Readability & Simplicity, 3. Architecture, 4. Security, 5. Performance, Change Descriptions, Change Sizing, Code Review and Quality (+21 more)
 
-### Community 453 - "FeedbackEntry"
-Cohesion: 0.16
-Nodes (3): FeedbackProcessing, LearningPolicy, FeedbackEntry
-
 ### Community 454 - "LlmProvider"
-Cohesion: 0.11
-Nodes (4): MockLlm, LlmProvider, MockLlm, DynamicMockLlm
+Cohesion: 0.09
+Nodes (7): create_llm_provider(), create_ollama_provider(), stream_llm_to_sink(), MockLlm, LlmProvider, MockLlm, DynamicMockLlm
 
 ### Community 455 - "OpenMontage - Agent Guide"
 Cohesion: 0.07
 Nodes (27): Available Pipelines, Capability Discovery, Communication Protocol, First Interaction — Onboarding, Hand-drawn "doodle" animation → Ink Theater / Ink Puppet, Human Checkpoint Protocol, Important distinction, Layer 3 skills, by category (+19 more)
 
 ### Community 456 - "kodus_review/src/engine.rs"
-Cohesion: 0.03
-Nodes (72): deduplicate_findings(), extract_changed_files(), filter_diff_noise(), KodusReviewEngine, parse_kodus_findings(), KodusReviewError, DiffError, Io (+64 more)
+Cohesion: 0.02
+Nodes (77): deduplicate_findings(), extract_changed_files(), filter_diff_noise(), KodusReviewEngine, parse_kodus_findings(), KodusReviewError, DiffError, Io (+69 more)
 
 ### Community 457 - "CharacterTrait"
 Cohesion: 0.22
@@ -2743,7 +2752,7 @@ Cohesion: 0.22
 Nodes (6): PlatformError, ApiNotAvailable, InitializationFailed, PermissionDenied, QueryFailed, UnsupportedPlatform
 
 ### Community 460 - "WorldModelError"
-Cohesion: 0.39
+Cohesion: 0.43
 Nodes (8): test_world_model_error_display(), WorldModelError, DesktopError, DeviceNotFound, EnvironmentError, InvalidConfig, SnapshotError, TaskNotFound
 
 ### Community 461 - "provider_core/src/config.rs"
@@ -2770,9 +2779,9 @@ Nodes (26): Audience-Aware Query Variants, Common Pitfalls, Example: Good vs Bad
 Cohesion: 0.20
 Nodes (10): WorkflowStatus, Cancelled, Completed, Created, Failed, Paused, Queued, Running (+2 more)
 
-### Community 468 - "SwarmBlackboard"
-Cohesion: 0.19
-Nodes (3): HandoffEnvelope, SwarmArtifact, SwarmBlackboard
+### Community 468 - "RelationshipLevel"
+Cohesion: 0.17
+Nodes (13): InitiativeConfig, InitiativeEngine, test_initiative_allowed(), test_initiative_cooldown(), test_initiative_deep_focus_blocks(), test_initiative_disabled(), test_initiative_low_trust_blocks(), InitiativeDecision (+5 more)
 
 ### Community 469 - "ActivationEngine"
 Cohesion: 0.22
@@ -2784,11 +2793,7 @@ Nodes (29): 10. Review Checklist, 1.1 Current Dependency Graph, 1.2 Validation: 
 
 ### Community 471 - "ReinforcementSignal"
 Cohesion: 0.15
-Nodes (6): ReinforcementHook, StrategyEvolution, BehaviorPattern, ReinforcementSignal, StrategyEffectiveness, UserPreferenceProfile
-
-### Community 472 - "voxy_live_system.py"
-Cohesion: 0.09
-Nodes (7): check_scene_variation(), GUID, parse_guid(), IAudioCaptureClient, IAudioClient, IMMDevice, IMMDeviceEnumerator
+Nodes (4): ReinforcementHook, StrategyEvolution, ReinforcementSignal, StrategyEffectiveness
 
 ### Community 473 - "repo_indexer.rs"
 Cohesion: 0.31
@@ -2806,9 +2811,9 @@ Nodes (29): 1. Build, 2. Verify, 3. Configure, 4. Run, Audio Issues, Backup and 
 Cohesion: 0.29
 Nodes (7): TaskStatus, Cancelled, Completed, Failed, Paused, Queued, Running
 
-### Community 480 - "prompt.rs"
-Cohesion: 0.15
-Nodes (11): detect_injection_patterns(), LAYER_1_IDENTITY, LAYER_2_SECURITY, LAYER_3_CAPABILITIES, LAYER_4_CONVERSATION, SystemPromptBuilder, test_delimiter_injection_blocked(), test_injection_detection() (+3 more)
+### Community 480 - "src/activity.rs"
+Cohesion: 0.16
+Nodes (16): ActivityClassification, ActivityClassifier, ActivityType, Browsing, Coding, Communication, Gaming, Idle (+8 more)
 
 ### Community 481 - "Conversation Context"
 Cohesion: 0.07
@@ -2818,9 +2823,9 @@ Nodes (28): Algorithms, Conversation Compression, Conversation Context, Conversa
 Cohesion: 0.14
 Nodes (11): detect_media_type(), has_user_media(), _infer_audio_usability(), _infer_video_usability(), _parse_fps(), _probe_audio(), _probe_image(), _probe_video() (+3 more)
 
-### Community 483 - "IntelligenceConfig"
-Cohesion: 0.16
-Nodes (8): ConversationConfig, DecisionConfig, EmotionalConfig, IntelligenceConfig, MemoryConfig, PersonalityConfig, PresenceConfig, ProactiveConfig
+### Community 483 - "migration.rs"
+Cohesion: 0.22
+Nodes (8): get_all_migrations(), get_core_migrations(), MigrationRunner, MigrationStatus, test_migration_status(), test_register_all(), test_register_migration(), Migration
 
 ### Community 485 - "Version"
 Cohesion: 0.29
@@ -2866,9 +2871,9 @@ Nodes (6): ProjectPhase, Deployment, Development, Maintenance, Planning, Testing
 Cohesion: 0.08
 Nodes (24): 1. Sequential Stitching, 2. Spatial Stitching, 3. AI Clip Chaining (LTX-2 / CogVideo), 4. Hybrid Stitching, Aspect Ratio Mixing, Audio at Stitch Points, Audio Coordination, Audio Drift in Long Stitches (+16 more)
 
-### Community 496 - "Platform"
-Cohesion: 0.17
-Nodes (9): Platform, Android, platform_detection(), Ios, Linux, MacOS, Unknown, WebAssembly (+1 more)
+### Community 496 - "VisionRuntime"
+Cohesion: 0.15
+Nodes (6): test_vision_runtime_creates(), test_vision_runtime_find_element(), test_vision_runtime_observe_all(), test_vision_runtime_observe_window(), VisionProvider, VisionRuntime
 
 ### Community 498 - "Process — Standard Path (Corpus + CLIP Retrieval)"
 Cohesion: 0.17
@@ -2890,9 +2895,9 @@ Nodes (4): BenchmarkResult, certification_report_generates(), CertificationRepor
 Cohesion: 0.08
 Nodes (25): Context Budgeting, Context Hygiene Rules, Context Management, Context Structure (by Task Size), Cross-session continuity, Don't pass:, Large task (full codebase, 200K–1M tokens), Long Session Management (+17 more)
 
-### Community 504 - "sdk.rs"
-Cohesion: 0.27
-Nodes (10): default_plugin_registry(), enabled_plugins_only(), initialize_all_plugins(), invoke_nonexistent_plugin(), invoke_unknown_command(), list_plugins(), plugin_registry_creation(), register_and_invoke() (+2 more)
+### Community 504 - "DesktopEventBridge"
+Cohesion: 0.14
+Nodes (7): BridgeState, DesktopContext, DesktopEventBridge, test_bridge_creation(), test_bridge_state_update(), ApplicationLifecycleEvent, DesktopContextUpdate
 
 ### Community 505 - "OnboardingStep"
 Cohesion: 0.25
@@ -2906,9 +2911,9 @@ Nodes (3): _file_to_data_uri(), GrokImage, _normalize_image_input()
 Cohesion: 0.22
 Nodes (8): OSMOO Desktop Backend Integration Implementation Plan, Task 1: Create Typed Backend Command & Service Dispatch Module, Task 2: Wire Chat Dialogue & Conversation History to SQLite Persistence, Task 3: Wire Settings Modal to Atomic `SettingsManager` Persistence, Task 4: Connect Onboarding Completion to Real Configuration & Provisioning, Task 5: Wire Authentication View to Real `AuthBridge` & DPAPI, Task 6: Real System Telemetry & Health Stream, Task 7: Full Workspace Verification & Report Generation
 
-### Community 528 - "BackendCommand"
-Cohesion: 0.12
-Nodes (8): BackendCommand, CompleteOnboarding, EmergencyStop, GetChatHistory, GetSystemTelemetry, LoadSettings, SaveSettings, SendPrompt
+### Community 528 - "ActiveTask"
+Cohesion: 0.13
+Nodes (8): ActiveTask, TaskStatus, Cancelled, Completed, Failed, InProgress, Paused, Pending
 
 ### Community 529 - "API and Interface Design"
 Cohesion: 0.08
@@ -2991,12 +2996,12 @@ Cohesion: 0.10
 Nodes (20): 1. Coverage check, 2. Test quality check, 3. Security spot-check (if auth/input/db code changed), Adversarial Test Review, Agent: Verify, Edge Case Matrix, Escalation, Full Verification Chain (+12 more)
 
 ### Community 549 - "email.rs"
-Cohesion: 0.16
-Nodes (12): DEFAULT_RESEND_API_URL, EmailError, ApiError, Network, NotConfigured, Serialization, ENV_LOCK, ResendMailer (+4 more)
+Cohesion: 0.20
+Nodes (9): EmailError, ApiError, Network, NotConfigured, Serialization, ResendMailer, SendEmailResponse, test_from_env_missing_key() (+1 more)
 
 ### Community 550 - "grounding/src/lib.rs"
-Cohesion: 0.07
-Nodes (29): GroundingEngine, GroundingRequest, InMemoryGroundingEngine, ResolvedTarget, Action, Region, Window, TargetVerifier (+21 more)
+Cohesion: 0.06
+Nodes (33): ContentExtractor, .MAX_EXTRACTED_BYTES, ExtractedDocument, test_html_tag_stripping_and_title_extraction(), GroundingEngine, GroundingRequest, InMemoryGroundingEngine, ResolvedTarget (+25 more)
 
 ### Community 551 - "PHANTOM Desktop Runtime — Integration Report"
 Cohesion: 0.10
@@ -3110,13 +3115,9 @@ Nodes (6): MockAutomationBackend, MockLlmProvider, MockMicrophone, MockSpeaker, 
 Cohesion: 0.25
 Nodes (5): ExecutorError, ExecutionFailed, RollbackFailed, StepFailed, Timeout
 
-### Community 582 - "AgentAction"
-Cohesion: 0.18
-Nodes (11): AgentAction, Click, CustomTool, DoubleClick, Drag, FocusWindow, KeyCombination, KeyPress (+3 more)
-
-### Community 583 - "CompanionState"
-Cohesion: 0.18
-Nodes (8): CompanionState, Error, Idle, Interrupted, Listening, Responding, Speaking, Thinking
+### Community 582 - "companion/src/lib.rs"
+Cohesion: 0.15
+Nodes (4): bench_engine_update_latency(), bench_full_pipeline_latency(), bench_presence_score_latency(), make_input()
 
 ### Community 584 - "Master Product Completion & Single-EXE Release Plan: OSMOO"
 Cohesion: 0.14
@@ -3138,9 +3139,9 @@ Nodes (20): CacheEntry, ClipCache, default_cache_dir(), default_max_total_bytes(
 Cohesion: 0.14
 Nodes (13): 10. Findings & Risks, 11. Code Changes Made This Phase, 12. Raw Evidence Location, 1. Objective, 2. Environment & Method, 3. Latency Results (30 consecutive rounds, `p24_full1.log`), 4. Streaming / Overlap Proof, 5. Barge-in (10 rounds, `p24_full1.log`) (+5 more)
 
-### Community 589 - "OPERATION TITAN POLISH — Product Polish Report"
-Cohesion: 0.14
-Nodes (13): ACCEPTED RISKS (not fixing — tradeoffs documented), Executive Summary, FIX 1: Unbounded Channels in Audio Crate (CRITICAL), FIX 2: std::sync::Mutex in Async Code (HIGH), FIX 3: Voice Pipeline 50ms Busy-Loop (MEDIUM), FIX 4: Code Formatting (LOW), Issues Found & Fixes Applied, OPERATION TITAN POLISH — Product Polish Report (+5 more)
+### Community 589 - "RealtimeAudioSession"
+Cohesion: 0.06
+Nodes (24): RealtimeAudioSession, 1. Objectives & Executive Summary, 2. Architecture & Component Diagram, 3.1 Multi-Language Symbol Extraction (`repo_indexer.rs`), 3.2 Compiler & Test Diagnostic Parser (`diagnostic_parser.rs`), 3.3 Transactional Multi-File Patch Engine (`patch_engine.rs`), 3.4 Integration in `voxy-tool-calling`, 3. Detailed Component Design (+16 more)
 
 ### Community 590 - "Review & Adversarial Challenge Report — Milestones M3 & M4"
 Cohesion: 0.15
@@ -3150,13 +3151,9 @@ Nodes (12): 1.1 Direct Test Suite Verification Commands & Results, 1.2 Clippy & 
 Cohesion: 0.15
 Nodes (12): 10. Conclusion, 1. Latency Benchmarks, 2. Memory Validation, 3. Concurrency Safety, 4. Stress Tests, 5. Failure Injection, 6. Correctness Tests, 7. Observability (+4 more)
 
-### Community 593 - "platform_core/src/lib.rs"
-Cohesion: 0.08
-Nodes (3): PlatformRegistry, InputPlatform, WindowPlatform
-
-### Community 594 - "AuthMode"
-Cohesion: 0.40
-Nodes (5): AuthMode, ForgotPassword, SignIn, SignUp, VerifyEmail
+### Community 594 - "relationship.rs"
+Cohesion: 0.28
+Nodes (7): RelationshipConfig, RelationshipEngine, RelationshipSnapshot, test_consistency_tracking(), test_relationship_decays(), test_relationship_grows(), test_relationship_starts_professional()
 
 ### Community 595 - "CompanionError"
 Cohesion: 0.29
@@ -3198,9 +3195,9 @@ Nodes (11): Artifact Index, BRIEFING — 2026-10-14T03:18:00Z, Change Tracker, C
 Cohesion: 0.17
 Nodes (11): Artifact Index, BRIEFING — 2026-10-14T03:05:00Z, Change Tracker, Current Parent, 🔒 Key Constraints, Key Decisions Made, Loaded Skills, Mission (+3 more)
 
-### Community 606 - "fmt"
-Cohesion: 0.07
-Nodes (14): FeatureFlagError, NotFound, ParseError, GroundingError, AmbiguousTarget, TargetNotFound, VerificationFailed, ReflectionError (+6 more)
+### Community 606 - "GroundingError"
+Cohesion: 0.29
+Nodes (4): GroundingError, AmbiguousTarget, TargetNotFound, VerificationFailed
 
 ### Community 607 - "2. Test Classification: Real OS/Hardware vs. Mocks/Fixtures"
 Cohesion: 0.25
@@ -3238,9 +3235,13 @@ Nodes (10): Context Module Dependency Graph, Crate Integration Points, Critical 
 Cohesion: 0.18
 Nodes (10): Architecture Overview, Companion Intelligence Engine — Architecture, Data Flow Diagram, Design Principles, Memory Diagram — Data Retention, Performance, Platform Support, Purpose (+2 more)
 
+### Community 617 - "TrustEngine"
+Cohesion: 0.18
+Nodes (7): test_autonomy_derived(), test_breakdown(), test_trust_decays(), test_trust_grows(), test_trust_initial(), TrustBreakdown, TrustEngine
+
 ### Community 618 - "Remotion Skill"
-Cohesion: 0.09
-Nodes (21): calculateMetadata(), Anime Scene — Multi-Image Crossfade + Particles, Architecture, Audio Layering, Dynamic Duration with calculateMetadata, How Artifacts Map to Remotion Props, Key Patterns, Media Profile Mapping (+13 more)
+Cohesion: 0.12
+Nodes (15): Anime Scene — Multi-Image Crossfade + Particles, Architecture, How Artifacts Map to Remotion Props, Media Profile Mapping, Pipeline Integration, Post-Render Verification Protocol (ALL pipelines), Pre-Render Validation (mandatory), Quality Checklist (+7 more)
 
 ### Community 619 - "Temporal—durable execution platform"
 Cohesion: 0.18
@@ -3258,9 +3259,9 @@ Nodes (10): Benchmark Results (Debug Mode), Environment, Fast (< 10μs), I/O Bou
 Cohesion: 0.18
 Nodes (10): 1. What changed, 2. Test suite, 3. STT thread-cap tuning (measured), 4. Runtime / starvation, 5. Sentence-chunking (word-threshold emission), 6. Warm-up, 7. End-to-end data (post-change), 8. Honest limitations / UNVERIFIED (+2 more)
 
-### Community 623 - "3. Detailed Component Design"
-Cohesion: 0.18
-Nodes (10): 1. Objectives & Executive Summary, 2. Architecture & Component Diagram, 3.1 Multi-Language Symbol Extraction (`repo_indexer.rs`), 3.2 Compiler & Test Diagnostic Parser (`diagnostic_parser.rs`), 3.3 Transactional Multi-File Patch Engine (`patch_engine.rs`), 3.4 Integration in `voxy-tool-calling`, 3. Detailed Component Design, 4. Security & Safety Boundaries (+2 more)
+### Community 623 - "voxy_protocol.rs"
+Cohesion: 0.23
+Nodes (11): decode_ipc_payload(), encode_ipc_frame(), IpcEnvelope<T>, MAX_IPC_FRAME_SIZE, test_client_command_roundtrip(), test_daemon_message_roundtrip(), test_hardware_status_update_roundtrip(), test_routing_status_update_roundtrip() (+3 more)
 
 ### Community 624 - "VOXY Voice Runtime Performance Benchmark Report"
 Cohesion: 0.18
@@ -3295,15 +3296,15 @@ Cohesion: 0.25
 Nodes (5): HdrError, ConfigurationError, InvalidScore, StateError, TransitionDenied
 
 ### Community 633 - "TaskHandle"
-Cohesion: 0.10
-Nodes (12): TaskHandle, TaskPriority, Critical, High, Low, Normal, TaskStatus, Cancelled (+4 more)
+Cohesion: 0.15
+Nodes (6): TaskHandle, TaskPriority, Critical, High, Low, Normal
 
 ### Community 634 - "reflection/src/lib.rs"
 Cohesion: 0.24
 Nodes (6): Outcome, Failure, Partial, Success, reflection_creates(), ReflectionEngine
 
 ### Community 635 - "VisualPresenceError"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (13): test_error_display(), VisualPresenceError, Animation, Audio, Config, Gpu, HeadTracking, Integration (+5 more)
 
 ### Community 636 - "Firecrawl Build Scrape"
@@ -3427,7 +3428,7 @@ Cohesion: 0.25
 Nodes (7): Dependency-Directed Recon, Extended Recon (unfamiliar codebase or high fan-out), Gravitas -- Reconnaissance Reference, Recon Completeness Check, Recon Principle, Standard Recon (Tier 1 tasks), What Not to Do
 
 ### Community 667 - "EntityType"
-Cohesion: 0.20
+Cohesion: 0.18
 Nodes (8): EntityType, Agent, Device, Home, Organization, Plugin, Service, User
 
 ### Community 668 - "Process"
@@ -3526,9 +3527,9 @@ Nodes (7): 16.1 Consumption Modes, 16.2 Replay Protocol, 16.3 Recovery Mode Prot
 Cohesion: 0.29
 Nodes (6): 1. Subsystem Verification Status Matrix, 2. Release Build Artifacts & Cryptographic Checksums, 3. Strict Release Gate Checklist, 4. Final Verdict, OSMOO Production Release Verification Report, **VERDICT: PRODUCTION READY FOR RELEASE**
 
-### Community 692 - "PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION"
-Cohesion: 0.29
-Nodes (6): 1. Executive Summary & Mission, 2. Relational Schema: Migration 105 (`skills_and_workflows`), 3. Skill Manifest Specification, 4. Runtime & Security Boundary Enforcement, PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION, Subsystem: Skills + Workflows Ecosystem
+### Community 692 - "RuntimeSnapshot"
+Cohesion: 0.27
+Nodes (7): RuntimeSnapshot, snapshot_all_healthy(), snapshot_creation(), snapshot_json_roundtrip(), snapshot_one_unhealthy(), snapshot_summary_not_empty(), SubsystemStatus
 
 ### Community 693 - "OSMOO FINAL PRODUCTION & LAUNCH VERIFICATION AUDIT REPORT"
 Cohesion: 0.29
@@ -3550,9 +3551,9 @@ Nodes (5): Blocked Action — Meeting in Progress, Happy Path — Normal Operati
 Cohesion: 0.10
 Nodes (19): 1. Lock The Avatar Generation Path, 1b. Sample Preview (Prevents Wasted Spend), 2. Resolve Narration Before Support Graphics, 3. Build The Minimal Support Kit, 4. Use Metadata For Capability Truth, 5. Quality Gate, Asset Director - Avatar Spokesperson Pipeline, Common Pitfalls (+11 more)
 
-### Community 698 - "AuditEventType"
-Cohesion: 0.14
-Nodes (14): AuditEventType, Authentication, Authorization, ComponentLoad, ComponentUnload, ConfigurationChange, Consent, GuardianModeActivated (+6 more)
+### Community 698 - "home/src/traits.rs"
+Cohesion: 0.15
+Nodes (4): ClimateSettings, EnvironmentConfig, ZoneCoordinates, ZoneSpec
 
 ### Community 699 - "INDEX.md"
 Cohesion: 0.20
@@ -3574,9 +3575,9 @@ Nodes (3): PexelsSource, _pick_video_rendition(), _slug_tags_from_url()
 Cohesion: 0.10
 Nodes (19): Common Pitfalls, Enhancement Cues, Example: Well-Written Section, Gate Reminder (Binding), Mid-Production Fact Verification, Prerequisites, Process, Pronunciation Guides (+11 more)
 
-### Community 705 - "ConversationMemory"
-Cohesion: 0.31
-Nodes (4): conversation_memory_keeps_newest_when_over_budget(), conversation_memory_no_trim_with_large_budget(), conversation_memory_trims_to_character_budget(), ConversationMemory
+### Community 705 - "humor.rs"
+Cohesion: 0.30
+Nodes (9): HumorConfig, HumorEngine, make_context(), test_humor_appropriate(), test_humor_cooldown(), test_humor_disabled(), test_humor_low_relationship(), HumorContext (+1 more)
 
 ### Community 706 - "Issue 3: Sandbox Runner Isolation Guarantees & Host Credential Leakage"
 Cohesion: 0.40
@@ -3794,13 +3795,9 @@ Nodes (17): Common Pitfalls, Gate Reminder (Binding), Prerequisites, Process, Re
 Cohesion: 0.11
 Nodes (17): 1. Prioritize Utility Over Decoration, 1b. Hero Scene Sample (Mandatory), 2. Generate Subtitles First, 3. Build A Reusable Overlay Kit, 4. Clean Or Generate Audio Pragmatically, 5. Only Generate Supplementary Visuals When They Earn It, 6. Build The Asset Manifest Cleanly, 7. Quality Gate (+9 more)
 
-### Community 778 - "DoubaoTTS"
+### Community 782 - "AnthropicClient"
 Cohesion: 0.09
-Nodes (5): probe_duration(), CompositionValidator, DashscopeTTS, DoubaoTTS, OpenAITTS
-
-### Community 782 - "result"
-Cohesion: 0.02
-Nodes (30): AnthropicClient, is_healthy_status(), AnthropicProvider, DEFAULT_MODEL, test_anthropic_available_models(), test_anthropic_complete_no_api_key(), test_anthropic_provider_creation(), test_anthropic_with_custom_model() (+22 more)
+Nodes (7): AnthropicClient, is_healthy_status(), AnthropicProvider, test_anthropic_available_models(), test_anthropic_complete_no_api_key(), test_anthropic_provider_creation(), test_anthropic_with_custom_model()
 
 ### Community 783 - "score_slideshow_risk"
 Cohesion: 0.21
@@ -3831,8 +3828,8 @@ Cohesion: 0.12
 Nodes (16): 1. Pre-Edit Footage Review, 2. Post-Render Quality Gate, 3. Highlight Selection, 4. Asset Validation, 5. Talking-Head Analysis, Applying to OpenMontage, Common Workflows, Frame Selection for Video (+8 more)
 
 ### Community 790 - "Process"
-Cohesion: 0.11
-Nodes (18): Common Pitfalls, Gate Reminder (Binding), How This Connects Downstream, Process, Proposal Director — Animation Pipeline, Runtime Selection (required field — `render_runtime`), Step 0: Check for Reference Video Context, Step 1: Absorb the Research (or Direct Brief) (+10 more)
+Cohesion: 0.12
+Nodes (17): 4a: Title and Hook, 4b: Animation Approach and Visual Identity, 4c: Narrative Structure, 4d: Duration and Platform, 4e: Concept Diversity Check, Process, Step 0: Check for Reference Video Context, Step 1: Absorb the Research (or Direct Brief) (+9 more)
 
 ### Community 791 - "Process"
 Cohesion: 0.12
@@ -3887,24 +3884,24 @@ Cohesion: 0.12
 Nodes (15): 1. Extract The Thematic Question, 2. Fix The Tone, 3. Pick A Duration And A Shape, 4. Note Music Intent (MANDATORY), 5. Note End-Tag Intent (MANDATORY), 6. Note Narration Intent (OPTIONAL), 7. Record The Brief, 8. Quality Gate (+7 more)
 
 ### Community 806 - "Process"
-Cohesion: 0.12
-Nodes (15): Asset Director — Talking Head Pipeline, Gate Reminder (Binding), Mid-Production Fact Verification, Prerequisites, Process, Step 0: Hero Scene Sample (Mandatory), Step 1: Generate Subtitles, Step 2: Extract and Process Audio (+7 more)
+Cohesion: 0.11
+Nodes (20): AnimatedBackground(), heroScrim(), hexToRgb(), isLightColor(), shiftColor(), Asset Director — Talking Head Pipeline, Gate Reminder (Binding), Mid-Production Fact Verification (+12 more)
 
 ### Community 807 - "._hydrate_candidate"
-Cohesion: 0.17
-Nodes (4): _encode_url_path(), NasaSource, _pick_image_url(), _pick_video_url()
+Cohesion: 0.13
+Nodes (5): _encode_url_path(), NasaSource, _pick_image_url(), _pick_video_url(), _sanitize_source_id()
 
 ### Community 809 - "ToolDescription"
 Cohesion: 0.29
 Nodes (5): InMemoryToolSelector, ToolDescription, ToolSelection, ToolSelectionInput, ToolSelector
 
-### Community 810 - "PatchError"
-Cohesion: 0.24
-Nodes (11): contains_symlink_or_reparse(), is_protected_file(), is_symlink_or_reparse_point(), PatchError, BoundaryViolation, FileNotFound, Io, PatchConflict (+3 more)
+### Community 810 - "DeliveryPromise"
+Cohesion: 0.21
+Nodes (3): classify_from_brief(), DeliveryPromise, PromiseType
 
 ### Community 811 - "ScheduledTask"
-Cohesion: 0.13
-Nodes (8): NoopTask, ScheduledTask, ScheduleSpec, Cron, Delay, Immediate, Interval, Periodic
+Cohesion: 0.22
+Nodes (3): NoopTask, test_scheduler_schedule(), ScheduledTask
 
 ### Community 812 - "Subscription"
 Cohesion: 0.15
@@ -3947,8 +3944,8 @@ Cohesion: 0.13
 Nodes (14): Anti-Subjective Rule, Applying to OpenMontage, Camera Intent Per Beat, Guided Discovery (3Blue1Brown Method), Hook Types, Mayer's Multimedia Learning Principles (Applied), Misconception-First Approach (Research-Backed), Pacing Rules (+6 more)
 
 ### Community 822 - "Process"
-Cohesion: 0.13
-Nodes (14): 1. Ensure Assets Are in Remotion's Public Directory, 2. Build the Composition JSON (image_animation approach), 3. Source Music and Find Optimal Offset, 4. Pre-Render Validation (MANDATORY — NO EXCEPTIONS), 5. Preserve Motion Timing, 6. Protect Text And Diagram Sharpness, 8. Post-Render Self-Review (MANDATORY), 9. Use Render Metadata (+6 more)
+Cohesion: 0.12
+Nodes (15): 1. Ensure Assets Are in Remotion's Public Directory, 2. Build the Composition JSON (image_animation approach), 3. Source Music and Find Optimal Offset, 4. Pre-Render Validation (MANDATORY — NO EXCEPTIONS), 5. Preserve Motion Timing, 6. Protect Text And Diagram Sharpness, 7. Render, 8. Post-Render Self-Review (MANDATORY) (+7 more)
 
 ### Community 823 - "Process"
 Cohesion: 0.13
@@ -3996,7 +3993,7 @@ Nodes (14): 1. Decide The Script Mode, 2. Build The Action Map, 3. Write Section
 
 ### Community 835 - "VideoAnalyzer"
 Cohesion: 0.04
-Nodes (5): SceneDetect, Transcriber, TranscriptFetcher, VideoAnalyzer, VideoDownloader
+Nodes (6): FrameSampler, SceneDetect, Transcriber, TranscriptFetcher, VideoAnalyzer, VideoDownloader
 
 ### Community 836 - "ContainerError"
 Cohesion: 0.25
@@ -4006,9 +4003,9 @@ Nodes (5): ContainerError, DuplicateRegistration, LifecycleError, NotRegistered,
 Cohesion: 0.29
 Nodes (6): RiskLevel, Critical, High, Low, Medium, None
 
-### Community 840 - "AudioDevice"
-Cohesion: 0.26
-Nodes (4): AudioPlatform, AudioDevice, enumerate_audio_input_devices(), waveInGetNumDevs()
+### Community 840 - "MemoryMoments"
+Cohesion: 0.29
+Nodes (5): MemoryMoments, StoredMoment, test_max_references(), test_record_and_reference(), test_used_count_limit()
 
 ### Community 842 - "OfflineSyncProvider"
 Cohesion: 0.15
@@ -4054,9 +4051,9 @@ Nodes (3): _detect_audio_device_mac(), _detect_audio_device_windows(), ScreenRec
 Cohesion: 0.24
 Nodes (5): _build_download_url(), _matches_orientation(), _orientation_for_unsplash(), _photo_to_candidate(), UnsplashSource
 
-### Community 854 - "backup_restore_e2e.rs"
-Cohesion: 0.33
-Nodes (7): make_store(), populate_store(), test_backup_registry_list_and_delete(), test_entitlement_integrity_preserved_post_restore(), test_full_backup_restore_cycle(), test_multiple_backups_restore_latest(), test_subscription_status_integrity_post_restore()
+### Community 854 - ".estimate_requirements"
+Cohesion: 0.15
+Nodes (9): CompatibilityEngine, CompatibilityTier, CpuOnly, FullGpu, Incompatible, PartialOffload, ModelResourceEstimate, test_estimate_7b_q4_requirements() (+1 more)
 
 ### Community 856 - "SwarmCapability"
 Cohesion: 0.22
@@ -4095,8 +4092,8 @@ Cohesion: 0.15
 Nodes (12): AdaptiveDetector, Algorithm Selection, Applying to OpenMontage, Component Weights (Advanced), Content-Type Presets, ContentDetector (Default, Start Here), Post-Processing Detected Scenes, Quick Reference Card (+4 more)
 
 ### Community 865 - "The construction route"
-Cohesion: 0.15
-Nodes (12): 1.5 Plan each scene as its own composition — no hero-component spine, 1. Commit to an art direction *for this subject* — the divergence engine, 2. Decide the motion language — principles, not presets, 3. Reach for a richer vocabulary only when the concept demands it, 4. Get the engine mechanics right — the gotcha codex, 5. Render through the runtime-appropriate bespoke path, Bespoke Composition (Atelier Mode), Guardrails so this doesn't backfire (+4 more)
+Cohesion: 0.13
+Nodes (14): 1.5 Plan each scene as its own composition — no hero-component spine, 1. Commit to an art direction *for this subject* — the divergence engine, 2. Decide the motion language — principles, not presets, 3. Reach for a richer vocabulary only when the concept demands it, 4. Get the engine mechanics right — the gotcha codex, 5. Render through the runtime-appropriate bespoke path, Atelier and the two runtimes, Bespoke Composition (Atelier Mode) (+6 more)
 
 ### Community 866 - "Process"
 Cohesion: 0.15
@@ -4157,6 +4154,10 @@ Nodes (12): 1. Inspect The Source, 2. Classify The Demo, 3. Set Deliverable Inte
 ### Community 880 - "Process"
 Cohesion: 0.15
 Nodes (12): Gate Reminder (Binding), Mid-Production Fact Verification, Prerequisites, Process, Script Director — Talking Head Pipeline, Step 1: Transcribe, Step 2: Segment into Sections, Step 3: Enhance Section Metadata (+4 more)
+
+### Community 881 - "ConversationContextProvider"
+Cohesion: 0.21
+Nodes (3): ConversationContextProvider, test_collect_conversation(), test_default_state()
 
 ### Community 885 - "compilerOptions"
 Cohesion: 0.17
@@ -4234,21 +4235,21 @@ Nodes (11): Gate Reminder (Binding), Idea Director — Talking Head Pipeline, Pr
 Cohesion: 0.17
 Nodes (11): Gate Reminder (Binding), Prerequisites, Process, Publish Director — Talking Head Pipeline, Step 1: Generate Metadata, Step 2: Thumbnail Concept, Step 3: Package Export, Step 4: Build Publish Log (+3 more)
 
-### Community 905 - "GuardianContract"
-Cohesion: 0.19
-Nodes (7): AccessDecision, Denied, Granted, PendingConsent, PendingMfa, AccessRequest, GuardianContract
+### Community 905 - "AccessDecision"
+Cohesion: 0.29
+Nodes (5): AccessDecision, Denied, Granted, PendingConsent, PendingMfa
 
 ### Community 906 - "PolicyCondition"
 Cohesion: 0.29
 Nodes (7): PolicyCondition, ActionMatch, Custom, ResourceMatch, RiskLevelMax, SubjectMatch, TimeRestriction
 
-### Community 908 - "ApprovalRiskLevel"
-Cohesion: 0.29
-Nodes (6): ApprovalRiskLevel, Destructive, LowRisk, Modify, Privileged, Safe
+### Community 908 - ".new"
+Cohesion: 0.15
+Nodes (6): test_remote_disconnect(), test_remote_health_disconnected(), test_remote_new(), test_remote_unsupported_execute(), test_remote_unsupported_query(), test_remote_unsupported_search()
 
 ### Community 910 - "PolicyEffect"
-Cohesion: 0.25
-Nodes (7): PolicyEffect, Allow, Audit, Deny, RequireConsent, RequireMfa, PolicyEvaluation
+Cohesion: 0.33
+Nodes (6): PolicyEffect, Allow, Audit, Deny, RequireConsent, RequireMfa
 
 ### Community 911 - "OpenMontage - Shared Project Context"
 Cohesion: 0.18
@@ -4278,13 +4279,13 @@ Nodes (10): Audio Prompting (Unique to LTX-2), Example, LTX-2 — Prompting Guid
 Cohesion: 0.18
 Nodes (10): Cut Technique, Edit Decision Structure, Editing Principles for Talking Heads, Pacing, Quality Checklist, Tools, Video Editing Skill, What NOT to Cut (+2 more)
 
-### Community 918 - "skills/INDEX.md"
-Cohesion: 0.18
-Nodes (10): Adding New Tools, Capability Families & Tool Discovery, Capability Family Reference, Core Skills, Creative Skills, Installed Agent Skills (Layer 3), Meta Skills, Pipeline Type Skills (+2 more)
+### Community 918 - "Pipeline Stage Director Skills"
+Cohesion: 0.09
+Nodes (21): Adding New Tools, Animated Explainer Pipeline (`pipelines/explainer/`) — v2.0, Animation Pipeline (`pipelines/animation/`) — v2.0, Avatar Spokesperson Pipeline (`pipelines/avatar-spokesperson/`) — v2.0, Capability Families & Tool Discovery, Capability Family Reference, Cinematic Pipeline (`pipelines/cinematic/`) — v2.0, Clip Factory Pipeline (`pipelines/clip-factory/`) — v2.0 (+13 more)
 
-### Community 919 - "Pipeline Stage Director Skills"
-Cohesion: 0.18
-Nodes (11): Animated Explainer Pipeline (`pipelines/explainer/`) — v2.0, Animation Pipeline (`pipelines/animation/`) — v2.0, Avatar Spokesperson Pipeline (`pipelines/avatar-spokesperson/`) — v2.0, Cinematic Pipeline (`pipelines/cinematic/`) — v2.0, Clip Factory Pipeline (`pipelines/clip-factory/`) — v2.0, Hybrid Pipeline (`pipelines/hybrid/`) — v2.0, Localization Dub Pipeline (`pipelines/localization-dub/`) — v2.0, Pipeline Stage Director Skills (+3 more)
+### Community 919 - "AudioError"
+Cohesion: 0.27
+Nodes (9): AudioError, BufferUnderflow, DeviceBusy, DeviceNotFound, HostError, InputStreamError, OutputStreamError, StreamPlayError (+1 more)
 
 ### Community 920 - "Capability Extension Protocol"
 Cohesion: 0.18
@@ -4355,8 +4356,8 @@ Cohesion: 0.20
 Nodes (9): Animation library decision matrix, Animation Runtime Selector, Check against the pipeline's stage director, HARD RULE — present both runtimes, don't silently default, Never do, Running GSAP deterministically inside Remotion, Runtime choice (Remotion vs HyperFrames vs FFmpeg), The "keep it simple" bias (+1 more)
 
 ### Community 940 - "Protocol"
-Cohesion: 0.18
-Nodes (10): Anti-Patterns, Onboarding — Meta Skill, Protocol, Step 1: Run Preflight Discovery, Step 2: Determine the User's Setup Tier, Step 3: Greet and Orient, Step 4: Offer Starter Prompts, Step 5: Explain the Workflow (Briefly) (+2 more)
+Cohesion: 0.20
+Nodes (9): Anti-Patterns, Onboarding — Meta Skill, Protocol, Step 1: Run Preflight Discovery, Step 2: Determine the User's Setup Tier, Step 4: Offer Starter Prompts, Step 5: Explain the Workflow (Briefly), Step 6: Handle Follow-Up Questions (+1 more)
 
 ### Community 941 - "Publish Director - Animation Pipeline"
 Cohesion: 0.20
@@ -4382,6 +4383,10 @@ Nodes (9): 1. Preserve Structure By Default, 2. Apply The Chosen Dub Mode, 3. Ke
 Cohesion: 0.20
 Nodes (9): 1. Package By Locale, 2. Keep Naming Precise, 3. Preserve Review Context, 4. Quality Gate, Common Pitfalls, Gate Reminder (Binding), Process, Publish Director - Localization Dub Pipeline (+1 more)
 
+### Community 949 - "brain/src/types.rs"
+Cohesion: 0.29
+Nodes (7): BrainOutput, CognitiveSummary, CompanionSummary, ContextSummary, HdrSummary, SessionId, TurnId
+
 ### Community 951 - "Ink Theater — hand-drawn "moving art" (creative skill)"
 Cohesion: 0.22
 Nodes (8): Characters — Ink Puppet + real mocap (never hand-tune motion), Color grammar (strict), Engine cheat-sheet (`InkTheater`), Ink Theater — hand-drawn "moving art" (creative skill), Mined archetypes (pick one, invent fresh specifics), ⚠ Non-negotiables, Reference builds, The generic method (concept → moving scene)
@@ -4398,13 +4403,17 @@ Nodes (8): Creative Intake, Handling Detailed Briefs, Handling Reference Video I
 Cohesion: 0.22
 Nodes (9): 1. Start With Deterministic Assets, 1b. Sample Preview (Prevents Wasted Spend), 1c. Multi-Image Generation for Image-Based Animation (Approach A), 2. Build Reusable Systems, 3. Narration Is Optional, But The Plan Must Be Explicit, 4. Use Metadata For Feasibility Truth, 5. Quality Gate, Mid-Production Fact Verification (+1 more)
 
-### Community 955 - "Step 4: Progressive Reveal and Concept Design"
-Cohesion: 0.33
-Nodes (6): 4a: Title and Hook, 4b: Animation Approach and Visual Identity, 4c: Narrative Structure, 4d: Duration and Platform, 4e: Concept Diversity Check, Step 4: Progressive Reveal and Concept Design
+### Community 955 - "cognitive_orchestrator/src/config.rs"
+Cohesion: 0.18
+Nodes (7): IntegrationConfig, OrchestratorConfig, RiskLevel, Critical, High, Low, Medium
 
-### Community 957 - "ExportBundle"
-Cohesion: 0.21
-Nodes (3): load_schema(), validate_artifact(), ExportBundle
+### Community 957 - "human_dynamics/tests/integration_tests.rs"
+Cohesion: 0.44
+Nodes (11): default_config(), make_input(), test_full_pipeline_critical_action_denied(), test_full_pipeline_high_trust(), test_full_pipeline_latency_under_100us(), test_full_pipeline_low_trust_no_initiative(), test_full_pipeline_meeting_blocked(), test_full_pipeline_recovery_on_errors() (+3 more)
+
+### Community 958 - "style_bridge"
+Cohesion: 0.27
+Nodes (5): _first(), _font(), _motion_easing(), _render_design_md(), style_bridge()
 
 ### Community 959 - "Credentials"
 Cohesion: 0.29
@@ -4435,32 +4444,40 @@ Cohesion: 0.25
 Nodes (7): Cost Honesty, Gate Reminder (Binding), Goal, Proposal Director - Character Animation Pipeline, Required Proposal Elements, Runtime Selection, Sample-First Rule
 
 ### Community 966 - "Proposal Director — Cinematic Pipeline"
-Cohesion: 0.15
-Nodes (10): Knowledge Architecture, Prerequisites, Common Pitfalls, Gate Reminder (Binding), Prerequisites, Proposal Director — Cinematic Pipeline, Runtime Selection (required field — `render_runtime`), When to Use (+2 more)
+Cohesion: 0.10
+Nodes (17): Knowledge Architecture, Common Pitfalls, Gate Reminder (Binding), How This Connects Downstream, Prerequisites, Proposal Director — Animation Pipeline, Runtime Selection (required field — `render_runtime`), When to Use (+9 more)
 
 ### Community 967 - "Executive Producer - Documentary Montage Pipeline"
 Cohesion: 0.25
 Nodes (7): Common Pitfalls, Core Tools, Cross-Stage Rules, Executive Producer - Documentary Montage Pipeline, Philosophy, Stages, When To Use
 
-### Community 969 - "PatchTransaction"
-Cohesion: 0.42
-Nodes (4): FilePatch, PatchTransaction, test_patch_transaction_atomic_rollback(), test_patch_transaction_empty_existing_file_rollback()
+### Community 972 - "argparse"
+Cohesion: 0.27
+Nodes (4): main(), find_target_processes(), main(), sample_metrics()
 
-### Community 974 - "RouterError"
-Cohesion: 0.22
-Nodes (6): RouterError, AllProvidersExhausted, CircuitBreakerOpen, NoProviderAvailable, ProviderError, RoutingFailed
+### Community 973 - "DatabaseError"
+Cohesion: 0.20
+Nodes (9): DatabaseError, BackupFailed, ConnectionFailed, EncryptionFailed, IO, MigrationFailed, NotFound, QueryFailed (+1 more)
 
-### Community 976 - "OfficeError"
+### Community 974 - "Quantization"
+Cohesion: 0.18
+Nodes (10): Quantization, F16, F32, Q4_0, Q4_K_M, Q4_K_S, Q5_0, Q5_K_M (+2 more)
+
+### Community 975 - "ScreenshotScene.tsx"
+Cohesion: 0.25
+Nodes (10): containRect(), CursorArrow(), OverlayForStep(), OverlayProps, Point, Region, ScreenshotScene(), ScreenshotSceneProps (+2 more)
+
+### Community 978 - "AudioRuntime"
 Cohesion: 0.22
-Nodes (8): OfficeError, Cancelled, ConflictDetected, InvalidData, Io, NotFound, PathTraversalAttempt, PermissionDenied
+Nodes (3): AudioConfig, AudioDeviceManager, AudioRuntime
 
 ### Community 979 - "DependencyError"
 Cohesion: 0.29
 Nodes (6): DependencyError, CycleDetected, InvalidSpec, NotFound, ResolutionFailed, SchedulingError
 
-### Community 980 - "AuthError"
-Cohesion: 0.25
-Nodes (6): AuthError, InsufficientCapabilities, NoToken, RateLimited, TokenExpired, TokenUnsigned
+### Community 980 - "SendInput"
+Cohesion: 0.20
+Nodes (6): INPUT, key_press(), keyboard_type(), mouse_click(), SendInput(), SetCursorPos()
 
 ### Community 982 - "KPIGrid.tsx"
 Cohesion: 0.33
@@ -4490,6 +4507,14 @@ Nodes (6): Goal, Process, Quality Checks, Rig Plan Director - Character Animatio
 Cohesion: 0.29
 Nodes (6): Gate Reminder (Binding), Goal, Output Notes, Process, Script Director - Character Animation Pipeline, Writing Rules
 
+### Community 990 - ".estimate"
+Cohesion: 0.20
+Nodes (7): calculateMetadata(), Audio Layering, Cost Tracking, Dynamic Duration with calculateMetadata, Key Patterns, Scene Plan to Composition, Style Playbook to Theme
+
+### Community 991 - "cost_tracker.py"
+Cohesion: 0.24
+Nodes (3): ApprovalRequiredError, BudgetExceededError, EntryStatus
+
 ### Community 995 - "TrustLevel"
 Cohesion: 0.33
 Nodes (6): TrustLevel, Admin, Authenticated, Local, Unknown, Verified
@@ -4514,40 +4539,108 @@ Nodes (5): Goal, Output Guidance, Process, Quality Bar, Research Director - Char
 Cohesion: 0.33
 Nodes (5): Complexity Budget, Gate Reminder (Binding), Goal, Scene Director - Character Animation Pipeline, Scene Planning Fields
 
-### Community 1005 - "InsightType"
-Cohesion: 0.29
-Nodes (7): InsightType, PreventableFailure, RepeatedPattern, ResourceOptimization, SlowOperation, UserCorrection, WorkflowImprovement
+### Community 1002 - "voice_audio/src/lib.rs"
+Cohesion: 0.24
+Nodes (3): calculate_rms(), normalize_to_mono_16k(), test_mono_normalization_and_resampling()
+
+### Community 1005 - "GuardianContract"
+Cohesion: 0.33
+Nodes (3): AccessRequest, GuardianContract, PolicyRule
 
 ### Community 1006 - "secret_scanner.rs"
 Cohesion: 0.48
 Nodes (5): DetectedSecret, SecretScanner, test_secret_detection_aws_and_private_key(), test_secret_detection_github_and_api_keys(), test_secret_detection_protected_files()
 
-### Community 1008 - "InsightStatus"
-Cohesion: 0.33
-Nodes (6): InsightStatus, Accepted, Implemented, New, Rejected, UnderReview
+### Community 1007 - "ModelFamily"
+Cohesion: 0.22
+Nodes (9): ModelFamily, DeepSeek, Gemma, Llama, Mistral, Phi, Piper, Qwen (+1 more)
 
-### Community 1025 - "SignatureVerdict"
+### Community 1008 - "SceneTrigger"
+Cohesion: 0.22
+Nodes (7): SceneConfig, SceneDeviceState, SceneTrigger, DeviceEvent, Manual, TimeSchedule, VoiceCommand
+
+### Community 1036 - "src/components/computer_control.rs"
+Cohesion: 0.39
+Nodes (4): ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon()
+
+### Community 1037 - "parse_dt"
+Cohesion: 0.36
+Nodes (4): parse_dt(), row_to_audit_entry(), row_to_conversation(), row_to_message()
+
+### Community 1038 - "overlay/components/computer_control.rs"
+Cohesion: 0.39
+Nodes (4): ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon()
+
+### Community 1040 - "overlay/components/mode_views.rs"
+Cohesion: 0.57
+Nodes (3): CompactModeView(), EdgeDockView(), MinimalView()
+
+### Community 1044 - "ModelInfo"
+Cohesion: 0.32
+Nodes (4): ModelCapabilities, ModelInfo, test_model_info_fields(), test_new_model_info()
+
+### Community 1045 - "dashboard.rs"
+Cohesion: 0.39
+Nodes (5): dashboard_from_snapshot(), dashboard_html_not_empty(), DashboardData, escape_html(), generate_html()
+
+### Community 1047 - "TaskStatus"
+Cohesion: 0.25
+Nodes (6): TaskStatus, Cancelled, Completed, Failed, Pending, Running
+
+### Community 1052 - "GovernorError"
+Cohesion: 0.29
+Nodes (4): GovernorError, ConcurrencyExceeded, MemoryExceeded, TimeoutExceeded
+
+### Community 1053 - "ScheduleSpec"
+Cohesion: 0.29
+Nodes (6): ScheduleSpec, Cron, Delay, Immediate, Interval, Periodic
+
+### Community 1054 - "BrowserConfig"
+Cohesion: 0.29
+Nodes (5): BrowserConfig, BrowserType, Chrome, Custom, Edge
+
+### Community 1056 - "PipecatState"
+Cohesion: 0.29
+Nodes (6): PipecatState, Degraded, Ready, Starting, Stopped, Terminated
+
+### Community 1057 - "verify.py"
+Cohesion: 0.47
+Nodes (3): main(), detect_language(), run_verification()
+
+### Community 1060 - "FeatureFlagError"
 Cohesion: 0.33
-Nodes (6): SignatureVerdict, Expired, Invalid, Revoked, UnknownSigner, Valid
+Nodes (3): FeatureFlagError, NotFound, ParseError
+
+### Community 1061 - "ModelFormat"
+Cohesion: 0.33
+Nodes (6): ModelFormat, Gguf, OllamaBlob, Onnx, SafeTensors, Unknown
+
+### Community 1063 - "BreakerState"
+Cohesion: 0.33
+Nodes (5): BreakerEntry, BreakerState, Closed, HalfOpen, Open
+
+### Community 1064 - "ReflectionError"
+Cohesion: 0.33
+Nodes (3): ReflectionError, EvaluationFailed, LearningFailed
 
 ## Knowledge Gaps
-- **2396 isolated node(s):** `Flush`, `Background`, `Services`, `Final`, `Conversation` (+2391 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 11101 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **170 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **2421 isolated node(s):** `Flush`, `Background`, `Services`, `Final`, `Conversation` (+2416 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 11145 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **190 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ToolResult` connect `ToolResult` to `.run_command`, `MathAnimate`, `VideoStitch`, `VideoCompose`, `HunyuanCloudVideo`, `AzureSpeechToText`, `DoubaoTTS`, `GeminiOmniVideo`, `JimengVideo`, `MiniMaxVideo`, `._add_title_bar`, `.execute`, `threejs_world.py`, `FalMedia`, `VeoVideo`, `PixabayMusic`, `.execute`, `CapRecorder`, `corpus_builder.py`, `HyperFramesCompose`, `SoraVideo`, `SchemaMedia`, `TTSSelector`, `FreesoundMusic`, `MusicLibrary`, `FalElevenLabsTTS`, `LipSync`, `KlingClient`, `ExportBundle`, `ImageSelector`, `probe_output`, `DashscopeAsr`, `VideoAnalyzer`, `SubtitleGen`, `RemotionCaptionBurn`, `BaseTool`, `FishAudioTTS`, `FalElevenLabsMusic`, `.execute`, `HiggsFieldVideo`, `ComfyUIImage`, `ScreenRecorder`, `_wan_engine.py`, `VideoSelector`, `.execute`, `AutoReframe`, `VideoUnderstand`, `.execute`, `SeedanceArkVideo`, `SunoMusic`, `AtlasVideo`, `DashscopeImage`, `EyeEnhance`, `HunyuanImage`, `MiniMaxImage`, `ComfyUIVideo`, `GrokImage`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+- **Why does `ToolResult` connect `ToolResult` to `GreenScreenComposite`, `MathAnimate`, `VideoStitch`, `VideoCompose`, `HunyuanCloudVideo`, `AzureSpeechToText`, `DoubaoTTS`, `GeminiOmniVideo`, `JimengVideo`, `MiniMaxVideo`, `.execute`, `ThreeJSWorld`, `PriceQuoteRequired`, `VeoVideo`, `PixabayMusic`, `.execute`, `CapRecorder`, `MiniMaxFalVideo`, `corpus_builder.py`, `HyperFramesCompose`, `SoraVideo`, `.execute`, `LocalDiffusion`, `.execute`, `TTSSelector`, `FreesoundMusic`, `MusicLibrary`, `LipSync`, `KlingClient`, `ImageSelector`, `threejs_asset_catalog.py`, `probe_output`, `DashscopeAsr`, `VideoAnalyzer`, `SubtitleGen`, `AzureTTS`, `BaseTool`, `FishAudioTTS`, `FalElevenLabsMusic`, `Upscale`, `.execute`, `RemotionCaptionBurn`, `ComfyUIImage`, `ScreenRecorder`, `_wan_engine.py`, `VideoSelector`, `.execute`, `AutoReframe`, `VideoUnderstand`, `.execute`, `SeedanceArkVideo`, `SunoMusic`, `AtlasVideo`, `DashscopeImage`, `EyeEnhance`, `HunyuanImage`, `MiniMaxImage`, `ComfyUIVideo`, `GrokImage`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
 - **Are the 143 inferred relationships involving `ToolResult` (e.g. with `Tool Class Naming Convention` and `When Building New Tools`) actually correct?**
   _`ToolResult` has 143 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Flush`, `Background`, `Services` to the rest of the system?**
-  _2396 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _2421 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `windows_uia.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.021108326371484267 - nodes in this community are weakly interconnected._
-- **Why does `SkillPermission` connect `SkillPermission` to `activation.rs`, `ActivationEngine`, `super`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+  _Cohesion score 0.024623264059883777 - nodes in this community are weakly interconnected._
+- **Why does `Explainer()` connect `Explainer.tsx` to `The construction route`, `Process`, `HyperFrames Skill (Layer 2)`, `Remotion Skill`, `resolveAsset`, `Process`, `CinematicRenderer.tsx`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `BaseTool` (e.g. with `Communication Protocol` and `When Building New Tools`) actually correct?**
   _`BaseTool` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Should `VideoStitch` be split into smaller, more focused modules?**

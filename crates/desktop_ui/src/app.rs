@@ -237,6 +237,11 @@ pub fn App() -> Element {
                         current_mode: *companion_mode.read(),
                         on_open_settings: move |_| show_settings.set(true),
                         on_toggle_mode: move |m: CompanionMode| companion_mode.set(m),
+                        on_toggle_overlay: move |_| {
+                            if let Some(sup) = crate::supervisor::get_global() {
+                                let _ = sup.start_overlay();
+                            }
+                        },
                         on_emergency_stop: move |_| {
                             spawn(async move {
                                 if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {

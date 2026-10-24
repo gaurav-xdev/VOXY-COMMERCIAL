@@ -1,6 +1,6 @@
 use crate::components::assistant_core::CompanionMode;
 use crate::components::icons::{
-    IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings, IconStopCircle,
+    IconLayers, IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings, IconStopCircle,
 };
 use dioxus::prelude::*;
 
@@ -27,6 +27,8 @@ pub fn AssistantHud(
     on_open_settings: EventHandler<()>,
     on_emergency_stop: EventHandler<()>,
     on_toggle_mode: EventHandler<CompanionMode>,
+    #[props(default)]
+    on_toggle_overlay: Option<EventHandler<()>>,
     telemetry: TelemetryStats,
     chat_history: Vec<ChatTurn>,
     current_mode: CompanionMode,
@@ -70,6 +72,15 @@ pub fn AssistantHud(
 
                 // Top Controls
                 div { class: "hud-controls-cluster",
+                    if let Some(on_overlay) = on_toggle_overlay {
+                        button {
+                            class: "hud-icon-btn",
+                            title: "Launch / Bring Forward Desktop Overlay Mode",
+                            onclick: move |_| on_overlay.call(()),
+                            IconLayers { size: 16 }
+                        }
+                    }
+
                     button {
                         class: if *drawer_open.read() { "hud-icon-btn active" } else { "hud-icon-btn" },
                         title: "Conversation Drawer",

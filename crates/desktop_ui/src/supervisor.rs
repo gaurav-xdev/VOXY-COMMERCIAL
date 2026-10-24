@@ -14,9 +14,19 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 use tracing::{info, warn};
+
+static GLOBAL_SUPERVISOR: OnceLock<Arc<Supervisor>> = OnceLock::new();
+
+pub fn set_global(sup: Arc<Supervisor>) {
+    let _ = GLOBAL_SUPERVISOR.set(sup);
+}
+
+pub fn get_global() -> Option<Arc<Supervisor>> {
+    GLOBAL_SUPERVISOR.get().cloned()
+}
 
 #[cfg(windows)]
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
@@ -358,7 +368,7 @@ impl Supervisor {
         Ok(Some(pid))
     }
 
-    /// Launch overlay UI (`voxy-overlay.exe`) if enabled.
+    /// Launch overlay UI inside unified OSMOO.exe (`OSMOO.exe --overlay`) or fallback `voxy-overlay.exe`.
     pub fn start_overlay(&self) -> Result<Option<u32>, SupervisorError> {
         if !self.config.autostart_overlay {
             info!("Overlay autostart disabled by supervisor config");
@@ -369,8 +379,25 @@ impl Supervisor {
             return Ok(Some(child.pid));
         }
 
-        let overlay_path = Self::locate_binary("voxy-overlay", self.config.overlay_bin.as_deref())
-            .ok_or_else(|| SupervisorError::BinaryNotFound("voxy-overlay".to_string()))?;
+        // 1. Explicit override path if specified in config
+        if let Some(custom_path) = self.config.overlay_bin.as_deref() {
+            if custom_path.exists() {
+                let pid = self.spawn_child("overlay", custom_path, &[])?;
+                return Ok(Some(pid));
+            }
+        }
+
+        // 2. Unified OSMOO.exe: spawn current executable with `--overlay` flag
+        if let Ok(curr_exe) = std::env::current_exe() {
+            if curr_exe.exists() {
+                let pid = self.spawn_child("overlay", &curr_exe, &["--overlay"])?;
+                return Ok(Some(pid));
+            }
+        }
+
+        // 3. Fallback to locating separate `voxy-overlay.exe`
+        let overlay_path = Self::locate_binary("voxy-overlay", None)
+            .ok_or_else(|| SupervisorError::BinaryNotFound("OSMOO overlay (self or voxy-overlay)".to_string()))?;
 
         let pid = self.spawn_child("overlay", &overlay_path, &[])?;
         Ok(Some(pid))
