@@ -44,6 +44,12 @@ impl BackendDispatcher {
         tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioPipelineTool::new(video_enclave.clone())));
         tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioInspectTool::new(video_enclave)));
 
+        // Initialize OSMOO Internal Kodus AI Code Review Engine (accessible exclusively to OSMOO)
+        let kodus_security = voxy_kodus_review::KodusSecurityBoundary::new();
+        let kodus_bridge = voxy_kodus_review::KodusProviderBridge::new(model_router.clone(), kodus_security.clone());
+        let kodus_engine = Arc::new(voxy_kodus_review::KodusReviewEngine::new(".", kodus_bridge, kodus_security));
+        tool_registry.register_sync(Arc::new(voxy_kodus_review::KodusInternalReviewTool::new(kodus_engine)));
+
         let dispatcher = Self {
             bridge,
             default_conversation_id: Arc::new(RwLock::new(None)),

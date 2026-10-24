@@ -73,6 +73,7 @@ voxy-office = { path = "crates/office" }
 voxy-api-server = { path = "crates/api_server" }
 voxy-legal = { path = "crates/legal" }
 voxy-video-studio = { path = "crates/video_studio" }
+voxy-kodus-review = { path = "crates/kodus_review" }
 
 [profile.dev]
 opt-level = 0

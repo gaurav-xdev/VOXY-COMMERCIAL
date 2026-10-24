@@ -58,6 +58,7 @@ voxy-openai = { path = "../openai" }
 voxy-gemini = { path = "../gemini" }
 voxy-tool-calling = { path = "../tool_calling" }
 voxy-video-studio = { path = "../video_studio" }
+voxy-kodus-review = { path = "../kodus_review" }
 voxy-automation = { path = "../automation" }
 
 [target.'cfg(windows)'.dependencies]
