@@ -243,6 +243,25 @@ impl IndependentCodeReviewer {
             });
         }
 
+        // 1b. Cross-language Hardcoded Secret Detection
+        let lower = trimmed.to_lowercase();
+        if (lower.contains("sk-ant-") || lower.contains("ghp_") || lower.contains("xoxb-") || lower.contains("aws_secret_access_key") || lower.contains("api_key = \"") || lower.contains("password = \"") || lower.contains("token = \""))
+            && !lower.contains("env::var") && !lower.contains("os.environ") && !lower.contains("process.env")
+        {
+            findings.push(CodeReviewFinding {
+                rule_id: "SEC-SECRET-001".into(),
+                severity: FindingSeverity::Critical,
+                category: DefectCategory::SecurityVulnerability,
+                language: lang,
+                file_path: Some(file.to_string()),
+                line_number: Some(line_num),
+                title: "Hardcoded API Key or Secret Credential".into(),
+                evidence: trimmed.to_string(),
+                impact: "Hardcoded secrets in version control lead to persistent credential exposure and unauthorized access.".into(),
+                remediation: "Load credentials dynamically from environment variables or a secret vault.".into(),
+            });
+        }
+
         // 2. Language-Specific Checks
         match lang {
             SupportedLanguage::Rust => {

@@ -112,10 +112,6 @@ Available tools:
 - process_list: List active processes with PID and memory. params: {"filter_name": "<optional_filter>"}
 - process_info: Query diagnostics for a process by PID. params: {"pid": <pid>}
 - process_kill: Terminate an active process (requires confirmation). params: {"pid": <pid>}
-- harness_index_repo: Index repository structure and symbols. params: {"root_path": "<optional_path>"}
-- harness_search_symbols: Search symbols in code. params: {"query": "<symbol_name>", "root_path": "<optional_path>"}
-- harness_run_command: Run sandboxed build or test command in repo. params: {"program": "<cmd>", "args": ["<arg1>"], "timeout_secs": 60}
-- harness_apply_patch: Apply code modification with rollback. params: {"file_path": "<path>", "modified_content": "<content>"}
 - system_info: Retrieve OS details, CPU architecture, hostname, and displays. params: {}
 
 Only use tools when the user explicitly asks you to perform an action.
@@ -180,6 +176,7 @@ For conversation, questions, or information requests, just respond normally with
             "search_web" => self.search_web(&call.params).await,
             "minimize_all" => self.minimize_all().await,
             "lock_screen" => self.lock_screen().await,
+            "execute_coding_task" => self.execute_coding_task(&call.params).await,
             _ => ToolResult {
                 success: false,
                 message: format!("Unknown tool: {}", call.tool),
@@ -534,6 +531,41 @@ For conversation, questions, or information requests, just respond normally with
                 success: false,
                 message: format!("Failed: {e}"),
             },
+        }
+    }
+
+    pub async fn execute_coding_task(&self, params: &serde_json::Value) -> ToolResult {
+        let prompt = params["prompt"].as_str().unwrap_or("").to_string();
+        let ws_str = params["workspace_root"].as_str().unwrap_or(".");
+        let ws_path = std::path::PathBuf::from(ws_str);
+
+        let engine = voxy_coding_harness::CodingEngine::new(&ws_path);
+        if let Err(e) = engine.initialize() {
+            return ToolResult {
+                success: false,
+                message: format!("Harness initialization crash recovery failed: {}", e),
+            };
+        }
+
+        let toolchains = engine.detect_toolchains();
+        let available_langs: Vec<String> = toolchains
+            .iter()
+            .filter_map(|t| match &t.status {
+                voxy_coding_harness::ToolchainStatus::Available { binary, version } => {
+                    Some(format!("{:?} ({} {})", t.language, binary, version))
+                }
+                _ => None,
+            })
+            .collect();
+
+        ToolResult {
+            success: true,
+            message: format!(
+                "OSMOO Autonomous Senior Engineering Harness operational on '{}'. Available toolchains: [{}]. Task '{}' initialized.",
+                ws_path.display(),
+                available_langs.join(", "),
+                prompt
+            ),
         }
     }
 }

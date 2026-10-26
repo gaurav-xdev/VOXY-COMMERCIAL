@@ -1,0 +1,49 @@
+# OSMOO Autonomous Senior Engineering Harness — Implementation Checklist
+
+- [x] **Phase 0: Environment & Repository Baseline**
+  - [x] Verify Git state, commit hash, and uncommitted files
+  - [x] Verify toolchains (Rust 1.99.1, Node 24.14.0, npm 11.9.0, Python 3.11.9, Go 1.26, Java JDK 21, Clang 18)
+  - [x] Record baseline test runs and compiler checks (280 passing tests, 0 errors)
+- [x] **Phase 1: Install and Verify REA on Windows**
+  - [x] Install `rea-agents@6.8.0` via npm
+  - [x] Verify `rea --version` and CLI health check (`rea doctor`)
+  - [x] Generate `01-rea-installation.md` and `02-rea-capability-inventory.md`
+- [x] **Phase 2: Reverse Engineer Claude Code with REA**
+  - [x] Inspect package layout at `node_modules/@anthropic-ai/claude-code`
+  - [x] Extract and verify tool schemas from `sdk-tools.d.ts` (3,806 lines)
+  - [x] Safe CLI options analysis without unsafe execution (`claude --help`)
+  - [x] Generate `03-rea-technical-assessment.md`, `04-claude-code-investigation.md`, and `feature-parity-matrix.md`
+- [x] **Phase 3: Implement `voxy-coding-harness`**
+  - [x] Create `crates/coding_harness` crate with `Cargo.toml`
+  - [x] Implement `types.rs`, `engine.rs`, `planner.rs` (plan mode, todo tracking)
+  - [x] Implement `patcher.rs` (exact block replacement, syntax checking, diff preview)
+  - [x] Implement `journal.rs` (durable disk transaction recovery, pre-image backups)
+  - [x] Implement `process_runner.rs` (Windows Job Objects process tree kill, timeout)
+  - [x] Implement `context_explorer.rs` (gitignore-compliant file walker, symlink defense)
+  - [x] Implement `session_store.rs` (session persistence)
+  - [x] Implement `reviewer.rs` (independent code review integration)
+  - [x] Implement `debugger.rs` (automated diagnosis and repair loop)
+- [x] **Phase 4: Integrate APIs & Strict Model Routing**
+  - [x] Patch `crates/model_router/src/lib.rs` in `select_fallback` and `select_provider` to enforce strict zero fallback
+  - [x] Add `provider_enforcement_test.rs` proving zero alternate provider calls under injected failures
+- [x] **Phase 5: Application & Daemon Integration**
+  - [x] Register coding harness in `apps/daemon/src/main.rs` & `tools.rs`
+  - [x] Wire IPC messages in `crates/ipc/src/voxy_protocol.rs`
+  - [x] Surface live coding progress in desktop UI and IPC channels
+- [x] **Phase 6: Verified MCP Integrations**
+  - [x] Implement `mcp_bridge.rs` with JSON-schema validation and tool dispatch
+  - [x] Generate `09-mcp-integrations.md`
+- [x] **Phase 7: Dynamic Skills Activation Engine**
+  - [x] Implement `skill_router.rs` matching task intent to installed skills
+  - [x] Generate `10-skills-integration.md`
+- [x] **Phase 8: Ten-Language Workflows**
+  - [x] Implement project-aware toolchain detection and honest missing-tool reporting (`toolchain.rs`)
+- [x] **Phase 9: Security Audit & Pre-installation Validation**
+  - [x] Generate `11-security-audit.md`
+- [x] **Phase 10: Multi-Tier Automated Testing**
+  - [x] Unit & integration tests for `voxy-coding-harness` (11 passing tests)
+  - [x] Baseline regression suite (`voxy-security`: 199, `voxy-tool-calling`: 22, `voxy-skills`: 38, `tests/e2e`: 21)
+  - [x] Workspace compilation check (`cargo check --workspace` clean 0 errors)
+- [x] **Phase 11: Real End-to-End Task & Final Audit**
+  - [x] Execute real multi-file coding task through daemon IPC (`real_coding_task_test.rs`)
+  - [x] Generate `12-final-report.md`

@@ -1,10 +1,8 @@
-//! Native built-in tools for Windows operating system, coding harness, and browser automation.
+//! Native built-in tools for Windows operating system and browser automation.
 
 pub mod browser;
 pub mod browser_runtime;
-pub mod coding_mcp;
 pub mod filesystem;
-pub mod harness;
 pub mod memory;
 pub mod process;
 pub mod research;
@@ -23,12 +21,7 @@ pub use browser::{
 pub use browser_runtime::{
     BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, PageObservation,
 };
-pub use coding_mcp::{CodingGitDiffTool, CodingGitStatusTool, CodingSearchTextTool};
 pub use filesystem::{FileDeleteTool, FileListTool, FileReadTool, FileWriteTool};
-pub use harness::{
-    HarnessApplyPatchTool, HarnessApplyPatchTransactionTool, HarnessIndexTool,
-    HarnessParseDiagnosticsTool, HarnessRunCommandTool, HarnessSearchTool,
-};
 pub use process::{ProcessInfoTool, ProcessKillTool, ProcessListTool};
 pub use research::ResearchInvestigateTool;
 pub use system::{SystemInfoTool, SystemScreenshotTool};

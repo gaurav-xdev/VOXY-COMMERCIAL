@@ -182,6 +182,13 @@ pub enum DaemonMessage {
         requires_action: bool,
     },
 
+    /// Coding harness event (task plan, progress, review comments, diffs).
+    CodingHarnessEvent {
+        session_id: String,
+        event_type: String,
+        details: serde_json::Value,
+    },
+
     /// Heartbeat ping from daemon (every 5-10s).
     Heartbeat { uptime_secs: u64 },
 }
@@ -301,6 +308,13 @@ pub enum ClientCommand {
     /// Client heartbeat pong response.
     HeartbeatPong,
 
+    /// Dispatch an autonomous coding task to the coding harness.
+    ExecuteCodingTask {
+        task_id: String,
+        prompt: String,
+        workspace_root: Option<String>,
+    },
+
     /// Graceful shutdown requested by primary executable supervisor or client.
     Shutdown {
         #[serde(default)]
@@ -325,6 +339,7 @@ impl ClientCommand {
                 | ClientCommand::SetMute { .. }
                 | ClientCommand::SetVoiceSpeed { .. }
                 | ClientCommand::SetRoutingMode { .. }
+                | ClientCommand::ExecuteCodingTask { .. }
                 | ClientCommand::Shutdown { .. }
         )
     }

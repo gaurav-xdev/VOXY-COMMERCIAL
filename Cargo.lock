@@ -6220,12 +6220,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
-name = "similar"
-version = "2.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
-
-[[package]]
 name = "siphasher"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7531,6 +7525,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "voxy-coding-harness"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "uuid",
+ "voxy-config",
+ "voxy-model-router",
+ "voxy-provider-core",
+ "voxy-security",
+ "voxy-shared",
+ "voxy-skills",
+ "voxy-tool-calling",
+ "walkdir",
+ "windows 0.58.0",
+]
+
+[[package]]
 name = "voxy-cognition"
 version = "0.1.0"
 dependencies = [
@@ -7681,6 +7701,7 @@ dependencies = [
  "uuid",
  "voxy-anthropic",
  "voxy-automation",
+ "voxy-coding-harness",
  "voxy-cognition",
  "voxy-cognitive-orchestrator",
  "voxy-companion-intelligence",
@@ -7972,26 +7993,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "voxy-harness"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "parking_lot",
- "serde",
- "serde_json",
- "similar",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tracing",
- "uuid",
- "voxy-security",
- "voxy-shared",
- "walkdir",
-]
-
-[[package]]
 name = "voxy-health"
 version = "0.1.0"
 dependencies = [
@@ -8111,7 +8112,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "voxy-harness",
  "voxy-model-router",
  "voxy-provider-core",
  "voxy-security",
@@ -8639,7 +8639,6 @@ dependencies = [
  "uuid",
  "voxy-database",
  "voxy-event-bus",
- "voxy-harness",
  "voxy-personality",
  "voxy-provider-core",
  "voxy-security",
@@ -8677,7 +8676,6 @@ dependencies = [
  "voxy-database",
  "voxy-event-bus",
  "voxy-grounding",
- "voxy-harness",
  "voxy-platform-core",
  "voxy-platform-windows",
  "voxy-security",
@@ -8698,7 +8696,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "voxy-harness",
  "voxy-kodus-review",
  "voxy-model-router",
  "voxy-provider-core",
@@ -8721,7 +8718,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "voxy-harness",
  "voxy-security",
  "voxy-shared",
  "voxy-skills",

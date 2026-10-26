@@ -209,24 +209,11 @@ fn map_tool_to_permission(tool_name: &str) -> Option<SkillPermission> {
         "memory_store" => Some(SkillPermission::MemoryWrite),
         "memory_forget" => Some(SkillPermission::MemoryWrite),
         "research_investigate" => Some(SkillPermission::ResearchAccess),
-        "harness_search"
-        | "harness_index"
-        | "harness_apply_patch"
-        | "harness_apply_patch_transaction"
-        | "harness_parse_diagnostics" => Some(SkillPermission::CodeHarnessAccess),
         "task_history_get" | "task_artifacts_list" => Some(SkillPermission::TaskHistoryAccess),
         _ => None,
     }
 }
 
 fn is_privileged_tool(tool_name: &str) -> bool {
-    matches!(
-        tool_name,
-        "file_delete"
-            | "process_kill"
-            | "harness_run_command"
-            | "harness_apply_patch"
-            | "harness_apply_patch_transaction"
-            | "memory_forget"
-    )
+    matches!(tool_name, "file_delete" | "process_kill" | "memory_forget")
 }

@@ -12,7 +12,7 @@ use crate::error::{Result, ToolError};
 use crate::metadata::{RiskTier, ToolCategory, ToolContext, ToolMetadata, ToolResult};
 use crate::traits::Tool;
 
-use voxy_harness::patch_engine::{
+use voxy_security::path_guard::{
     is_protected_file, is_symlink_or_reparse_point, path_is_contained,
 };
 

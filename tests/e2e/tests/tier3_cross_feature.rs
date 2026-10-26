@@ -20,7 +20,6 @@ use voxy_database::conversation::{ConversationStore, MessageRole};
 use voxy_database::sqlite::{SqliteConversationStore, SqliteDatabase};
 use voxy_database::storage::StorageProvider;
 use voxy_database::DatabaseConfig;
-use voxy_harness::patch_engine::{PatchError, PatchTransaction};
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
@@ -96,42 +95,6 @@ fn test_tier3_a2_voice_barge_in_interruption_cancels_playback() {
     assert_eq!(pipeline.current_state(), VoiceState::Thinking);
     pipeline.trigger_barge_in("user interrupt during think");
     assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
-}
-
-// =========================================================================
-// A3 + A4: Multi-File Patch Transaction with Atomic Rollback on Security Violation
-// =========================================================================
-
-#[test]
-fn test_tier3_a3_a4_atomic_rollback_on_multi_file_security_violation() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    let initial_main = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-
-    // Create a multi-file transaction with 1 valid file and 1 malicious file (secret key)
-    let mut tx = PatchTransaction::new(root);
-    tx.add_change("src/main.rs", "fn main() { println!(\"Modified\"); }");
-    tx.add_change("src/secret.rs", "const AWS_KEY: &str = \"AKIAIOSFODNN7EXAMPLE\";");
-
-    // Apply must fail due to secret detection
-    let result = tx.apply();
-    assert!(result.is_err(), "Batch containing secret must be rejected");
-
-    match result.unwrap_err() {
-        PatchError::SecretDetected(secrets) => {
-            assert!(!secrets.is_empty());
-        }
-        other => panic!("Expected SecretDetected error, got {:?}", other),
-    }
-
-    // Crucial Atomic Guarantee: src/main.rs MUST NOT be modified!
-    let current_main = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-    assert_eq!(
-        current_main, initial_main,
-        "Clean atomic guarantee: failed transaction must leave preceding files completely unmodified"
-    );
-    assert!(!root.join("src/secret.rs").exists(), "Malicious file must not be created");
 }
 
 // =========================================================================

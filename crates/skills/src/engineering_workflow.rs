@@ -273,7 +273,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_production_engineering_workflow_e2e() {
-        let workflow = ProductionEngineeringWorkflow::new(".");
+        let temp_dir = std::env::temp_dir().join(format!("voxy_workflow_e2e_{}", uuid::Uuid::new_v4()));
+        tokio::fs::create_dir_all(temp_dir.join("src")).await.unwrap();
+        tokio::fs::write(
+            temp_dir.join("Cargo.toml"),
+            "[package]\nname = \"test-math\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        )
+        .await
+        .unwrap();
+        tokio::fs::write(
+            temp_dir.join("src/lib.rs"),
+            "pub fn add(a: i32, b: i32) -> i32 { a + b }\n",
+        )
+        .await
+        .unwrap();
+
+        let workflow = ProductionEngineeringWorkflow::new(&temp_dir);
         let spec = EngineeringTaskSpec {
             task_id: "task-test-001".into(),
             title: "Add math helper function".into(),
@@ -297,5 +312,7 @@ diff --git a/src/math.rs b/src/math.rs
         assert!(summary.ready_for_merge);
         assert!(summary.execution_evidence.len() >= 8);
         assert!(summary.review_report.unwrap().passed_cleanly);
+
+        let _ = tokio::fs::remove_dir_all(&temp_dir).await;
     }
 }

@@ -21,8 +21,6 @@ use voxy_database::conversation::{ConversationStore, MessageRole};
 use voxy_database::sqlite::{SqliteConversationStore, SqliteDatabase};
 use voxy_database::storage::StorageProvider;
 use voxy_database::DatabaseConfig;
-use voxy_harness::patch_engine::{PatchError, PatchTransaction};
-use voxy_harness::repo_indexer::RepositoryIndexer;
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_security::archive::{safe_extract_zip, ArchiveSecurityLimits};
@@ -84,42 +82,6 @@ async fn test_acceptance_criteria_a2_voice_pipeline() {
     assert_eq!(pipeline.current_state(), VoiceState::Speaking);
     pipeline.trigger_barge_in("User speech detected");
     assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
-}
-
-#[test]
-fn test_acceptance_criteria_a3_coding_harness() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    // Indexing
-    let mut indexer = RepositoryIndexer::new(root);
-    let count = indexer.index_repository().expect("A3 Acceptance: Indexing failed");
-    assert!(count > 0, "A3 Acceptance: Discovered zero files");
-
-    // Atomic patch and rollback
-    let mut tx = PatchTransaction::new(root);
-    tx.add_change("src/main.rs", "// Modified by A3 Acceptance Test\n");
-    let diffs = tx.apply().expect("A3 Acceptance: Patch apply failed");
-    assert_eq!(diffs.len(), 1);
-
-    let rolled_back = tx.rollback();
-    assert_eq!(rolled_back, 1, "A3 Acceptance: Rollback failed");
-
-    // Security boundary: reject protected file
-    let mut tx_protected = PatchTransaction::new(root);
-    tx_protected.add_change(".git/config", "pwned");
-    assert!(
-        tx_protected.apply().is_err(),
-        "A3 Acceptance: Modifying .git must be strictly blocked"
-    );
-
-    // Security boundary: reject secrets
-    let mut tx_secret = PatchTransaction::new(root);
-    tx_secret.add_change("src/key.rs", "const KEY: &str = \"AKIAIOSFODNN7EXAMPLE\";");
-    assert!(
-        tx_secret.apply().is_err(),
-        "A3 Acceptance: AWS key injection must be blocked"
-    );
 }
 
 #[test]

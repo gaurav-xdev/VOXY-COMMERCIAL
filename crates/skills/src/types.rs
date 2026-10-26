@@ -68,7 +68,6 @@ pub enum SkillPermission {
     MemoryRead,
     MemoryWrite,
     ResearchAccess,
-    CodeHarnessAccess,
     TaskHistoryAccess,
     NotifyUser,
 }

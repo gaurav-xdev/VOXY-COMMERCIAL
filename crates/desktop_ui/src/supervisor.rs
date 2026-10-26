@@ -244,6 +244,8 @@ impl Supervisor {
         if let Some(path) = custom_path {
             if path.exists() {
                 return Some(path.to_path_buf());
+            } else {
+                return None;
             }
         }
 

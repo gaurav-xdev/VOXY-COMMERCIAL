@@ -1,0 +1,55 @@
+=== OSMOO INDEPENDENT ENGINEERING AUDIT: TEST SUMMARY ===
+
+Total Target Tests Evaluated in Coding Harness, Desktop UI, Daemon, and Overlay: 56 tests passed, 0 failed, 0 ignored.
+
+--- CRATE: voxy-coding-harness (12 Tests) ---
+1. tests::test_dag_planner_generation_and_topological_sort ... PASSED (0.00s)
+   - Verifies topological order, cycle detection, and step dependency DAG creation.
+2. tests::test_approval_flow_gating ... PASSED (0.00s)
+   - Verifies destructive operations (DeleteFile, ExecuteCommand) require approval while Safe edits bypass.
+3. tests::test_context_explorer_workspace_search ... PASSED (0.01s)
+   - Verifies file search, content grep, and relative globbing matching.
+4. tests::test_patcher_atomic_edit ... PASSED (0.01s)
+   - Verifies write-ahead logging and atomic text replacement with backup creation.
+5. tests::test_crash_recovery_journal_replay ... PASSED (0.01s)
+   - Verifies persistent journal survives simulated crash and re-applies uncommitted entries.
+6. tests::test_transaction_rollback ... PASSED (0.01s)
+   - Verifies multi-file atomic transactions roll back cleanly upon intermediate failure.
+7. tests::test_toolchains_diagnostic_parser ... PASSED (0.00s)
+   - Verifies rustc/cargo compiler error regex parsing and location extraction.
+8. tests::test_bounded_process_runner ... PASSED (0.04s)
+   - Verifies bounded execution and timeout termination via Windows Job Objects.
+9. end_to_end_integration_test::test_full_coding_task_lifecycle ... PASSED (4.90s)
+   - Verifies 10-point end-to-end task lifecycle including planning, skills, MCPs, edits, review, and verification.
+10. mcp_and_skills_test::test_mcp_bridge_and_skill_routing ... PASSED (0.00s)
+    - Verifies JSON-RPC tool schema generation, execution gating, and dynamic skill prompt injection.
+11. provider_enforcement_test::test_failure_injection_proves_zero_fallback ... PASSED (0.00s)
+    - Verifies strict failure propagation under ForceProvider / ForceModel without cross-provider fallback.
+12. real_coding_task_test::test_real_autonomous_coding_task_end_to_end ... PASSED (4.25s)
+    - Verifies autonomous repair of an intentional compile failure in an isolated workspace.
+
+--- CRATE: voxy-desktop-ui --lib (17 Tests) ---
+1. bridge::discovery::tests::test_parse_empty_or_malformed_models ... PASSED
+2. bridge::discovery::tests::test_parse_ollama_model_tags ... PASSED
+3. bridge::auth::tests::test_auth_session_serialization_roundtrip ... PASSED
+4. bridge::auth::tests::test_dpapi_protect_and_unprotect_roundtrip ... PASSED
+5. bridge::auth::tests::test_auth_lifecycle_end_to_end ... PASSED
+6. overlay::types::tests::test_all_six_desktop_modes ... PASSED
+7. overlay::types::tests::test_all_eleven_visual_states ... PASSED
+8. overlay::types::tests::test_tool_step_serialization ... PASSED
+9. overlay::types::tests::test_system_telemetry_defaults_and_serialization ... PASSED
+10. supervisor::tests::test_supervisor_config_default ... PASSED
+11. supervisor::tests::test_supervisor_status_initial ... PASSED
+12. supervisor::tests::test_supervisor_locate_binary_fallback ... PASSED
+13. supervisor::tests::test_supervisor_start_all_propagates_error_on_missing_binaries ... PASSED
+14. supervisor::tests::test_windows_job_object_creation ... PASSED
+15. supervisor::tests::test_job_object_is_active ... PASSED
+16. supervisor::tests::test_job_object_assign_invalid_pid_fails_closed ... PASSED
+17. supervisor::tests::test_job_object_assign_and_kill_process_tree ... PASSED
+
+--- CRATE: voxy-daemon (23 Tests) ---
+- 16 Unit Tests (CPU features, memory limits, shutdown hooks, emergency stops, command injection defense, conversation memory token trim) ... ALL PASSED
+- 7 Integration Tests (cognitive bridge, knowledge validation, broadcast channel, channel backpressure, reflection engine, runtime guard) ... ALL PASSED
+
+--- CRATE: voxy-overlay (4 Tests) ---
+- 4 Unit Tests (visual states, desktop modes, tool step serialization, system telemetry defaults) ... ALL PASSED

@@ -70,7 +70,6 @@ impl AgentRole {
                     || task_type == "patch"
                     || task_type == "build"
                     || task_type == "diagnostics"
-                    || task_type == "harness"
             }
             Self::Desktop => task_type == "desktop" || task_type == "ui",
             Self::Browser => task_type == "browser" || task_type == "web",

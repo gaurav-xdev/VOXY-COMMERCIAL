@@ -19,7 +19,7 @@ use crate::traits::Tool;
 
 use voxy_database::CommercialStore;
 use voxy_grounding::defense::PromptInjectionDefense;
-use voxy_harness::secret_scanner::SecretScanner;
+use voxy_security::secret_scanner::SecretScanner;
 
 /// Stores an item into long-term scoped memory with privacy & security checks.
 pub struct MemoryStoreTool {

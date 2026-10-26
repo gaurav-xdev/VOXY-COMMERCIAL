@@ -170,6 +170,26 @@ pub fn App() -> Element {
                                     is_user,
                                 });
                             }
+                            voxy_ipc::DaemonMessage::CodingHarnessEvent { event_type, details, .. } => {
+                                let next_id = chat_sig.read().len() as u64 + 1;
+                                chat_sig.write().push(ChatTurn {
+                                    id: next_id,
+                                    sender: format!("Coding Harness [{}]", event_type),
+                                    text: details.to_string(),
+                                    timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
+                                    is_user: false,
+                                });
+                            }
+                            voxy_ipc::DaemonMessage::ToolStep { title, detail, .. } => {
+                                let next_id = chat_sig.read().len() as u64 + 1;
+                                chat_sig.write().push(ChatTurn {
+                                    id: next_id,
+                                    sender: format!("Harness Tool [{}]", title),
+                                    text: detail,
+                                    timestamp: chrono::Utc::now().format("%H:%M:%S").to_string(),
+                                    is_user: false,
+                                });
+                            }
                             _ => {}
                         }
                     }

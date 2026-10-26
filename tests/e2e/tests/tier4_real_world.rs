@@ -12,70 +12,12 @@ use std::time::{Duration, Instant};
 use osmoo_e2e_tests::*;
 use tokio::time::timeout;
 
-use voxy_harness::diagnostic_parser::{DiagnosticParser, DiagnosticSeverity};
-use voxy_harness::patch_engine::PatchTransaction;
-use voxy_harness::repo_indexer::RepositoryIndexer;
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_voice_activation::{VadConfig, VadDetector, VadEvent};
 use voxy_voice_orchestrator::{VoicePipeline, VoicePipelineConfig};
 use voxy_voice_stt::MockStt;
 use voxy_voice_tts::{MockTts, SentenceChunker};
-
-// =========================================================================
-// Scenario 1: Autonomous Coding Loop
-// =========================================================================
-
-#[test]
-fn test_tier4_scenario1_autonomous_coding_loop() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    // Setup multi-file project
-    std::fs::write(
-        root.join("src/calculator.rs"),
-        "pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n",
-    )
-    .unwrap();
-
-    // 1. Index repository
-    let mut indexer = RepositoryIndexer::new(root);
-    let count = indexer.index_repository().expect("Indexing must succeed");
-    assert!(count >= 2, "Workspace must contain indexed files");
-    let rs_files = indexer.find_files_by_extension("rs");
-    assert!(rs_files.len() >= 2);
-
-    // 2. Apply multi-file refactoring patch
-    let mut tx = PatchTransaction::new(root);
-    tx.add_change(
-        "src/calculator.rs",
-        "pub fn add(a: i32, b: i32) -> i32 {\n    // Refactored with logging\n    a + b\n}\n\npub fn multiply(a: i32, b: i32) -> i32 {\n    a * b\n}\n",
-    );
-    tx.add_change(
-        "src/main.rs",
-        "mod calculator;\n\nfn main() {\n    let sum = calculator::add(2, 3);\n    println!(\"Sum: {sum}\");\n}\n",
-    );
-
-    let diffs = tx.apply().expect("Patch application must succeed");
-    assert_eq!(diffs.len(), 2, "Both files must generate diffs");
-
-    // 3. Simulate compiler diagnostic error parsing
-    let rustc_error_line = "warning[unused_variables]: unused variable: `sum`\n --> src/main.rs:4:9";
-    let report = DiagnosticParser::parse(rustc_error_line);
-    assert_eq!(report.items.len(), 1);
-    assert_eq!(report.items[0].severity, DiagnosticSeverity::Warning);
-    assert_eq!(report.items[0].file_path, Some(PathBuf::from("src/main.rs")));
-    assert_eq!(report.items[0].line, Some(4));
-
-    // 4. Test atomic rollback: user cancels task or test fails
-    let rolled_back = tx.rollback();
-    assert_eq!(rolled_back, 2, "Both files must be rolled back cleanly");
-
-    let restored_main = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-    assert!(restored_main.contains("Hello from OSMOO!"));
-    let restored_calc = std::fs::read_to_string(root.join("src/calculator.rs")).unwrap();
-    assert!(!restored_calc.contains("multiply"));
-}
 
 // =========================================================================
 // Scenario 2: Full Voice Interaction & Interruption Loop

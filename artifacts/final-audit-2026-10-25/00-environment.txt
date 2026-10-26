@@ -1,0 +1,30 @@
+=== OSMOO INDEPENDENT ENGINEERING AUDIT: ENVIRONMENT BASELINE ===
+Date (Audit Recorded): 2026-10-26T11:38:00+05:30
+Hostname: Local Workstation (Windows NT 10.0 x86_64)
+
+--- REPOSITORY IDENTIFICATION ---
+Repository Top-Level: C:/Users/gaurav/Downloads/VOXY-COMMERCIAL
+Current Git Branch: master
+Head Commit Hash: 8a938c71eeeed9104104af0fdf502ba6c9bbb056
+Git Working-Tree Status: Modified (incorporating voxy-coding-harness, supervisor bugfix, security rule SEC-SECRET-001)
+
+--- COMPILER & RUNTIME TOOLCHAINS ---
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13)
+cargo: cargo 1.99.1 (5f94df478 2026-08-27)
+Target Triple: x86_64-pc-windows-msvc
+Node.js: v24.14.0
+npm: 11.9.0
+
+--- CLAUDE CODE CLI INSTALLATION ---
+Claude CLI Path: C:\Users\gaurav\AppData\Roaming\npm\claude.ps1 / C:\Users\gaurav\AppData\Roaming\npm\claude.cmd
+Claude Code Version: 2.1.215 (Claude Code)
+Execution Operator: Windows PowerShell call operator `&` required for `.cmd`/`.ps1` invocation with spaces/arguments.
+
+--- GIT DIFF STAT ---
+ 49 files changed, 1866 insertions(+), 6430 deletions(-)
+ Key Crates Affected:
+  - crates/coding_harness/ (new 14-module autonomous coding engine)
+  - crates/skills/ (code review rules, SEC-SECRET-001, toolchains)
+  - crates/desktop_ui/src/supervisor.rs (process lifecycle, Job Object limit fail-closed, explicit binary override fix)
+  - apps/daemon/src/tools.rs (ExecuteCodingTask IPC handler)
+  - apps/overlay/src/state.rs, overlay/mod.rs (ToolStep telemetry, coding harness visual step updates)

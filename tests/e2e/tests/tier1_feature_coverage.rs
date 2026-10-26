@@ -21,8 +21,6 @@ use voxy_database::conversation::{ConversationStore, MessageRole};
 use voxy_database::sqlite::{SqliteConversationStore, SqliteDatabase};
 use voxy_database::storage::StorageProvider;
 use voxy_database::DatabaseConfig;
-use voxy_harness::patch_engine::PatchTransaction;
-use voxy_harness::repo_indexer::RepositoryIndexer;
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_security::archive::{safe_extract_zip, ArchiveSecurityLimits};
@@ -145,48 +143,6 @@ async fn test_tier1_a2_voice_pipeline_lifecycle() {
     assert_eq!(pipeline.current_state(), VoiceState::Speaking);
     pipeline.trigger_barge_in("User speech detected");
     assert_eq!(pipeline.current_state(), VoiceState::Interrupted);
-}
-
-// =========================================================================
-// A3: Autonomous Coding Harness Repository Indexing & Atomic Patching
-// =========================================================================
-
-#[test]
-fn test_tier1_a3_coding_harness_indexing_and_atomic_patch() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    // 1. Repository Indexing
-    let mut indexer = RepositoryIndexer::new(root);
-    let count = indexer.index_repository().expect("Repository indexing should succeed");
-    assert!(count > 0, "Repository indexer should find workspace files");
-
-    let rs_files = indexer.find_files_by_extension("rs");
-    let has_main = rs_files.iter().any(|f| {
-        let p = f.relative_path.to_string_lossy();
-        p.ends_with("src\\main.rs") || p.ends_with("src/main.rs") || p.ends_with("main.rs")
-    });
-    assert!(has_main, "Indexer must locate src/main.rs");
-
-    // 2. Atomic Patch Transaction
-    let mut tx = PatchTransaction::new(root);
-    let patched_content = "fn main() {\n    println!(\"Patched by OSMOO E2E Harness\");\n}\n";
-    tx.add_change("src/main.rs", patched_content);
-
-    let diffs = tx.apply().expect("Patch application should succeed");
-    assert_eq!(diffs.len(), 1);
-    assert!(diffs[0].contains("Patched by OSMOO E2E Harness"));
-
-    // Verify on disk
-    let disk_content = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-    assert_eq!(disk_content, patched_content);
-
-    // 3. Rollback
-    let rolled_back = tx.rollback();
-    assert_eq!(rolled_back, 1, "Rollback should revert exactly one file");
-
-    let restored_content = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-    assert!(restored_content.contains("Hello from OSMOO!"));
 }
 
 // =========================================================================

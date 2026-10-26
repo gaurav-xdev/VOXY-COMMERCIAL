@@ -12,7 +12,6 @@ voxy-config = { workspace = true }
 voxy-event-bus = { workspace = true }
 voxy-security = { path = "../security" }
 voxy-platform-core = { path = "../platform_core" }
-voxy-harness = { path = "../harness" }
 voxy-grounding = { path = "../grounding" }
 voxy-database = { path = "../database" }
 tokio = { workspace = true }

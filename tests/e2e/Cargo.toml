@@ -12,7 +12,6 @@ voxy-shared = { path = "../../crates/shared" }
 voxy-ipc = { path = "../../crates/ipc" }
 voxy-security = { path = "../../crates/security" }
 voxy-database = { path = "../../crates/database" }
-voxy-harness = { path = "../../crates/harness" }
 voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
 voxy-config = { path = "../../crates/config" }
 voxy-memory = { path = "../../crates/memory" }

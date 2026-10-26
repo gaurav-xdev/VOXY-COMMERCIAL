@@ -584,14 +584,14 @@ async fn test_activation_policy_available_not_equal_to_active() {
         .iter()
         .any(|c| c.id == "frontend-ui:pmndrs-uikit"));
 
-    // 6. Coding Tools MCP task: requires write_files and code_harness_access
+    // 6. Coding Tools MCP task: requires write_files and Modify risk tier
     let coding_task_denied = TaskContext::new(
         "t6",
-        "Apply patch using code-harness patch-engine",
+        "Apply patch using patch-engine",
         PathBuf::from("."),
     )
     .with_tag("patch")
-    .with_max_risk(CapabilityRiskLevel::Modify); // missing permissions
+    .with_max_risk(CapabilityRiskLevel::Read); // Read only, but capability requires Modify
 
     let result_denied = engine.evaluate_task(&coding_task_denied);
     assert!(!result_denied
@@ -601,12 +601,11 @@ async fn test_activation_policy_available_not_equal_to_active() {
 
     let coding_task_allowed = TaskContext::new(
         "t7",
-        "Apply patch using code-harness patch-engine",
+        "Apply patch using patch-engine",
         PathBuf::from("."),
     )
     .with_tag("patch")
     .with_permission(SkillPermission::WriteFiles)
-    .with_permission(SkillPermission::CodeHarnessAccess)
     .with_max_risk(CapabilityRiskLevel::Modify);
 
     let result_allowed = engine.evaluate_task(&coding_task_allowed);

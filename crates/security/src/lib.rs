@@ -15,11 +15,13 @@ pub mod identity;
 pub mod integrity;
 pub mod journal;
 pub mod monitoring;
+pub mod path_guard;
 pub mod policy;
 pub mod prompt;
 pub mod recovery;
 pub mod rollback;
 pub mod sanitizer;
+pub mod secret_scanner;
 pub mod secrets;
 pub mod signed;
 pub mod ssrf;
@@ -46,11 +48,16 @@ pub use identity::{EntityType, Identity, IdentityManager};
 pub use integrity::IntegrityVerifier;
 pub use journal::AiActionJournal;
 pub use monitoring::{ForensicsEvent, SecurityEventSeverity, SecurityMonitor};
+pub use path_guard::{
+    contains_symlink_or_reparse, is_protected_file, is_symlink_or_reparse_point, path_is_contained,
+    validate_path,
+};
 pub use policy::{PolicyEngine, PolicyInput, PolicyResult, PolicyRule};
 pub use prompt::SystemPromptBuilder;
 pub use recovery::{RecoveryMode, RecoveryReport, RecoveryState};
 pub use rollback::{RollbackManager, RollbackResult, RollbackStrategy};
 pub use sanitizer::{sanitize_context, sanitize_llm_output, sanitize_user_input, SanitizedInput};
+pub use secret_scanner::{DetectedSecret, SecretScanner};
 pub use secrets::SecretVault;
 pub use signed::{ArtifactType, SignatureVerdict, SignatureVerifier, SignedArtifact};
 pub use ssrf::{

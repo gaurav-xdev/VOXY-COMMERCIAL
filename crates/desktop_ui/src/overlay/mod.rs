@@ -374,6 +374,25 @@ pub fn App() -> Element {
                             pa_mut.set(None);
                         }
                     }
+                    voxy_ipc::DaemonMessage::CodingHarnessEvent {
+                        session_id: _,
+                        event_type,
+                        details,
+                    } => {
+                        let title = format!("Harness: {}", event_type);
+                        let detail = match serde_json::to_string_pretty(&details) {
+                            Ok(s) => s,
+                            Err(_) => details.to_string(),
+                        };
+                        let step = ToolStep {
+                            id: (chrono::Utc::now().timestamp_millis() % 100000) as usize,
+                            title,
+                            detail,
+                            status: StepStatus::Running,
+                        };
+                        let mut steps = t_steps;
+                        steps.write().push(step);
+                    }
                     _ => {}
                 }
             }

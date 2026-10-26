@@ -1,0 +1,39 @@
+[package]
+name = "voxy-coding-harness"
+version = "0.1.0"
+edition = "2021"
+authors = ["VOXY Engineering Team"]
+license = "MIT"
+description = "OSMOO Autonomous Senior Engineering Harness Runtime"
+
+[dependencies]
+voxy-shared = { path = "../shared" }
+voxy-config = { path = "../config" }
+voxy-security = { path = "../security" }
+voxy-skills = { path = "../skills" }
+voxy-model-router = { path = "../model_router" }
+voxy-tool-calling = { path = "../tool_calling" }
+voxy-provider-core = { path = "../provider_core" }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+walkdir = "2"
+regex = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_System_JobObjects",
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }
+
+[dev-dependencies]
+tempfile = "3"

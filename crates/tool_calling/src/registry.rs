@@ -32,7 +32,7 @@ impl ToolRegistry {
         self
     }
 
-    /// Create a tool registry pre-loaded with all native Windows, coding harness, and browser tools.
+    /// Create a tool registry pre-loaded with all native Windows, general system, and browser tools.
     pub fn with_builtins() -> Self {
         let registry = Self::new();
         registry.register_builtin_sync(Arc::new(WindowListTool::new()));
@@ -49,15 +49,6 @@ impl ToolRegistry {
         registry.register_builtin_sync(Arc::new(FileDeleteTool::new()));
         registry.register_builtin_sync(Arc::new(SystemInfoTool::new()));
         registry.register_builtin_sync(Arc::new(SystemScreenshotTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessIndexTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessSearchTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessRunCommandTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessApplyPatchTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessParseDiagnosticsTool::new()));
-        registry.register_builtin_sync(Arc::new(HarnessApplyPatchTransactionTool::new()));
-        registry.register_builtin_sync(Arc::new(CodingGitStatusTool::new()));
-        registry.register_builtin_sync(Arc::new(CodingGitDiffTool::new()));
-        registry.register_builtin_sync(Arc::new(CodingSearchTextTool::new()));
         registry.register_builtin_sync(Arc::new(ResearchInvestigateTool::new()));
         registry.register_builtin_sync(Arc::new(TaskHistoryGetTool::new()));
         registry.register_builtin_sync(Arc::new(TaskArtifactsListTool::new()));

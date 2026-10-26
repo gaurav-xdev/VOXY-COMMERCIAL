@@ -68,7 +68,6 @@ voxy-health = { path = "crates/health" }
 voxy-database = { path = "crates/database" }
 voxy-runtime-guard = { path = "crates/runtime_guard" }
 voxy-billing = { path = "crates/billing" }
-voxy-harness = { path = "crates/harness" }
 voxy-office = { path = "crates/office" }
 voxy-api-server = { path = "crates/api_server" }
 voxy-legal = { path = "crates/legal" }

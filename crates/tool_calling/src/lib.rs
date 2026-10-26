@@ -27,7 +27,7 @@ mod tests {
         assert!(tools.iter().any(|t| t.name == "file_list"));
         assert!(tools.iter().any(|t| t.name == "process_list"));
         assert!(tools.iter().any(|t| t.name == "system_info"));
-        assert!(tools.iter().any(|t| t.name == "harness_index_repo"));
+        assert!(tools.iter().any(|t| t.name == "browser_open"));
     }
 
     #[tokio::test]
@@ -312,78 +312,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_harness_tools_registered_in_registry() {
-        let registry = ToolRegistry::with_builtins();
-        assert!(registry.get("harness_index_repo").await.is_some());
-        assert!(registry.get("harness_search_symbols").await.is_some());
-        assert!(registry.get("harness_run_command").await.is_some());
-        assert!(registry.get("harness_apply_patch").await.is_some());
-        assert!(registry.get("harness_parse_diagnostics").await.is_some());
-        assert!(registry
-            .get("harness_apply_patch_transaction")
-            .await
-            .is_some());
-    }
-
-    #[tokio::test]
-    async fn test_harness_parse_diagnostics_tool_execution() {
-        let registry = ToolRegistry::with_builtins();
-        let ctx = ToolContext::new("test-session");
-
-        let compiler_output =
-            "error[E0425]: cannot find value `xyz` in this scope\n  --> src/lib.rs:10:5";
-        let res = registry
-            .execute(
-                "harness_parse_diagnostics",
-                json!({ "output": compiler_output }),
-                &ctx,
-            )
-            .await
-            .unwrap();
-
-        assert!(res.success);
-        let data = res.data;
-        assert_eq!(data["total_errors"], 1);
-        assert_eq!(data["total_warnings"], 0);
-    }
-
-    #[tokio::test]
-    async fn test_harness_apply_patch_transaction_tool_execution() {
-        let temp_dir =
-            std::env::temp_dir().join(format!("voxy_harness_tx_{}", uuid::Uuid::new_v4()));
-        tokio::fs::create_dir_all(&temp_dir).await.unwrap();
-
-        let registry = ToolRegistry::with_builtins();
-        let ctx = ToolContext::new("test-session").with_confirmation(true);
-
-        let p1 = temp_dir.join("code.rs");
-        tokio::fs::write(&p1, "fn old_code() {}\n").await.unwrap();
-
-        let res = registry
-            .execute(
-                "harness_apply_patch_transaction",
-                json!({
-                    "root_path": temp_dir.to_string_lossy(),
-                    "patches": [
-                        {
-                            "file_path": "code.rs",
-                            "modified_content": "fn new_code() {}\n"
-                        }
-                    ]
-                }),
-                &ctx,
-            )
-            .await
-            .unwrap();
-
-        assert!(res.success);
-        let updated = tokio::fs::read_to_string(&p1).await.unwrap();
-        assert_eq!(updated, "fn new_code() {}\n");
-
-        let _ = tokio::fs::remove_dir_all(&temp_dir).await;
-    }
-
-    #[tokio::test]
     async fn test_research_deep_investigate_tool_execution() {
         let registry = ToolRegistry::with_builtins();
         let ctx = ToolContext::new("test-session");
@@ -440,45 +368,5 @@ mod tests {
             .await
             .unwrap();
         assert!(res_art.success);
-    }
-
-    #[tokio::test]
-    async fn test_coding_tools_mcp_git_status_diff_and_search() {
-        let registry = ToolRegistry::with_builtins();
-        let ctx = ToolContext::new("test-session");
-
-        assert!(registry.get("coding_git_status").await.is_some());
-        assert!(registry.get("coding_git_diff").await.is_some());
-        assert!(registry.get("coding_search_text").await.is_some());
-
-        // Test git status
-        let res_status = registry
-            .execute("coding_git_status", json!({}), &ctx)
-            .await
-            .unwrap();
-        assert!(res_status.success);
-
-        // Test git diff
-        let res_diff = registry
-            .execute("coding_git_diff", json!({ "staged": false }), &ctx)
-            .await
-            .unwrap();
-        assert!(res_diff.success);
-
-        // Test text search
-        let res_search = registry
-            .execute(
-                "coding_search_text",
-                json!({
-                    "pattern": "CodingGitStatusTool",
-                    "extension": "rs"
-                }),
-                &ctx,
-            )
-            .await
-            .unwrap();
-        assert!(res_search.success);
-        let count = res_search.data["count"].as_u64().unwrap();
-        assert!(count >= 1);
     }
 }

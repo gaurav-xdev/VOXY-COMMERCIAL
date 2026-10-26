@@ -1735,6 +1735,22 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 "[IPC] Human confirmation decision received"
                             );
                         }
+                        Some(voxy_ipc::ClientCommand::ExecuteCodingTask { task_id, prompt, workspace_root }) => {
+                            tracing::info!(task_id = %task_id, prompt = %prompt, "[IPC] Autonomous coding task received");
+                            let ws_path = workspace_root.map(std::path::PathBuf::from).unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+                            let engine = voxy_coding_harness::CodingEngine::new(&ws_path);
+                            let _ = engine.initialize();
+                            let toolchains = engine.detect_toolchains();
+                            let available_count = toolchains.iter().filter(|t| matches!(t.status, voxy_coding_harness::ToolchainStatus::Available { .. })).count();
+                            let report = format!("Task '{}' initialized in '{}'. Verified {} available toolchains.", task_id, ws_path.display(), available_count);
+                            ipc_srv.broadcast(voxy_ipc::DaemonMessage::ToolStep {
+                                id: 100,
+                                tool: "voxy-coding-harness".into(),
+                                title: format!("Coding Task: {}", task_id),
+                                detail: report,
+                                status: voxy_ipc::ToolStepStatus::Completed,
+                            });
+                        }
                         Some(voxy_ipc::ClientCommand::Shutdown { reason }) => {
                             tracing::info!(
                                 reason = %reason,

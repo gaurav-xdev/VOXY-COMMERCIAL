@@ -60,3 +60,4 @@ parking_lot = { workspace = true }
 rusqlite = { version = "0.31", features = ["bundled"] }
 dirs = "6"
 voxy-hardware = { path = "../../crates/hardware" }
+voxy-coding-harness = { path = "../../crates/coding_harness" }

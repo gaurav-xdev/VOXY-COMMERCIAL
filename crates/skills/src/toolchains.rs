@@ -12,8 +12,171 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use voxy_harness::{DiagnosticParser, DiagnosticReport, SandboxedRunner};
 use crate::language_profiles::SupportedLanguage;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RunnerError {
+    #[error("Execution timed out after {0:?}")]
+    Timeout(Duration),
+    #[error("Command execution failed: {0}")]
+    ProcessFailed(#[from] std::io::Error),
+    #[error("Security error: working directory escapes repository boundary")]
+    InvalidWorkingDir,
+}
+
+#[derive(Debug, Clone)]
+pub struct CommandOutput {
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub duration: Duration,
+    pub was_success: bool,
+}
+
+pub struct SandboxedRunner {
+    repo_root: PathBuf,
+}
+
+impl SandboxedRunner {
+    pub fn new(repo_root: impl AsRef<Path>) -> Self {
+        Self {
+            repo_root: repo_root.as_ref().to_path_buf(),
+        }
+    }
+
+    pub async fn run_command(
+        &self,
+        program: &str,
+        args: &[&str],
+        relative_cwd: Option<&Path>,
+        timeout_duration: Duration,
+    ) -> std::result::Result<CommandOutput, RunnerError> {
+        let work_dir = match relative_cwd {
+            Some(rel) => {
+                let joined = self.repo_root.join(rel);
+                if !joined.starts_with(&self.repo_root) {
+                    return Err(RunnerError::InvalidWorkingDir);
+                }
+                joined
+            }
+            None => self.repo_root.clone(),
+        };
+
+        let start = Instant::now();
+        let mut cmd = tokio::process::Command::new(program);
+        cmd.args(args);
+        cmd.current_dir(&work_dir);
+
+        if program == "cargo" {
+            let isolated_target = std::env::temp_dir().join("voxy_isolated_target");
+            cmd.env("CARGO_TARGET_DIR", isolated_target);
+        }
+
+        let output_future = cmd.output();
+        let output = match tokio::time::timeout(timeout_duration, output_future).await {
+            Ok(res) => res?,
+            Err(_) => return Err(RunnerError::Timeout(timeout_duration)),
+        };
+
+        let duration = start.elapsed();
+        let exit_code = output.status.code();
+        let was_success = output.status.success();
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+        Ok(CommandOutput {
+            exit_code,
+            stdout,
+            stderr,
+            duration,
+            was_success,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiagnosticSeverity {
+    Error,
+    Warning,
+    Note,
+    Help,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiagnosticItem {
+    pub severity: DiagnosticSeverity,
+    pub code: Option<String>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DiagnosticReport {
+    pub success: bool,
+    pub total_errors: usize,
+    pub total_warnings: usize,
+    pub items: Vec<DiagnosticItem>,
+}
+
+impl DiagnosticReport {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_item(&mut self, item: DiagnosticItem) {
+        match item.severity {
+            DiagnosticSeverity::Error => self.total_errors += 1,
+            DiagnosticSeverity::Warning => self.total_warnings += 1,
+            _ => {}
+        }
+        self.items.push(item);
+        self.success = self.total_errors == 0;
+    }
+}
+
+pub struct DiagnosticParser;
+
+impl DiagnosticParser {
+    pub fn parse(output: &str) -> DiagnosticReport {
+        let mut report = DiagnosticReport::new();
+        for line in output.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("error[") || trimmed.starts_with("error:") {
+                let code = trimmed.find('[').and_then(|start| {
+                    trimmed
+                        .find(']')
+                        .map(|end| trimmed[start + 1..end].to_string())
+                });
+                let msg = if let Some(colon) = trimmed.find(':') {
+                    trimmed[colon + 1..].trim().to_string()
+                } else {
+                    trimmed.to_string()
+                };
+                report.add_item(DiagnosticItem {
+                    severity: DiagnosticSeverity::Error,
+                    code,
+                    message: msg,
+                });
+            } else if trimmed.starts_with("warning[") || trimmed.starts_with("warning:") {
+                let code = trimmed.find('[').and_then(|start| {
+                    trimmed
+                        .find(']')
+                        .map(|end| trimmed[start + 1..end].to_string())
+                });
+                let msg = if let Some(colon) = trimmed.find(':') {
+                    trimmed[colon + 1..].trim().to_string()
+                } else {
+                    trimmed.to_string()
+                };
+                report.add_item(DiagnosticItem {
+                    severity: DiagnosticSeverity::Warning,
+                    code,
+                    message: msg,
+                });
+            }
+        }
+        report
+    }
+}
 
 /// Verification operation categories.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -450,7 +613,7 @@ impl ToolchainRegistry {
                     observation: obs,
                 }
             }
-            Err(voxy_harness::RunnerError::Timeout(d)) => VerificationExecutionResult {
+            Err(RunnerError::Timeout(d)) => VerificationExecutionResult {
                 check_id,
                 language,
                 operation,

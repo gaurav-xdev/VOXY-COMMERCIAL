@@ -21,7 +21,6 @@ use tokio::time::timeout;
 use voxy_voice_audio::AudioError;
 use voxy_database::conversation::ConversationStore;
 use voxy_database::sqlite::SqliteConversationStore;
-use voxy_harness::patch_engine::{PatchError, PatchTransaction};
 use voxy_ipc::voxy_protocol::{ClientCommand, DaemonMessage, VoiceState};
 use voxy_ipc::{VoxyIpcClient, VoxyIpcServer};
 use voxy_security::archive::{safe_extract_zip, ArchiveSecurityError, ArchiveSecurityLimits};
@@ -112,81 +111,6 @@ fn test_tier2_a2_audio_error_conditions() {
 
     let err_busy = AudioError::DeviceBusy("Playback_Endpoint".to_string());
     assert_eq!(err_busy.to_string(), "Device busy: Playback_Endpoint");
-}
-
-// =========================================================================
-// A3: Coding Harness Boundary & Security Defenses
-// =========================================================================
-
-#[test]
-fn test_tier2_a3_harness_rejects_path_traversal() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    // 1. Path traversal via `../`
-    let mut tx_traversal = PatchTransaction::new(root);
-    tx_traversal.add_change("../../escape.txt", "evil escape");
-    let err_traversal = tx_traversal.apply().unwrap_err();
-    assert!(
-        matches!(err_traversal, PatchError::BoundaryViolation(_)),
-        "Path traversal with ../ must be strictly rejected with BoundaryViolation"
-    );
-
-    // 2. Windows drive letter / absolute path escape
-    let mut tx_abs = PatchTransaction::new(root);
-    tx_abs.add_change(r"C:\Windows\System32\drivers\etc\hosts", "evil redirect");
-    let err_abs = tx_abs.apply().unwrap_err();
-    assert!(
-        matches!(err_abs, PatchError::BoundaryViolation(_)),
-        "Absolute paths must be strictly rejected with BoundaryViolation"
-    );
-}
-
-#[test]
-fn test_tier2_a3_harness_rejects_protected_files() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    let protected_targets = [
-        ".git/config",
-        ".git/HEAD",
-        ".env",
-        "Cargo.lock",
-        ".ssh/id_rsa",
-    ];
-
-    for target in protected_targets {
-        let mut tx = PatchTransaction::new(root);
-        tx.add_change(target, "tampered content");
-        let err = tx.apply().unwrap_err();
-        assert!(
-            matches!(err, PatchError::ProtectedFile(_) | PatchError::BoundaryViolation(_)),
-            "Target {target} must be protected against modification"
-        );
-    }
-}
-
-#[test]
-fn test_tier2_a3_harness_rejects_secret_injection() {
-    let workspace = create_mock_workspace();
-    let root = workspace.path();
-
-    let secret_payloads = [
-        ("src/aws.rs", "let aws_key = \"AKIAIOSFODNN7EXAMPLE\";"),
-        ("src/auth.rs", "let github_pat = \"ghp_abcdefghijklmnopqrstuvwxyz0123456789\";"),
-        ("src/ai.rs", "let openai_key = \"sk-proj-1234567890abcdef1234567890abcdef12345678\";"),
-        ("src/key.rs", "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...\n-----END RSA PRIVATE KEY-----"),
-    ];
-
-    for (file, payload) in secret_payloads {
-        let mut tx = PatchTransaction::new(root);
-        tx.add_change(file, payload);
-        let err = tx.apply().unwrap_err();
-        assert!(
-            matches!(err, PatchError::SecretDetected(_)),
-            "Secret in {file} must be detected and rejected before writing"
-        );
-    }
 }
 
 // =========================================================================

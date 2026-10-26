@@ -9,7 +9,6 @@ license.workspace = true
 [dependencies]
 voxy-shared = { workspace = true }
 voxy-security = { path = "../security" }
-voxy-harness = { path = "../harness" }
 voxy-tool-calling = { path = "../tool_calling" }
 voxy-skills = { path = "../skills" }
 tokio = { workspace = true }

@@ -152,7 +152,7 @@ impl ModelRouter {
         }
     }
 
-    fn record_failure(&self, provider_id: &str) {
+    pub fn record_failure(&self, provider_id: &str) {
         let mut breakers = self.breakers.write();
         let config = self.config.read();
         let entry = breakers
@@ -186,7 +186,7 @@ impl ModelRouter {
         self.last_health_check.store(now, Ordering::Relaxed);
         if let Ok(providers) = self.registry.list_all().await {
             for p in &providers {
-                if p.health.is_healthy {
+                if p.health.is_healthy && !self.is_breaker_open(&p.id) {
                     self.record_success(&p.id);
                 }
             }
@@ -206,14 +206,63 @@ impl ModelRouter {
     }
 
     async fn select_fallback(&self, providers: Vec<ProviderInfo>) -> Result<ProviderInfo> {
-        for p in &providers {
-            if !self.is_breaker_open(&p.id) {
-                return Ok(p.clone());
+        let mode = self.config.read().mode.clone();
+        match &mode {
+            RoutingMode::ForceProvider(id) => {
+                Err(RouterError::AllProvidersExhausted(format!(
+                    "Forced provider '{}' is circuit-broken or failed; fallback is disallowed in ForceProvider mode",
+                    id
+                )))
+            }
+            RoutingMode::ForceModel(m) => {
+                Err(RouterError::AllProvidersExhausted(format!(
+                    "Forced model '{}' is unavailable; fallback is disallowed in ForceModel mode",
+                    m
+                )))
+            }
+            RoutingMode::LocalOnly => {
+                let local_healthy: Vec<_> = providers
+                    .into_iter()
+                    .filter(|p| {
+                        matches!(p.kind, voxy_provider_core::ProviderKind::Local)
+                            && !self.is_breaker_open(&p.id)
+                    })
+                    .collect();
+                if let Some(p) = local_healthy.into_iter().next() {
+                    Ok(p)
+                } else {
+                    Err(RouterError::AllProvidersExhausted(
+                        "No local provider available; fallback to cloud disallowed in LocalOnly mode".into(),
+                    ))
+                }
+            }
+            RoutingMode::CloudOnly => {
+                let cloud_healthy: Vec<_> = providers
+                    .into_iter()
+                    .filter(|p| {
+                        matches!(p.kind, voxy_provider_core::ProviderKind::Cloud)
+                            && !self.is_breaker_open(&p.id)
+                    })
+                    .collect();
+                if let Some(p) = cloud_healthy.into_iter().next() {
+                    Ok(p)
+                } else {
+                    Err(RouterError::AllProvidersExhausted(
+                        "No cloud provider available in CloudOnly mode".into(),
+                    ))
+                }
+            }
+            RoutingMode::Auto => {
+                for p in &providers {
+                    if !self.is_breaker_open(&p.id) {
+                        return Ok(p.clone());
+                    }
+                }
+                Err(RouterError::AllProvidersExhausted(
+                    "all providers are circuit-broken or unhealthy".into(),
+                ))
             }
         }
-        Err(RouterError::AllProvidersExhausted(
-            "all providers are circuit-broken or unhealthy".into(),
-        ))
     }
 
     pub async fn select_provider(&self, capability: &ProviderCapability) -> Result<ProviderInfo> {
@@ -321,16 +370,7 @@ impl ModelRouter {
             if self.is_breaker_open(&provider.id) {
                 provider = match self.select_fallback(all_healthy.clone()).await {
                     Ok(p) => p,
-                    Err(e) => {
-                        if attempt < max_retries {
-                            tokio::time::sleep(Duration::from_millis(
-                                retry_delay_ms * (1u64 << attempt),
-                            ))
-                            .await;
-                            continue;
-                        }
-                        return Err(e);
-                    }
+                    Err(e) => return Err(e),
                 };
             }
 
@@ -354,12 +394,7 @@ impl ModelRouter {
                         .await;
                         provider = match self.select_fallback(all_healthy.clone()).await {
                             Ok(p) => p,
-                            Err(fallback_err) => {
-                                if attempt >= max_retries.saturating_sub(1) {
-                                    return Err(fallback_err);
-                                }
-                                continue;
-                            }
+                            Err(fallback_err) => return Err(fallback_err),
                         };
                     } else {
                         return Err(e);
@@ -945,6 +980,44 @@ mod tests {
         assert!(
             audio_str.contains("Local TTS"),
             "Expected fallback TTS but got: {audio_str}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_zero_fallback_on_failure() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "cloud-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            1,
+        );
+        let fallback_info = make_provider(
+            "local-llm",
+            ProviderKind::Local,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(fallback_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::ForceProvider("cloud-llm".into()));
+
+        // Trip the circuit breaker for cloud-llm (threshold is 5)
+        for _ in 0..5 {
+            router.record_failure("cloud-llm");
+        }
+        assert!(router.is_breaker_open("cloud-llm"));
+
+        // When forced provider has breaker open, select_provider MUST fail and NOT fall back to local-llm
+        let result = router.select_provider(&ProviderCapability::Llm).await;
+        assert!(
+            result.is_err(),
+            "Expected error due to zero fallback on ForceProvider, but got {:?}",
+            result
         );
     }
 }
