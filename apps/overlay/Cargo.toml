@@ -15,6 +15,7 @@ voxy-ipc = { path = "../../crates/ipc" }
 voxy-shared = { path = "../../crates/shared" }
 voxy-event-bus = { path = "../../crates/event_bus" }
 voxy-desktop-runtime = { path = "../../crates/desktop_runtime" }
+voxy-desktop-ui = { path = "../../crates/desktop_ui" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

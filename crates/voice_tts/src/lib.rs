@@ -156,6 +156,197 @@ impl Default for SentenceChunker {
     }
 }
 
+/// Immediate, incremental word and clause chunker for low-latency streaming TTS.
+///
+/// Designed to minimize Time-to-First-Audio (TTFA):
+/// 1. Assembles split tokens across boundaries (`Hel` + `lo` -> `Hello`).
+/// 2. The moment the first complete speakable word or short clause is ready, emits it immediately
+///    without waiting for sentence-ending punctuation or complete LLM answers.
+/// 3. Emits subsequent speakable chunks incrementally (3 to 6 words or punctuation pauses).
+/// 4. Flushes any remaining tokens on stream completion.
+#[derive(Debug, Clone)]
+pub struct IncrementalSpeechChunker {
+    buffer: String,
+    is_first_chunk: bool,
+    min_words_subsequent: usize,
+}
+
+impl Default for IncrementalSpeechChunker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl IncrementalSpeechChunker {
+    pub fn new() -> Self {
+        Self {
+            buffer: String::new(),
+            is_first_chunk: true,
+            min_words_subsequent: 3,
+        }
+    }
+
+    pub fn with_subsequent_min_words(mut self, min_words: usize) -> Self {
+        self.min_words_subsequent = min_words.max(1);
+        self
+    }
+
+    /// Reset chunker state for a new turn.
+    pub fn reset(&mut self) {
+        self.buffer.clear();
+        self.is_first_chunk = true;
+    }
+
+    /// Feed newly arrived token delta from the streaming LLM.
+    /// Returns any speakable chunks ready for immediate speech synthesis.
+    pub fn push_delta(&mut self, delta: &str) -> Vec<String> {
+        self.buffer.push_str(delta);
+        let mut ready_chunks = Vec::new();
+
+        while let Some(cut_idx) = self.find_speakable_cut() {
+            let chunk = self.buffer[..cut_idx].trim().to_string();
+            self.buffer = self.buffer[cut_idx..].trim_start().to_string();
+
+            if !chunk.is_empty() {
+                self.is_first_chunk = false;
+                ready_chunks.push(chunk);
+            }
+        }
+
+        ready_chunks
+    }
+
+    /// Feed alias for push_delta.
+    pub fn feed(&mut self, delta: &str) -> Vec<String> {
+        self.push_delta(delta)
+    }
+
+    /// Flush any remaining buffered text when the LLM stream completes.
+    pub fn flush(&mut self) -> Option<String> {
+        let remaining = std::mem::take(&mut self.buffer).trim().to_string();
+        self.is_first_chunk = true;
+        if remaining.is_empty() {
+            None
+        } else {
+            Some(remaining)
+        }
+    }
+
+    /// Finish alias returning flushed remaining chunks.
+    pub fn finish(&mut self) -> Vec<String> {
+        self.flush().into_iter().collect()
+    }
+
+    /// Determine if the buffer has a speakable cut point.
+    fn find_speakable_cut(&self) -> Option<usize> {
+        if self.buffer.is_empty() {
+            return None;
+        }
+
+        let char_indices: Vec<(usize, char)> = self.buffer.char_indices().collect();
+        let total_chars = char_indices.len();
+
+        // 1. Check for immediate clause-ending punctuation:
+        //    (',', '.', '!', '?', ';', ':', '\n', '—')
+        for (idx, &(byte_idx, c)) in char_indices.iter().enumerate() {
+            if c == ',' || c == '!' || c == '?' || c == ';' || c == ':' || c == '\n' {
+                if idx > 0 && !self.buffer[..byte_idx].trim().is_empty() {
+                    return Some(byte_idx + c.len_utf8());
+                }
+            } else if c == '.' {
+                // Period check: ensure not ellipsis or decimal
+                let is_ellipsis = (idx + 1 < total_chars && char_indices[idx + 1].1 == '.')
+                    || (idx > 0 && char_indices[idx - 1].1 == '.');
+                let is_numeric = (idx + 1 < total_chars && char_indices[idx + 1].1.is_numeric())
+                    || (idx > 0 && char_indices[idx - 1].1.is_numeric());
+                let prefix = &self.buffer[..byte_idx];
+                let is_abbrev = ["mr", "mrs", "ms", "dr", "prof", "e.g", "i.e", "vs", "etc"]
+                    .iter()
+                    .any(|&abbr| {
+                        let lower = prefix.to_lowercase();
+                        lower.ends_with(abbr)
+                            && (prefix.len() == abbr.len()
+                                || prefix
+                                    .chars()
+                                    .nth(prefix.len() - abbr.len() - 1)
+                                    .map(|p| p.is_whitespace())
+                                    .unwrap_or(false))
+                    });
+
+                if !is_ellipsis && !is_numeric && !is_abbrev {
+                    if idx + 1 < total_chars {
+                        if char_indices[idx + 1].1.is_whitespace()
+                            || char_indices[idx + 1].1 == '"'
+                            || char_indices[idx + 1].1 == '\''
+                            || char_indices[idx + 1].1 == ')'
+                            || char_indices[idx + 1].1 == ']'
+                        {
+                            return Some(byte_idx + c.len_utf8());
+                        }
+                    } else if byte_idx >= 3 {
+                        return Some(byte_idx + c.len_utf8());
+                    }
+                }
+            }
+        }
+
+        // 2. Word boundary detection:
+        let words: Vec<&str> = self.buffer.split_whitespace().collect();
+        let ends_with_whitespace = self
+            .buffer
+            .chars()
+            .last()
+            .map(|c| c.is_whitespace())
+            .unwrap_or(false);
+
+        let complete_words_count = if ends_with_whitespace {
+            words.len()
+        } else {
+            words.len().saturating_sub(1)
+        };
+
+        if complete_words_count == 0 {
+            return None;
+        }
+
+        // Low-latency policy:
+        // First chunk fires on 1 complete word (e.g. "Hello ")
+        // Subsequent chunks accumulate min_words_subsequent (e.g. 3 words)
+        let target_words = if self.is_first_chunk {
+            1
+        } else {
+            self.min_words_subsequent
+        };
+
+        if complete_words_count >= target_words {
+            let mut word_count = 0;
+            let mut in_word = false;
+            let mut cut_byte = 0;
+
+            for &(byte_idx, c) in &char_indices {
+                if c.is_whitespace() {
+                    if in_word {
+                        word_count += 1;
+                        in_word = false;
+                        if word_count == target_words {
+                            cut_byte = byte_idx;
+                            break;
+                        }
+                    }
+                } else {
+                    in_word = true;
+                }
+            }
+
+            if cut_byte > 0 {
+                return Some(cut_byte);
+            }
+        }
+
+        None
+    }
+}
+
 /// Universal TTS engine contract.
 #[async_trait]
 pub trait TtsEngine: Send + Sync {
@@ -572,5 +763,94 @@ mod tests {
         );
         let c3_b = chunker3.push_text("let me check the file!");
         assert_eq!(c3_b, vec!["Wait... let me check the file!"]);
+    }
+
+    #[test]
+    fn test_incremental_speech_chunker_immediate_first_word() {
+        let mut chunker = IncrementalSpeechChunker::new();
+
+        // 1. Token boundary handling across arbitrary chunks: "Hel" + "lo "
+        let r1 = chunker.push_delta("Hel");
+        assert!(
+            r1.is_empty(),
+            "Incomplete word should not emit premature syllable"
+        );
+
+        let r2 = chunker.push_delta("lo ");
+        assert_eq!(
+            r2,
+            vec!["Hello"],
+            "First complete word must emit immediately"
+        );
+
+        // 2. Subsequent words accumulate min_words_subsequent (default 3)
+        let r3 = chunker.push_delta("I");
+        assert!(r3.is_empty());
+        let r4 = chunker.push_delta(" am");
+        assert!(r4.is_empty());
+        let r5 = chunker.push_delta(" ready");
+        assert!(r5.is_empty());
+        let r6 = chunker.push_delta(" now.");
+        assert_eq!(
+            r6,
+            vec!["I am ready now."],
+            "Clause or word count threshold reached"
+        );
+
+        let flushed = chunker.flush();
+        assert!(flushed.is_none(), "Buffer should be empty");
+    }
+
+    #[test]
+    fn test_incremental_speech_chunker_punctuation_pause_first_word() {
+        let mut chunker = IncrementalSpeechChunker::new();
+
+        // "Hello, I am OSMOO. How can I help you?"
+        let c1 = chunker.push_delta("Hello,");
+        assert_eq!(
+            c1,
+            vec!["Hello,"],
+            "Immediate first word with comma emitted without waiting"
+        );
+
+        let c2 = chunker.push_delta(" I am OSMOO.");
+        assert_eq!(c2, vec!["I am OSMOO."]);
+
+        let c3 = chunker.push_delta(" How can I help you?");
+        assert_eq!(c3, vec!["How can I help you?"]);
+
+        let fl = chunker.flush();
+        assert!(fl.is_none());
+    }
+
+    #[test]
+    fn test_incremental_speech_chunker_flush_trailing_tokens() {
+        let mut chunker = IncrementalSpeechChunker::new();
+        let c1 = chunker.push_delta("Under");
+        assert!(c1.is_empty());
+        let c2 = chunker.push_delta("stood");
+        assert!(c2.is_empty());
+
+        let fl = chunker.flush();
+        assert_eq!(
+            fl,
+            Some("Understood".to_string()),
+            "Flush emits remaining trailing tokens"
+        );
+    }
+
+    #[test]
+    fn test_incremental_speech_chunker_multibyte_safety() {
+        let mut chunker = IncrementalSpeechChunker::new();
+        // UTF-8 test with emojis and multi-byte characters
+        let c1 = chunker.push_delta("✨ Bonjour, ");
+        assert_eq!(
+            c1,
+            vec!["✨ Bonjour,"],
+            "Multibyte prefix and word boundary handled safely"
+        );
+
+        let c2 = chunker.push_delta("comment allez-vous aujourd'hui ?");
+        assert!(!c2.is_empty());
     }
 }

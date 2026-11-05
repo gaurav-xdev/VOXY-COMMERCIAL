@@ -43,10 +43,10 @@ impl Default for ConditioningConfig {
         Self {
             enable_high_pass: true,
             enable_noise_gate: true,
-            noise_gate_threshold: 0.008,
-            noise_attenuation: 0.15,
-            enable_pre_emphasis: true,
-            pre_emphasis_factor: 0.95,
+            noise_gate_threshold: 0.0035,
+            noise_attenuation: 0.40,
+            enable_pre_emphasis: false,
+            pre_emphasis_factor: 0.30,
             enable_limiter: true,
             peak_ceiling: 0.95,
             enable_echo_suppression: true,
@@ -179,7 +179,7 @@ impl AudioConditioner {
                 .max(self.noise_floor_est * 1.5);
 
             let target_gain = if chunk_rms >= threshold {
-                self.gate_hold_frames = 5; // Hold open for at least 5 frames (~100ms) to preserve word endings
+                self.gate_hold_frames = 8; // Hold open for at least 8 frames (~160ms) to preserve word endings and soft trailing consonants
                 1.0f32
             } else if self.gate_hold_frames > 0 {
                 self.gate_hold_frames -= 1;
@@ -395,5 +395,21 @@ mod tests {
                 s
             );
         }
+    }
+
+    #[test]
+    fn test_quiet_speech_is_preserved_without_consonant_clipping() {
+        let mut conditioner = AudioConditioner::new(ConditioningConfig::default());
+
+        // Quiet conversational speech frame: RMS ~ 0.006 (above default 0.0035 threshold)
+        let mut quiet_speech = vec![0.006f32; 320];
+        conditioner.process(&mut quiet_speech);
+
+        let max_val = quiet_speech.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(
+            max_val >= 0.004,
+            "Quiet conversational speech must be preserved without harsh gating: got {}",
+            max_val
+        );
     }
 }

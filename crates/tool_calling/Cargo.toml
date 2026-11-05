@@ -14,6 +14,7 @@ voxy-security = { path = "../security" }
 voxy-platform-core = { path = "../platform_core" }
 voxy-grounding = { path = "../grounding" }
 voxy-database = { path = "../database" }
+voxy-office = { path = "../office" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
@@ -24,9 +25,11 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 reqwest = { workspace = true }
 parking_lot = { workspace = true }
+dirs = "6.0"
 
 [target.'cfg(windows)'.dependencies]
 voxy-platform-windows = { path = "../platform_windows" }
 
 [dev-dependencies]
 tokio = { workspace = true }
+tempfile = "3"

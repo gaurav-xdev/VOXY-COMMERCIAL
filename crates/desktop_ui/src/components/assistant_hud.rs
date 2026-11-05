@@ -1,6 +1,6 @@
 use crate::components::assistant_core::CompanionMode;
 use crate::components::icons::{
-    IconLayers, IconMessageSquare, IconOrb, IconOsmooLogo, IconRobot, IconSend, IconSettings, IconStopCircle,
+    IconLayers, IconMessageSquare, IconOsmooLogo, IconSend, IconSettings, IconStopCircle,
 };
 use dioxus::prelude::*;
 
@@ -109,20 +109,21 @@ pub fn AssistantHud(
 
             // ── Bottom Dock: Mode Segmented Switch + Input Capsule ──────
             div { class: "hud-bottom-dock",
-                // Mode Segmented Switch
-                div { class: "mode-toggle-segmented",
-                    button {
-                        class: if current_mode == CompanionMode::Robot { "mode-segment-btn active" } else { "mode-segment-btn" },
-                        onclick: move |_| on_toggle_mode.call(CompanionMode::Robot),
-                        IconRobot { size: 14 }
-                        span { "Companion" }
+                // Companion Desktop Status Pill
+                div {
+                    class: "telemetry-pill",
+                    style: "cursor: pointer;",
+                    title: "Click to bring forward the Desktop Cat Overlay",
+                    onclick: move |_| {
+                        if let Some(on_overlay) = on_toggle_overlay {
+                            on_overlay.call(());
+                        }
+                    },
+                    span {
+                        class: "telemetry-dot",
+                        style: "background-color: var(--status-listening); box-shadow: 0 0 6px var(--status-listening);",
                     }
-                    button {
-                        class: if current_mode == CompanionMode::ParticleOrb { "mode-segment-btn active" } else { "mode-segment-btn" },
-                        onclick: move |_| on_toggle_mode.call(CompanionMode::ParticleOrb),
-                        IconOrb { size: 14 }
-                        span { "Particle Orb" }
-                    }
+                    span { class: "telemetry-text", "🐱 CAT OVERLAY ACTIVE" }
                 }
 
                 // Prompt Input Capsule

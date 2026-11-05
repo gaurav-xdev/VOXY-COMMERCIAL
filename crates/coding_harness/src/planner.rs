@@ -27,7 +27,9 @@ impl TaskPlanner {
             .steps
             .iter_mut()
             .find(|s| s.id == step_id)
-            .ok_or_else(|| HarnessError::PlanningError(format!("Step ID '{}' not found", step_id)))?;
+            .ok_or_else(|| {
+                HarnessError::PlanningError(format!("Step ID '{}' not found", step_id))
+            })?;
 
         step.status = status;
         step.error = error;

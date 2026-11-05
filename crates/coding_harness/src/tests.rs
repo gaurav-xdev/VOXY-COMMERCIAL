@@ -96,7 +96,10 @@ async fn test_startup_crash_recovery() {
             replace_all: false,
         };
         engine.apply_file_edit(&mut tx, &edit).unwrap();
-        assert_eq!(fs::read_to_string(&file).unwrap(), "pub fn safe() -> bool { false }");
+        assert_eq!(
+            fs::read_to_string(&file).unwrap(),
+            "pub fn safe() -> bool { false }"
+        );
         // tx is dropped here without commit -> simulating crash while Active
     }
 
@@ -119,7 +122,11 @@ async fn test_context_explorer_glob_and_grep() {
 
     let src = ws.join("src");
     fs::create_dir_all(&src).unwrap();
-    fs::write(src.join("lib.rs"), "pub fn test_alpha() {}\npub fn test_beta() {}\n").unwrap();
+    fs::write(
+        src.join("lib.rs"),
+        "pub fn test_alpha() {}\npub fn test_beta() {}\n",
+    )
+    .unwrap();
     fs::write(src.join("app.rs"), "pub fn run() {}\n").unwrap();
 
     let matched = ContextExplorer::glob_files(ws, "*.rs", None).unwrap();
@@ -178,7 +185,10 @@ async fn test_toolchain_detection_matrix() {
     assert!(matches!(rust.status, ToolchainStatus::Available { .. }));
 
     let csharp = ToolchainDetector::detect_csharp(ws);
-    assert!(matches!(csharp.status, ToolchainStatus::MissingToolchain { .. }));
+    assert!(matches!(
+        csharp.status,
+        ToolchainStatus::MissingToolchain { .. }
+    ));
 }
 
 #[tokio::test]
@@ -232,5 +242,148 @@ async fn test_human_approval_flow() {
     let res = engine.execute_command(input, "session-123").await;
     assert!(res.is_err());
     let err_str = res.unwrap_err().to_string();
-    assert!(err_str.contains("rejected"), "Expected rejection error, got: {}", err_str);
+    assert!(
+        err_str.contains("rejected"),
+        "Expected rejection error, got: {}",
+        err_str
+    );
+}
+
+#[tokio::test]
+async fn test_symbol_indexer_and_repository_map() {
+    let dir = tempdir().unwrap();
+    let ws = dir.path();
+
+    // Create a Rust file
+    let rs_file = ws.join("src").join("router.rs");
+    fs::create_dir_all(rs_file.parent().unwrap()).unwrap();
+    fs::write(
+        &rs_file,
+        r#"
+/// Core router configuration.
+pub struct RouterConfig {
+    pub mode: String,
+}
+
+pub enum RoutingMode {
+    Auto,
+    Manual,
+}
+
+/// Dispatches an inference request.
+pub async fn dispatch_request(req: &str) -> bool {
+    true
+}
+"#,
+    )
+    .unwrap();
+
+    // Create a TypeScript file
+    let ts_file = ws.join("src").join("client.ts");
+    fs::write(
+        &ts_file,
+        r#"
+export interface ClientOptions {
+    timeoutMs: number;
+}
+
+export class ApiClient {
+    constructor(private options: ClientOptions) {}
+}
+
+export async function fetchHealth(): Promise<boolean> {
+    return true;
+}
+"#,
+    )
+    .unwrap();
+
+    let map = SymbolIndexer::index_workspace(ws, None).unwrap();
+    assert!(map.total_symbols >= 5);
+
+    let search_res = SymbolIndexer::search_symbols(&map, "dispatch_request");
+    assert_eq!(search_res.len(), 1);
+    assert_eq!(search_res[0].name, "dispatch_request");
+    assert_eq!(search_res[0].kind, SymbolKind::Function);
+    assert!(search_res[0]
+        .doc_comment
+        .as_ref()
+        .unwrap()
+        .contains("Dispatches an inference request"));
+
+    let compact = map.render_compact();
+    assert!(compact.contains("router.rs"));
+    assert!(compact.contains("struct RouterConfig"));
+    assert!(compact.contains("fn pub async fn dispatch_request"));
+    assert!(compact.contains("client.ts"));
+    assert!(compact.contains("interface ClientOptions"));
+}
+
+#[tokio::test]
+async fn test_token_budget_and_targeted_context_selector() {
+    let dir = tempdir().unwrap();
+    let ws = dir.path();
+
+    let big_file = ws.join("src").join("large_module.rs");
+    fs::create_dir_all(big_file.parent().unwrap()).unwrap();
+
+    let mut body = String::new();
+    body.push_str("pub struct LargeModule {\n");
+    for i in 0..100 {
+        body.push_str(&format!("    pub field_{}: u64,\n", i));
+    }
+    body.push_str("}\n\n");
+    body.push_str("/// Core execution engine entrypoint.\n");
+    body.push_str("pub fn execute_engine_workflow() -> bool {\n");
+    for i in 0..50 {
+        body.push_str(&format!("    println!(\"step {}\");\n", i));
+    }
+    body.push_str("    true\n}\n");
+
+    fs::write(&big_file, &body).unwrap();
+
+    let repo_map = SymbolIndexer::index_workspace(ws, None).unwrap();
+
+    let budget = BudgetConfig {
+        max_prompt_tokens: 1000,
+        max_repo_map_tokens: 200,
+        max_file_context_tokens: 400,
+        reserve_completion_tokens: 400,
+    };
+
+    let (context_str, metrics) = TargetedContextSelector::select_context(
+        ws,
+        &repo_map,
+        "How does execute_engine_workflow work in large_module?",
+        &budget,
+    )
+    .unwrap();
+
+    assert!(context_str.contains("<relevant_repository_symbols>"));
+    assert!(context_str.contains("execute_engine_workflow"));
+    assert!(context_str.contains("<relevant_file_excerpts>"));
+    assert!(metrics.prompt_tokens_estimated <= budget.max_prompt_tokens);
+    assert!(metrics.tokens_saved_by_compression > 0);
+
+    // Verify chunk deduplication
+    let chunk1 = SelectedContextChunk {
+        file_path: "src/a.rs".into(),
+        start_line: 1,
+        end_line: 20,
+        content: "chunk1".into(),
+        token_estimate: 10,
+        relevance_score: 5,
+    };
+    let chunk2 = SelectedContextChunk {
+        file_path: "src/a.rs".into(),
+        start_line: 15,
+        end_line: 35,
+        content: "chunk2".into(),
+        token_estimate: 10,
+        relevance_score: 5,
+    };
+    let deduplicated = ContextCompressor::deduplicate_chunks(vec![chunk1, chunk2]);
+    assert_eq!(deduplicated.len(), 1, "Overlapping chunks must be merged");
+    assert_eq!(deduplicated[0].start_line, 1);
+    assert_eq!(deduplicated[0].end_line, 35);
 }

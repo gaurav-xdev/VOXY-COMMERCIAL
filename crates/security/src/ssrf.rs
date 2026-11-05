@@ -203,24 +203,27 @@ pub fn is_ipv6_restricted(v6: &Ipv6Addr) -> bool {
 /// Checks whether a host string is inherently restricted by name.
 pub fn is_host_restricted(host: &str) -> bool {
     let lower = host.trim().to_ascii_lowercase();
+    let unbracketed = lower.trim_start_matches('[').trim_end_matches(']');
 
     // Exact matches
-    if lower == "localhost"
-        || lower == "metadata"
-        || lower == "metadata.google.internal"
-        || lower == "metadata.google"
-        || lower == "instance-data"
-        || lower == "instance-data.ec2.internal"
+    if unbracketed == "localhost"
+        || unbracketed == "metadata"
+        || unbracketed == "metadata.google.internal"
+        || unbracketed == "metadata.google"
+        || unbracketed == "instance-data"
+        || unbracketed == "instance-data.ec2.internal"
     {
         return true;
     }
 
     // Suffix matches for internal/local namespaces
-    if lower.ends_with(".localhost")
-        || lower.ends_with(".local")
-        || lower.ends_with(".internal")
-        || lower.ends_with(".corp")
-        || lower.ends_with(".lan")
+    if unbracketed.ends_with(".localhost")
+        || unbracketed.ends_with(".local")
+        || unbracketed.ends_with(".internal")
+        || unbracketed.ends_with(".corp")
+        || unbracketed.ends_with(".lan")
+        || unbracketed.ends_with(".home.arpa")
+        || unbracketed.ends_with(".intranet")
     {
         return true;
     }
@@ -266,8 +269,9 @@ pub fn validate_destination_url(url: &Url) -> Result<SocketAddr, SecurityError> 
 
     let port = url.port_or_known_default().unwrap_or(80);
 
-    // 4. IP literal check
-    if let Ok(ip) = host_str.parse::<IpAddr>() {
+    // 4. IP literal check (supports standard IPv4 and bracketed/unbracketed IPv6)
+    let ip_candidate = host_str.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = ip_candidate.parse::<IpAddr>() {
         if is_ip_restricted(ip) {
             return Err(SecurityError::SsrfBlocked(format!(
                 "Destination IP address '{ip}' belongs to a private, loopback, or metadata subnet"

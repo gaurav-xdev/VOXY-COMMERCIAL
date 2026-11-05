@@ -40,8 +40,7 @@ impl ContextExplorer {
             )));
         }
 
-        let content = fs::read_to_string(&full_path)
-            .map_err(|e| HarnessError::Io(e))?;
+        let content = fs::read_to_string(&full_path).map_err(HarnessError::Io)?;
 
         let lines: Vec<&str> = content.lines().collect();
         let total_lines = lines.len();
@@ -49,11 +48,7 @@ impl ContextExplorer {
         let offset = input.offset.unwrap_or(1).saturating_sub(1);
         let limit = input.limit.unwrap_or(total_lines.saturating_sub(offset));
 
-        let selected_lines: Vec<&str> = lines
-            .into_iter()
-            .skip(offset)
-            .take(limit)
-            .collect();
+        let selected_lines: Vec<&str> = lines.into_iter().skip(offset).take(limit).collect();
 
         Ok(FileReadResult {
             file_path: rel_path.to_string_lossy().to_string(),
@@ -64,7 +59,11 @@ impl ContextExplorer {
         })
     }
 
-    pub fn glob_files(workspace_root: &Path, pattern: &str, sub_path: Option<&str>) -> Result<Vec<String>> {
+    pub fn glob_files(
+        workspace_root: &Path,
+        pattern: &str,
+        sub_path: Option<&str>,
+    ) -> Result<Vec<String>> {
         let base_dir = if let Some(sp) = sub_path {
             let rel = Patcher::canonicalize_workspace_rel(workspace_root, sp)?;
             workspace_root.join(rel)
@@ -72,15 +71,26 @@ impl ContextExplorer {
             workspace_root.to_path_buf()
         };
 
-        let regex_pattern = format!("^{}$", pattern.replace('.', "\\.").replace("**", ".*").replace('*', "[^/]*").replace('?', "."));
+        let regex_pattern = format!(
+            "^{}$",
+            pattern
+                .replace('.', "\\.")
+                .replace("**", ".*")
+                .replace('*', "[^/]*")
+                .replace('?', ".")
+        );
         let re = Regex::new(&regex_pattern)
             .map_err(|e| HarnessError::PlanningError(format!("Invalid glob regex: {}", e)))?;
 
         let mut matched = Vec::new();
-        for entry in WalkDir::new(&base_dir).into_iter().filter_entry(|e| {
-            let name = e.file_name().to_string_lossy();
-            !IGNORED_DIRS.contains(&name.as_ref())
-        }).flatten() {
+        for entry in WalkDir::new(&base_dir)
+            .into_iter()
+            .filter_entry(|e| {
+                let name = e.file_name().to_string_lossy();
+                !IGNORED_DIRS.contains(&name.as_ref())
+            })
+            .flatten()
+        {
             if entry.file_type().is_file() {
                 let file_name = entry.file_name().to_string_lossy();
                 if let Ok(rel) = entry.path().strip_prefix(workspace_root) {
@@ -115,13 +125,19 @@ impl ContextExplorer {
         let limit = head_limit.unwrap_or(250);
         let mut matches = Vec::new();
 
-        for entry in WalkDir::new(&base_dir).into_iter().filter_entry(|e| {
-            let name = e.file_name().to_string_lossy();
-            !IGNORED_DIRS.contains(&name.as_ref())
-        }).flatten() {
+        for entry in WalkDir::new(&base_dir)
+            .into_iter()
+            .filter_entry(|e| {
+                let name = e.file_name().to_string_lossy();
+                !IGNORED_DIRS.contains(&name.as_ref())
+            })
+            .flatten()
+        {
             if entry.file_type().is_file() {
                 if let Ok(content) = fs::read_to_string(entry.path()) {
-                    let rel_path = entry.path().strip_prefix(workspace_root)
+                    let rel_path = entry
+                        .path()
+                        .strip_prefix(workspace_root)
                         .map(|p| p.to_string_lossy().replace('\\', "/"))
                         .unwrap_or_else(|_| entry.path().to_string_lossy().to_string());
 

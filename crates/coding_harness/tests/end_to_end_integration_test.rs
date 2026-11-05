@@ -18,7 +18,9 @@ struct FailingCloudLlm;
 #[async_trait::async_trait]
 impl LlmProvider for FailingCloudLlm {
     async fn complete(&self, _prompt: &str) -> voxy_provider_core::Result<String> {
-        Err(voxy_provider_core::ProviderError::RequestFailed("Simulated Cloud Failure".into()))
+        Err(voxy_provider_core::ProviderError::RequestFailed(
+            "Simulated Cloud Failure".into(),
+        ))
     }
     fn available_models(&self) -> Vec<String> {
         vec!["claude-3-7-sonnet".into()]
@@ -65,7 +67,8 @@ async fn test_full_ten_criteria_end_to_end_verification() {
     assert!(!globbed.is_empty(), "Glob must find src/main.rs");
     assert!(globbed.iter().any(|f| f.ends_with("main.rs")));
 
-    let grep_results = ContextExplorer::grep_pattern(ws, "Initial state", None, None).expect("grep");
+    let grep_results =
+        ContextExplorer::grep_pattern(ws, "Initial state", None, None).expect("grep");
     assert!(!grep_results.is_empty(), "Grep must find pattern");
     assert_eq!(grep_results[0].line_number, 2);
 
@@ -148,10 +151,8 @@ async fn test_full_ten_criteria_end_to_end_verification() {
         "Must discover gravitas skill from filesystem"
     );
 
-    let prompt_injection = SkillRouter::compose_skill_system_prompt(
-        &discovered_skills,
-        &[skills_dir.as_path()],
-    );
+    let prompt_injection =
+        SkillRouter::compose_skill_system_prompt(&discovered_skills, &[skills_dir.as_path()]);
     assert!(
         prompt_injection.contains("Ground before mutating"),
         "Prompt injection must contain parsed skill body"
@@ -162,15 +163,21 @@ async fn test_full_ten_criteria_end_to_end_verification() {
     let mcp = McpBridge::new(registry);
 
     let tools = mcp.list_available_tools().await;
-    assert!(!tools.is_empty(), "Builtin tool registry should expose tools");
-    assert!(tools.iter().any(|t| t.name == "file_list" || t.name == "window_list"));
+    assert!(
+        !tools.is_empty(),
+        "Builtin tool registry should expose tools"
+    );
+    assert!(tools
+        .iter()
+        .any(|t| t.name == "file_list" || t.name == "window_list"));
 
     // ── Criterion 5: Multi-file code change with atomic commit or rollback ───
     let journal = TransactionJournal::new(ws);
     let mut tx = journal.begin().expect("begin tx");
 
     let rel_main = Path::new("src/main.rs");
-    tx.record_before_modify(rel_main).expect("journal pre-image");
+    tx.record_before_modify(rel_main)
+        .expect("journal pre-image");
 
     let edit_input = FileEditInput {
         file_path: "src/main.rs".into(),
@@ -191,9 +198,12 @@ async fn test_full_ten_criteria_end_to_end_verification() {
 
     // Re-apply and commit
     let mut tx2 = journal.begin().expect("begin tx2");
-    tx2.record_before_modify(rel_main).expect("journal pre-image");
+    tx2.record_before_modify(rel_main)
+        .expect("journal pre-image");
     let patch_res2 = Patcher::apply_edit(ws, &edit_input).expect("patch main.rs second time");
-    assert!(patch_res2.diff.contains("+    println!(\"Updated state\");"));
+    assert!(patch_res2
+        .diff
+        .contains("+    println!(\"Updated state\");"));
     tx2.commit().expect("commit tx2");
     let committed_content = fs::read_to_string(ws.join("src/main.rs")).unwrap();
     assert!(committed_content.contains("Updated state"));
@@ -238,7 +248,9 @@ error[E0308]: mismatched types
     let test_file = Path::new("src/crash_test.txt");
     fs::write(ws.join(test_file), "Original Uncorrupted Content\n").unwrap();
     let mut tx_crash = uncommitted_tx;
-    tx_crash.record_before_modify(test_file).expect("journal pre-image");
+    tx_crash
+        .record_before_modify(test_file)
+        .expect("journal pre-image");
 
     // Mutate file as if crash occurred mid-flight
     fs::write(ws.join(test_file), "CORRUPTED CONTENT MID FLIGHT\n").unwrap();
@@ -246,7 +258,10 @@ error[E0308]: mismatched types
 
     // Run recovery
     let recovered_ids = journal.recover_pending_transactions().expect("recover");
-    assert!(!recovered_ids.is_empty(), "Must detect abandoned transaction");
+    assert!(
+        !recovered_ids.is_empty(),
+        "Must detect abandoned transaction"
+    );
     let recovered_content = fs::read_to_string(ws.join(test_file)).unwrap();
     assert_eq!(
         recovered_content, "Original Uncorrupted Content\n",

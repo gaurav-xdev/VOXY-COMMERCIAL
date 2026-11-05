@@ -16,6 +16,11 @@ use thiserror::Error;
 pub mod conditioning;
 pub use conditioning::{AudioConditioner, ConditioningConfig};
 
+pub mod beamforming;
+pub use beamforming::{
+    BeamformerConfig, ChannelTopology, DirectionOfArrival, MicrophoneArrayProcessor,
+};
+
 #[derive(Error, Debug)]
 pub enum AudioError {
     #[error("Audio device not found: {0}")]
@@ -51,6 +56,8 @@ pub struct AudioConfig {
     pub output_device_name: Option<String>,
     /// Audio conditioning (high-pass, noise gate, pre-emphasis, limiter).
     pub conditioning: ConditioningConfig,
+    /// Advanced spatial beamforming and speech enhancement configuration.
+    pub beamforming: BeamformerConfig,
     /// When false (default, production requirement), stream creation failure returns an explicit Error.
     /// When true (tests or explicit simulation), fallback to virtual handle is allowed.
     pub allow_virtual_fallback: bool,
@@ -65,6 +72,7 @@ impl Default for AudioConfig {
             input_device_name: None,
             output_device_name: None,
             conditioning: ConditioningConfig::default(),
+            beamforming: BeamformerConfig::default(),
             allow_virtual_fallback: false,
         }
     }
@@ -106,8 +114,17 @@ pub fn normalize_to_mono_16k(
         return mono;
     }
 
-    let ratio = target_sample_rate as f64 / src_sample_rate as f64;
-    let out_len = ((mono.len() as f64) * ratio).round() as usize;
+    resample_mono(&mono, src_sample_rate, target_sample_rate)
+}
+
+/// Resample single-channel mono buffer to target sample rate with linear interpolation.
+pub fn resample_mono(samples: &[f32], src_rate: u32, target_rate: u32) -> Vec<f32> {
+    if samples.is_empty() || src_rate == target_rate {
+        return samples.to_vec();
+    }
+
+    let ratio = target_rate as f64 / src_rate as f64;
+    let out_len = ((samples.len() as f64) * ratio).round() as usize;
     let mut output = Vec::with_capacity(out_len);
 
     for i in 0..out_len {
@@ -115,16 +132,38 @@ pub fn normalize_to_mono_16k(
         let idx0 = src_idx.floor() as usize;
         let frac = (src_idx - idx0 as f64) as f32;
 
-        if idx0 + 1 < mono.len() {
-            let s0 = mono[idx0];
-            let s1 = mono[idx0 + 1];
+        if idx0 + 1 < samples.len() {
+            let s0 = samples[idx0];
+            let s1 = samples[idx0 + 1];
             output.push(s0 + frac * (s1 - s0));
-        } else if idx0 < mono.len() {
-            output.push(mono[idx0]);
+        } else if idx0 < samples.len() {
+            output.push(samples[idx0]);
         }
     }
 
     output
+}
+
+/// Process multichannel audio with adaptive spatial beamforming (if channels >= 2)
+/// or single-channel spectral enhancement & dereverberation (if mono channel).
+pub fn process_multichannel_audio_with_beamforming(
+    input_samples: &[f32],
+    src_sample_rate: u32,
+    src_channels: u16,
+    target_sample_rate: u32,
+    processor: &mut MicrophoneArrayProcessor,
+) -> Vec<f32> {
+    if input_samples.is_empty() {
+        return Vec::new();
+    }
+
+    let enhanced_mono = processor.process_to_mono(input_samples, src_channels);
+
+    if src_sample_rate == target_sample_rate {
+        enhanced_mono
+    } else {
+        resample_mono(&enhanced_mono, src_sample_rate, target_sample_rate)
+    }
 }
 
 /// Thread-safe bounded ring buffer supporting instant purge on barge-in.
@@ -249,9 +288,21 @@ pub struct AudioCaptureHandle {
     is_active: Arc<AtomicBool>,
     is_muted: Arc<AtomicBool>,
     is_speaker_playing: Arc<AtomicBool>,
+    last_error: Arc<Mutex<Option<String>>>,
 }
 
 impl AudioCaptureHandle {
+    /// Create a virtual handle for tests or simulation without opening physical hardware.
+    pub fn new_virtual(is_active: bool, is_muted: bool, is_speaker_playing: bool) -> Self {
+        Self {
+            _stream: None,
+            is_active: Arc::new(AtomicBool::new(is_active)),
+            is_muted: Arc::new(AtomicBool::new(is_muted)),
+            is_speaker_playing: Arc::new(AtomicBool::new(is_speaker_playing)),
+            last_error: Arc::new(Mutex::new(None)),
+        }
+    }
+
     /// True if capture is running. Returns false if no physical stream exists unless virtual handle is active.
     pub fn is_active(&self) -> bool {
         self.is_active.load(Ordering::SeqCst) && self._stream.is_some()
@@ -260,6 +311,18 @@ impl AudioCaptureHandle {
     /// Explicit check for whether this handle wraps a real hardware stream.
     pub fn has_physical_stream(&self) -> bool {
         self._stream.is_some()
+    }
+
+    /// Check if the stream has experienced an unexpected hardware disconnect/dropout.
+    pub fn has_dropped_out(&self) -> bool {
+        self._stream.is_some()
+            && !self.is_active.load(Ordering::SeqCst)
+            && self.last_error.lock().is_some()
+    }
+
+    /// Last recorded hardware or OS audio error message, if any.
+    pub fn last_error(&self) -> Option<String> {
+        self.last_error.lock().clone()
     }
 
     pub fn set_muted(&self, muted: bool) {
@@ -290,12 +353,34 @@ pub struct AudioPlaybackHandle {
     is_playing: Arc<AtomicBool>,
     /// Output device sample rate — callers must resample queued audio to it.
     sample_rate: u32,
+    last_error: Arc<Mutex<Option<String>>>,
 }
 
 impl AudioPlaybackHandle {
+    /// Create a virtual handle for tests or simulation without opening physical hardware.
+    pub fn new_virtual(sample_rate: u32) -> Self {
+        Self {
+            _stream: None,
+            buffer: AudioRingBuffer::new(sample_rate as usize * 10),
+            is_playing: Arc::new(AtomicBool::new(false)),
+            sample_rate,
+            last_error: Arc::new(Mutex::new(None)),
+        }
+    }
+
     /// Explicit check for whether this handle wraps a real hardware stream.
     pub fn has_physical_stream(&self) -> bool {
         self._stream.is_some()
+    }
+
+    /// Check if the stream has experienced an unexpected hardware disconnect/dropout.
+    pub fn has_dropped_out(&self) -> bool {
+        self._stream.is_some() && !self.is_playing.load(Ordering::SeqCst) && !self.buffer.is_empty()
+    }
+
+    /// Last recorded playback device error, if any.
+    pub fn last_error(&self) -> Option<String> {
+        self.last_error.lock().clone()
     }
 
     pub fn queue_samples(&self, samples: &[f32]) {
@@ -372,31 +457,54 @@ impl AudioRuntime {
         let is_active = Arc::new(AtomicBool::new(true));
         let is_muted = Arc::new(AtomicBool::new(false));
         let is_speaker_playing = Arc::new(AtomicBool::new(false));
+        let last_error = Arc::new(Mutex::new(None));
 
         let active_clone = is_active.clone();
         let muted_clone = is_muted.clone();
         let speaker_clone_f32 = is_speaker_playing.clone();
         let speaker_clone_i16 = is_speaker_playing.clone();
+        let speaker_clone_u16 = is_speaker_playing.clone();
+        let speaker_clone_i32 = is_speaker_playing.clone();
         let on_frame = Arc::new(on_frame);
 
         let mut conditioner_f32 = AudioConditioner::new(self.config.conditioning.clone());
         let mut conditioner_i16 = AudioConditioner::new(self.config.conditioning.clone());
+        let mut conditioner_u16 = AudioConditioner::new(self.config.conditioning.clone());
+        let mut conditioner_i32 = AudioConditioner::new(self.config.conditioning.clone());
+
+        let beam_cfg = BeamformerConfig {
+            sample_rate,
+            ..self.config.beamforming.clone()
+        };
+        let mut mic_processor_f32 = MicrophoneArrayProcessor::new(channels, beam_cfg.clone());
+        let mut mic_processor_i16 = MicrophoneArrayProcessor::new(channels, beam_cfg.clone());
+        let mut mic_processor_u16 = MicrophoneArrayProcessor::new(channels, beam_cfg.clone());
+        let mut mic_processor_i32 = MicrophoneArrayProcessor::new(channels, beam_cfg);
 
         let stream_config: cpal::StreamConfig = supported_config.into();
         let stream_result = match supported_config.sample_format() {
             cpal::SampleFormat::F32 => {
                 let active_err = active_clone.clone();
+                let last_err = last_error.clone();
                 device.build_input_stream(
                     stream_config,
                     move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                        if !active_clone.load(Ordering::SeqCst) {
+                        if !active_clone.load(Ordering::SeqCst)
+                            || muted_clone.load(Ordering::SeqCst)
+                        {
                             return;
                         }
-                        if muted_clone.load(Ordering::SeqCst) {
-                            return;
-                        }
-                        let mut mono_16k =
-                            normalize_to_mono_16k(data, sample_rate, channels, target_sr);
+                        let mut mono_16k = if channels > 1 {
+                            process_multichannel_audio_with_beamforming(
+                                data,
+                                sample_rate,
+                                channels,
+                                target_sr,
+                                &mut mic_processor_f32,
+                            )
+                        } else {
+                            normalize_to_mono_16k(data, sample_rate, channels, target_sr)
+                        };
                         conditioner_f32
                             .set_speaker_active(speaker_clone_f32.load(Ordering::SeqCst));
                         conditioner_f32.process(&mut mono_16k);
@@ -404,9 +512,11 @@ impl AudioRuntime {
                         on_frame(mono_16k, rms);
                     },
                     move |err| {
+                        let err_str = err.to_string();
                         tracing::error!(
-                            "Audio capture error (device disconnected/interrupted): {err}"
+                            "Audio capture error (device disconnected/interrupted): {err_str}"
                         );
+                        *last_err.lock() = Some(err_str);
                         active_err.store(false, Ordering::SeqCst);
                     },
                     None,
@@ -414,19 +524,28 @@ impl AudioRuntime {
             }
             cpal::SampleFormat::I16 => {
                 let active_err = active_clone.clone();
+                let last_err = last_error.clone();
                 device.build_input_stream(
                     stream_config,
                     move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                        if !active_clone.load(Ordering::SeqCst) {
-                            return;
-                        }
-                        if muted_clone.load(Ordering::SeqCst) {
+                        if !active_clone.load(Ordering::SeqCst)
+                            || muted_clone.load(Ordering::SeqCst)
+                        {
                             return;
                         }
                         let f32_data: Vec<f32> =
                             data.iter().map(|&s| (s as f32) / 32768.0).collect();
-                        let mut mono_16k =
-                            normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr);
+                        let mut mono_16k = if channels > 1 {
+                            process_multichannel_audio_with_beamforming(
+                                &f32_data,
+                                sample_rate,
+                                channels,
+                                target_sr,
+                                &mut mic_processor_i16,
+                            )
+                        } else {
+                            normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr)
+                        };
                         conditioner_i16
                             .set_speaker_active(speaker_clone_i16.load(Ordering::SeqCst));
                         conditioner_i16.process(&mut mono_16k);
@@ -434,9 +553,95 @@ impl AudioRuntime {
                         on_frame(mono_16k, rms);
                     },
                     move |err| {
+                        let err_str = err.to_string();
                         tracing::error!(
-                            "Audio capture error (device disconnected/interrupted): {err}"
+                            "Audio capture error (device disconnected/interrupted): {err_str}"
                         );
+                        *last_err.lock() = Some(err_str);
+                        active_err.store(false, Ordering::SeqCst);
+                    },
+                    None,
+                )
+            }
+            cpal::SampleFormat::U16 => {
+                let active_err = active_clone.clone();
+                let last_err = last_error.clone();
+                device.build_input_stream(
+                    stream_config,
+                    move |data: &[u16], _: &cpal::InputCallbackInfo| {
+                        if !active_clone.load(Ordering::SeqCst)
+                            || muted_clone.load(Ordering::SeqCst)
+                        {
+                            return;
+                        }
+                        let f32_data: Vec<f32> = data
+                            .iter()
+                            .map(|&s| ((s as f32) - 32768.0) / 32768.0)
+                            .collect();
+                        let mut mono_16k = if channels > 1 {
+                            process_multichannel_audio_with_beamforming(
+                                &f32_data,
+                                sample_rate,
+                                channels,
+                                target_sr,
+                                &mut mic_processor_u16,
+                            )
+                        } else {
+                            normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr)
+                        };
+                        conditioner_u16
+                            .set_speaker_active(speaker_clone_u16.load(Ordering::SeqCst));
+                        conditioner_u16.process(&mut mono_16k);
+                        let rms = calculate_rms(&mono_16k);
+                        on_frame(mono_16k, rms);
+                    },
+                    move |err| {
+                        let err_str = err.to_string();
+                        tracing::error!(
+                            "Audio capture error (device disconnected/interrupted): {err_str}"
+                        );
+                        *last_err.lock() = Some(err_str);
+                        active_err.store(false, Ordering::SeqCst);
+                    },
+                    None,
+                )
+            }
+            cpal::SampleFormat::I32 => {
+                let active_err = active_clone.clone();
+                let last_err = last_error.clone();
+                device.build_input_stream(
+                    stream_config,
+                    move |data: &[i32], _: &cpal::InputCallbackInfo| {
+                        if !active_clone.load(Ordering::SeqCst)
+                            || muted_clone.load(Ordering::SeqCst)
+                        {
+                            return;
+                        }
+                        let f32_data: Vec<f32> =
+                            data.iter().map(|&s| (s as f32) / 2147483648.0).collect();
+                        let mut mono_16k = if channels > 1 {
+                            process_multichannel_audio_with_beamforming(
+                                &f32_data,
+                                sample_rate,
+                                channels,
+                                target_sr,
+                                &mut mic_processor_i32,
+                            )
+                        } else {
+                            normalize_to_mono_16k(&f32_data, sample_rate, channels, target_sr)
+                        };
+                        conditioner_i32
+                            .set_speaker_active(speaker_clone_i32.load(Ordering::SeqCst));
+                        conditioner_i32.process(&mut mono_16k);
+                        let rms = calculate_rms(&mono_16k);
+                        on_frame(mono_16k, rms);
+                    },
+                    move |err| {
+                        let err_str = err.to_string();
+                        tracing::error!(
+                            "Audio capture error (device disconnected/interrupted): {err_str}"
+                        );
+                        *last_err.lock() = Some(err_str);
                         active_err.store(false, Ordering::SeqCst);
                     },
                     None,
@@ -455,6 +660,7 @@ impl AudioRuntime {
                     is_active,
                     is_muted,
                     is_speaker_playing,
+                    last_error,
                 })
             }
             Err(e) => {
@@ -465,6 +671,7 @@ impl AudioRuntime {
                         is_active,
                         is_muted,
                         is_speaker_playing,
+                        last_error,
                     })
                 } else {
                     tracing::error!("Failed to open physical audio capture stream: {e}");
@@ -505,40 +712,85 @@ impl AudioRuntime {
 
         let ring_buffer = AudioRingBuffer::new(sample_rate as usize * 10);
         let is_playing = Arc::new(AtomicBool::new(false));
+        let last_error = Arc::new(Mutex::new(None));
 
         let buf_clone = ring_buffer.clone();
         let playing_clone = is_playing.clone();
+        let last_err_clone = last_error.clone();
 
         let stream_config: cpal::StreamConfig = supported_config.into();
-        let stream_result = device.build_output_stream(
-            stream_config,
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                let needed = data.len();
-                let samples = buf_clone.pop(needed / channels as usize);
+        let stream_result = match supported_config.sample_format() {
+            cpal::SampleFormat::F32 => {
+                let last_err_playback = last_err_clone;
+                device.build_output_stream(
+                    stream_config,
+                    move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                        let needed = data.len();
+                        let samples = buf_clone.pop(needed / channels as usize);
 
-                if samples.is_empty() {
-                    data.fill(0.0);
-                    playing_clone.store(false, Ordering::SeqCst);
-                    return;
-                }
+                        if samples.is_empty() {
+                            data.fill(0.0);
+                            playing_clone.store(false, Ordering::SeqCst);
+                            return;
+                        }
 
-                // Interleave into channels
-                for (s_idx, frame) in data.chunks_mut(channels as usize).enumerate() {
-                    let val = if s_idx < samples.len() {
-                        samples[s_idx]
-                    } else {
-                        0.0
-                    };
-                    for sample in frame.iter_mut() {
-                        *sample = val;
-                    }
-                }
-            },
-            move |err| {
-                tracing::error!("Audio playback error: {err}");
-            },
-            None,
-        );
+                        // Interleave into channels
+                        for (s_idx, frame) in data.chunks_mut(channels as usize).enumerate() {
+                            let val = if s_idx < samples.len() {
+                                samples[s_idx]
+                            } else {
+                                0.0
+                            };
+                            for sample in frame.iter_mut() {
+                                *sample = val;
+                            }
+                        }
+                    },
+                    move |err| {
+                        let err_str = err.to_string();
+                        tracing::error!("Audio playback error: {err_str}");
+                        *last_err_playback.lock() = Some(err_str);
+                    },
+                    None,
+                )
+            }
+            cpal::SampleFormat::I16 => {
+                let last_err_playback = last_err_clone;
+                device.build_output_stream(
+                    stream_config,
+                    move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
+                        let needed = data.len();
+                        let samples = buf_clone.pop(needed / channels as usize);
+
+                        if samples.is_empty() {
+                            data.fill(0);
+                            playing_clone.store(false, Ordering::SeqCst);
+                            return;
+                        }
+
+                        // Interleave into channels with 16-bit PCM conversion
+                        for (s_idx, frame) in data.chunks_mut(channels as usize).enumerate() {
+                            let val = if s_idx < samples.len() {
+                                samples[s_idx]
+                            } else {
+                                0.0
+                            };
+                            let sample_i16 = (val.clamp(-1.0, 1.0) * 32767.0) as i16;
+                            for sample in frame.iter_mut() {
+                                *sample = sample_i16;
+                            }
+                        }
+                    },
+                    move |err| {
+                        let err_str = err.to_string();
+                        tracing::error!("Audio playback error: {err_str}");
+                        *last_err_playback.lock() = Some(err_str);
+                    },
+                    None,
+                )
+            }
+            _ => Err(cpal::ErrorKind::UnsupportedConfig.into()),
+        };
 
         match stream_result {
             Ok(stream) => {
@@ -550,6 +802,7 @@ impl AudioRuntime {
                     buffer: ring_buffer,
                     is_playing,
                     sample_rate,
+                    last_error,
                 })
             }
             Err(e) => {
@@ -560,6 +813,7 @@ impl AudioRuntime {
                         buffer: ring_buffer,
                         is_playing,
                         sample_rate,
+                        last_error,
                     })
                 } else {
                     tracing::error!("Failed to open physical audio playback stream: {e}");
@@ -621,12 +875,20 @@ mod tests {
             is_active: Arc::new(AtomicBool::new(true)),
             is_muted: Arc::new(AtomicBool::new(false)),
             is_speaker_playing: Arc::new(AtomicBool::new(false)),
+            last_error: Arc::new(Mutex::new(None)),
         };
         // Virtual handle with None stream must report is_active = false and has_physical_stream = false
         assert!(!handle_virtual.is_active());
         assert!(!handle_virtual.has_physical_stream());
+        assert!(!handle_virtual.has_dropped_out());
+        assert_eq!(handle_virtual.last_error(), None);
 
         handle_virtual.set_muted(true);
         assert!(handle_virtual.is_muted());
+
+        let playback_virtual = AudioPlaybackHandle::new_virtual(16000);
+        assert!(!playback_virtual.has_physical_stream());
+        assert_eq!(playback_virtual.sample_rate(), 16000);
+        assert_eq!(playback_virtual.last_error(), None);
     }
 }

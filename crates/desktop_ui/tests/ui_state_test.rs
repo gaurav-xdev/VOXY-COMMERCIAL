@@ -20,14 +20,14 @@ mod tests {
         assert!(CoreState::Idle.label().contains("READY"));
         assert!(CoreState::Listening.label().contains("LISTENING"));
         assert!(CoreState::Thinking.label().contains("REASONING"));
-        assert!(CoreState::Speaking.label().contains("RESPONSE"));
+        assert!(CoreState::Speaking.label().contains("SPEECH"));
         assert!(CoreState::Error.label().contains("ATTENTION"));
         assert!(CoreState::Offline.label().contains("DISCONNECTED"));
     }
 
     #[test]
     fn test_companion_modes() {
-        assert_ne!(CompanionMode::Robot, CompanionMode::ParticleOrb);
+        assert_eq!(CompanionMode::default(), CompanionMode::Cat);
     }
 
     #[test]
@@ -63,20 +63,18 @@ mod tests {
     #[test]
     fn test_onboarding_defaults_and_steps() {
         let default_cfg = OnboardingConfig::default();
-        assert_eq!(default_cfg.assistant_name, "OSMOO Core");
-        assert_eq!(default_cfg.companion_mode, CompanionMode::Robot);
+        assert_eq!(default_cfg.assistant_name, "OSMOO");
+        assert_eq!(default_cfg.companion_mode, CompanionMode::Cat);
         assert_eq!(default_cfg.primary_llm, "ollama");
         assert_eq!(default_cfg.selected_model, "llama3.2:3b");
         assert_eq!(default_cfg.active_tier, "free");
 
-        // Verify 7 distinct sequential steps
-        assert_eq!(OnboardingStep::Identity as u8, 1);
-        assert_eq!(OnboardingStep::LocalRuntime as u8, 2);
-        assert_eq!(OnboardingStep::CloudProviders as u8, 3);
-        assert_eq!(OnboardingStep::CredentialEntry as u8, 4);
-        assert_eq!(OnboardingStep::VoiceConfig as u8, 5);
-        assert_eq!(OnboardingStep::SubscriptionTiers as u8, 6);
-        assert_eq!(OnboardingStep::Summary as u8, 7);
+        // Verify 5 distinct sequential steps
+        assert_eq!(OnboardingStep::Welcome as u8, 1);
+        assert_eq!(OnboardingStep::AiProvider as u8, 2);
+        assert_eq!(OnboardingStep::VoicePermissions as u8, 3);
+        assert_eq!(OnboardingStep::CompanionPreferences as u8, 4);
+        assert_eq!(OnboardingStep::TestAndFinish as u8, 5);
     }
 
     #[test]
@@ -97,18 +95,12 @@ mod tests {
         assert!(!settings.autolaunch);
 
         // Verify all 9 settings tabs exist
-        let all_tabs = [
-            SettingsTab::General,
-            SettingsTab::AgentIdentity,
-            SettingsTab::AiProviders,
-            SettingsTab::LocalModels,
-            SettingsTab::Voice,
-            SettingsTab::Appearance,
-            SettingsTab::PrivacySecurity,
-            SettingsTab::Subscription,
-            SettingsTab::Diagnostics,
-        ];
-        assert_eq!(all_tabs.len(), 9);
+        let all_tabs = SettingsTab::all();
+        assert_eq!(all_tabs.len(), 10);
+        for tab in all_tabs {
+            assert!(!tab.title().is_empty());
+            assert!(!tab.description().is_empty());
+        }
     }
 
     #[test]
@@ -196,5 +188,32 @@ mod tests {
                 p.id
             );
         }
+    }
+
+    #[test]
+    fn test_osmoo_cat_asset_integrity() {
+        use voxy_desktop_ui::assets::{OSMOO_CAT_DATA_URI, OSMOO_CAT_SHADOW_DATA_URI};
+
+        // Standard PNG base64 header signature is always iVBORw0KGgo
+        assert!(OSMOO_CAT_DATA_URI.starts_with("data:image/png;base64,iVBORw0KGgo"));
+        assert!(OSMOO_CAT_DATA_URI.len() > 100_000, "Cat image asset must be full-fidelity PNG");
+
+        assert!(OSMOO_CAT_SHADOW_DATA_URI.starts_with("data:image/png;base64,iVBORw0KGgo"));
+        assert!(OSMOO_CAT_SHADOW_DATA_URI.len() > 1_000, "Contact shadow asset must be present");
+    }
+
+    #[test]
+    fn test_settings_cat_companion_defaults() {
+        use voxy_desktop_ui::views::SettingsFormState;
+        let defaults = SettingsFormState::default();
+        assert_eq!(defaults.companion_character_id, "cat");
+        assert_eq!(defaults.companion_size, 1.0);
+        assert_eq!(defaults.companion_position, "bottom-right");
+        assert_eq!(defaults.companion_expression, "neutral");
+        assert!(defaults.companion_lip_sync);
+        assert!(defaults.companion_animations);
+        assert!(defaults.companion_draggable);
+        assert!(!defaults.companion_click_through);
+        assert!(defaults.desktop_overlay_mode);
     }
 }

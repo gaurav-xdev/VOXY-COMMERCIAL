@@ -13,6 +13,13 @@ pub enum BackendCommand {
     GetChatHistory { limit: usize, offset: usize },
     GetSystemTelemetry,
     CompleteOnboarding(OnboardingConfig),
+    TestProviderConnection {
+        provider: String,
+        model: String,
+        api_key: Option<String>,
+    },
+    ExportDiagnostics,
+    PurgeStoredMemories,
 }
 
 /// Typed results returned from backend command execution.
@@ -33,6 +40,17 @@ pub enum BackendResult {
         memory_used_mb: u64,
     },
     OnboardingCompleted,
+    ProviderTested {
+        success: bool,
+        message: String,
+        latency_ms: u64,
+    },
+    DiagnosticsExported {
+        sanitized_report: String,
+    },
+    MemoriesPurged {
+        count: usize,
+    },
 }
 
 /// Domain errors produced during command validation, execution, and persistence.

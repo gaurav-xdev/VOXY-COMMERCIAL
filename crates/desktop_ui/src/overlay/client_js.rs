@@ -3,16 +3,54 @@ pub const CLIENT_JS: &str = r##"
 (function() {
     let liveMicRms = 0.0;
     let liveOutputRms = 0.0;
-    let smoothedMic = 0.0;
     let smoothedOutput = 0.0;
     let visualState = 'Idle';
-    let lastRenderTime = 0;
-    let animFrameId = null;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialLeft = 0;
+    let initialTop = 0;
+    let mouthSvgEl = null;
+    let eyelidsEl = null;
+    let earLeftEl = null;
+    let earRightEl = null;
 
-    // Exported bridge functions for native IPC driver
+    // Autonomous Walking Engine State
+    let autoWalkEnabled = true;
+    let isWalking = false;
+    let walkTargetX = null;
+    let walkSpeed = 65; // pixels per second
+    let lastWalkFrameTime = null;
+    let nextWanderTimeout = null;
+
+    // SVG Viseme Path Definitions
+    // Coordinates relative to mouth viewBox "0 0 28 18", centered around (14, 9)
+    const MOUTH_PATHS = {
+        // 1. Natural closed cat 'w' smile line
+        closed: '<path d="M 5,8 Q 10,12 14,9 Q 18,12 23,8" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round"/>',
+        // 2. Slight open (small vowels / quiet speech)
+        slight: '<ellipse cx="14" cy="9" rx="6.5" ry="3.5" fill="#0f172a" stroke="#1e293b" stroke-width="1.8"/>' +
+                '<path d="M 11,10.5 Q 14,12.5 17,10.5" fill="#f472b6"/>',
+        // 3. Medium open (standard conversational vowels)
+        medium: '<path d="M 6,7 C 6,14 22,14 22,7 Z" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>' +
+                '<path d="M 9,12 Q 14,14.5 19,12 Q 14,10 9,12" fill="#f472b6"/>',
+        // 4. Wide open (loud syllables / expressive emphasis)
+        wide: '<path d="M 5,6 C 4,16 24,16 23,6 Z" fill="#0f172a" stroke="#1e293b" stroke-width="2.2"/>' +
+              '<path d="M 8,12 Q 14,16 20,12 Q 14,10 8,12" fill="#f472b6"/>' +
+              '<path d="M 8,7 Q 14,9 20,7" fill="#ffffff"/>',
+        // 5. Cheerful celebration smile
+        smile: '<path d="M 4,7 Q 14,15 24,7" fill="none" stroke="#1e293b" stroke-width="2.4" stroke-linecap="round"/>',
+        // 6. Concerned error pout
+        pout: '<path d="M 5,11 Q 14,6 23,11" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round"/>'
+    };
+
+    // ── Exported Bridge Functions for Native IPC Driver ───────────────────
     window.voxyUpdateAudioEnergy = function(micRms, outputRms) {
         liveMicRms = typeof micRms === 'number' ? micRms : 0.0;
         liveOutputRms = typeof outputRms === 'number' ? outputRms : 0.0;
+        if (visualState === 'Speaking' && liveOutputRms <= 0.001 && liveMicRms > 0.01) {
+            liveOutputRms = liveMicRms;
+        }
     };
 
     window.voxySetVisualState = function(stateName) {
@@ -20,88 +58,19 @@ pub const CLIENT_JS: &str = r##"
     };
 
     window.voxySetTranscript = function(text) {
-        setTranscript(text);
+        const pill = document.getElementById("cat-state-text");
+        if (pill && visualState === 'Speaking' && text) {
+            const truncated = text.length > 24 ? text.substring(0, 24) + '...' : text;
+            pill.innerText = truncated.toUpperCase();
+        }
     };
 
     window.voxySetConnectionStatus = function(connected) {
-        const statusDot = document.getElementById("connection-status-dot");
-        if (statusDot) {
-            statusDot.style.background = connected ? "#10b981" : "#64748b";
-            statusDot.title = connected ? "Connected to VOXY Daemon (Named Pipe IPC)" : "Disconnected (Reconnecting...)";
+        const dot = document.getElementById("cat-state-dot");
+        if (dot) {
+            dot.style.backgroundColor = connected ? "var(--status-listening)" : "var(--status-idle)";
         }
     };
-
-    function handleIncomingPacket(data) {
-        if (!data || !data.type) return;
-
-        if (data.type === 'clap') {
-            const ui_event_ts = Date.now() / 1000.0;
-            const root = document.getElementById("app-root");
-            if (root) {
-                root.classList.remove("collapsed");
-            }
-            requestAnimationFrame(() => {
-                const ui_visible_ts = Date.now() / 1000.0;
-                const phys_ts = data.physical_timestamp || ui_event_ts;
-                const total_lat = (ui_visible_ts - phys_ts) * 1000.0;
-                const det_lat = data.detection_latency_ms || 0.0;
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        type: "clap_ack",
-                        source: data.source || "clap",
-                        physical_timestamp: phys_ts,
-                        detector_timestamp: data.detector_timestamp || ui_event_ts,
-                        ui_event_timestamp: ui_event_ts,
-                        ui_visible_timestamp: ui_visible_ts,
-                        detection_latency_ms: det_lat,
-                        total_latency_ms: parseFloat(total_lat.toFixed(2))
-                    }));
-                }
-            });
-        } else if (data.type === 'gesture') {
-            const root = document.getElementById("app-root");
-            if (root) {
-                if (data.action === 'EXPANDED') {
-                    root.classList.remove("collapsed");
-                } else if (data.action === 'COLLAPSED') {
-                    root.classList.add("collapsed");
-                }
-            }
-        } else if (data.type === 'audio') {
-            liveMicRms = typeof data.mic_rms === 'number' ? data.mic_rms : 0.0;
-        } else if (data.type === 'audio_output') {
-            liveOutputRms = typeof data.output_rms === 'number' ? data.output_rms : 0.0;
-        } else if (data.type === 'voice' || data.type === 'voice_state') {
-            if (data.state) setVisualState(data.state);
-            if (data.text) setTranscript(data.text);
-        } else if (data.type === 'barge_in') {
-            setVisualState('Interrupted');
-            setTimeout(() => setVisualState('Listening'), 350);
-        } else if (data.type === 'tool_execution') {
-            handleToolExecution(data);
-        }
-    }
-
-    function handleToolExecution(data) {
-        setVisualState('Executing');
-        const banner = document.getElementById("computer-control-banner");
-        if (banner) {
-            banner.style.display = "flex";
-        }
-        const actionEl = document.getElementById("control-action-text");
-        if (actionEl && data.step) {
-            actionEl.innerText = data.step;
-        }
-        if (data.status === 'completed' || data.status === 'done') {
-            setTimeout(() => {
-                if (banner) banner.style.display = "none";
-                setVisualState('Success');
-                setTimeout(() => setVisualState('Idle'), 1200);
-            }, 800);
-        } else if (data.status === 'failed' || data.status === 'error') {
-            setVisualState('Error');
-        }
-    }
 
     function setVisualState(stateName) {
         visualState = stateName;
@@ -110,155 +79,390 @@ pub const CLIENT_JS: &str = r##"
         if (root) {
             root.className = root.className.replace(/\bstate-[a-z]+\b/g, '') + ' state-' + normalized;
         }
-        const badge = document.getElementById("core-badge");
-        if (badge) {
-            badge.innerText = stateName.toUpperCase();
+        const text = document.getElementById("cat-state-text");
+        if (text) {
+            text.innerText = stateName.toUpperCase();
         }
-    }
 
-    function setTranscript(text) {
-        const t = document.getElementById("live-transcript-text");
-        if (t) {
-            t.innerText = text;
+        // If not idle, cancel autonomous wander immediately
+        if (visualState !== 'Idle') {
+            stopAutonomousWalk();
         }
-    }
 
-    // Emergency Stop Trigger
-    window.voxyEmergencyStop = function() {
-        console.warn("[VOXY] EMERGENCY STOP TRIGGERED BY USER");
-        setVisualState('Error');
-        setTranscript("EMERGENCY STOP ACTIVATED: All computer control actions halted.");
-    };
-
-    // Toggle Privacy Mute
-    window.voxyToggleMic = function() {
-        const btn = document.getElementById("mic-privacy-toggle");
-        if (btn) {
-            btn.classList.toggle("active");
-            const isMuted = !btn.classList.contains("active");
-            if (isMuted) {
-                setVisualState('Disabled');
-                setTranscript("Microphone hardware muted.");
-            } else {
-                setVisualState('Idle');
-                setTranscript("Microphone active.");
-            }
-        }
-    };
-
-    // Volumetric Living Core Canvas Renderer
-    function startCoreCanvas() {
-        const canvas = document.getElementById("presence-core-canvas");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-
-        let angleOffset = 0;
-
-        function render(now) {
-            // Adaptive frame-rate throttling:
-            // When Idle, throttle to ~15 FPS to conserve CPU and battery.
-            // When active (Listening, Thinking, Speaking, Executing), run at full 60 FPS.
-            const isIdle = (visualState === 'Idle' || visualState === 'Disabled' || visualState === 'Offline');
-            const targetDelta = isIdle ? 66.6 : 16.6; // 15 FPS vs 60 FPS
-
-            const delta = now - lastRenderTime;
-            if (delta < targetDelta) {
-                animFrameId = requestAnimationFrame(render);
-                return;
-            }
-            lastRenderTime = now;
-
-            // Exponential smoothing for real RMS levels (eliminates digital flicker)
-            smoothedMic += (liveMicRms - smoothedMic) * 0.28;
-            smoothedOutput += (liveOutputRms - smoothedOutput) * 0.28;
-
-            const w = canvas.width;
-            const h = canvas.height;
-            const cx = w / 2;
-            const cy = h / 2;
-
-            ctx.clearRect(0, 0, w, h);
-
-            // Determine active color & energy
-            let primaryColor = "rgba(148, 163, 184, 0.4)";
-            let energy = 0.05;
-
-            if (visualState === 'Listening') {
-                primaryColor = "rgba(16, 185, 129, 0.9)";
-                energy = Math.min(1.0, smoothedMic * 18.0);
-            } else if (visualState === 'Speaking') {
-                primaryColor = "rgba(14, 165, 233, 0.95)";
-                energy = Math.min(1.0, smoothedOutput * 18.0);
-            } else if (visualState === 'Thinking' || visualState === 'Processing') {
-                primaryColor = "rgba(245, 158, 11, 0.85)";
-                energy = 0.35;
-            } else if (visualState === 'Executing') {
-                primaryColor = "rgba(249, 115, 22, 0.9)";
-                energy = 0.4;
+        // State-driven immediate mouth shape updates
+        if (visualState !== 'Speaking') {
+            liveOutputRms = 0.0;
+            smoothedOutput = 0.0;
+            if (visualState === 'Success') {
+                updateMouthShape('smile');
             } else if (visualState === 'Error' || visualState === 'Interrupted') {
-                primaryColor = "rgba(239, 68, 68, 0.95)";
-                energy = 0.6;
-            } else if (visualState === 'Success') {
-                primaryColor = "rgba(34, 197, 94, 0.9)";
-                energy = 0.25;
+                updateMouthShape('pout');
+            } else {
+                updateMouthShape('closed');
             }
-
-            // Draw Living Volumetric Iris Filaments
-            const baseRadius = 78;
-            const filamentCount = 64;
-            angleOffset += isIdle ? 0.003 : 0.015;
-
-            // Concentric ambient acoustic ripples
-            ctx.save();
-            ctx.translate(cx, cy);
-
-            // Outer atmospheric boundary
-            ctx.beginPath();
-            ctx.arc(0, 0, baseRadius + 28 + energy * 20, 0, Math.PI * 2);
-            ctx.strokeStyle = primaryColor;
-            ctx.lineWidth = 1.0;
-            ctx.globalAlpha = 0.25;
-            ctx.stroke();
-
-            // Inner harmonic filament ring
-            for (let i = 0; i < filamentCount; i++) {
-                const theta = (i / filamentCount) * Math.PI * 2 + angleOffset;
-                const waveMod = Math.sin(theta * 6 + angleOffset * 3) * (energy * 14);
-                const rInner = baseRadius;
-                const rOuter = baseRadius + 6 + (energy * 38) + waveMod;
-
-                const x1 = Math.cos(theta) * rInner;
-                const y1 = Math.sin(theta) * rInner;
-                const x2 = Math.cos(theta) * rOuter;
-                const y2 = Math.sin(theta) * rOuter;
-
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.strokeStyle = primaryColor;
-                ctx.lineWidth = 1.5;
-                ctx.globalAlpha = 0.4 + (energy * 0.5);
-                ctx.stroke();
-            }
-
-            // Central core lens ring
-            ctx.beginPath();
-            ctx.arc(0, 0, baseRadius - 2, 0, Math.PI * 2);
-            ctx.strokeStyle = primaryColor;
-            ctx.lineWidth = 2.0;
-            ctx.globalAlpha = 0.7;
-            ctx.stroke();
-
-            ctx.restore();
-
-            animFrameId = requestAnimationFrame(render);
         }
-
-        animFrameId = requestAnimationFrame(render);
     }
 
-    window.addEventListener('DOMContentLoaded', function() {
-        startCoreCanvas();
+    function updateMouthShape(shape) {
+        if (!mouthSvgEl) {
+            mouthSvgEl = document.getElementById("cat-mouth-svg");
+        }
+        if (mouthSvgEl && MOUTH_PATHS[shape]) {
+            mouthSvgEl.innerHTML = MOUTH_PATHS[shape];
+        }
+    }
+
+    // ── Continuous Audio-Driven Lip Sync Animation Loop ───────────────────
+    function runLipSyncLoop() {
+        if (visualState === 'Speaking') {
+            smoothedOutput += (liveOutputRms - smoothedOutput) * 0.42;
+
+            if (smoothedOutput < 0.02) {
+                updateMouthShape('closed');
+            } else if (smoothedOutput < 0.09) {
+                updateMouthShape('slight');
+            } else if (smoothedOutput < 0.22) {
+                updateMouthShape('medium');
+            } else {
+                updateMouthShape('wide');
+            }
+        }
+        requestAnimationFrame(runLipSyncLoop);
+    }
+
+    // ── Periodic Organic Idles: Blinking & Ear Twitches ───────────────────
+    function scheduleBlink() {
+        const delay = 3200 + Math.random() * 2400; // 3.2s to 5.6s
+        setTimeout(function() {
+            if (!eyelidsEl) {
+                eyelidsEl = document.getElementById("cat-eyelids");
+            }
+            if (eyelidsEl && visualState !== 'Speaking') {
+                eyelidsEl.classList.add("blink");
+                setTimeout(function() {
+                    if (eyelidsEl) eyelidsEl.classList.remove("blink");
+                }, 130);
+            }
+            scheduleBlink();
+        }, delay);
+    }
+
+    function scheduleEarTwitch() {
+        const delay = 4000 + Math.random() * 4500; // 4s to 8.5s
+        setTimeout(function() {
+            if (!earLeftEl) earLeftEl = document.getElementById("cat-ear-left");
+            if (!earRightEl) earRightEl = document.getElementById("cat-ear-right");
+
+            const twitchLeft = Math.random() > 0.5;
+            if (twitchLeft && earLeftEl) {
+                earLeftEl.classList.add("ear-twitch-l");
+                setTimeout(function() {
+                    if (earLeftEl) earLeftEl.classList.remove("ear-twitch-l");
+                }, 220);
+            } else if (!twitchLeft && earRightEl) {
+                earRightEl.classList.add("ear-twitch-r");
+                setTimeout(function() {
+                    if (earRightEl) earRightEl.classList.remove("ear-twitch-r");
+                }, 220);
+            }
+            scheduleEarTwitch();
+        }, delay);
+    }
+
+    // ── Autonomous Desktop Walking Engine ─────────────────────────────────
+    function scheduleNextWander() {
+        if (nextWanderTimeout) clearTimeout(nextWanderTimeout);
+        if (!autoWalkEnabled) return;
+
+        const delay = 14000 + Math.random() * 16000; // 14s to 30s
+        nextWanderTimeout = setTimeout(function() {
+            if (visualState === 'Idle' && !isDragging && autoWalkEnabled) {
+                startAutonomousWalk();
+            } else {
+                scheduleNextWander();
+            }
+        }, delay);
+    }
+
+    function startAutonomousWalk() {
+        const cat = document.getElementById("osmoo-cat-companion");
+        if (!cat) return;
+
+        const catWidth = cat.offsetWidth;
+        const screenW = window.innerWidth;
+        const minX = 30;
+        const maxX = Math.max(minX, screenW - catWidth - 30);
+
+        const currentLeft = cat.getBoundingClientRect().left;
+        // Choose target X at least 120px away from current position
+        let targetX = minX + Math.random() * (maxX - minX);
+        if (Math.abs(targetX - currentLeft) < 100) {
+            targetX = currentLeft > screenW / 2 ? currentLeft - 180 : currentLeft + 180;
+            targetX = Math.min(Math.max(minX, targetX), maxX);
+        }
+
+        walkTargetX = targetX;
+        isWalking = true;
+        lastWalkFrameTime = performance.now();
+
+        // Face walking direction
+        const charFrame = cat.querySelector(".cat-character-frame");
+        if (charFrame) {
+            charFrame.style.transform = targetX < currentLeft ? "scaleX(-1)" : "scaleX(1)";
+        }
+        cat.classList.add("walking");
+
+        requestAnimationFrame(walkStep);
+    }
+
+    function walkStep(timestamp) {
+        if (!isWalking || walkTargetX === null || isDragging || visualState !== 'Idle') {
+            stopAutonomousWalk();
+            return;
+        }
+
+        const cat = document.getElementById("osmoo-cat-companion");
+        if (!cat) return;
+
+        const dt = (timestamp - (lastWalkFrameTime || timestamp)) / 1000.0;
+        lastWalkFrameTime = timestamp;
+
+        const currentLeft = cat.getBoundingClientRect().left;
+        const diff = walkTargetX - currentLeft;
+
+        if (Math.abs(diff) < 4) {
+            // Reached target
+            cat.style.left = walkTargetX + "px";
+            cat.style.right = "auto";
+            stopAutonomousWalk();
+            // Settle and face front
+            const charFrame = cat.querySelector(".cat-character-frame");
+            if (charFrame) charFrame.style.transform = "scaleX(1)";
+            scheduleNextWander();
+            return;
+        }
+
+        const dir = diff > 0 ? 1 : -1;
+        const moveDist = Math.min(Math.abs(diff), walkSpeed * dt) * dir;
+        const nextLeft = currentLeft + moveDist;
+
+        cat.style.left = nextLeft + "px";
+        cat.style.right = "auto";
+
+        requestAnimationFrame(walkStep);
+    }
+
+    function stopAutonomousWalk() {
+        isWalking = false;
+        walkTargetX = null;
+        lastWalkFrameTime = null;
+        const cat = document.getElementById("osmoo-cat-companion");
+        if (cat) {
+            cat.classList.remove("walking");
+        }
+    }
+
+    // ── Desktop Drag-and-Drop & Position Persistence ──────────────────────
+    function initCatDragging() {
+        const cat = document.getElementById("osmoo-cat-companion");
+        if (!cat) return;
+
+        // Restore saved position
+        try {
+            const saved = localStorage.getItem("osmoo_cat_position");
+            if (saved) {
+                const pos = JSON.parse(saved);
+                if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                    const maxLeft = Math.max(0, window.innerWidth - cat.offsetWidth);
+                    const maxTop = Math.max(0, window.innerHeight - cat.offsetHeight);
+                    cat.style.left = Math.min(Math.max(0, pos.left), maxLeft) + "px";
+                    cat.style.top = Math.min(Math.max(0, pos.top), maxTop) + "px";
+                    cat.style.right = "auto";
+                    cat.style.bottom = "auto";
+                }
+            }
+        } catch(e) {
+            console.warn("Failed to restore cat position", e);
+        }
+
+        cat.addEventListener("mousedown", function(e) {
+            if (e.button !== 0) return; // Only primary mouse button
+            if (e.target.closest && e.target.closest("#cat-context-menu")) return; // Allow menu clicks
+            stopAutonomousWalk();
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const rect = cat.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            cat.classList.add("walking");
+            closeContextMenu();
+            e.preventDefault();
+        });
+
+        window.addEventListener("mousemove", function(e) {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            const newLeft = initialLeft + deltaX;
+            const newTop = initialTop + deltaY;
+
+            // Clamping to visible desktop bounds
+            const maxLeft = Math.max(0, window.innerWidth - cat.offsetWidth);
+            const maxTop = Math.max(0, window.innerHeight - cat.offsetHeight);
+
+            const clampedLeft = Math.min(Math.max(0, newLeft), maxLeft);
+            const clampedTop = Math.min(Math.max(0, newTop), maxTop);
+
+            cat.style.left = clampedLeft + "px";
+            cat.style.top = clampedTop + "px";
+            cat.style.right = "auto";
+            cat.style.bottom = "auto";
+        });
+
+        window.addEventListener("mouseup", function() {
+            if (isDragging) {
+                isDragging = false;
+                cat.classList.remove("walking");
+
+                // Drop settle animation
+                cat.classList.add("cat-drop-settle");
+                setTimeout(function() {
+                    cat.classList.remove("cat-drop-settle");
+                }, 400);
+
+                // Persist new position
+                try {
+                    const rect = cat.getBoundingClientRect();
+                    localStorage.setItem("osmoo_cat_position", JSON.stringify({
+                        left: Math.round(rect.left),
+                        top: Math.round(rect.top)
+                    }));
+                } catch(e) {}
+
+                scheduleNextWander();
+            }
+        });
+
+        // Double-click to trigger quick dashboard reveal
+        cat.addEventListener("dblclick", function() {
+            window.voxyOpenDashboard();
+        });
+
+        // Context menu trigger (Right click)
+        cat.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleContextMenu();
+        });
+    }
+
+    function toggleContextMenu() {
+        const menu = document.getElementById("cat-context-menu");
+        if (menu) {
+            menu.classList.toggle("open");
+        }
+    }
+
+    function closeContextMenu() {
+        const menu = document.getElementById("cat-context-menu");
+        if (menu) {
+            menu.classList.remove("open");
+        }
+    }
+
+    window.addEventListener("click", function(e) {
+        const cat = document.getElementById("osmoo-cat-companion");
+        if (cat && !cat.contains(e.target)) {
+            closeContextMenu();
+        }
+    });
+
+    // ── Desktop Companion Interactive Actions ─────────────────────────────
+    window.voxyOpenDashboard = function() {
+        closeContextMenu();
+        if (window.ipc) {
+            window.ipc.postMessage(JSON.stringify({ type: "open_dashboard" }));
+        }
+        console.info("[OSMOO] Open Dashboard requested from Cat Companion");
+    };
+
+    window.voxySetCatScale = function(scale) {
+        document.documentElement.style.setProperty("--cat-size", scale);
+        localStorage.setItem("osmoo_cat_scale", scale);
+        closeContextMenu();
+    };
+
+    window.voxyToggleAutoWalk = function() {
+        autoWalkEnabled = !autoWalkEnabled;
+        localStorage.setItem("osmoo_cat_autowalk", autoWalkEnabled ? "true" : "false");
+        closeContextMenu();
+        console.info("[OSMOO] Autonomous walking is now:", autoWalkEnabled ? "ENABLED" : "DISABLED");
+        if (autoWalkEnabled) {
+            scheduleNextWander();
+        } else {
+            stopAutonomousWalk();
+        }
+    };
+
+    window.voxyToggleAlwaysOnTop = function() {
+        closeContextMenu();
+        if (window.ipc) {
+            window.ipc.postMessage(JSON.stringify({ type: "toggle_always_on_top" }));
+        }
+    };
+
+    window.voxyEmergencyStop = function() {
+        closeContextMenu();
+        console.warn("[OSMOO] EMERGENCY STOP TRIGGERED BY USER");
+        setVisualState('Error');
+        if (window.ipc) {
+            window.ipc.postMessage(JSON.stringify({ type: "emergency_stop" }));
+        }
+    };
+
+    window.voxyExitApp = function() {
+        closeContextMenu();
+        console.info("[OSMOO] Explicit Application Exit requested from Cat Companion");
+        if (window.ipc) {
+            window.ipc.postMessage(JSON.stringify({ type: "exit_app" }));
+        }
+    };
+
+    window.voxyToggleMic = function() {
+        closeContextMenu();
+        if (window.ipc) {
+            window.ipc.postMessage(JSON.stringify({ type: "toggle_mic" }));
+        }
+    };
+
+    // Restore saved settings on boot
+    try {
+        const savedScale = localStorage.getItem("osmoo_cat_scale");
+        if (savedScale) {
+            document.documentElement.style.setProperty("--cat-size", savedScale);
+        }
+        const savedWalk = localStorage.getItem("osmoo_cat_autowalk");
+        if (savedWalk !== null) {
+            autoWalkEnabled = (savedWalk === "true");
+        }
+    } catch(e) {}
+
+    window.addEventListener("DOMContentLoaded", function() {
+        mouthSvgEl = document.getElementById("cat-mouth-svg");
+        eyelidsEl = document.getElementById("cat-eyelids");
+        earLeftEl = document.getElementById("cat-ear-left");
+        earRightEl = document.getElementById("cat-ear-right");
+
+        initCatDragging();
+        runLipSyncLoop();
+        scheduleBlink();
+        scheduleEarTwitch();
+        scheduleNextWander();
     });
 })();
 </script>

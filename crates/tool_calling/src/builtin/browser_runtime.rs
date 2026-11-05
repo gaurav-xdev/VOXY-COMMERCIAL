@@ -99,6 +99,92 @@ pub struct BrowserRuntime {
     http_client: reqwest::Client,
 }
 
+/// Custom DNS resolver enforcing strict SSRF and DNS rebinding protections.
+///
+/// Binds destination validation directly to the socket connection stage:
+/// - Checks hostname against restricted internal/cloud metadata namespaces.
+/// - Performs DNS resolution and enforces that EVERY resolved address is safe.
+/// - If any IP address belongs to loopback, private, link-local, or cloud metadata ranges,
+///   the connection is blocked immediately at the DNS resolution level.
+#[derive(Debug, Clone, Default)]
+pub struct SsrfSafeDnsResolver;
+
+impl reqwest::dns::Resolve for SsrfSafeDnsResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let host = name.as_str().to_string();
+        Box::pin(async move {
+            let unbracketed = host.trim_start_matches('[').trim_end_matches(']');
+
+            // 1. Restricted domain/namespace check
+            if voxy_security::is_host_restricted(unbracketed) {
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    format!("SSRF defense: host '{}' is in a restricted namespace", host),
+                )) as Box<dyn std::error::Error + Send + Sync>);
+            }
+
+            // 2. Direct IP literal check
+            if let Ok(ip) = unbracketed.parse::<std::net::IpAddr>() {
+                if voxy_security::is_ip_restricted(ip) {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        format!("SSRF defense: destination IP '{}' is restricted", ip),
+                    )) as Box<dyn std::error::Error + Send + Sync>);
+                }
+                let addrs: Box<dyn Iterator<Item = std::net::SocketAddr> + Send> =
+                    Box::new(std::iter::once(std::net::SocketAddr::new(ip, 0)));
+                return Ok(addrs);
+            }
+
+            // 3. Hostname resolution in blocking thread pool
+            let host_query = format!("{}:0", host);
+            let resolved_addrs = tokio::task::spawn_blocking(move || {
+                use std::net::ToSocketAddrs;
+                host_query.to_socket_addrs()
+            })
+            .await
+            .map_err(|e| {
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("DNS lookup task failure: {e}"),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?
+            .map_err(|e| {
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!("DNS lookup failed for '{host}': {e}"),
+                )) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+
+            let mut safe_addrs = Vec::new();
+            for addr in resolved_addrs {
+                if voxy_security::is_ip_restricted(addr.ip()) {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::PermissionDenied,
+                        format!(
+                            "SSRF / DNS rebinding defense: host '{}' resolved to restricted IP '{}'",
+                            host,
+                            addr.ip()
+                        ),
+                    )) as Box<dyn std::error::Error + Send + Sync>);
+                }
+                safe_addrs.push(addr);
+            }
+
+            if safe_addrs.is_empty() {
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!("Host '{host}' did not resolve to any addresses"),
+                )) as Box<dyn std::error::Error + Send + Sync>);
+            }
+
+            let addrs: Box<dyn Iterator<Item = std::net::SocketAddr> + Send> =
+                Box::new(safe_addrs.into_iter());
+            Ok(addrs)
+        })
+    }
+}
+
 impl BrowserRuntime {
     /// Create a new browser runtime with configuration.
     pub fn new(config: BrowserConfig) -> Self {
@@ -181,79 +267,47 @@ impl BrowserRuntime {
         None
     }
 
-    /// Validate whether a URL is permitted according to safety rules.
+    /// Create an HTTP client configured with SSRF redirect validation and connection-bound DNS safety.
+    /// Intercepts every redirect hop, enforces hop limits, and binds socket resolution to safe IPs.
+    pub fn create_safe_http_client(timeout: Duration) -> Result<reqwest::Client> {
+        let redirect_policy = reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 5 {
+                return attempt.error("Too many redirects (max 5 hops)");
+            }
+            let target = attempt.url().as_str();
+            if let Err(e) = voxy_security::validate_destination_url_str(target) {
+                return attempt.error(format!("SSRF defense blocked redirect to restricted destination: {e}"));
+            }
+            attempt.follow()
+        });
+
+        reqwest::Client::builder()
+            .timeout(timeout)
+            .redirect(redirect_policy)
+            .dns_resolver(Arc::new(SsrfSafeDnsResolver))
+            .build()
+            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to build HTTP client: {e}")))
+    }
+
     /// Validate whether a URL is permitted according to safety rules.
     /// Checks scheme, host string, and performs DNS resolution to ensure public hostnames
     /// do not resolve to private, loopback, link-local, or cloud metadata IP addresses.
     pub fn validate_url(&self, url_str: &str) -> Result<()> {
-        let url = reqwest::Url::parse(url_str)
-            .map_err(|e| ToolError::InvalidParams(format!("Invalid URL: {e}")))?;
-
-        let scheme = url.scheme();
-        if scheme != "http" && scheme != "https" {
-            return Err(ToolError::InvalidParams(format!(
-                "Unsupported scheme '{scheme}'. Only http:// and https:// are permitted"
-            )));
-        }
-
-        if let Some(host) = url.host_str() {
-            let host_lower = host.to_lowercase();
-            let mut is_restricted = host_lower == "localhost"
-                || host_lower == "127.0.0.1"
-                || host_lower == "::1"
-                || host_lower.starts_with("127.")
-                || host_lower == "169.254.169.254" // Cloud instance metadata
-                || host_lower == "metadata.google.internal";
-
-            // Helper to check if an IpAddr is private / restricted
-            let is_ip_restricted = |ip: std::net::IpAddr| -> bool {
-                match ip {
-                    std::net::IpAddr::V4(v4) => {
-                        let octets = v4.octets();
-                        v4.is_loopback()
-                            || v4.is_link_local()
-                            || octets[0] == 10 // 10.0.0.0/8
-                            || (octets[0] == 172 && (16..=31).contains(&octets[1])) // 172.16.0.0/12
-                            || (octets[0] == 192 && octets[1] == 168) // 192.168.0.0/16
-                            || (octets[0] == 100 && (64..=127).contains(&octets[1])) // 100.64.0.0/10 CGNAT
-                            || v4.is_broadcast()
-                            || v4.is_unspecified()
-                    }
-                    std::net::IpAddr::V6(v6) => {
-                        v6.is_loopback()
-                            || v6.is_unspecified()
-                            || (v6.segments()[0] & 0xfe00) == 0xfc00 // Unique local IPv6 fc00::/7
-                    }
-                }
-            };
-
-            // 1. Check IP literal
-            if let Ok(ip) = host_lower.parse::<std::net::IpAddr>() {
-                if is_ip_restricted(ip) {
-                    is_restricted = true;
-                }
-            } else if !is_restricted && !self.config.allow_loopback {
-                // 2. Resolve hostname to detect DNS Rebinding / Private IP resolution
-                use std::net::ToSocketAddrs;
-                let port = url.port_or_known_default().unwrap_or(80);
-                if let Ok(addrs) = format!("{}:{}", host, port).to_socket_addrs() {
-                    for addr in addrs {
-                        if is_ip_restricted(addr.ip()) {
-                            is_restricted = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if is_restricted && !self.config.allow_loopback {
-                return Err(ToolError::SecurityViolation(format!(
-                    "Navigation to private/loopback endpoint '{host}' is prohibited by security policy"
+        if self.config.allow_loopback {
+            let url = reqwest::Url::parse(url_str)
+                .map_err(|e| ToolError::InvalidParams(format!("Invalid URL: {e}")))?;
+            let scheme = url.scheme();
+            if scheme != "http" && scheme != "https" {
+                return Err(ToolError::InvalidParams(format!(
+                    "Unsupported scheme '{scheme}'. Only http:// and https:// are permitted"
                 )));
             }
+            return Ok(());
         }
 
-        Ok(())
+        voxy_security::validate_destination_url_str(url_str)
+            .map(|_| ())
+            .map_err(|e| ToolError::SecurityViolation(e.to_string()))
     }
 
     /// Launch browser process with CDP debugging enabled.

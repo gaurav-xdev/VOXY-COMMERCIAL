@@ -51,8 +51,9 @@ impl TransactionJournal {
     pub fn begin(&self) -> Result<ActiveTransaction> {
         let tx_id = Uuid::new_v4();
         let tx_dir = self.journal_root.join(tx_id.to_string());
-        fs::create_dir_all(tx_dir.join("pre_images"))
-            .map_err(|e| HarnessError::TransactionError(format!("Failed to create journal dir: {}", e)))?;
+        fs::create_dir_all(tx_dir.join("pre_images")).map_err(|e| {
+            HarnessError::TransactionError(format!("Failed to create journal dir: {}", e))
+        })?;
 
         let manifest = TransactionManifest {
             tx_id,
@@ -62,8 +63,9 @@ impl TransactionJournal {
             files: Vec::new(),
         };
 
-        let manifest_bytes = serde_json::to_vec_pretty(&manifest)
-            .map_err(|e| HarnessError::TransactionError(format!("Manifest serialization: {}", e)))?;
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).map_err(|e| {
+            HarnessError::TransactionError(format!("Manifest serialization: {}", e))
+        })?;
         fs::write(tx_dir.join("manifest.json"), manifest_bytes)
             .map_err(|e| HarnessError::TransactionError(format!("Manifest write: {}", e)))?;
 
@@ -80,8 +82,9 @@ impl TransactionJournal {
             return Ok(recovered);
         }
 
-        let entries = fs::read_dir(&self.journal_root)
-            .map_err(|e| HarnessError::TransactionError(format!("Failed to read journal dir: {}", e)))?;
+        let entries = fs::read_dir(&self.journal_root).map_err(|e| {
+            HarnessError::TransactionError(format!("Failed to read journal dir: {}", e))
+        })?;
 
         for entry in entries.flatten() {
             let tx_dir = entry.path();
@@ -121,12 +124,17 @@ impl ActiveTransaction {
 
         let full_target = self.workspace_root.join(rel_path);
         let existed = full_target.exists();
-        let backup_name = format!("{}_{}", self.manifest.files.len(), rel_path.file_name().unwrap_or_default().to_string_lossy());
+        let backup_name = format!(
+            "{}_{}",
+            self.manifest.files.len(),
+            rel_path.file_name().unwrap_or_default().to_string_lossy()
+        );
         let backup_path = self.tx_dir.join("pre_images").join(&backup_name);
 
         if existed {
-            fs::copy(&full_target, &backup_path)
-                .map_err(|e| HarnessError::TransactionError(format!("Pre-image backup failed: {}", e)))?;
+            fs::copy(&full_target, &backup_path).map_err(|e| {
+                HarnessError::TransactionError(format!("Pre-image backup failed: {}", e))
+            })?;
         }
 
         self.manifest.files.push(JournaledFile {
@@ -169,8 +177,9 @@ impl ActiveTransaction {
     }
 
     fn save_manifest(&self) -> Result<()> {
-        let manifest_bytes = serde_json::to_vec_pretty(&self.manifest)
-            .map_err(|e| HarnessError::TransactionError(format!("Manifest serialization: {}", e)))?;
+        let manifest_bytes = serde_json::to_vec_pretty(&self.manifest).map_err(|e| {
+            HarnessError::TransactionError(format!("Manifest serialization: {}", e))
+        })?;
         fs::write(self.tx_dir.join("manifest.json"), manifest_bytes)
             .map_err(|e| HarnessError::TransactionError(format!("Manifest write: {}", e)))?;
         Ok(())

@@ -4,6 +4,7 @@
 
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{broadcast, watch};
@@ -13,6 +14,38 @@ use crate::error::{Result, RuntimeError};
 
 /// Counter used to keep temp file names unique within this process.
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+fn default_speed() -> f64 {
+    1.0
+}
+
+fn default_pitch() -> f64 {
+    1.0
+}
+
+fn default_false() -> bool {
+    false
+}
+
+fn default_coding_model() -> String {
+    "llama3.2:3b".to_string()
+}
+
+fn default_voice_model() -> String {
+    "llama3.2:3b".to_string()
+}
+
+fn default_embedding_model() -> String {
+    "nomic-embed-text".to_string()
+}
+
+fn default_risk_threshold() -> String {
+    "prompt".to_string()
+}
+
+fn default_model_unload_minutes() -> u32 {
+    15
+}
 
 /// Application settings snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +63,14 @@ pub struct SettingsSnapshot {
     pub developer: DeveloperSettings,
     pub plugins: PluginSettings,
     pub appearance: AppearanceSettings,
+    #[serde(default)]
+    pub profile: ProfileSettings,
+    #[serde(default)]
+    pub companion: CompanionSettings,
+    #[serde(default)]
+    pub security: SecuritySettings,
+    #[serde(default)]
+    pub integrations: HashMap<String, IntegrationEntry>,
 }
 
 /// Voice settings.
@@ -53,6 +94,14 @@ pub struct VoiceSettings {
     pub stt_provider: Option<String>,
     #[serde(default = "default_sample_rate")]
     pub sample_rate: u32,
+    #[serde(default = "default_speed")]
+    pub speech_speed: f64,
+    #[serde(default = "default_pitch")]
+    pub speech_pitch: f64,
+    #[serde(default = "default_true")]
+    pub interruption_barge_in: bool,
+    #[serde(default)]
+    pub voice_name: Option<String>,
 }
 
 fn default_sample_rate() -> u32 {
@@ -76,6 +125,10 @@ impl Default for VoiceSettings {
             tts_provider: Some("cartesia".to_string()),
             stt_provider: Some("groq".to_string()),
             sample_rate: 48000,
+            speech_speed: 1.0,
+            speech_pitch: 1.0,
+            interruption_barge_in: true,
+            voice_name: Some("en-us-amber".to_string()),
         }
     }
 }
@@ -92,6 +145,16 @@ pub struct ModelSettings {
     pub local_only: bool,
     #[serde(default)]
     pub fallback_providers: Vec<String>,
+    #[serde(default)]
+    pub enable_fallback: bool,
+    #[serde(default = "default_coding_model")]
+    pub coding_model: String,
+    #[serde(default = "default_voice_model")]
+    pub voice_model: String,
+    #[serde(default = "default_embedding_model")]
+    pub embedding_model: String,
+    #[serde(default)]
+    pub provider_keys: HashMap<String, String>,
 }
 
 impl Default for ModelSettings {
@@ -109,6 +172,11 @@ impl Default for ModelSettings {
                 "groq".to_string(),
                 "openai".to_string(),
             ],
+            enable_fallback: false,
+            coding_model: "llama3.2:3b".to_string(),
+            voice_model: "llama3.2:3b".to_string(),
+            embedding_model: "nomic-embed-text".to_string(),
+            provider_keys: HashMap::new(),
         }
     }
 }
@@ -121,6 +189,10 @@ pub struct MemorySettings {
     pub auto_consolidate: bool,
     pub retention_days: u32,
     pub embedding_model: String,
+    #[serde(default)]
+    pub private_session: bool,
+    #[serde(default)]
+    pub user_persona_notes: String,
 }
 
 impl Default for MemorySettings {
@@ -131,6 +203,8 @@ impl Default for MemorySettings {
             auto_consolidate: true,
             retention_days: 90,
             embedding_model: "default".to_string(),
+            private_session: false,
+            user_persona_notes: String::new(),
         }
     }
 }
@@ -142,6 +216,14 @@ pub struct AutomationSettings {
     pub require_consent: bool,
     pub max_concurrent_tasks: usize,
     pub timeout_seconds: u64,
+    #[serde(default = "default_true")]
+    pub background_tasks_allowed: bool,
+    #[serde(default = "default_true")]
+    pub pause_on_battery: bool,
+    #[serde(default = "default_risk_threshold")]
+    pub action_risk_threshold: String,
+    #[serde(default)]
+    pub global_tasks_paused: bool,
 }
 
 impl Default for AutomationSettings {
@@ -151,6 +233,10 @@ impl Default for AutomationSettings {
             require_consent: true,
             max_concurrent_tasks: 3,
             timeout_seconds: 30,
+            background_tasks_allowed: true,
+            pause_on_battery: true,
+            action_risk_threshold: "prompt".to_string(),
+            global_tasks_paused: false,
         }
     }
 }
@@ -202,6 +288,8 @@ pub struct PerformanceSettings {
     pub max_cpu_percent: f64,
     pub gpu_acceleration: bool,
     pub background_throttle: bool,
+    #[serde(default = "default_model_unload_minutes")]
+    pub model_unload_timeout_minutes: u32,
 }
 
 impl Default for PerformanceSettings {
@@ -211,6 +299,7 @@ impl Default for PerformanceSettings {
             max_cpu_percent: 50.0,
             gpu_acceleration: true,
             background_throttle: true,
+            model_unload_timeout_minutes: 15,
         }
     }
 }
@@ -288,6 +377,172 @@ impl Default for AppearanceSettings {
     }
 }
 
+/// User profile and general preferences.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProfileSettings {
+    #[serde(default = "default_user_name")]
+    pub user_name: String,
+    #[serde(default = "default_user_email")]
+    pub user_email: String,
+    #[serde(default = "default_org")]
+    pub organization: String,
+    #[serde(default = "default_role")]
+    pub role: String,
+    #[serde(default = "default_language")]
+    pub language: String,
+    #[serde(default = "default_close_behavior")]
+    pub close_behavior: String,
+}
+
+fn default_user_name() -> String {
+    "Operator".to_string()
+}
+fn default_user_email() -> String {
+    "operator@osmoo.in".to_string()
+}
+fn default_org() -> String {
+    "OSMOO Workspace".to_string()
+}
+fn default_role() -> String {
+    "Primary Administrator".to_string()
+}
+fn default_language() -> String {
+    "en".to_string()
+}
+fn default_close_behavior() -> String {
+    "minimize_to_tray".to_string()
+}
+
+impl Default for ProfileSettings {
+    fn default() -> Self {
+        Self {
+            user_name: default_user_name(),
+            user_email: default_user_email(),
+            organization: default_org(),
+            role: default_role(),
+            language: default_language(),
+            close_behavior: default_close_behavior(),
+        }
+    }
+}
+
+/// Companion character appearance and interaction settings.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CompanionSettings {
+    #[serde(default = "default_companion_char")]
+    pub character_id: String, // "cat", "dragon", "robot", "particle_orb"
+    #[serde(default = "default_char_size")]
+    pub character_size: f64, // 0.5 to 2.0
+    #[serde(default = "default_pos_preset")]
+    pub position_preset: String, // "bottom-right", "bottom-left", "top-right", "center-floating"
+    #[serde(default = "default_true")]
+    pub visibility: bool,
+    #[serde(default = "default_true")]
+    pub animations_enabled: bool,
+    #[serde(default = "default_expression")]
+    pub expression: String, // "neutral", "curious", "focused", "celebratory"
+    #[serde(default = "default_true")]
+    pub lip_sync: bool,
+    #[serde(default = "default_true")]
+    pub draggable: bool,
+    #[serde(default = "default_false")]
+    pub click_through: bool,
+    #[serde(default = "default_overlay_mode")]
+    pub desktop_overlay_mode: String,
+}
+
+fn default_companion_char() -> String {
+    "cat".to_string()
+}
+fn default_char_size() -> f64 {
+    1.0
+}
+fn default_pos_preset() -> String {
+    "bottom-right".to_string()
+}
+fn default_expression() -> String {
+    "neutral".to_string()
+}
+fn default_overlay_mode() -> String {
+    "floating".to_string()
+}
+
+impl Default for CompanionSettings {
+    fn default() -> Self {
+        Self {
+            character_id: default_companion_char(),
+            character_size: default_char_size(),
+            position_preset: default_pos_preset(),
+            visibility: true,
+            animations_enabled: true,
+            expression: default_expression(),
+            lip_sync: true,
+            draggable: true,
+            click_through: false,
+            desktop_overlay_mode: default_overlay_mode(),
+        }
+    }
+}
+
+/// Security controls and permission bounds.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SecuritySettings {
+    #[serde(default = "default_fs_access")]
+    pub file_system_access: String, // "workspace_only", "read_only", "full"
+    #[serde(default = "default_browser_access")]
+    pub browser_automation: String, // "prompt", "sandboxed", "disabled"
+    #[serde(default = "default_shell_access")]
+    pub shell_execution: String, // "require_confirmation", "disabled", "allow_workspace"
+    #[serde(default = "default_true")]
+    pub require_approval_sensitive: bool,
+    #[serde(default = "default_true")]
+    pub require_approval_financial: bool,
+    #[serde(default = "default_true")]
+    pub require_approval_email: bool,
+    #[serde(default = "default_true")]
+    pub require_approval_scripts: bool,
+    #[serde(default = "default_false")]
+    pub emergency_stopped: bool,
+    #[serde(default = "default_true")]
+    pub audit_logging_enabled: bool,
+}
+
+fn default_fs_access() -> String {
+    "workspace_only".to_string()
+}
+fn default_browser_access() -> String {
+    "prompt".to_string()
+}
+fn default_shell_access() -> String {
+    "require_confirmation".to_string()
+}
+
+impl Default for SecuritySettings {
+    fn default() -> Self {
+        Self {
+            file_system_access: default_fs_access(),
+            browser_automation: default_browser_access(),
+            shell_execution: default_shell_access(),
+            require_approval_sensitive: true,
+            require_approval_financial: true,
+            require_approval_email: true,
+            require_approval_scripts: true,
+            emergency_stopped: false,
+            audit_logging_enabled: true,
+        }
+    }
+}
+
+/// Status record for external connected integrations.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IntegrationEntry {
+    pub name: String,
+    pub category: String,
+    pub status: String, // "not_configured", "disconnected", "connected", "expired", "error"
+    pub granted_scopes: Vec<String>,
+    pub last_checked: Option<String>,
+}
+
 impl Default for SettingsSnapshot {
     fn default() -> Self {
         Self {
@@ -303,6 +558,10 @@ impl Default for SettingsSnapshot {
             developer: DeveloperSettings::default(),
             plugins: PluginSettings::default(),
             appearance: AppearanceSettings::default(),
+            profile: ProfileSettings::default(),
+            companion: CompanionSettings::default(),
+            security: SecuritySettings::default(),
+            integrations: HashMap::new(),
         }
     }
 }
@@ -481,6 +740,34 @@ impl SettingsManager {
             errors.push(ValidationError {
                 field: "appearance.font_size".to_string(),
                 message: "Must be between 8 and 72".to_string(),
+            });
+        }
+
+        if settings.companion.character_size < 0.2 || settings.companion.character_size > 3.0 {
+            errors.push(ValidationError {
+                field: "companion.character_size".to_string(),
+                message: "Must be between 0.2 and 3.0".to_string(),
+            });
+        }
+
+        if settings.voice.speech_speed < 0.25 || settings.voice.speech_speed > 3.0 {
+            errors.push(ValidationError {
+                field: "voice.speech_speed".to_string(),
+                message: "Must be between 0.25 and 3.0".to_string(),
+            });
+        }
+
+        if settings.voice.wake_words.len() > 10 {
+            errors.push(ValidationError {
+                field: "voice.wake_words".to_string(),
+                message: "A maximum of 10 wake words is supported".to_string(),
+            });
+        }
+
+        if !settings.profile.user_email.is_empty() && !settings.profile.user_email.contains('@') {
+            errors.push(ValidationError {
+                field: "profile.user_email".to_string(),
+                message: "Must be a valid email address".to_string(),
             });
         }
 
@@ -710,6 +997,75 @@ mod tests {
             leftovers.is_empty(),
             "no temp files may be left behind: {:?}",
             leftovers
+        );
+    }
+
+    #[test]
+    fn settings_expanded_sections_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings_expanded.toml");
+
+        let mut s = SettingsSnapshot::default();
+        s.profile.user_name = "Alex Mercer".to_string();
+        s.profile.language = "es".to_string();
+        s.companion.character_id = "dragon".to_string();
+        s.companion.character_size = 1.25;
+        s.companion.expression = "focused".to_string();
+        s.security.file_system_access = "workspace_only".to_string();
+        s.security.require_approval_financial = true;
+        s.models.enable_fallback = false;
+        s.models.coding_model = "claude-3-5-sonnet-20241022".to_string();
+        s.voice.wake_words = vec![
+            "Hey OSMOO".to_string(),
+            "OSMOO".to_string(),
+            "Dragon".to_string(),
+        ];
+        s.voice.speech_speed = 1.15;
+
+        let toml_str = toml::to_string_pretty(&s).unwrap();
+        std::fs::write(&path, &toml_str).unwrap();
+
+        let loaded = SettingsManager::load_from_file(&path).unwrap();
+        assert_eq!(loaded.profile.user_name, "Alex Mercer");
+        assert_eq!(loaded.profile.language, "es");
+        assert_eq!(loaded.companion.character_id, "dragon");
+        assert_eq!(loaded.companion.character_size, 1.25);
+        assert_eq!(loaded.companion.expression, "focused");
+        assert!(!loaded.models.enable_fallback);
+        assert_eq!(loaded.models.coding_model, "claude-3-5-sonnet-20241022");
+        assert_eq!(loaded.voice.wake_words.len(), 3);
+        assert_eq!(loaded.voice.speech_speed, 1.15);
+    }
+
+    #[test]
+    fn settings_validate_wake_words_limit() {
+        let mgr = SettingsManager::new().unwrap();
+        let mut s = SettingsSnapshot::default();
+        // 11 wake words exceeds maximum of 10
+        s.voice.wake_words = (1..=11).map(|i| format!("WakeWord{}", i)).collect();
+        let res = mgr.validate(&s);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().to_string().contains("maximum of 10 wake words"));
+    }
+
+    #[test]
+    fn settings_validate_character_size_bounds() {
+        let mgr = SettingsManager::new().unwrap();
+        let mut s = SettingsSnapshot::default();
+        s.companion.character_size = 4.0;
+        assert!(mgr.validate(&s).is_err());
+        s.companion.character_size = 0.1;
+        assert!(mgr.validate(&s).is_err());
+        s.companion.character_size = 1.0;
+        assert!(mgr.validate(&s).is_ok());
+    }
+
+    #[test]
+    fn settings_strict_routing_policy_preserved() {
+        let s = SettingsSnapshot::default();
+        assert!(
+            !s.models.enable_fallback,
+            "OSMOO strict model routing must default to enable_fallback = false"
         );
     }
 }

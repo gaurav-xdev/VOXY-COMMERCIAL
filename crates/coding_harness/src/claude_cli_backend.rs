@@ -1,11 +1,14 @@
 use crate::process_runner::ProcessRunner;
-use crate::types::{CommandExecutionInput, HarnessError, Result};
+use crate::types::{HarnessError, ProcessExecutionInput, Result};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// Safe adapter for delegating coding tasks to an installed Claude Code CLI backend.
 /// Designed according to REA findings: non-interactive invocation via `-p`, session retention,
 /// and execution within Windows Job Objects to ensure clean child termination.
+///
+/// Security: Prompt arguments are passed strictly through structured process arguments (CreateProcessW),
+/// completely eliminating shell interpolation, metacharacter expansion, and command injection.
 #[derive(Debug, Clone)]
 pub struct ClaudeCliBackend {
     binary_path: PathBuf,
@@ -15,10 +18,41 @@ pub struct ClaudeCliBackend {
 }
 
 impl ClaudeCliBackend {
+    /// Create a backend directly pointing to a verified binary path.
+    pub fn new(binary_path: &Path, working_dir: &Path) -> Self {
+        Self {
+            binary_path: binary_path.to_path_buf(),
+            working_dir: working_dir.to_path_buf(),
+            session_id: None,
+            timeout: Duration::from_secs(120),
+        }
+    }
+
     /// Detect if Claude Code CLI is available on the system PATH or common install locations.
     pub fn detect(working_dir: &Path) -> Option<Self> {
+        // On Windows, prefer direct .exe if available in npm package to avoid cmd wrapper
+        if cfg!(windows) {
+            if let Ok(app_data) = std::env::var("APPDATA") {
+                let direct_exe = PathBuf::from(&app_data)
+                    .join("npm")
+                    .join("node_modules")
+                    .join("@anthropic-ai")
+                    .join("claude-code")
+                    .join("bin")
+                    .join("claude.exe");
+                if direct_exe.is_file() {
+                    return Some(Self::new(&direct_exe, working_dir));
+                }
+
+                let npm_claude = PathBuf::from(app_data).join("npm").join("claude.cmd");
+                if npm_claude.is_file() {
+                    return Some(Self::new(&npm_claude, working_dir));
+                }
+            }
+        }
+
         let candidates = if cfg!(windows) {
-            vec!["claude.cmd", "claude.exe", "claude"]
+            vec!["claude.exe", "claude.cmd", "claude"]
         } else {
             vec!["claude"]
         };
@@ -28,28 +62,8 @@ impl ClaudeCliBackend {
                 for candidate in &candidates {
                     let full = dir.join(candidate);
                     if full.is_file() {
-                        return Some(Self {
-                            binary_path: full,
-                            working_dir: working_dir.to_path_buf(),
-                            session_id: None,
-                            timeout: Duration::from_secs(120),
-                        });
+                        return Some(Self::new(&full, working_dir));
                     }
-                }
-            }
-        }
-
-        // Check common npm global install paths on Windows
-        if cfg!(windows) {
-            if let Ok(app_data) = std::env::var("APPDATA") {
-                let npm_claude = PathBuf::from(app_data).join("npm").join("claude.cmd");
-                if npm_claude.exists() {
-                    return Some(Self {
-                        binary_path: npm_claude,
-                        working_dir: working_dir.to_path_buf(),
-                        session_id: None,
-                        timeout: Duration::from_secs(120),
-                    });
                 }
             }
         }
@@ -69,21 +83,17 @@ impl ClaudeCliBackend {
 
     /// Query the installed Claude Code CLI version (e.g. "2.1.215 (Claude Code)").
     pub async fn get_version(&self) -> Result<String> {
-        let cmd = if cfg!(windows) {
-            format!("& \"{}\" --version", self.binary_path.display())
-        } else {
-            format!("\"{}\" --version", self.binary_path.display())
-        };
-
-        let input = CommandExecutionInput {
-            command: cmd,
+        let input = ProcessExecutionInput {
+            program: self.binary_path.clone(),
+            args: vec!["--version".into()],
             cwd: Some(self.working_dir.clone()),
             timeout_ms: Some(10_000),
             description: Some("Query Claude Code version".into()),
-            run_in_background: false,
+            stdin: None,
+            require_job_object: true,
         };
 
-        let result = ProcessRunner::run_command(&input, &self.working_dir).await?;
+        let result = ProcessRunner::run_process(&input, &self.working_dir).await?;
         if result.exit_code == 0 {
             Ok(result.stdout.trim().to_string())
         } else {
@@ -95,25 +105,33 @@ impl ClaudeCliBackend {
     }
 
     /// Execute a non-interactive coding task via the Claude Code CLI.
-    /// Uses bounded execution and process tree kill on timeout.
+    /// Passes prompt arguments directly through CreateProcessW argument structures,
+    /// preventing shell expansion or command injection of untrusted user prompts.
     pub async fn execute_task(&self, prompt: &str) -> Result<String> {
-        let prefix = if cfg!(windows) { "& " } else { "" };
-        let mut cmd_str = format!("{}\"{}\" -p \"{}\"", prefix, self.binary_path.display(), prompt.replace('"', "\\\""));
+        let mut args = vec!["-p".into(), prompt.to_string()];
         if let Some(ref sid) = self.session_id {
-            cmd_str.push_str(&format!(" --session-id \"{}\"", sid));
+            args.push("--session-id".into());
+            args.push(sid.clone());
         }
 
-        let input = CommandExecutionInput {
-            command: cmd_str,
+        let input = ProcessExecutionInput {
+            program: self.binary_path.clone(),
+            args,
             cwd: Some(self.working_dir.clone()),
             timeout_ms: Some(self.timeout.as_millis() as u64),
-            description: Some(format!("Execute Claude CLI task: {}", prompt)),
-            run_in_background: false,
+            description: Some("Execute Claude CLI task safely".into()),
+            stdin: None,
+            require_job_object: true,
         };
 
-        let result = ProcessRunner::run_command(&input, &self.working_dir).await?;
+        let result = ProcessRunner::run_process(&input, &self.working_dir).await?;
         if result.exit_code == 0 {
             Ok(result.stdout)
+        } else if result.timed_out {
+            Err(HarnessError::Timeout(format!(
+                "Claude CLI task timed out after {} ms",
+                self.timeout.as_millis()
+            )))
         } else {
             Err(HarnessError::CommandError(format!(
                 "Claude CLI task exited with code {}: {}",
@@ -125,5 +143,9 @@ impl ClaudeCliBackend {
 
     pub fn binary_path(&self) -> &Path {
         &self.binary_path
+    }
+
+    pub fn working_dir(&self) -> &Path {
+        &self.working_dir
     }
 }

@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::bridge::LocalModelDiscovery;
 use crate::components::{
     AssistantCore, AssistantHud, ChatTurn, CompanionMode, CoreState, OnboardingConfig,
-    OnboardingWizard, StartupSplash, TelemetryStats, THREE_JS_CORE_SCRIPT,
+    OnboardingWizard, StartupSplash, TelemetryStats,
 };
 use crate::views::{AuthView, SettingsFormState, SettingsView};
 
@@ -22,7 +22,7 @@ pub fn App() -> Element {
     let splash_status = use_signal(|| "INITIALIZING OSMIORA CORE ARCHITECTURE...".to_string());
 
     let mut core_state = use_signal(|| CoreState::Idle);
-    let mut companion_mode = use_signal(|| CompanionMode::Robot);
+    let mut companion_mode = use_signal(|| CompanionMode::Cat);
     let mut show_settings = use_signal(|| false);
 
     let mut chat_history = use_signal(|| {
@@ -64,7 +64,7 @@ pub fn App() -> Element {
 
             tokio::time::sleep(std::time::Duration::from_millis(450)).await;
             progress_sig.set(0.75);
-            status_sig.set("INITIALIZING 3D COMPANION ENGINE...".to_string());
+            status_sig.set("INITIALIZING 2D CAT COMPANION OVERLAY...".to_string());
 
             // Hydrate historical chat turns from SQLite if available
             if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
@@ -211,9 +211,6 @@ pub fn App() -> Element {
         div { id: "main-app-container",
             style { {crate::styles::APP_CSS} }
 
-            // Embedded Three.js Engine Scripts
-            div { dangerous_inner_html: "{THREE_JS_CORE_SCRIPT}" }
-
             // ── Screen Rendering ────────────────────────────────────────
             match *screen.read() {
                 AppScreen::Splash => rsx! {
@@ -237,6 +234,9 @@ pub fn App() -> Element {
                             spawn(async move {
                                 if let Some(dispatcher) = crate::backend::BackendDispatcher::get_global() {
                                     let _ = dispatcher.dispatch(crate::backend::BackendCommand::CompleteOnboarding(cfg_clone)).await;
+                                }
+                                if let Some(sup) = crate::supervisor::get_global() {
+                                    let _ = sup.start_overlay();
                                 }
                             });
                             screen.set(AppScreen::MainHud);
@@ -322,19 +322,10 @@ pub fn App() -> Element {
                             initial_settings: {
                                 if let Some(br) = crate::bridge::AppBridge::get_global() {
                                     let s = br.settings.get();
-                                    SettingsFormState {
-                                        assistant_name: s.app_name,
-                                        primary_llm: s.models.provider,
-                                        ollama_model: s.models.model,
-                                        autolaunch: true,
-                                        stt_provider: s.voice.stt_provider.unwrap_or_else(|| "groq".to_string()),
-                                        tts_provider: s.voice.tts_provider.unwrap_or_else(|| "cartesia".to_string()),
-                                        audio_sample_rate: s.voice.sample_rate,
-                                        vad_sensitivity: s.voice.wake_word_sensitivity as f32,
-                                        minimize_to_tray: true,
-                                        user_email: br.auth.current_session().map(|sess| sess.email).unwrap_or_else(|| "operator@osmoo.in".to_string()),
-                                        active_tier: br.auth.current_session().map(|sess| sess.active_tier).unwrap_or_else(|| "free".to_string()),
-                                    }
+                                    let session = br.auth.current_session();
+                                    let email = session.as_ref().map(|sess| sess.email.as_str()).unwrap_or("operator@osmoo.in");
+                                    let tier = session.as_ref().map(|sess| sess.active_tier.as_str()).unwrap_or("free");
+                                    SettingsFormState::from_snapshot(&s, email, tier)
                                 } else {
                                     SettingsFormState::default()
                                 }

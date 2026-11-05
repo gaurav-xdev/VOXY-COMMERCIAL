@@ -17,6 +17,7 @@ pub mod notifications;
 pub mod push_to_talk;
 pub mod settings;
 pub mod shortcuts;
+pub mod single_instance;
 pub mod tray;
 pub mod window_manager;
 
@@ -25,3 +26,4 @@ pub use core::{DesktopRuntime, RuntimeConfig};
 pub use error::{Result, RuntimeError};
 pub use events::DesktopEventBridge;
 pub use push_to_talk::{PttState, PushToTalk};
+pub use single_instance::SingleInstanceGuard;

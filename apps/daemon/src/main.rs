@@ -1,3 +1,5 @@
+#![cfg_attr(not(test), windows_subsystem = "windows")]
+
 use std::collections::VecDeque;
 use std::pin::Pin;
 use std::sync::atomic::AtomicBool;
@@ -13,7 +15,7 @@ mod tools;
 use chrono::Timelike;
 use voxy_anthropic::AnthropicProvider;
 use voxy_automation::WindowsUiaBackend;
-use voxy_cognition::{CognitionConfig, CognitiveEngine, InMemoryCognitiveEngine, IntentInput};
+use voxy_cognition::{CognitionConfig, InMemoryCognitiveEngine};
 use voxy_cognitive_orchestrator::bridge::CognitiveBridge;
 use voxy_cognitive_orchestrator::config::OrchestratorConfig;
 use voxy_companion_intelligence::{
@@ -44,13 +46,24 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
         .unwrap_or_else(|_| "ollama".into())
         .to_lowercase();
 
+    let strict_routing = std::env::var("VOXY_ZERO_FALLBACK")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+        || std::env::var("VOXY_STRICT_MODEL_ROUTING")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+
     match provider.as_str() {
         "openai" => {
             let api_key = std::env::var("VOXY_API_KEYS_OPENAI").unwrap_or_default();
             let model = std::env::var("VOXY_OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o-mini".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set, falling back to Ollama");
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_OPENAI not set and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set, falling back to Ollama");
+                    return create_ollama_provider();
+                }
             }
             let config = OpenAIConfig::openai(api_key);
             tracing::info!("[PROVIDER] Using OpenAI: model={}", model);
@@ -61,10 +74,14 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             let model = std::env::var("VOXY_ANTHROPIC_MODEL")
                 .unwrap_or_else(|_| "claude-sonnet-4-20250514".into());
             if api_key.is_empty() {
-                tracing::warn!(
-                    "[PROVIDER] VOXY_API_KEYS_ANTHROPIC not set, falling back to Ollama"
-                );
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_ANTHROPIC not set and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!(
+                        "[PROVIDER] VOXY_API_KEYS_ANTHROPIC not set, falling back to Ollama"
+                    );
+                    return create_ollama_provider();
+                }
             }
             tracing::info!("[PROVIDER] Using Anthropic: model={}", model);
             Arc::new(AnthropicProvider::new(api_key).with_model(&model))
@@ -74,8 +91,12 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             let model =
                 std::env::var("VOXY_GEMINI_MODEL").unwrap_or_else(|_| "gemini-2.0-flash".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_GEMINI not set, falling back to Ollama");
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_GEMINI not set and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_GEMINI not set, falling back to Ollama");
+                    return create_ollama_provider();
+                }
             }
             tracing::info!("[PROVIDER] Using Gemini: model={}", model);
             Arc::new(GeminiProvider::new(api_key).with_model(&model))
@@ -85,10 +106,14 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             let model =
                 std::env::var("VOXY_GROQ_MODEL").unwrap_or_else(|_| "openai/gpt-oss-20b".into());
             if api_key.is_empty() {
-                tracing::warn!(
-                    "[PROVIDER] VOXY_API_KEYS_OPENAI not set for Groq, falling back to Ollama"
-                );
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_OPENAI not set for Groq and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!(
+                        "[PROVIDER] VOXY_API_KEYS_OPENAI not set for Groq, falling back to Ollama"
+                    );
+                    return create_ollama_provider();
+                }
             }
             let config = OpenAIConfig::groq(api_key);
             tracing::info!("[PROVIDER] Using Groq: model={}", model);
@@ -99,8 +124,12 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             let model = std::env::var("VOXY_OPENROUTER_MODEL")
                 .unwrap_or_else(|_| "anthropic/claude-3.5-sonnet".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set for OpenRouter, falling back to Ollama");
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_OPENAI not set for OpenRouter and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set for OpenRouter, falling back to Ollama");
+                    return create_ollama_provider();
+                }
             }
             let config = OpenAIConfig::openrouter(api_key);
             tracing::info!("[PROVIDER] Using OpenRouter: model={}", model);
@@ -114,8 +143,12 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
             let model = std::env::var("VOXY_NVIDIA_MODEL")
                 .unwrap_or_else(|_| "meta/llama-3.3-70b-instruct".into());
             if api_key.is_empty() {
-                tracing::warn!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set, falling back to Ollama");
-                return create_ollama_provider();
+                if strict_routing {
+                    tracing::error!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set and strict routing active. Rejecting fallback to Ollama.");
+                } else {
+                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set, falling back to Ollama");
+                    return create_ollama_provider();
+                }
             }
             let config = OpenAIConfig::nvidia_nim(api_key);
             tracing::info!("[PROVIDER] Using NVIDIA NIM: model={}", model);
@@ -1060,7 +1093,7 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
             move |text: String,
                   stream_sink: Option<tokio::sync::mpsc::Sender<String>>|
                   -> futures_util::future::BoxFuture<'static, Result<String, String>> {
-                let cognitive = cognitive.clone();
+                let _cognitive = cognitive.clone();
                 let memory = memory_clone.clone();
                 let metrics = metrics_ref.clone();
                 let exp_input = exp_input.clone();
@@ -1437,24 +1470,15 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                         .trim()
                                         .to_string();
                                     if cleaned.is_empty() {
-                                        pick_echo(&text)
+                                        format!("No response received from {}.", llm.name())
                                     } else {
                                         // Sanitize LLM output to prevent system prompt leakage
                                         sanitize_llm_output(&cleaned)
                                     }
                                 }
                                 Err(e) => {
-                                    tracing::warn!("LLM streaming failed: {e} — using fallback");
-                                    let intent = IntentInput {
-                                        raw_text: text.clone(),
-                                        context: None,
-                                        source: "voice".to_string(),
-                                        metadata: std::collections::HashMap::new(),
-                                    };
-                                    match cognitive.process(&intent).await {
-                                        Ok(_) => pick_echo(&text),
-                                        Err(_) => pick_echo(&text),
-                                    }
+                                    tracing::warn!("LLM streaming failed: {e}");
+                                    format!("I encountered an issue contacting the AI provider ({}): {e}. Please verify your connection and API keys.", llm.name())
                                 }
                             }
                         }
@@ -1474,18 +1498,8 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                     }
                                 }
                                 Err(e) => {
-                                    tracing::warn!("LLM call failed: {e} — using fallback");
-                                    // Fallback to intent matching
-                                    let intent = IntentInput {
-                                        raw_text: text.clone(),
-                                        context: None,
-                                        source: "voice".to_string(),
-                                        metadata: std::collections::HashMap::new(),
-                                    };
-                                    match cognitive.process(&intent).await {
-                                        Ok(_) => pick_echo(&text),
-                                        Err(_) => pick_echo(&text),
-                                    }
+                                    tracing::warn!("LLM call failed: {e}");
+                                    format!("I encountered an issue contacting the AI provider ({}): {e}. Please verify your connection and API keys.", llm.name())
                                 }
                             }
                         }
@@ -2126,6 +2140,15 @@ async fn main() {
         );
         return;
     }
+
+    let _instance_guard = match voxy_desktop_runtime::SingleInstanceGuard::acquire("OSMOO_DAEMON_INSTANCE_MUTEX") {
+        Some(guard) => guard,
+        None => {
+            eprintln!("[INFO] Another instance of OSMOO daemon is already active. Exiting cleanly.");
+            tracing::info!("[INSTANCE] Another instance of OSMOO daemon is already active. Exiting cleanly.");
+            return;
+        }
+    };
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = Arc::new(VoiceMetrics::new());

@@ -17,6 +17,8 @@ parking_lot = { workspace = true }
 uuid = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+zip = { version = "9.0", default-features = false, features = ["deflate"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [dev-dependencies]
 tempfile = "3"

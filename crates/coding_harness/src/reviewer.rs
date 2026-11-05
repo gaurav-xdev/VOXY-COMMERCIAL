@@ -20,7 +20,9 @@ impl Reviewer {
 
     pub fn review_diff(&self, diff_content: &str) -> Result<CodeReviewReport> {
         if diff_content.trim().is_empty() {
-            return Err(HarnessError::EditError("Empty diff cannot be reviewed".into()));
+            return Err(HarnessError::EditError(
+                "Empty diff cannot be reviewed".into(),
+            ));
         }
 
         let report = self.inner.review_diff(diff_content);

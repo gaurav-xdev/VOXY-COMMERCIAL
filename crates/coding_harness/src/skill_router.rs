@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::Path;
+use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillSuggestion {
@@ -20,7 +21,9 @@ impl SkillRouter {
             "rs" => {
                 suggestions.push(SkillSuggestion {
                     name: "clean-code".into(),
-                    description: "Rust clean code invariants, ownership patterns, and clippy alignment".into(),
+                    description:
+                        "Rust clean code invariants, ownership patterns, and clippy alignment"
+                            .into(),
                     matched_triggers: vec!["rs".into(), "rust".into()],
                 });
                 suggestions.push(SkillSuggestion {
@@ -32,7 +35,8 @@ impl SkillRouter {
             "ts" | "tsx" => {
                 suggestions.push(SkillSuggestion {
                     name: "typescript-expert".into(),
-                    description: "TypeScript compiler strict mode, types, and modern patterns".into(),
+                    description: "TypeScript compiler strict mode, types, and modern patterns"
+                        .into(),
                     matched_triggers: vec!["ts".into(), "tsx".into()],
                 });
             }
@@ -99,7 +103,10 @@ impl SkillRouter {
         all_suggestions
     }
 
-    /// Discover installed skills with a `SKILL.md` under any given search roots (e.g. `.agents/skills`, `.gemini/config/plugins`).
+    /// Discover installed skills with a `SKILL.md` under any given search roots.
+    /// Traverses up to depth 5 to support nested plugin layouts, e.g.:
+    /// `.gemini/config/plugins/<plugin>/skills/<skill>/SKILL.md`
+    /// or `<workspace>/.agents/skills/<skill>/SKILL.md`.
     pub fn discover_installed_skills(search_roots: &[&Path]) -> Vec<SkillSuggestion> {
         let mut discovered = Vec::new();
         let mut seen = HashSet::new();
@@ -108,15 +115,25 @@ impl SkillRouter {
             if !root.exists() {
                 continue;
             }
-            if let Ok(entries) = std::fs::read_dir(root) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let skill_file = path.join("SKILL.md");
-                        if skill_file.is_file() {
-                            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("unknown").to_string();
+
+            for entry in WalkDir::new(root)
+                .max_depth(5)
+                .follow_links(false)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                if entry.file_type().is_file() {
+                    let file_name = entry.file_name().to_string_lossy();
+                    if file_name.eq_ignore_ascii_case("SKILL.md") {
+                        if let Some(parent) = entry.path().parent() {
+                            let name = parent
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+
                             if seen.insert(name.clone()) {
-                                let desc = Self::extract_description_from_skill_file(&skill_file)
+                                let desc = Self::extract_description_from_skill_file(entry.path())
                                     .unwrap_or_else(|| format!("Engineering skill '{}'", name));
                                 discovered.push(SkillSuggestion {
                                     name,
@@ -133,26 +150,86 @@ impl SkillRouter {
         discovered
     }
 
-    /// Load the raw instruction content of a skill from disk across search roots.
+    /// Load the raw instruction content of a skill from disk across search roots,
+    /// searching both direct and nested plugin hierarchies.
     pub fn load_skill_instructions(skill_name: &str, search_roots: &[&Path]) -> Option<String> {
         for root in search_roots {
-            // Check direct folder: root/skill_name/SKILL.md
-            let direct = root.join(skill_name).join("SKILL.md");
-            if direct.is_file() {
-                if let Ok(content) = std::fs::read_to_string(&direct) {
-                    return Some(content);
-                }
+            if !root.exists() {
+                continue;
             }
 
-            // Check nested folder: root/skills/skill_name/SKILL.md
-            let nested = root.join("skills").join(skill_name).join("SKILL.md");
-            if nested.is_file() {
-                if let Ok(content) = std::fs::read_to_string(&nested) {
-                    return Some(content);
+            for entry in WalkDir::new(root)
+                .max_depth(5)
+                .follow_links(false)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                if entry.file_type().is_file() {
+                    let file_name = entry.file_name().to_string_lossy();
+                    if file_name.eq_ignore_ascii_case("SKILL.md") {
+                        if let Some(parent) = entry.path().parent() {
+                            if let Some(dir_name) = parent.file_name().and_then(|n| n.to_str()) {
+                                if dir_name.eq_ignore_ascii_case(skill_name) {
+                                    if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                                        return Some(content);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
         None
+    }
+
+    /// Select skills dynamically based on task prompt text and relevance scoring.
+    pub fn select_skills_for_prompt(prompt: &str, search_roots: &[&Path]) -> Vec<SkillSuggestion> {
+        let all_skills = Self::discover_installed_skills(search_roots);
+        let prompt_lower = prompt.to_lowercase();
+        let mut scored = Vec::new();
+
+        for skill in all_skills {
+            let name_lower = skill.name.to_lowercase();
+            let desc_lower = skill.description.to_lowercase();
+            let mut score = 0usize;
+
+            // 1. Direct name match
+            if prompt_lower.contains(&name_lower) {
+                score += 15;
+            }
+
+            // 2. Token match on name (split by non-alphanumeric, e.g. hyphens)
+            for token in name_lower.split(|c: char| !c.is_alphanumeric()) {
+                if token.len() >= 3 {
+                    if prompt_lower.contains(token) {
+                        score += 5;
+                    } else {
+                        // Match prefix or stem (e.g. "audit" matches "auditor")
+                        for pw in prompt_lower.split(|c: char| !c.is_alphanumeric()) {
+                            if pw.len() >= 4 && (token.starts_with(pw) || pw.starts_with(token)) {
+                                score += 3;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Match against description tokens (split by non-alphanumeric)
+            for word in desc_lower.split(|c: char| !c.is_alphanumeric()) {
+                if word.len() >= 4 && prompt_lower.contains(word) {
+                    score += 2;
+                }
+            }
+
+            if score > 0 {
+                scored.push((score, skill));
+            }
+        }
+
+        scored.sort_by_key(|a| std::cmp::Reverse(a.0));
+        scored.into_iter().map(|(_, s)| s).take(3).collect()
     }
 
     /// Extract description from frontmatter or first paragraph of SKILL.md.
@@ -195,7 +272,10 @@ impl SkillRouter {
     }
 
     /// Compose an executable prompt injection block containing the full rules of the active skills.
-    pub fn compose_skill_system_prompt(skills: &[SkillSuggestion], search_roots: &[&Path]) -> String {
+    pub fn compose_skill_system_prompt(
+        skills: &[SkillSuggestion],
+        search_roots: &[&Path],
+    ) -> String {
         let mut prompt = String::new();
         if skills.is_empty() {
             return prompt;

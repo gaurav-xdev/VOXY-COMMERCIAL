@@ -1,8 +1,10 @@
+pub mod behavior_spec;
 pub mod config;
 pub mod error;
 pub mod event;
 pub mod traits;
 
+pub use behavior_spec::{InteractionContext, OsmooBehaviorSpecification};
 pub use config::PersonalityConfig;
 pub use error::{PersonalityError, Result};
 pub use event::PersonalityEvent;

@@ -10,7 +10,9 @@ struct FailingCloudLlm;
 #[async_trait::async_trait]
 impl LlmProvider for FailingCloudLlm {
     async fn complete(&self, _prompt: &str) -> voxy_provider_core::Result<String> {
-        Err(voxy_provider_core::ProviderError::RequestFailed("Simulated Cloud Failure".into()))
+        Err(voxy_provider_core::ProviderError::RequestFailed(
+            "Simulated Cloud Failure".into(),
+        ))
     }
     fn available_models(&self) -> Vec<String> {
         vec!["claude-3-7-sonnet".into()]

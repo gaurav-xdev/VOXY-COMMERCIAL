@@ -1,25 +1,20 @@
 pub const GLOBAL_STYLES: &str = r#"
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-    --bg-base: #06090f;
-    --bg-surface: rgba(11, 17, 29, 0.72);
-    --bg-surface-elevated: rgba(17, 26, 44, 0.82);
-    --bg-glass: rgba(14, 23, 38, 0.6);
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-active: rgba(56, 189, 248, 0.35);
-    --border-accent: rgba(56, 189, 248, 0.2);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent-core: #38bdf8;
-    --accent-emerald: #10b981;
-    --accent-amber: #f59e0b;
-    --accent-crimson: #ef4444;
+    --cat-size: 1.0;
+    --cat-opacity: 1.0;
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --status-idle: #94a3b8;
+    --status-listening: #10b981;
+    --status-thinking: #f59e0b;
+    --status-speaking: #38bdf8;
+    --status-executing: #a855f7;
+    --status-success: #22c55e;
+    --status-error: #ef4444;
 }
 
 * {
@@ -36,643 +31,582 @@ html, body {
     overflow: hidden;
     background: transparent !important;
     font-family: var(--font-sans);
-    color: var(--text-primary);
     pointer-events: none;
 }
 
-.clickable {
-    pointer-events: auto !important;
-}
-
-/* Base Root Container */
 .voxy-app-root {
     position: relative;
     width: 100vw;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px 36px;
-    background: radial-gradient(circle at 50% 50%, rgba(6, 12, 24, 0.4) 0%, rgba(3, 7, 14, 0.78) 100%);
-    transition: opacity 0.35s var(--ease-out-expo), background 0.35s ease;
+    background: transparent !important;
+    overflow: hidden;
+    pointer-events: none;
 }
 
-.voxy-app-root.collapsed {
-    background: transparent !important;
+/* Screen awareness auto-hide transition */
+.voxy-app-root.suppressed {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.4s var(--ease-out-expo);
 }
 
 /* ==========================================================================
-   LAYER 1: PRESENCE — THE LIVING CORE ENTITY
+   OSMOO 2D RIGGED ANIMATED CAT DESKTOP COMPANION
    ========================================================================== */
-.presence-container {
+
+#osmoo-cat-companion {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 380px;
-    height: 380px;
+    bottom: 24px;
+    right: 36px;
+    width: calc(220px * var(--cat-size));
+    height: calc(233px * var(--cat-size));
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    cursor: pointer;
-    transition: all 0.45s var(--ease-out-expo);
+    justify-content: flex-end;
+    pointer-events: auto !important;
+    cursor: grab;
+    opacity: var(--cat-opacity);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+    z-index: 9999;
+    outline: none;
+    transform-origin: 50% 100%;
 }
 
-.voxy-app-root.collapsed .presence-container {
-    width: 130px;
-    height: 130px;
-    transform: translate(-50%, -50%) scale(0.72);
-    opacity: 0.88;
+#osmoo-cat-companion:active {
+    cursor: grabbing;
 }
 
-.presence-canvas {
+/* Soft contact shadow beneath paws */
+.cat-contact-shadow {
+    position: absolute;
+    bottom: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 68%;
+    height: 18px;
+    background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.52) 0%, rgba(15, 23, 42, 0.20) 55%, transparent 75%);
+    border-radius: 50%;
+    pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    animation: catShadowPulse 3.8s ease-in-out infinite;
+    z-index: 0;
+}
+
+/* Primary Rigged Cat Character Frame */
+.cat-character-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 95%;
+}
+
+/* ==========================================================================
+   RIGGED LAYERS (TAIL, BODY, HEAD, EARS, SUNGLASSES, MOUTH)
+   ========================================================================== */
+
+/* 1. Tail Layer (Behind body, swings organically) */
+.cat-tail-container {
+    position: absolute;
+    left: 66.21%;
+    top: 73.28%;
+    width: 33.11%;
+    height: 25.86%;
+    transform-origin: 5% 55%;
+    z-index: 1;
+    animation: catTailSwish 2.6s ease-in-out infinite;
+}
+
+.cat-tail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+}
+
+/* 2. Body Layer (Torso in black 'osmoo' t-shirt and legs) */
+.cat-body-container {
+    position: absolute;
+    left: 1.14%;
+    top: 47.41%;
+    width: 79.91%;
+    height: 52.59%;
+    transform-origin: 50% 95%;
+    z-index: 2;
+    animation: catBodyBreathe 3.6s ease-in-out infinite;
+}
+
+.cat-body-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.32));
+}
+
+/* 3. Head Layer (Nodding, tilting, looking around) */
+.cat-head-container {
+    position: absolute;
+    left: 8.68%;
+    top: 0%;
+    width: 64.84%;
+    height: 49.14%;
+    transform-origin: 50% 95%;
+    z-index: 3;
+    animation: catHeadIdle 4.2s ease-in-out infinite;
+}
+
+.cat-head-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+}
+
+/* Left Ear Twitch */
+.cat-ear-left-container {
+    position: absolute;
+    left: 2.46%;
+    top: 6.58%;
+    width: 31.69%;
+    height: 43.86%;
+    transform-origin: 80% 90%;
+    z-index: 4;
+}
+
+/* Right Ear Twitch */
+.cat-ear-right-container {
+    position: absolute;
+    left: 67.61%;
+    top: 6.58%;
+    width: 29.93%;
+    height: 43.86%;
+    transform-origin: 20% 90%;
+    z-index: 4;
+}
+
+.cat-ear-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+}
+
+.ear-twitch-l {
+    animation: catEarTwitchL 0.22s ease-in-out !important;
+}
+
+.ear-twitch-r {
+    animation: catEarTwitchR 0.22s ease-in-out !important;
+}
+
+/* Sunglasses Layer & Glint */
+.cat-sunglasses-container {
+    position: absolute;
+    left: 21.83%;
+    top: 46.05%;
+    width: 75.70%;
+    height: 48.25%;
+    z-index: 5;
+}
+
+.cat-sunglasses-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+}
+
+.cat-glasses-glint {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
-}
-
-.presence-halo {
-    position: absolute;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(56, 189, 248, 0) 70%);
-    transition: all 0.5s ease;
-    pointer-events: none;
-    animation: gentleBreathe 6s ease-in-out infinite;
-}
-
-.state-listening .presence-halo {
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0) 70%);
-    transform: scale(1.15);
-}
-
-.state-thinking .presence-halo {
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0) 70%);
-    transform: scale(1.1);
-}
-
-.state-speaking .presence-halo {
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.28) 0%, rgba(14, 165, 233, 0) 70%);
-}
-
-.state-executing .presence-halo {
-    background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, rgba(249, 115, 22, 0) 70%);
-}
-
-.state-error .presence-halo {
-    background: radial-gradient(circle, rgba(239, 68, 68, 0.28) 0%, rgba(239, 68, 68, 0) 70%);
-}
-
-@keyframes gentleBreathe {
-    0%, 100% { transform: scale(0.96); opacity: 0.7; }
-    50% { transform: scale(1.04); opacity: 1; }
-}
-
-.core-badge-container {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.core-title {
-    font-family: var(--font-sans);
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--text-primary);
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-    transition: font-size 0.3s ease;
-}
-
-.voxy-app-root.collapsed .core-title {
-    font-size: 13px;
-    letter-spacing: 1px;
-}
-
-.core-subtitle {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    color: var(--text-secondary);
-    margin-top: 3px;
-    text-transform: uppercase;
-}
-
-.voxy-app-root.collapsed .core-subtitle {
-    display: none;
-}
-
-.state-pill {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    padding: 3px 10px;
-    border-radius: 9999px;
-    margin-top: 8px;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-surface);
-}
-
-/* ==========================================================================
-   LAYER 2: CONTEXT — STATUS & LIVE FEEDBACK
-   ========================================================================== */
-.top-nav-bar {
-    width: 100%;
-    max-width: 1320px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 18px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    backdrop-filter: blur(24px) saturate(180%);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s var(--ease-out-expo);
-}
-
-.voxy-app-root.collapsed .top-nav-bar {
-    opacity: 0;
-    transform: translateY(-24px);
-    pointer-events: none;
-}
-
-.nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.brand-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent-core);
-    box-shadow: 0 0 8px var(--accent-core);
-}
-
-.brand-label {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    color: var(--text-primary);
-}
-
-.nav-metrics {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.metric-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-secondary);
-    padding: 4px 10px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-subtle);
-}
-
-.sensor-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-}
-
-.sensor-toggle.active {
-    color: var(--accent-emerald);
-    border-color: rgba(16, 185, 129, 0.3);
-    background: rgba(16, 185, 129, 0.08);
-}
-
-.sensor-toggle:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-/* Bottom Contextual Subtitle & Action Bar */
-.bottom-context-bar {
-    width: 100%;
-    max-width: 1320px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transition: all 0.4s var(--ease-out-expo);
-}
-
-.voxy-app-root.collapsed .bottom-context-bar {
-    opacity: 0;
-    transform: translateY(24px);
-    pointer-events: none;
-}
-
-.live-transcript-strip {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 18px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    backdrop-filter: blur(24px) saturate(180%);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-}
-
-.transcript-tag {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    padding: 3px 8px;
     border-radius: 4px;
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent-core);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    white-space: nowrap;
+    background: linear-gradient(135deg, transparent 20%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.35) 55%, transparent 80%);
+    background-size: 200% 200%;
+    background-position: -100% -100%;
+    opacity: 0.55;
+    mix-blend-mode: screen;
 }
 
-.transcript-text {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-primary);
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* ==========================================================================
-   COMPUTER CONTROL & EMERGENCY STOP BANNER
-   ========================================================================== */
-.computer-control-banner {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 18px;
-    background: rgba(249, 115, 22, 0.12);
-    border: 1px solid rgba(249, 115, 22, 0.35);
-    border-radius: 10px;
-    backdrop-filter: blur(20px);
-}
-
-.control-target-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.control-pulse {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent-amber);
-    box-shadow: 0 0 10px var(--accent-amber);
-    animation: pulseControl 1.2s infinite;
-}
-
-@keyframes pulseControl {
-    0%, 100% { opacity: 0.8; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.3); }
-}
-
-.control-title {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #fed7aa;
-}
-
-.control-action {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-primary);
-}
-
-.emergency-stop-btn {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    padding: 7px 18px;
-    background: #dc2626;
-    color: #ffffff;
-    border: 1px solid #ef4444;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 0 16px rgba(220, 38, 38, 0.5);
-    transition: all 0.2s ease;
-}
-
-.emergency-stop-btn:hover {
-    background: #ef4444;
-    box-shadow: 0 0 24px rgba(239, 68, 68, 0.8);
-    transform: scale(1.02);
-}
-
-/* ==========================================================================
-   LAYER 3: DEPTH — EXPANDABLE DRAWER & SECONDARY SURFACE
-   ========================================================================== */
-.drawer-toggle-btn {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.drawer-toggle-btn:hover {
-    background: var(--bg-surface-elevated);
-    color: var(--text-primary);
-    border-color: var(--border-active);
-}
-
-.depth-drawer {
-    position: fixed;
-    right: 24px;
-    top: 80px;
-    bottom: 80px;
-    width: 440px;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    backdrop-filter: blur(32px) saturate(190%);
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 100;
-    transform: translateX(480px);
-    transition: transform 0.4s var(--ease-out-expo), opacity 0.3s ease;
+/* Eyelids Blink Layer */
+.cat-eyelids {
+    position: absolute;
+    top: 18%;
+    left: 10%;
+    width: 80%;
+    height: 58%;
+    background: #ffffff;
+    border-radius: 4px;
     opacity: 0;
+    transition: opacity 0.08s ease;
+    pointer-events: none;
+    z-index: 6;
 }
 
-.depth-drawer.open {
-    transform: translateX(0);
-    opacity: 1;
+.cat-eyelids.blink {
+    opacity: 0.96;
 }
 
-.drawer-header {
+/* Live Dynamic SVG Lip-Sync Mouth */
+.cat-mouth-container {
+    position: absolute;
+    left: 60.56%;
+    top: 79.82%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 18px;
+    pointer-events: none;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-subtle);
+    justify-content: center;
+    z-index: 6;
 }
 
-.drawer-tabs {
-    display: flex;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid var(--border-subtle);
+.cat-mouth-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
-
-.drawer-tab {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.drawer-tab.active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--border-subtle);
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.drawer-tab:hover:not(.active) {
-    color: var(--text-primary);
-}
-
-.drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.drawer-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.drawer-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-/* Chat Log in Drawer */
-.chat-bubble {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.chat-bubble.user {
-    align-self: flex-end;
-    background: rgba(56, 189, 248, 0.12);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    color: #e0f2fe;
-    max-width: 85%;
-}
-
-.chat-bubble.voxy {
-    align-self: flex-start;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    max-width: 90%;
-}
-
-.chat-sender {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
-}
-
-/* Telemetry Rows */
-.telemetry-card {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.telemetry-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-}
-
-.telemetry-key {
-    color: var(--text-secondary);
-}
-
-.telemetry-val {
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.telemetry-val.highlight {
-    color: var(--accent-core);
-}
-
-/* Tool execution timeline */
-.tool-timeline-item {
-    display: flex;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-subtle);
-}
-
-.tool-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-top: 4px;
-}
-
-.status-completed { background: var(--accent-emerald); box-shadow: 0 0 6px var(--accent-emerald); }
-.status-running { background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber); animation: pulseControl 1s infinite; }
-.status-pending { background: var(--text-muted); }
-.status-failed { background: var(--accent-crimson); box-shadow: 0 0 6px var(--accent-crimson); }
 
 /* ==========================================================================
-   DESKTOP MODES: COMPACT, FLOATING, EDGE DOCK, MINIMAL
+   STATE INDICATOR PILL
    ========================================================================== */
-.mode-pill-selector {
-    display: flex;
-    gap: 4px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 3px;
-    border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-}
 
-.mode-btn {
+.cat-state-pill {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
     font-family: var(--font-mono);
     font-size: 10px;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--status-idle);
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0.7;
+    transition: all 0.3s var(--ease-out-expo);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
 }
 
-.mode-btn.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-/* Compact Mode (Floating Capsule) */
-.compact-capsule {
-    position: fixed;
-    top: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 8px 18px;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: 9999px;
-    backdrop-filter: blur(28px) saturate(180%);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    z-index: 200;
-}
-
-/* Edge Dock (Pinned to Bottom) */
-.edge-dock {
-    position: fixed;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 8px 20px;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    backdrop-filter: blur(28px);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    z-index: 200;
-}
-
-/* Minimal Mode */
-.minimal-orb {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
+.cat-state-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    backdrop-filter: blur(20px);
+    background-color: var(--status-idle);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#osmoo-cat-companion:hover .cat-state-pill {
+    opacity: 1.0;
+    transform: translateX(-50%) translateY(-2px);
+}
+
+/* ==========================================================================
+   INTERACTIVE DESKTOP CONTEXT MENU
+   ========================================================================== */
+
+.cat-context-menu {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 0;
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 220px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 100;
+    pointer-events: auto !important;
+}
+
+.cat-context-menu.open {
     display: flex;
-    justify-content: center;
+}
+
+.cat-menu-item {
+    display: flex;
     align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #e2e8f0;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    z-index: 200;
+    background: transparent;
+    border: none;
+    text-align: left;
+    width: 100%;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cat-menu-item:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.cat-menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+}
+
+.cat-menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0;
+}
+
+/* ==========================================================================
+   ORGANIC KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+/* 1. Tail Swish */
+@keyframes catTailSwish {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    30% {
+        transform: rotate(14deg);
+    }
+    70% {
+        transform: rotate(-9deg);
+    }
+}
+
+/* 2. Torso Breathing */
+@keyframes catBodyBreathe {
+    0%, 100% {
+        transform: scale(1.0) translateY(0);
+    }
+    50% {
+        transform: scaleY(1.022) scaleX(0.99) translateY(-1.2px);
+    }
+}
+
+/* 3. Head Idle Motion */
+@keyframes catHeadIdle {
+    0%, 100% {
+        transform: rotate(0deg) translateY(0);
+    }
+    35% {
+        transform: rotate(2.4deg) translateY(-0.8px);
+    }
+    70% {
+        transform: rotate(-2.4deg) translateY(-0.4px);
+    }
+}
+
+/* 4. Contact Shadow Pulse */
+@keyframes catShadowPulse {
+    0%, 100% {
+        transform: translateX(-50%) scale(1.0);
+        opacity: 0.52;
+    }
+    50% {
+        transform: translateX(-50%) scale(0.94);
+        opacity: 0.38;
+    }
+}
+
+/* 5. Ear Twitches */
+@keyframes catEarTwitchL {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(-12deg); }
+    70% { transform: rotate(6deg); }
+}
+
+@keyframes catEarTwitchR {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(12deg); }
+    70% { transform: rotate(-6deg); }
+}
+
+/* 6. Autonomous Desktop Walking */
+.walking .cat-character-frame {
+    animation: catWalkBob 0.32s ease-in-out infinite alternate !important;
+}
+
+.walking .cat-tail-container {
+    animation: catTailWalk 0.32s ease-in-out infinite alternate !important;
+}
+
+@keyframes catWalkBob {
+    0% {
+        transform: translateY(0) rotate(-2deg);
+    }
+    100% {
+        transform: translateY(-6px) rotate(2deg);
+    }
+}
+
+@keyframes catTailWalk {
+    0% {
+        transform: rotate(20deg);
+    }
+    100% {
+        transform: rotate(-14deg);
+    }
+}
+
+/* Settle hop after drag drop */
+.cat-drop-settle {
+    animation: catDropHop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes catDropHop {
+    0% { transform: translateY(-12px) scale(1.02); }
+    60% { transform: translateY(2px) scaleY(0.96) scaleX(1.03); }
+    100% { transform: translateY(0) scale(1.0); }
+}
+
+/* 7. Attentive Listening State */
+.state-listening .cat-head-container {
+    transform: rotate(-3.5deg) translateY(-2px);
+    transition: transform 0.3s ease;
+}
+
+.state-listening .cat-state-pill {
+    color: var(--status-listening);
+    border-color: rgba(16, 185, 129, 0.4);
+    opacity: 1.0;
+}
+
+.state-listening .cat-state-dot {
+    background-color: var(--status-listening);
+    box-shadow: 0 0 8px var(--status-listening);
+}
+
+/* 8. Cognitive Thinking State */
+.state-thinking .cat-head-container {
+    animation: catThink 2.4s ease-in-out infinite;
+}
+
+.state-thinking .cat-glasses-glint {
+    opacity: 0.95;
+    animation: glintSweep 1.8s ease-in-out infinite;
+}
+
+.state-thinking .cat-state-pill {
+    color: var(--status-thinking);
+    border-color: rgba(245, 158, 11, 0.4);
+    opacity: 1.0;
+}
+
+.state-thinking .cat-state-dot {
+    background-color: var(--status-thinking);
+    box-shadow: 0 0 8px var(--status-thinking);
+}
+
+@keyframes catThink {
+    0%, 100% { transform: rotate(2.8deg) translateY(-2px); }
+    50% { transform: rotate(4.6deg) translateY(-3.5px); }
+}
+
+@keyframes glintSweep {
+    0% { background-position: -100% -100%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 200% 200%; }
+}
+
+/* 9. Active Speaking State */
+.state-speaking .cat-character-frame {
+    animation: catSpeakCadence 0.38s ease-in-out infinite alternate;
+}
+
+.state-speaking .cat-state-pill {
+    color: var(--status-speaking);
+    border-color: rgba(56, 189, 248, 0.4);
+    opacity: 1.0;
+}
+
+.state-speaking .cat-state-dot {
+    background-color: var(--status-speaking);
+    box-shadow: 0 0 10px var(--status-speaking);
+}
+
+@keyframes catSpeakCadence {
+    0% { transform: scaleY(1.0) translateY(0); }
+    100% { transform: scaleY(1.022) scaleX(0.99) translateY(-2.8px); }
+}
+
+/* 10. Success State */
+.state-success .cat-character-frame {
+    animation: catSuccessHop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.state-success .cat-state-pill {
+    color: var(--status-success);
+    border-color: rgba(34, 197, 94, 0.4);
+    opacity: 1.0;
+}
+
+.state-success .cat-state-dot {
+    background-color: var(--status-success);
+    box-shadow: 0 0 10px var(--status-success);
+}
+
+@keyframes catSuccessHop {
+    0% { transform: translateY(0) scale(1.0); }
+    40% { transform: translateY(-16px) scale(1.04) rotate(-2deg); }
+    70% { transform: translateY(-5px) scale(1.02) rotate(1deg); }
+    100% { transform: translateY(0) scale(1.0); }
+}
+
+/* 11. Error State */
+.state-error .cat-character-frame {
+    animation: catErrorJolt 0.6s ease-in-out;
+}
+
+.state-error .cat-state-pill {
+    color: var(--status-error);
+    border-color: rgba(239, 68, 68, 0.4);
+    opacity: 1.0;
+}
+
+.state-error .cat-state-dot {
+    background-color: var(--status-error);
+    box-shadow: 0 0 10px var(--status-error);
+}
+
+@keyframes catErrorJolt {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px) rotate(-1.5deg); }
+    40%, 80% { transform: translateX(4px) rotate(1.5deg); }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .cat-character-frame,
+    .cat-contact-shadow,
+    .cat-glasses-glint,
+    .cat-tail-container,
+    .cat-body-container,
+    .cat-head-container {
+        animation: none !important;
+    }
 }
 </style>
 "#;

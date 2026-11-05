@@ -119,6 +119,16 @@ pub struct UserPreference {
     pub times_observed: u32,
 }
 
+/// Inspectable summary for user privacy control and auditing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryAuditEntry {
+    pub id: String,
+    pub category: String,
+    pub preview: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub importance: f64,
+}
+
 /// Memory query.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MemoryQueryV2 {
@@ -342,6 +352,76 @@ impl LongTermMemoryV2 {
     /// Get relationship count.
     pub fn relationship_count(&self) -> usize {
         self.relationships.len()
+    }
+
+    /// Explicitly delete a memory by ID (right-to-be-forgotten).
+    pub fn delete(&mut self, memory_id: &MemoryId) -> bool {
+        self.relationships
+            .retain(|r| r.from_id != *memory_id && r.to_id != *memory_id);
+        self.memories.remove(memory_id).is_some()
+    }
+
+    /// Delete all memories belonging to a specific category.
+    pub fn delete_by_category(&mut self, category: &MemoryCategory) -> usize {
+        let to_remove: Vec<MemoryId> = self
+            .memories
+            .iter()
+            .filter(|(_, m)| m.category == *category)
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        let count = to_remove.len();
+        for id in to_remove {
+            self.delete(&id);
+        }
+        count
+    }
+
+    /// Delete a user preference by key.
+    pub fn delete_preference(&mut self, key: &str) -> bool {
+        let prev_len = self.preferences.len();
+        self.preferences.retain(|p| p.key != key);
+        self.preferences.len() < prev_len
+    }
+
+    /// Redact or purge memories that accidentally contain API keys, bearer tokens, or credentials.
+    pub fn purge_secrets_and_pii(&mut self) -> usize {
+        let mut purged_count = 0;
+        let sensitive_patterns = [
+            "sk-",
+            "ghp_",
+            "bearer ",
+            "password=",
+            "secret=",
+            "api_key=",
+            "access_token=",
+        ];
+
+        for item in self.memories.values_mut() {
+            let lower = item.content.to_lowercase();
+            if sensitive_patterns.iter().any(|&p| lower.contains(p)) {
+                item.content = "[REDACTED: SENSITIVE CREDENTIAL DISCOVERED AND PURGED]".to_string();
+                item.tags.push("redacted_secret".to_string());
+                purged_count += 1;
+            }
+        }
+        purged_count
+    }
+
+    /// Export an inspectable audit view of stored memories for user privacy inspection.
+    pub fn export_audit_view(&self) -> Vec<MemoryAuditEntry> {
+        let mut entries = Vec::new();
+        for (id, item) in &self.memories {
+            entries.push(MemoryAuditEntry {
+                id: id.0.clone(),
+                category: format!("{:?}", item.category),
+                preview: item.content.chars().take(80).collect(),
+                created_at: item.created_at,
+                importance: item.importance.weighted_sum(),
+            });
+        }
+        entries.sort_by_key(|a| std::cmp::Reverse(a.created_at));
+        entries
     }
 
     fn forget_least_important(&mut self) {
@@ -585,5 +665,42 @@ mod tests {
         };
         let result = mem.query(&query);
         assert_eq!(result.items.len(), 1);
+    }
+
+    #[test]
+    fn test_inspectable_memory_deletion_and_redaction() {
+        let mut mem = LongTermMemoryV2::default_memory();
+        let id1 = mem.store(sample_item("Normal public note", MemoryCategory::Semantic));
+        let id2 = mem.store(sample_item(
+            "Accidental key: sk-ant-api03-secret123456789",
+            MemoryCategory::Semantic,
+        ));
+        let _id3 = mem.store(sample_item(
+            "User likes dark theme",
+            MemoryCategory::UserPreference,
+        ));
+
+        // 1. Audit view
+        let audit = mem.export_audit_view();
+        assert_eq!(audit.len(), 3);
+
+        // 2. Secret purge
+        let purged = mem.purge_secrets_and_pii();
+        assert_eq!(purged, 1);
+        let secret_item = mem.get(&id2).unwrap();
+        assert!(secret_item
+            .content
+            .contains("[REDACTED: SENSITIVE CREDENTIAL DISCOVERED AND PURGED]"));
+        assert!(secret_item.tags.contains(&"redacted_secret".to_string()));
+
+        // 3. Explicit deletion (right-to-be-forgotten)
+        assert!(mem.delete(&id1));
+        assert!(mem.get(&id1).is_none());
+        assert_eq!(mem.count(), 2);
+
+        // 4. Category purge
+        let purged_prefs = mem.delete_by_category(&MemoryCategory::UserPreference);
+        assert_eq!(purged_prefs, 1);
+        assert_eq!(mem.count(), 1);
     }
 }

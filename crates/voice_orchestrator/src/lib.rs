@@ -13,6 +13,7 @@ use futures_util::future::BoxFuture;
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -21,10 +22,25 @@ use voxy_ipc::{CompanionState, DaemonMessage};
 use voxy_voice_activation::{ActivationMode, VadConfig, VadDetector, VadEvent, WakeWordConfig};
 use voxy_voice_audio::{AudioCaptureHandle, AudioConfig, AudioPlaybackHandle, AudioRuntime};
 use voxy_voice_stt::SttEngine;
-use voxy_voice_tts::{SentenceChunker, TtsEngine};
+use voxy_voice_tts::{IncrementalSpeechChunker, SentenceChunker, TtsEngine};
 
 pub mod pipecat;
 pub use pipecat::{PipecatConfig, PipecatState, PipecatSupervisor, SupervisorError};
+
+/// Latency metrics measured during true token-to-speech pipelined streaming.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StreamingLatencyMetrics {
+    /// Time elapsed between stream start and arrival of first LLM token (TTFT).
+    pub time_to_first_llm_token: Option<Duration>,
+    /// Time elapsed between stream start and dispatch of first speakable text chunk to TTS (TTTSI).
+    pub time_to_first_tts_input: Option<Duration>,
+    /// Time elapsed between stream start and first audio chunk queued to speaker device (TTFA).
+    pub time_to_first_audio_playback: Option<Duration>,
+    /// Total duration of the streaming response turn.
+    pub total_duration: Duration,
+    /// Total number of discrete speech chunks dispatched to the TTS synthesizer.
+    pub chunks_sent_to_tts: usize,
+}
 
 #[derive(Error, Debug)]
 pub enum PipelineError {
@@ -98,6 +114,8 @@ pub struct VoicePipeline {
     voice_speed_milli: Arc<AtomicU32>,
     /// Recorded reason the pipeline runs degraded (e.g. playback init failure), if any.
     degraded_reason: Arc<Mutex<Option<String>>>,
+    /// Last measured streaming latency metrics (TTFT, TTTSI, TTFA).
+    last_streaming_metrics: Arc<Mutex<Option<StreamingLatencyMetrics>>>,
 }
 
 impl VoicePipeline {
@@ -147,7 +165,13 @@ impl VoicePipeline {
             sleeping: Arc::new(AtomicBool::new(false)),
             voice_speed_milli: Arc::new(AtomicU32::new(initial_speed_milli)),
             degraded_reason: Arc::new(Mutex::new(None)),
+            last_streaming_metrics: Arc::new(Mutex::new(None)),
         })
+    }
+
+    /// Last recorded streaming latency telemetry.
+    pub fn last_streaming_metrics(&self) -> Option<StreamingLatencyMetrics> {
+        self.last_streaming_metrics.lock().clone()
     }
 
     /// Monotonically increasing current turn ID.
@@ -622,58 +646,219 @@ impl VoicePipeline {
         }
     }
 
-    /// Run the streaming handler and feed sentence chunks to TTS as they arrive.
-    async fn run_streaming_response(
+    /// Run the streaming handler with true token-to-speech pipelined execution:
+    /// - Stage 1 (Token Accumulator): feeds tokens incrementally into `IncrementalSpeechChunker`.
+    ///   As soon as the very first speakable word or clause arrives, it is emitted to `tts_tx` immediately.
+    /// - Stage 2 (TTS Synthesizer): concurrently synthesizes chunks from `tts_rx` using bounded queueing (backpressure).
+    /// - Stage 3 (Continuous Playback): immediately queues decoded PCM samples to the speaker device.
+    ///
+    /// The pipeline overlaps LLM generation, TTS synthesis, and audio playback concurrently.
+    /// Interruption / barge-in cancels all stages immediately and flushes speaker buffers.
+    pub async fn run_streaming_response(
         &self,
         fut: BoxFuture<'static, Result<(), String>>,
         mut chunk_rx: mpsc::Receiver<String>,
         cancel_token: CancellationToken,
     ) {
+        let stream_start = std::time::Instant::now();
         self.set_state(CompanionState::Thinking, Some("Reasoning".into()));
 
-        let speak_cancel = cancel_token.clone();
-        let mut chunker = SentenceChunker::new(20);
-        let speak = async move {
+        // Stage 1 -> Stage 2: Bounded channel from LLM Chunker to TTS Worker
+        let (tts_tx, mut tts_rx) = mpsc::channel::<String>(16);
+        // Stage 2 -> Stage 3: Bounded channel from TTS Worker to Audio Playback Worker
+        let (audio_tx, mut audio_rx) = mpsc::channel::<Vec<f32>>(8);
+
+        let chunker_cancel = cancel_token.clone();
+        let synth_cancel = cancel_token.clone();
+        let play_cancel = cancel_token.clone();
+        let gen_cancel = cancel_token.clone();
+
+        let first_llm_token_time = Arc::new(Mutex::new(None::<Duration>));
+        let first_tts_input_time = Arc::new(Mutex::new(None::<Duration>));
+        let first_audio_play_time = Arc::new(Mutex::new(None::<Duration>));
+        let chunk_count = Arc::new(AtomicU64::new(0));
+
+        let t_first_tok = first_llm_token_time.clone();
+        let t_first_tts = first_tts_input_time.clone();
+        let t_first_aud = first_audio_play_time.clone();
+        let c_count = chunk_count.clone();
+
+        // -----------------------------------------------------------------
+        // Stage 1: LLM Token Chunker (Incremental word & clause emission)
+        // -----------------------------------------------------------------
+        let chunker_task = async move {
+            let mut chunker = IncrementalSpeechChunker::new();
+            let mut is_first_token = true;
+
             loop {
                 tokio::select! {
-                    _ = speak_cancel.cancelled() => {
-                        tracing::info!("[VOICE] Streaming response cancelled by barge-in");
+                    _ = chunker_cancel.cancelled() => {
+                        tracing::info!("[VOICE-STREAM] LLM token receiver cancelled by barge-in");
                         break;
                     }
                     item = chunk_rx.recv() => {
                         match item {
                             None => break,
-                            Some(chunk) => {
-                                if speak_cancel.is_cancelled() {
+                            Some(delta) => {
+                                if chunker_cancel.is_cancelled() {
                                     break;
                                 }
-                                if self.current_state() != CompanionState::Speaking {
-                                    self.set_state(CompanionState::Speaking, None);
+                                if is_first_token {
+                                    is_first_token = false;
+                                    let mut t = t_first_tok.lock();
+                                    if t.is_none() {
+                                        *t = Some(stream_start.elapsed());
+                                    }
                                 }
-                                for s in chunker.push_text(&chunk) {
-                                    self.synthesize_and_queue(&s, &speak_cancel).await;
+                                let ready = chunker.push_delta(&delta);
+                                for c in ready {
+                                    if chunker_cancel.is_cancelled() {
+                                        break;
+                                    }
+                                    {
+                                        let mut t = t_first_tts.lock();
+                                        if t.is_none() {
+                                            *t = Some(stream_start.elapsed());
+                                        }
+                                    }
+                                    c_count.fetch_add(1, Ordering::SeqCst);
+                                    if tts_tx.send(c).await.is_err() {
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            if !speak_cancel.is_cancelled() {
+
+            if !chunker_cancel.is_cancelled() {
                 if let Some(remaining) = chunker.flush() {
-                    self.synthesize_and_queue(&remaining, &speak_cancel).await;
+                    {
+                        let mut t = t_first_tts.lock();
+                        if t.is_none() {
+                            *t = Some(stream_start.elapsed());
+                        }
+                    }
+                    c_count.fetch_add(1, Ordering::SeqCst);
+                    let _ = tts_tx.send(remaining).await;
                 }
             }
         };
 
-        let gen_cancel = cancel_token.clone();
-        let generate = async {
+        // -----------------------------------------------------------------
+        // Stage 2: Concurrent TTS Synthesis Worker
+        // -----------------------------------------------------------------
+        let tts = self.tts.clone();
+        let playback_handle_ref = self.playback_handle.clone();
+        let synth_task = async move {
+            loop {
+                tokio::select! {
+                    _ = synth_cancel.cancelled() => {
+                        tracing::info!("[VOICE-STREAM] TTS worker cancelled by barge-in");
+                        break;
+                    }
+                    item = tts_rx.recv() => {
+                        match item {
+                            None => break,
+                            Some(chunk) => {
+                                if synth_cancel.is_cancelled() {
+                                    break;
+                                }
+                                match tts.synthesize(&chunk).await {
+                                    Ok(audio_wav) => {
+                                        if synth_cancel.is_cancelled() {
+                                            break;
+                                        }
+                                        match decode_wav_checked(&audio_wav) {
+                                            Ok(wav_audio) => {
+                                                let target_rate = playback_handle_ref
+                                                    .lock()
+                                                    .as_ref()
+                                                    .map(|pb| pb.sample_rate())
+                                                    .unwrap_or(16000);
+                                                let samples = if wav_audio.sample_rate == target_rate {
+                                                    wav_audio.samples_mono
+                                                } else {
+                                                    voxy_voice_audio::normalize_to_mono_16k(
+                                                        &wav_audio.samples_mono,
+                                                        wav_audio.sample_rate,
+                                                        1,
+                                                        target_rate,
+                                                    )
+                                                };
+                                                if audio_tx.send(samples).await.is_err() {
+                                                    break;
+                                                }
+                                            }
+                                            Err(e) => {
+                                                tracing::error!("[VOICE-STREAM] TTS WAV decode failed: {e}");
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("[VOICE-STREAM] TTS synthesis error: {e}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // -----------------------------------------------------------------
+        // Stage 3: Continuous Audio Playback Worker
+        // -----------------------------------------------------------------
+        let play_task = async {
+            let mut is_first_audio = true;
+            loop {
+                tokio::select! {
+                    _ = play_cancel.cancelled() => {
+                        tracing::info!("[VOICE-STREAM] Playback worker cancelled by barge-in");
+                        break;
+                    }
+                    item = audio_rx.recv() => {
+                        match item {
+                            None => break,
+                            Some(samples) => {
+                                if play_cancel.is_cancelled() {
+                                    break;
+                                }
+                                if is_first_audio {
+                                    is_first_audio = false;
+                                    {
+                                        let mut t = t_first_aud.lock();
+                                        if t.is_none() {
+                                            *t = Some(stream_start.elapsed());
+                                        }
+                                    }
+                                    self.set_state(CompanionState::Speaking, None);
+                                }
+                                if let Some(ref cap) = *self.capture_handle.lock() {
+                                    cap.set_speaker_playing(true);
+                                }
+                                if let Some(ref pb) = *self.playback_handle.lock() {
+                                    pb.queue_samples(&samples);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // -----------------------------------------------------------------
+        // LLM Generation Future
+        // -----------------------------------------------------------------
+        let generate_task = async {
             tokio::select! {
                 _ = gen_cancel.cancelled() => {
-                    tracing::info!("[VOICE] Streaming LLM generation future aborted by barge-in cancellation");
+                    tracing::info!("[VOICE-STREAM] LLM generation future aborted by barge-in cancellation");
                 }
                 res = fut => {
                     if let Err(err) = res {
-                        tracing::error!("[VOICE] Streaming LLM generation error: {err}");
+                        tracing::error!("[VOICE-STREAM] Streaming LLM generation error: {err}");
                         if !gen_cancel.is_cancelled() {
                             self.set_state(CompanionState::Error, Some(err));
                         }
@@ -682,15 +867,52 @@ impl VoicePipeline {
             }
         };
 
-        tokio::join!(speak, generate);
+        tokio::join!(chunker_task, synth_task, play_task, generate_task);
+
+        // Allow queued playback to drain if not cancelled (bounded to prevent hangs)
+        let drain_deadline = tokio::time::Instant::now() + Duration::from_secs(12);
+        while !cancel_token.is_cancelled()
+            && self.playback_buffer_len() > 0
+            && tokio::time::Instant::now() < drain_deadline
+        {
+            tokio::select! {
+                _ = cancel_token.cancelled() => break,
+                _ = tokio::time::sleep(Duration::from_millis(20)) => {}
+            }
+        }
 
         if let Some(ref cap) = *self.capture_handle.lock() {
             cap.set_speaker_playing(false);
         }
 
-        if !cancel_token.is_cancelled() {
+        if !cancel_token.is_cancelled() && self.current_state() != CompanionState::Error {
             self.set_state(CompanionState::Idle, None);
         }
+
+        let ttft = *first_llm_token_time.lock();
+        let tttsi = *first_tts_input_time.lock();
+        let ttfa = *first_audio_play_time.lock();
+        let total_dur = stream_start.elapsed();
+        let chunks_count = chunk_count.load(Ordering::SeqCst) as usize;
+
+        let metrics = StreamingLatencyMetrics {
+            time_to_first_llm_token: ttft,
+            time_to_first_tts_input: tttsi,
+            time_to_first_audio_playback: ttfa,
+            total_duration: total_dur,
+            chunks_sent_to_tts: chunks_count,
+        };
+
+        tracing::info!(
+            ttft_ms = ?ttft.map(|d| d.as_millis()),
+            tttsi_ms = ?tttsi.map(|d| d.as_millis()),
+            ttfa_ms = ?ttfa.map(|d| d.as_millis()),
+            total_ms = total_dur.as_millis(),
+            chunks = chunks_count,
+            "[VOICE-STREAM] Streaming response completed"
+        );
+
+        *self.last_streaming_metrics.lock() = Some(metrics);
     }
 
     /// Synthesize one sentence chunk and queue it to the playback device,

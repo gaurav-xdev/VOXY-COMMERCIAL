@@ -6,31 +6,38 @@ use voxy_security::path_guard::{contains_symlink_or_reparse, is_protected_file, 
 pub struct Patcher;
 
 impl Patcher {
-    pub fn canonicalize_workspace_rel(workspace_root: &Path, file_path_str: &str) -> Result<PathBuf> {
-        let ws_canonical = workspace_root
-            .canonicalize()
-            .map_err(|e| HarnessError::PathViolation(format!("Cannot canonicalize workspace: {}", e)))?;
+    pub fn canonicalize_workspace_rel(
+        workspace_root: &Path,
+        file_path_str: &str,
+    ) -> Result<PathBuf> {
+        let ws_canonical = workspace_root.canonicalize().map_err(|e| {
+            HarnessError::PathViolation(format!("Cannot canonicalize workspace: {}", e))
+        })?;
 
         let raw_path = PathBuf::from(file_path_str);
         let rel_path = if raw_path.is_absolute() {
             match raw_path.canonicalize() {
-                Ok(abs_canon) => {
-                    abs_canon.strip_prefix(&ws_canonical)
-                        .map_err(|_| HarnessError::PathViolation(format!(
+                Ok(abs_canon) => abs_canon
+                    .strip_prefix(&ws_canonical)
+                    .map_err(|_| {
+                        HarnessError::PathViolation(format!(
                             "Target path '{}' is outside workspace '{}'",
                             file_path_str,
                             ws_canonical.display()
-                        )))?
-                        .to_path_buf()
-                }
+                        ))
+                    })?
+                    .to_path_buf(),
                 Err(_) => {
                     // Path does not exist yet (e.g. creating new file)
-                    raw_path.strip_prefix(&ws_canonical)
-                        .map_err(|_| HarnessError::PathViolation(format!(
-                            "Target path '{}' does not reside within workspace '{}'",
-                            file_path_str,
-                            ws_canonical.display()
-                        )))?
+                    raw_path
+                        .strip_prefix(&ws_canonical)
+                        .map_err(|_| {
+                            HarnessError::PathViolation(format!(
+                                "Target path '{}' does not reside within workspace '{}'",
+                                file_path_str,
+                                ws_canonical.display()
+                            ))
+                        })?
                         .to_path_buf()
                 }
             }
@@ -39,13 +46,19 @@ impl Patcher {
         };
 
         // Guard against traversal sequences
-        if rel_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-            return Err(HarnessError::PathViolation("Path contains '..' traversal".into()));
+        if rel_path
+            .components()
+            .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            return Err(HarnessError::PathViolation(
+                "Path contains '..' traversal".into(),
+            ));
         }
 
         // Validate relative path using voxy_security::path_guard
-        validate_path(&ws_canonical, &rel_path)
-            .map_err(|e| HarnessError::PathViolation(format!("Path guard validation failed: {}", e)))?;
+        validate_path(&ws_canonical, &rel_path).map_err(|e| {
+            HarnessError::PathViolation(format!("Path guard validation failed: {}", e))
+        })?;
 
         if is_protected_file(&rel_path) {
             return Err(HarnessError::Security(format!(
@@ -114,7 +127,11 @@ impl Patcher {
             result
         };
 
-        let diff = Self::compute_unified_diff(&rel_path.to_string_lossy(), &original_content, &new_content);
+        let diff = Self::compute_unified_diff(
+            &rel_path.to_string_lossy(),
+            &original_content,
+            &new_content,
+        );
 
         fs::write(&full_path, &new_content)
             .map_err(|e| HarnessError::EditError(format!("Failed to write updated file: {}", e)))?;
@@ -135,7 +152,11 @@ impl Patcher {
         let old_lines: Vec<&str> = old.lines().collect();
         let new_lines: Vec<&str> = new.lines().collect();
 
-        diff.push_str(&format!("@@ -1,{} +1,{} @@\n", old_lines.len(), new_lines.len()));
+        diff.push_str(&format!(
+            "@@ -1,{} +1,{} @@\n",
+            old_lines.len(),
+            new_lines.len()
+        ));
 
         for line in &old_lines {
             if !new_lines.contains(line) {

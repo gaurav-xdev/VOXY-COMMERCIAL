@@ -48,6 +48,17 @@ pub enum RoutingMode {
     ForceProvider(String),
 }
 
+impl RoutingMode {
+    /// In ForceProvider and ForceModel modes, inference failure must return an error
+    /// without falling back to any different provider or model.
+    pub fn allows_fallback(&self) -> bool {
+        !matches!(
+            self,
+            RoutingMode::ForceProvider(_) | RoutingMode::ForceModel(_)
+        )
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RouterConfig {
     pub mode: RoutingMode,
@@ -120,6 +131,10 @@ impl ModelRouter {
 
     pub fn set_mode(&self, mode: RoutingMode) {
         self.config.write().mode = mode;
+    }
+
+    pub fn allows_fallback(&self) -> bool {
+        self.config.read().mode.allows_fallback()
     }
 
     fn is_breaker_open(&self, provider_id: &str) -> bool {
@@ -469,6 +484,10 @@ impl ModelRouter {
                 }
                 Err(e) => {
                     self.record_failure(&provider_info.id);
+                    let mode = self.config.read().mode.clone();
+                    if !mode.allows_fallback() {
+                        return Err(e);
+                    }
                     // Automatic fallback: try another healthy provider
                     let all = self
                         .registry
@@ -514,6 +533,10 @@ impl ModelRouter {
                 }
                 Ok(Err(e)) => {
                     self.record_failure(&provider_info.id);
+                    let mode = self.config.read().mode.clone();
+                    if !mode.allows_fallback() {
+                        return Err(RouterError::ProviderError(format!("STT failed: {e}")));
+                    }
                     // Failover to local/healthy STT
                     let all = self
                         .registry
@@ -538,6 +561,30 @@ impl ModelRouter {
                 }
                 Err(_) => {
                     self.record_failure(&provider_info.id);
+                    let mode = self.config.read().mode.clone();
+                    if !mode.allows_fallback() {
+                        return Err(RouterError::ProviderError("STT timed out".into()));
+                    }
+                    // Failover to local/healthy STT on timeout
+                    let all = self
+                        .registry
+                        .find_by_capability(ProviderCapability::Stt)
+                        .await
+                        .unwrap_or_default();
+                    let healthy = self.filter_healthy(all);
+                    for fallback in healthy {
+                        if fallback.id != provider_info.id {
+                            let fb_inst = self.stt_providers.read().get(&fallback.id).cloned();
+                            if let Some(fb_inst) = fb_inst {
+                                if let Ok(Ok(text)) =
+                                    tokio::time::timeout(timeout, fb_inst.transcribe(audio)).await
+                                {
+                                    self.record_success(&fallback.id);
+                                    return Ok(text);
+                                }
+                            }
+                        }
+                    }
                     Err(RouterError::ProviderError("STT timed out".into()))
                 }
             }
@@ -565,6 +612,10 @@ impl ModelRouter {
                 }
                 Ok(Err(e)) => {
                     self.record_failure(&provider_info.id);
+                    let mode = self.config.read().mode.clone();
+                    if !mode.allows_fallback() {
+                        return Err(RouterError::ProviderError(format!("TTS failed: {e}")));
+                    }
                     // Failover to local/healthy TTS
                     let all = self
                         .registry
@@ -589,6 +640,30 @@ impl ModelRouter {
                 }
                 Err(_) => {
                     self.record_failure(&provider_info.id);
+                    let mode = self.config.read().mode.clone();
+                    if !mode.allows_fallback() {
+                        return Err(RouterError::ProviderError("TTS timed out".into()));
+                    }
+                    // Failover to local/healthy TTS on timeout
+                    let all = self
+                        .registry
+                        .find_by_capability(ProviderCapability::Tts)
+                        .await
+                        .unwrap_or_default();
+                    let healthy = self.filter_healthy(all);
+                    for fallback in healthy {
+                        if fallback.id != provider_info.id {
+                            let fb_inst = self.tts_providers.read().get(&fallback.id).cloned();
+                            if let Some(fb_inst) = fb_inst {
+                                if let Ok(Ok(bytes)) =
+                                    tokio::time::timeout(timeout, fb_inst.synthesize(text)).await
+                                {
+                                    self.record_success(&fallback.id);
+                                    return Ok(bytes);
+                                }
+                            }
+                        }
+                    }
                     Err(RouterError::ProviderError("TTS timed out".into()))
                 }
             }
@@ -790,10 +865,36 @@ mod tests {
     struct MockLlm {
         name: String,
         should_fail: std::sync::atomic::AtomicBool,
+        delay_ms: std::sync::atomic::AtomicU64,
+        call_count: std::sync::atomic::AtomicUsize,
+    }
+    impl MockLlm {
+        fn new(name: &str, should_fail: bool) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(should_fail),
+                delay_ms: std::sync::atomic::AtomicU64::new(0),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
+        fn with_delay(name: &str, delay_ms: u64) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(false),
+                delay_ms: std::sync::atomic::AtomicU64::new(delay_ms),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
     }
     #[async_trait::async_trait]
     impl LlmProvider for MockLlm {
         async fn complete(&self, prompt: &str) -> voxy_provider_core::Result<String> {
+            self.call_count
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let delay = self.delay_ms.load(std::sync::atomic::Ordering::Relaxed);
+            if delay > 0 {
+                tokio::time::sleep(Duration::from_millis(delay)).await;
+            }
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
                 Err(voxy_provider_core::ProviderError::RequestFailed(
                     "Simulated API failure".into(),
@@ -803,7 +904,7 @@ mod tests {
             }
         }
         fn available_models(&self) -> Vec<String> {
-            vec!["mock".into()]
+            vec!["mock".into(), self.name.clone()]
         }
         fn name(&self) -> &str {
             &self.name
@@ -813,10 +914,36 @@ mod tests {
     struct MockStt {
         name: String,
         should_fail: std::sync::atomic::AtomicBool,
+        delay_ms: std::sync::atomic::AtomicU64,
+        call_count: std::sync::atomic::AtomicUsize,
+    }
+    impl MockStt {
+        fn new(name: &str, should_fail: bool) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(should_fail),
+                delay_ms: std::sync::atomic::AtomicU64::new(0),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
+        fn with_delay(name: &str, delay_ms: u64) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(false),
+                delay_ms: std::sync::atomic::AtomicU64::new(delay_ms),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
     }
     #[async_trait::async_trait]
     impl SttProvider for MockStt {
         async fn transcribe(&self, _audio: &[u8]) -> voxy_provider_core::Result<String> {
+            self.call_count
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let delay = self.delay_ms.load(std::sync::atomic::Ordering::Relaxed);
+            if delay > 0 {
+                tokio::time::sleep(Duration::from_millis(delay)).await;
+            }
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
                 Err(voxy_provider_core::ProviderError::RequestFailed(
                     "Simulated STT failure".into(),
@@ -836,10 +963,36 @@ mod tests {
     struct MockTts {
         name: String,
         should_fail: std::sync::atomic::AtomicBool,
+        delay_ms: std::sync::atomic::AtomicU64,
+        call_count: std::sync::atomic::AtomicUsize,
+    }
+    impl MockTts {
+        fn new(name: &str, should_fail: bool) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(should_fail),
+                delay_ms: std::sync::atomic::AtomicU64::new(0),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
+        fn with_delay(name: &str, delay_ms: u64) -> Self {
+            Self {
+                name: name.to_string(),
+                should_fail: std::sync::atomic::AtomicBool::new(false),
+                delay_ms: std::sync::atomic::AtomicU64::new(delay_ms),
+                call_count: std::sync::atomic::AtomicUsize::new(0),
+            }
+        }
     }
     #[async_trait::async_trait]
     impl TtsProvider for MockTts {
         async fn synthesize(&self, text: &str) -> voxy_provider_core::Result<Vec<u8>> {
+            self.call_count
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let delay = self.delay_ms.load(std::sync::atomic::Ordering::Relaxed);
+            if delay > 0 {
+                tokio::time::sleep(Duration::from_millis(delay)).await;
+            }
             if self.should_fail.load(std::sync::atomic::Ordering::Relaxed) {
                 Err(voxy_provider_core::ProviderError::RequestFailed(
                     "Simulated TTS failure".into(),
@@ -879,14 +1032,8 @@ mod tests {
         let router = ModelRouter::new(registry);
         router.set_mode(RoutingMode::CloudOnly);
 
-        let primary_inst = Arc::new(MockLlm {
-            name: "Cloud LLM".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(true), // primary fails!
-        });
-        let fallback_inst = Arc::new(MockLlm {
-            name: "Local LLM".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(false),
-        });
+        let primary_inst = Arc::new(MockLlm::new("Cloud LLM", true));
+        let fallback_inst = Arc::new(MockLlm::new("Local LLM", false));
 
         router.register_llm("cloud-llm", primary_inst);
         router.register_llm("local-llm", fallback_inst);
@@ -921,14 +1068,8 @@ mod tests {
         let router = ModelRouter::new(registry);
         router.set_mode(RoutingMode::CloudOnly);
 
-        let primary_inst = Arc::new(MockStt {
-            name: "Cloud STT".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(true), // cloud fails
-        });
-        let fallback_inst = Arc::new(MockStt {
-            name: "Local STT".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(false),
-        });
+        let primary_inst = Arc::new(MockStt::new("Cloud STT", true));
+        let fallback_inst = Arc::new(MockStt::new("Local STT", false));
 
         router.register_stt("cloud-stt", primary_inst);
         router.register_stt("local-stt", fallback_inst);
@@ -963,14 +1104,8 @@ mod tests {
         let router = ModelRouter::new(registry);
         router.set_mode(RoutingMode::CloudOnly);
 
-        let primary_inst = Arc::new(MockTts {
-            name: "Cloud TTS".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(true), // cloud fails
-        });
-        let fallback_inst = Arc::new(MockTts {
-            name: "Local TTS".into(),
-            should_fail: std::sync::atomic::AtomicBool::new(false),
-        });
+        let primary_inst = Arc::new(MockTts::new("Cloud TTS", true));
+        let fallback_inst = Arc::new(MockTts::new("Local TTS", false));
 
         router.register_tts("cloud-tts", primary_inst);
         router.register_tts("local-tts", fallback_inst);
@@ -1018,6 +1153,367 @@ mod tests {
             result.is_err(),
             "Expected error due to zero fallback on ForceProvider, but got {:?}",
             result
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_route_complete_zero_fallback_on_error() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-cloud-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alternative-local-llm",
+            ProviderKind::Local,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::ForceProvider("forced-cloud-llm".into()));
+
+        let failing_primary = Arc::new(MockLlm::new("Forced Cloud", true));
+        let alternative = Arc::new(MockLlm::new("Alternative Local", false));
+
+        router.register_llm("forced-cloud-llm", failing_primary.clone());
+        router.register_llm("alternative-local-llm", alternative.clone());
+
+        let result = router.route_complete("Test prompt").await;
+        assert!(
+            result.is_err(),
+            "Must return error when forced provider fails"
+        );
+
+        // Strictly verify alternative provider was NEVER invoked
+        assert_eq!(
+            failing_primary
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "Forced provider should have been invoked exactly once"
+        );
+        assert_eq!(
+            alternative
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative provider must NOT be invoked in ForceProvider mode"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_route_complete_zero_fallback_on_timeout() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-cloud-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alternative-local-llm",
+            ProviderKind::Local,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let mut config = RouterConfig::default();
+        config.mode = RoutingMode::ForceProvider("forced-cloud-llm".into());
+        config.provider_timeout_secs = 1; // 1 second timeout
+
+        let router = ModelRouter::with_config(registry, config);
+
+        // Primary has 2500ms delay, exceeding the 1s timeout
+        let slow_primary = Arc::new(MockLlm::with_delay("Slow Cloud", 2500));
+        let alternative = Arc::new(MockLlm::new("Alternative Local", false));
+
+        router.register_llm("forced-cloud-llm", slow_primary.clone());
+        router.register_llm("alternative-local-llm", alternative.clone());
+
+        let result = router.route_complete("Test timeout").await;
+        assert!(
+            result.is_err(),
+            "Must return error when forced provider times out"
+        );
+        assert!(
+            result.unwrap_err().to_string().contains("timed out"),
+            "Error should indicate timeout"
+        );
+
+        // Alternative provider must remain untouched
+        assert_eq!(
+            alternative
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative provider must NOT be called on timeout in ForceProvider mode"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_model_route_complete_zero_fallback_on_error() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let mut primary_info = make_provider(
+            "primary-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            1,
+        );
+        primary_info.models = vec![ModelInfo::new("gpt-4-forced", "gpt-4-forced")];
+
+        let mut alternative_info = make_provider(
+            "alternative-llm",
+            ProviderKind::Local,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10,
+        );
+        alternative_info.models = vec![ModelInfo::new("llama3-local", "llama3-local")];
+
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::ForceModel("gpt-4-forced".into()));
+
+        let failing_primary = Arc::new(MockLlm::new("Primary LLM", true));
+        let alternative = Arc::new(MockLlm::new("Alternative LLM", false));
+
+        router.register_llm("primary-llm", failing_primary.clone());
+        router.register_llm("alternative-llm", alternative.clone());
+
+        let result = router.route_complete("Test prompt").await;
+        assert!(result.is_err(), "Must return error when forced model fails");
+
+        assert_eq!(
+            failing_primary
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            1
+        );
+        assert_eq!(
+            alternative
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative model provider must NOT be invoked in ForceModel mode"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_stt_zero_fallback() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-stt",
+            ProviderKind::Cloud,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alt-stt",
+            ProviderKind::Local,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::ForceProvider("forced-stt".into()));
+
+        let failing_stt = Arc::new(MockStt::new("Forced STT", true));
+        let alt_stt = Arc::new(MockStt::new("Alt STT", false));
+
+        router.register_stt("forced-stt", failing_stt.clone());
+        router.register_stt("alt-stt", alt_stt.clone());
+
+        let result = router.route_transcribe(b"dummy audio").await;
+        assert!(result.is_err(), "Must fail when forced STT fails");
+        assert_eq!(
+            alt_stt.call_count.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative STT must not be called"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_stt_zero_fallback_on_timeout() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-stt",
+            ProviderKind::Cloud,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alt-stt",
+            ProviderKind::Local,
+            ProviderCapability::Stt,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let mut config = RouterConfig::default();
+        config.mode = RoutingMode::ForceProvider("forced-stt".into());
+        config.provider_timeout_secs = 1;
+        let router = ModelRouter::with_config(registry, config);
+
+        let slow_stt = Arc::new(MockStt::with_delay("Slow STT", 2500));
+        let alt_stt = Arc::new(MockStt::new("Alt STT", false));
+
+        router.register_stt("forced-stt", slow_stt.clone());
+        router.register_stt("alt-stt", alt_stt.clone());
+
+        let result = router.route_transcribe(b"dummy audio").await;
+        assert!(result.is_err(), "Must fail when forced STT times out");
+        assert_eq!(
+            alt_stt.call_count.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative STT must not be called on timeout in ForceProvider mode"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_tts_zero_fallback() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-tts",
+            ProviderKind::Cloud,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alt-tts",
+            ProviderKind::Local,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let router = ModelRouter::new(registry);
+        router.set_mode(RoutingMode::ForceProvider("forced-tts".into()));
+
+        let failing_tts = Arc::new(MockTts::new("Forced TTS", true));
+        let alt_tts = Arc::new(MockTts::new("Alt TTS", false));
+
+        router.register_tts("forced-tts", failing_tts.clone());
+        router.register_tts("alt-tts", alt_tts.clone());
+
+        let result = router.route_synthesize("Hello").await;
+        assert!(result.is_err(), "Must fail when forced TTS fails");
+        assert_eq!(
+            alt_tts.call_count.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative TTS must not be called"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_force_provider_tts_zero_fallback_on_timeout() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "forced-tts",
+            ProviderKind::Cloud,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            1,
+        );
+        let alternative_info = make_provider(
+            "alt-tts",
+            ProviderKind::Local,
+            ProviderCapability::Tts,
+            ProviderStatus::Available,
+            10,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let mut config = RouterConfig::default();
+        config.mode = RoutingMode::ForceProvider("forced-tts".into());
+        config.provider_timeout_secs = 1;
+        let router = ModelRouter::with_config(registry, config);
+
+        let slow_tts = Arc::new(MockTts::with_delay("Slow TTS", 2500));
+        let alt_tts = Arc::new(MockTts::new("Alt TTS", false));
+
+        router.register_tts("forced-tts", slow_tts.clone());
+        router.register_tts("alt-tts", alt_tts.clone());
+
+        let result = router.route_synthesize("Hello").await;
+        assert!(result.is_err(), "Must fail when forced TTS times out");
+        assert_eq!(
+            alt_tts.call_count.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "Alternative TTS must not be called on timeout in ForceProvider mode"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_auto_mode_preserves_fallback_on_error() {
+        let registry = Arc::new(DefaultProviderRegistry::new());
+        let primary_info = make_provider(
+            "primary-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            10, // Higher priority in discovery
+        );
+        let alternative_info = make_provider(
+            "backup-llm",
+            ProviderKind::Cloud,
+            ProviderCapability::Llm,
+            ProviderStatus::Available,
+            5,
+        );
+        registry.register(primary_info).await.unwrap();
+        registry.register(alternative_info).await.unwrap();
+
+        let mut config = RouterConfig::default();
+        config.mode = RoutingMode::Auto;
+        config.local_first = false; // ensure primary-llm is selected first
+        let router = ModelRouter::with_config(registry, config);
+
+        let failing_primary = Arc::new(MockLlm::new("Primary LLM", true));
+        let backup = Arc::new(MockLlm::new("Backup LLM", false));
+
+        router.register_llm("primary-llm", failing_primary.clone());
+        router.register_llm("backup-llm", backup.clone());
+
+        let result = router.route_complete("Test prompt").await;
+        assert!(
+            result.is_ok(),
+            "Auto mode should fall back to backup provider"
+        );
+        assert!(result.unwrap().contains("Backup LLM"));
+        assert_eq!(
+            failing_primary
+                .call_count
+                .load(std::sync::atomic::Ordering::SeqCst),
+            1
+        );
+        assert_eq!(
+            backup.call_count.load(std::sync::atomic::Ordering::SeqCst),
+            1
         );
     }
 }

@@ -568,16 +568,51 @@ pub fn run_overlay() {
 
     let head_content = format!("{}{}", GLOBAL_STYLES, CLIENT_JS);
 
+    let (screen_w, screen_h) = get_screen_bounds();
+
+    let mut window_builder = dioxus::desktop::WindowBuilder::new()
+        .with_transparent(true)
+        .with_decorations(false)
+        .with_always_on_top(true)
+        .with_resizable(false)
+        .with_inner_size(dioxus::desktop::LogicalSize::new(screen_w, screen_h))
+        .with_position(dioxus::desktop::LogicalPosition::new(0.0, 0.0))
+        .with_title("OSMOO AI Operating Companion Overlay");
+
+    #[cfg(windows)]
+    {
+        use dioxus::desktop::tao::platform::windows::WindowBuilderExtWindows;
+        window_builder = window_builder
+            .with_skip_taskbar(true)
+            .with_undecorated_shadow(false);
+    }
+
     let cfg = dioxus::desktop::Config::new()
+        .with_background_color((0, 0, 0, 0))
         .with_custom_head(head_content)
-        .with_window(
-            dioxus::desktop::WindowBuilder::new()
-                .with_transparent(true)
-                .with_decorations(false)
-                .with_always_on_top(true)
-                .with_maximized(true)
-                .with_title("OSMOO AI Operating Companion Overlay"),
-        );
+        .with_window(window_builder);
 
     dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(App);
+}
+
+#[cfg(windows)]
+fn get_screen_bounds() -> (f64, f64) {
+    #[link(name = "user32")]
+    extern "system" {
+        fn GetSystemMetrics(nIndex: i32) -> i32;
+    }
+    const SM_CXSCREEN: i32 = 0;
+    const SM_CYSCREEN: i32 = 1;
+    let cx = unsafe { GetSystemMetrics(SM_CXSCREEN) };
+    let cy = unsafe { GetSystemMetrics(SM_CYSCREEN) };
+    if cx > 0 && cy > 0 {
+        (cx as f64, cy as f64)
+    } else {
+        (1920.0, 1080.0)
+    }
+}
+
+#[cfg(not(windows))]
+fn get_screen_bounds() -> (f64, f64) {
+    (1920.0, 1080.0)
 }

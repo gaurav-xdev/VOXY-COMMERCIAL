@@ -14,15 +14,14 @@ impl SessionStore {
     }
 
     pub fn save_session(&self, session: &CodingSession) -> Result<()> {
-        fs::create_dir_all(&self.sessions_dir)
-            .map_err(|e| HarnessError::Io(e))?;
+        fs::create_dir_all(&self.sessions_dir).map_err(HarnessError::Io)?;
 
-        let file_path = self.sessions_dir.join(format!("{}.json", session.session_id));
-        let data = serde_json::to_vec_pretty(session)
-            .map_err(|e| HarnessError::Json(e))?;
+        let file_path = self
+            .sessions_dir
+            .join(format!("{}.json", session.session_id));
+        let data = serde_json::to_vec_pretty(session).map_err(HarnessError::Json)?;
 
-        fs::write(file_path, data)
-            .map_err(|e| HarnessError::Io(e))?;
+        fs::write(file_path, data).map_err(HarnessError::Io)?;
 
         Ok(())
     }
@@ -33,11 +32,9 @@ impl SessionStore {
             return Ok(None);
         }
 
-        let content = fs::read_to_string(file_path)
-            .map_err(|e| HarnessError::Io(e))?;
+        let content = fs::read_to_string(file_path).map_err(HarnessError::Io)?;
 
-        let session = serde_json::from_str(&content)
-            .map_err(|e| HarnessError::Json(e))?;
+        let session = serde_json::from_str(&content).map_err(HarnessError::Json)?;
 
         Ok(Some(session))
     }

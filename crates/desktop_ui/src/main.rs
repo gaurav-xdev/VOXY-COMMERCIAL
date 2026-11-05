@@ -1,4 +1,7 @@
+#![cfg_attr(not(test), windows_subsystem = "windows")]
+
 mod app;
+pub mod assets;
 pub mod backend;
 mod bridge;
 mod components;
@@ -390,9 +393,18 @@ fn main() {
         .any(|arg| arg == "--daemon-only" || arg == "--headless");
     let is_autostart = args.iter().any(|arg| arg == "--autostart" || arg == "-a");
 
+    let is_provisioned = {
+        let flag = dirs::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("osmoo")
+            .join("provisioned.flag");
+        flag.exists()
+    };
+
+    let autostart_overlay = !no_overlay && !daemon_only && is_provisioned;
     let supervisor_config = SupervisorConfig {
         autostart_daemon: !no_daemon,
-        autostart_overlay: !no_overlay && !daemon_only,
+        autostart_overlay,
         ..Default::default()
     };
 
@@ -433,7 +445,7 @@ fn main() {
     }
 
     let bridge = init_bridge();
-    BRIDGE.set(bridge).ok();
+    BRIDGE.set(bridge.clone()).ok();
 
     let icon_bytes = include_bytes!("app_icon_32.rgba");
     let window_icon = dioxus::desktop::tao::window::Icon::from_rgba(icon_bytes.to_vec(), 32, 32).ok();
@@ -453,8 +465,18 @@ fn main() {
 
     let head_content = format!("<style>{}</style>\n{}", APP_CSS, THREE_JS_CORE_SCRIPT);
 
+    let close_behavior = {
+        let snapshot = bridge.settings.get();
+        if snapshot.profile.close_behavior == "quit" || !autostart_overlay {
+            dioxus::desktop::WindowCloseBehaviour::LastWindowExitsApp
+        } else {
+            dioxus::desktop::WindowCloseBehaviour::LastWindowHides
+        }
+    };
+
     let cfg = dioxus::desktop::Config::new()
         .with_window(window_builder)
+        .with_close_behaviour(close_behavior)
         .with_custom_head(head_content);
 
     dioxus::LaunchBuilder::desktop()

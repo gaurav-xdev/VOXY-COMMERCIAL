@@ -113,6 +113,27 @@ Available tools:
 - process_info: Query diagnostics for a process by PID. params: {"pid": <pid>}
 - process_kill: Terminate an active process (requires confirmation). params: {"pid": <pid>}
 - system_info: Retrieve OS details, CPU architecture, hostname, and displays. params: {}
+- execute_coding_task: Execute an autonomous software engineering task using the coding harness. params: {"prompt": "<coding_instruction>", "workspace_root": "<optional_path>"}
+- research_deep_investigate: Perform comprehensive multi-source investigation on a query. params: {"query": "<topic>"}
+- memory_store: Persist an important fact or user preference into long-term memory. params: {"key": "<key>", "value": "<content>"}
+- memory_recall: Query long-term memory for relevant user context. params: {"query": "<query>"}
+- task_history_get: Retrieve recorded execution telemetry for a task. params: {"task_id": "<task_id>"}
+- task_artifacts_list: List artifacts generated for a task. params: {"task_id": "<task_id>"}
+- office_docx_create: Create a native Microsoft Word (.docx) document with styled paragraphs, headings, and tables. params: {"path": "<path>", "title": "<title>", "paragraphs": ["<p1>"], "headings": ["<h1>"], "bullets": ["<b1>"], "table_headers": ["<col>"], "table_rows": [["<r1c1>"]]}
+- office_xlsx_create: Create a native Microsoft Excel (.xlsx) spreadsheet with numeric values, cell formulas, and sheets. params: {"path": "<path>", "sheet_name": "<name>", "headers": ["<col1>"], "rows": [["<val1>"]]}
+- office_pptx_create: Create a native Microsoft PowerPoint (.pptx) presentation with title slides, bullet slides, and notes. params: {"path": "<path>", "title": "<title>", "slides": [{"title": "<slide_title>", "bullet_points": ["<point>"], "notes": "<notes>"}]}
+- office_file_validate: Validate structural integrity and extract text from .docx, .xlsx, or .pptx files. params: {"path": "<path>", "kind": "docx/xlsx/pptx"}
+- calendar_create_event: Schedule a calendar event with persistent SQLite storage and conflict detection. params: {"title": "<title>", "start_time": "<iso8601>", "duration_minutes": 30, "recurrence": "none/daily/weekly/monthly/weekdays"}
+- calendar_list_events: List upcoming calendar events within a time range. params: {"start_time": "<iso8601>", "end_time": "<iso8601>"}
+- calendar_delete_event: Delete or cancel a scheduled calendar event. params: {"event_id": "<id>"}
+- email_search_inbox: Search inbox messages across sender, subject, and content. params: {"query": "<query>", "max_results": 10}
+- email_read_thread: Read and summarize an email conversation thread with action items. params: {"thread_id": "<id>"}
+- email_create_draft: Create a new email draft (does NOT send until approved). params: {"to": ["<addr>"], "subject": "<subject>", "body": "<body>"}
+- email_send_approved: Send an email draft that has been approved by the user. params: {"draft_id": "<id>", "approval_token": "<token>"}
+- travel_search_flights: Search flight options with baggage rules and verified booking URLs. params: {"origin": "<airport>", "destination": "<airport>", "date": "YYYY-MM-DD"}
+- travel_search_hotels: Search hotel accommodations with nightly rates and cancellation terms. params: {"city": "<city>", "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD"}
+- shopping_discover_products: Discover products across merchants with prices and stock status. params: {"query": "<product_query>", "max_results": 5}
+- payment_execute_sandbox_test: Execute a test payment in sandbox mode (requires tok_sandbox_*; no real cards). params: {"cart_id": "<id>", "token": "tok_sandbox_*", "amount": 10.0}
 
 Only use tools when the user explicitly asks you to perform an action.
 For conversation, questions, or information requests, just respond normally without tools."#

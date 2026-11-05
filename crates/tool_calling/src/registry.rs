@@ -70,6 +70,25 @@ impl ToolRegistry {
         registry.register_builtin_sync(Arc::new(BrowserUploadTool::new()));
         registry.register_builtin_sync(Arc::new(BrowserWaitTool::new()));
         registry.register_builtin_sync(Arc::new(BrowserGetUrlTool::new()));
+        // Office tools (.docx, .xlsx, .pptx, validate)
+        registry.register_builtin_sync(Arc::new(OfficeDocxCreateTool::new()));
+        registry.register_builtin_sync(Arc::new(OfficeXlsxCreateTool::new()));
+        registry.register_builtin_sync(Arc::new(OfficePptxCreateTool::new()));
+        registry.register_builtin_sync(Arc::new(OfficeFileValidateTool::new()));
+        // Calendar tools (persistent SQLite)
+        registry.register_builtin_sync(Arc::new(CalendarCreateEventTool::new()));
+        registry.register_builtin_sync(Arc::new(CalendarListEventsTool::new()));
+        registry.register_builtin_sync(Arc::new(CalendarDeleteEventTool::new()));
+        // Email tools (search, read thread, draft, send approved)
+        registry.register_builtin_sync(Arc::new(EmailSearchInboxTool::new()));
+        registry.register_builtin_sync(Arc::new(EmailReadThreadTool::new()));
+        registry.register_builtin_sync(Arc::new(EmailCreateDraftTool::new()));
+        registry.register_builtin_sync(Arc::new(EmailSendApprovedTool::new()));
+        // Travel & Shopping tools
+        registry.register_builtin_sync(Arc::new(TravelSearchFlightsTool::new()));
+        registry.register_builtin_sync(Arc::new(TravelSearchHotelsTool::new()));
+        registry.register_builtin_sync(Arc::new(ShoppingDiscoverProductsTool::new()));
+        registry.register_builtin_sync(Arc::new(PaymentExecuteSandboxTestTool::new()));
         registry
     }
 

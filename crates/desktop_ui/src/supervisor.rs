@@ -311,8 +311,13 @@ impl Supervisor {
     ) -> Result<u32, SupervisorError> {
         let mut cmd = Command::new(bin_path);
         cmd.args(args);
-        cmd.stdout(Stdio::inherit());
-        cmd.stderr(Stdio::inherit());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        cmd.stdout(Stdio::null());
+        cmd.stderr(Stdio::null());
 
         let mut child = cmd
             .spawn()
@@ -372,11 +377,6 @@ impl Supervisor {
 
     /// Launch overlay UI inside unified OSMOO.exe (`OSMOO.exe --overlay`) or fallback `voxy-overlay.exe`.
     pub fn start_overlay(&self) -> Result<Option<u32>, SupervisorError> {
-        if !self.config.autostart_overlay {
-            info!("Overlay autostart disabled by supervisor config");
-            return Ok(None);
-        }
-
         if let Some(child) = self.children.lock().get("overlay") {
             return Ok(Some(child.pid));
         }

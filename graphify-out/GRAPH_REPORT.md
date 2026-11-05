@@ -1,101 +1,102 @@
-# Graph Report - VOXY-COMMERCIAL  (2026-10-26)
+# Graph Report - VOXY-COMMERCIAL  (2026-11-05)
 
 ## Corpus Check
-- 1852 files · ~2,044,177 words
+- 1890 files · ~2,168,111 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 35 file(s) not represented in the graph (top: .toml 6, .bat 5, (none) 4)
+- Unclassified: 37 file(s) not represented in the graph (top: .toml 6, .bat 5, (none) 4)
 
 ## Summary
-- 29779 nodes · 55122 edges · 1374 communities (1188 shown, 186 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 1612 edges (avg confidence: 0.93)
+- 30476 nodes · 56502 edges · 1399 communities (1208 shown, 191 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 1618 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8a938c71`
+- Built from commit: `9d8aed7d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - windows_uia.rs
-- .run_command
-- StorageProvider
+- SupervisorError
 - orchestrator/src/lib.rs
-- VideoCompose
+- RecoveryEngine
 - Rect
 - autonomous_workflows.rs
 - CommercialStore
-- database/src/lib.rs
+- entitlement.rs
 - handlers.rs
 - cognition/src/lib.rs
 - RemoteDatabase
 - goal_engine_v2.rs
 - voxy-shared
 - sqlite.rs
-- agent_runtime/src/orchestrator.rs
+- LlmProvider
+- MultiAgentOrchestrator
 - RuntimeManagerError
 - MockAutomationBackend
-- office/src/lib.rs
+- ScopeSet
 - DefaultSystemCoordinator
-- PriceQuoteRequired
+- FalMedia
 - production_validation.rs
 - sqlite_engine.rs
 - conversation/src/session.rs
-- Value
+- OpenClawBackend
 - companion_intelligence/src/conversation.rs
 - NodeId
 - Speaker
 - MemoryItem
+- StorageProvider
 - boot.rs
-- Corpus
+- FreshnessEngine
 - MemoryItem
 - metrics/src/lib.rs
-- trinity_swarm/src/lib.rs
+- VadDetector
 - dependency/src/graph.rs
 - security/src/auth.rs
 - voice_audio/src/lib.rs
 - VoicePipeline
 - decision_engine.rs
 - context/tests/integration_tests.rs
-- migration.rs
+- tcp_loopback.rs
 - memory/src/lib.rs
 - in_memory.rs
-- ProjectManager
+- project_manager.rs
 - planner.rs
 - platform_windows/src/platform.rs
 - AuthProvider
 - Event
-- companion_intelligence/src/lib.rs
-- ssrf.rs
-- Urgency
-- VerificationEngine
+- ExperienceBridge
+- SecurityError
+- KlingOfficialImage
+- ChangeKind
 - ExecutionContext
 - EmotionalStateMachine
-- ToolRegistry
+- .run_command
 - cognitive_orchestrator/src/orchestrator.rs
 - ltm_v2.rs
 - archive.rs
-- uuid
+- database/src/lib.rs
 - approval.rs
-- ContextPriority
-- HiggsFieldVideo
+- HybridBackend
+- trinity_swarm/src/lib.rs
 - WorldModelEvent
 - background.rs
-- human_dynamics/src/types.rs
-- DaemonMessage
+- human_dynamics/tests/integration_tests.rs
+- WindowsUiaBackend
 - VOXY Health Architecture Design
-- RecoveryEngine
+- legal/src/lib.rs
 - PresenceEngine
 - Message
 - human_dynamics/src/policy.rs
 - VideoStudioEnclave
-- AutomationBackend
+- DaemonMessage
 - self_improvement.rs
-- LlmProvider
+- ProviderInfo
 - ProactiveEngine
 - EventBus
 - MoodState
-- ProviderInfo
-- sota-devsecops/SKILL.md
+- WorkflowStatus
+- 01 — Zero-Trust Architecture
 - cognitive_orchestrator/src/reflection.rs
 - Mood
 - Turn
@@ -106,46 +107,44 @@
 - learning/src/lib.rs
 - ContextManager
 - planning.rs
-- executor/src/lib.rs
+- threejs_asset_catalog.py
 - transport.rs
 - WorldContext
 - voice_stt/src/lib.rs
 - curiosity.rs
 - replay.rs
 - signed.rs
-- 04 — I/O & Network Performance
+- ProviderCapability
 - sota-mobile/SKILL.md
-- voice_tts/src/lib.rs
+- super
 - knowledge_validation.rs
 - MemoryImportanceEngine
-- ToolMetadata
+- Value
 - runtime/src/scheduler.rs
 - rollback.rs
-- InMemorySelfMonitor
+- TaskContext
 - CapabilityManifest
 - WeatherContext
 - hub.rs
-- sota-frontend-design/SKILL.md
+- 04-claims-legal-trust.md
 - companion_moments.rs
 - SystemComponent
 - identity.rs
 - Cognitive Loop
 - windows_capture.rs
-- WindowsUiaBackend
-- tcp_loopback.rs
+- PlanId
 - brain/src/session.rs
-- HybridBackend
+- ProviderError
 - goal_manager.rs
-- coding_harness/src/types.rs
+- grounding/src/lib.rs
 - logging/src/lib.rs
 - security/src/audit.rs
 - security/src/defense.rs
-- end_to_end_integration_test.rs
+- tier2_boundary_corner.rs
 - CognitionEvent
-- brain/tests/integration_tests.rs
+- CodingEvent
 - desktop_ui/src/main.rs
 - security/src/policy.rs
-- ordering
 - OllamaProvider
 - agentic_loop.rs
 - query.rs
@@ -159,113 +158,113 @@
 - Explainer.tsx
 - event_bridge.rs
 - TrustLevel
-- FalMedia
+- ToolResult
 - LifecycleState
-- ModelRouter
+- model_router/src/lib.rs
 - cursor.rs
 - VeoVideo
-- FreshnessEngine
-- brain/src/engine.rs
+- ContextInvalidation
+- tool_calling/src/lib.rs
 - PriorityTaskScheduler
 - Capability
 - context/src/lib.rs
-- bridge/auth.rs
-- src/components/mode_views.rs
+- Skill
+- ContextPriority
 - dodo_client.rs
 - HyperFramesCompose
 - ConversationError
 - WakeState
 - BehaviorState
 - SecurityMonitor
-- AppConfig
+- guardian.rs
 - dodo_e2e_lifecycle.rs
 - daemon/src/main.rs
 - PresenceSystem
-- ContextCache
+- guard.rs
 - HookEvent
-- WindowTarget
+- AuditLogEntry
 - security/src/recovery.rs
-- SOTA API Design & Audit
+- VoxyIpcServer
 - Decision Pipeline
-- VideoStitch
+- WindowsPlatform
 - ReflectionReport
 - companion/src/engine.rs
 - InMemoryContextTracker
-- PolicyType
+- UnifiedBrainEngine
 - observability/src/lib.rs
 - TaskGraph
 - watchdog.rs
-- skills/src/lib.rs
-- DepthDrawer
-- Supervisor
-- companion/src/types.rs
-- Skill
+- grounding.rs
+- builtin/memory.rs
+- DatabaseConfig
+- StdResult
+- RuntimeSnapshot
 - experience_replay.rs
-- SystemComponent
-- AuditLogEntry
-- capture_screenshot
+- KlingClient
+- bridge/auth.rs
+- ConfigManager
 - report.rs
-- ProviderError
+- SystemComponent
 - secrets.rs
-- Candidate
+- SearchFilters
 - consent.rs
 - ErrorKind
 - PresenceRenderer
 - BaseTool
-- FishAudioTTS
-- guardian.rs
+- pipeline_loader.py
+- coding_harness/src/lib.rs
 - ActivityKind
-- SettingsManager
+- src/settings.rs
 - ContextProvider
-- download.rs
-- sdk.rs
-- ProviderCapability
-- IntelligenceError
-- compatibility.rs
-- WindowsPlatform
+- KlingLipSync
+- PluginError
+- HeartbeatTracker
+- BOOL
+- ImageSelector
+- NodeType
 - integrity.rs
 - src/discovery.rs
 - ThreatDetector
-- 10-silent-control-failure.md
-- openai/src/client.rs
+- webhook.rs
+- installer/src/main.rs
 - skill_discovery.rs
-- Root.tsx
+- Animation Runtime Selector
 - ComponentState
 - config_model.py
 - DefaultInterruptionManager
-- api_server/src/lib.rs
-- 07 — Audit Bug Catalog: Signatures, Severity, Fixes
+- KlingOfficialVideo
+- .run
 - ComfyUIClient
 - micro.rs
-- ContextFusionEngine
+- SchemaMedia
 - HealthMonitor
 - token.rs
 - workflow_learning.rs
 - owner_command_center.rs
-- CompanionConfig
-- app.rs
+- mcp_bridge.rs
+- compatibility.rs
 - FusionPolicy
 - ActivityContextProvider
 - WindowTracker
 - SeedanceArkVideo
 - MessageType
-- memory/src/preferences.rs
-- ReasoningOutput
-- companion_intelligence/src/lib.rs
+- AutomationBackend
+- ContextCache
+- companion/src/types.rs
 - PluginManager
 - AnimationGraph
 - AtlasVideo
 - ParticleEngine
 - di_container/src/lib.rs
-- ChangeKind
+- Candidate
 - _wan_engine.py
 - world-runtime.js
-- self_healing.rs
-- vram_manager.rs
+- SelfHealer
+- VramManager
 - IpcError
 - task_graph.rs
-- 01 — Language baseline & idioms
-- OpenClawBackend
+- GeminiProvider
+- voice_tts/src/lib.rs
 - skills/src/lib.rs
 - platform_core/src/lib.rs
 - fetch
@@ -273,70 +272,70 @@
 - assembled.rs
 - ConversationEvent
 - InMemoryBargeInManager
-- BackendCommand
+- VoxyIpcServer
 - HardwareError
 - selftest.rs
 - OrchestratorEvent
 - UiElementKind
-- StdResult
+- DocxDocument
 - shared/src/lib.rs
 - notifications.rs
-- AdaptiveThreshold
-- health.rs
+- capture_screenshot
+- FusionPolicy
 - version.rs
-- ui_state_test.rs
-- SchemaMedia
+- provider_core/src/lib.rs
+- archive_org.py
 - silence.rs
 - human_dynamics/src/confidence.rs
 - 2. Core Components
-- GpuVendor
-- ProviderHealth
-- sota-golang/rules/05-security.md
+- RelationshipLevel
+- brain/tests/integration_tests.rs
+- SettingsManager
 - CancellationToken
-- DatabaseConfig
+- MemoryEvent
 - sanitizer.rs
-- overlay/src/types.rs
+- AutomationCapability
 - Reviewer — Meta Skill
 - push_to_talk.rs
-- ToolResult
+- CapRecorder
 - icons.rs
 - Senior Open Source Engineer Skill
-- overlay/src/main.rs
+- PptxPresentation
 - protocol.rs
 - ToolRegistry
 - journal.rs
-- SecurityError
-- delta.rs
+- 07-security-governance.md
+- nasa.py
 - providers/memory.rs
 - AutomationError
 - FeatureFlags
-- ._process_candidate
-- pipecat_pipeline.py
+- ContextSnapshot
+- Subscription
 - learning/src/engine.rs
 - package.json
-- CogVideoVideo
+- DeviceStatus
 - AudioReactive
-- MemoryEvent
-- guard.rs
+- 03 — Idioms, Pitfalls, Exceptions & Logging
+- OfflineSyncProvider
 - Attention System
-- EyeEnhance
-- OwnerCommandCenter
+- ui_state_test.rs
+- BrowserRuntime
 - ConfigError
-- ElementSelector
-- HeartbeatTracker
+- conflict.rs
+- world_model/src/traits.rs
 - HomeManager
 - CentralTelemetry
 - OpenAIConfig
 - ResourceGovernor
-- 07-security-governance.md
+- delta.rs
 - checkpoint.py
 - VisualPresenceConfig
 - CognitiveError
-- VoxyIpcServer
+- hardware/src/lib.rs
 - shortcuts.rs
-- sota-python/rules/05-security.md
+- api_server/src/lib.rs
 - OrchestratorError
-- brain/tests/integration_tests.rs
+- InMemoryCognitiveEngine
 - shared/src/traits.rs
 - Goal Manager
 - HyperFrames Skill (Layer 2)
@@ -345,92 +344,92 @@
 - style.rs
 - CognitionError
 - validation.rs
-- DeviceStatus
+- ConfidenceScore
+- OSMOO Comprehensive Capability Matrix (Domains A – M)
 - health/src/diagnostics.rs
 - HomeEvent
 - pipecat.rs
-- shutdown.rs
+- migration.rs
 - pipeline_loader.py
 - Process — Standard Path (Corpus + CLIP Retrieval)
 - Planner
 - MemoryError
 - Language Idioms & Pitfalls
-- conflict.rs
+- JimengVideo
 - TaskType
 - HeadTracker
 - OpenAIProvider
 - AutoReframe
-- ApiResponseEnvelope
-- ModelLifecycleManager
+- MicrophoneArrayProcessor
+- model_lifecycle.rs
 - Alert
 - DecisionEngine
 - companion/tests/integration_tests.rs
-- auth_middleware.rs
-- hotreload.rs
-- PlanId
+- MockLlm
+- AnthropicClient
+- WorldModelProvider
 - Data Visualization Strategy Skill
 - Reasoning
-- ExperienceLayer
+- IntelligenceConfig
 - SpatialMotion
 - Video Generation Prompting — Universal Guide
 - AttentionScore
 - Task Manager
-- GeminiProvider
+- health.rs
 - RuntimeError
 - GuardianError
 - Reflection
-- ResearchOrchestrator
+- runtime_guard/src/lib.rs
 - HunyuanImage
-- security_integration_tests.rs
+- home/src/traits.rs
 - runtime/src/traits.rs
-- AuthMiddleware
+- auth_middleware.rs
 - Self-Monitoring
 - voxy_live_system.py
-- ContextInvalidation
+- FishAudioTTS
 - AutomationConfig
-- GreenScreenComposite
+- PriceQuoteRequired
 - Optimization Strategies
-- MemoryKind
+- ModelRouter
 - GuardianEvent
 - PreferenceEntry
 - orchestrator/src/types.rs
 - Contributing to VOXY
 - VOXY Storage Architecture Design
-- PluginError
-- VoxyIpcClient
+- OSMOO Engineering Roadmap: Closing Capability Gaps
+- anthropic/src/lib.rs
 - HunyuanCloudVideo
-- RelationshipLevel
+- 07 — Visual Craft, Hierarchy & Anti-Generic Design
 - Tool Orchestration
-- companion/src/lib.rs
-- providers/device.rs
-- A2AMessage
+- 05-security-supply-chain.md
+- wikimedia.py
+- world_model/src/lib.rs
 - Frame
-- LearningError
-- trinity_swarm/src/coordinator.rs
-- agent_runtime/src/lib.rs
+- core_entity.rs
+- SwarmTask
 - conditioning.rs
 - AssetCache
 - Typography for Video Production
 - BrainEvent
-- AutoLauncher
+- Response
 - relationship.rs
 - RoomType
 - corpus_builder.py
 - LearningEvent
-- RetrievalEngine
-- IntentType
+- platform_core/src/lib.rs
+- companion/src/lib.rs
 - Severity
 - FileRollbackStore
 - verify.sh
 - Executive Producer — Talking Head Pipeline
-- providers/environment.rs
-- runtime_guard/src/lib.rs
-- clipboard.rs
-- telemetry.rs
+- IntelligenceError
+- Response
+- 01 — Idioms: RAII, ownership, value semantics, error handling
+- SignalType
 - 2. Subsystem List
-- VisualPresenceError
+- voxy_protocol.rs
 - IntegrationError
-- .support_envelope
+- .provider_menu_summary
 - ConsolidationPolicy
 - MemoryVersioning
 - TaskNode
@@ -441,42 +440,42 @@
 - VOXY Debug Guide
 - OSMOO: Master Engineering, Coding-Harness, Voice & Desktop Control Audit
 - StreamType
-- WasapiLoopbackCapture
+- PreferenceTracker
 - TaskNodeState
 - production.rs
 - human_dynamics/src/recovery.rs
-- super
-- SkillsEvent
+- shutdown.rs
+- EyeEnhance
 - VOXY Recovery and Troubleshooting
-- TaskState
+- ConversationContextProvider
 - GoalStatus
 - VOXY Cognitive Operating System (COS)
 - AppConfig
 - Executive Producer — Explainer Pipeline
-- KlingClient
+- DatabaseError
 - LocalModelDiscovery
-- DesktopOverlay
+- TaskScheduler
 - PolicyEnforcementMode
-- ClientCommand
-- priority.rs
+- OSMOO Implemented Features Deep Dive
+- 02 — Versioning, Evolution & Deprecation
 - Code Review and Quality
 - 2. Deep Dive Across the 13 Architectural Categories
 - FeedbackEntry
-- 03 — Unsafe Discipline
+- XlsxWorkbook
 - OpenMontage - Agent Guide
 - kodus_review/src/lib.rs
-- DepthDrawer
-- PlatformError
+- InMemoryCapabilityRegistry
+- PluginError
 - WorkerPool
-- SwarmBlackboard
-- provider_core/src/config.rs
-- 05 — Security
+- checkpoint.rs
+- 03 — Networking, DNS, TLS & Edge
+- ToolDescription
 - Long-Form Video Pipeline (10+ Minutes)
 - Test-Driven Development
 - Executive Producer — Animation Pipeline
 - Process
 - Code Review and Quality
-- AutomationCapability
+- TaskState
 - Test-Driven Development
 - VOXY Dependency Validation Report
 - ReinforcementSignal
@@ -484,46 +483,48 @@
 - TrustEngine
 - SettingsTab
 - VOXY Deployment Guide
-- VideoSelector
-- AuditContract
+- companion/src/engine.rs
+- guardian/src/traits.rs
 - TaskStatus
 - Injectable
-- src/activity.rs
+- providers/environment.rs
 - Conversation Context
 - source_media_review.py
-- SignalType
+- 01 — Documentation Architecture
 - VideoUnderstand
 - Version
 - GraphState
-- TaskPriority
+- OSMOO: Full-System Deep Validation, Real Execution, and Failure-Driven Hardening Report
 - ipc/src/auth.rs
 - Verification Chains (by Language)
-- 03 — Idioms, Pitfalls, Exceptions & Logging
+- 02-domain-modeling-and-boundaries.md
 - REQUIREMENTS.json
 - AgentState
 - ModelStatus
 - ProjectPhase
 - Video Stitching Strategy Skill
-- get_profile
-- InMemoryCapabilityRegistry
+- CompanionPersonality
+- 06 — Motion Design & Animation Engineering
+- DesktopWatcher
 - Git Workflow and Versioning
 - FrameFlags
 - Phase 26 STT Stability Report
-- certification.rs
+- MomentType
 - Context Management
-- CapabilityId
-- OnboardingStep
+- DashscopeAsr
+- DesktopOverlay
 - ConversationConfig
 - GrokImage
 - MemoryConfig
 - OrchestratorConfig
 - TaskGraphId
 - run-checks.sh
-- styles.rs
+- cognitive_orchestrator/src/lib.rs
 - styles/mod.rs
 - build.sh
+- InMemoryTaskHandle
 - OSMOO Desktop Backend Integration Implementation Plan
-- world_model/src/lib.rs
+- 05 — Scalability, State & Data Architecture
 - API and Interface Design
 - Hardening Controls
 - The 20 Anti-Patterns
@@ -545,23 +546,23 @@
 - Agent: General
 - Agent: Verify
 - email.rs
-- grounding/src/lib.rs
+- health/src/lib.rs
 - PHANTOM Desktop Runtime — Integration Report
 - Detailed Results
 - The 7 Attack Vectors
 - OSMOO Autonomous Coding Harness & Agent Adapter Specification
 - Phase 27 Conversation Latency Final Report
-- OSMOO / VOXY: Production Readiness & Verification Audit Ledger
+- pexels.py
 - Planning and Task Breakdown
 - VOXY Developer Guide
 - Short-Form Video Pipeline (TikTok / Reels / Shorts)
 - The 10 Subsystems
-- ScheduledTask
+- DeviceContextProvider
 - PHASE 23 — VOICE REFERENCE SCORECARD
 - Model-Native Optimization Notes (Gemini tuned)
 - Memory Protocol
 - VOXY Voice Runtime Architecture
-- PipelineStage
+- 09 — Security Testing
 - Performance Optimization
 - OPERATION OBSIDIAN — FINAL PRODUCTION REPORT
 - Agent: Plan
@@ -571,14 +572,14 @@
 - OSMOO Critical Subsystem Source Map & Traceability Guide
 - OSMOO Critical Defect Remediation & Verification Report
 - 01 — Choosing the Engine & Modeling the Data
-- BehaviorAdaptation
+- SwarmCapability
 - Phase 25 Conversational Latency Optimization Report
 - GRAVITAS -- Engineering Reliability Runtime
 - Unified Brain Orchestrator
-- simulation/src/lib.rs
-- ExecutorError
-- ToolDescription
-- voxy_protocol.rs
+- VisualPresenceError
+- HotReloader
+- observability/src/lib.rs
+- HdrConfig
 - Master Product Completion & Single-EXE Release Plan: OSMOO
 - VOXY KNOWLEDGE SYNCHRONIZATION REPORT
 - OPERATION ZERO MOCKS - Audit Report
@@ -587,10 +588,10 @@
 - OPERATION TITAN POLISH — Product Polish Report
 - Review & Adversarial Challenge Report — Milestones M3 & M4
 - Production Validation Report
-- DeviceRegistry
+- skills/src/tests.rs
 - playbook_generator.py
 - human_dynamics/src/engine.rs
-- Subscription
+- AttentionScore
 - VOXY System Architecture
 - 3. Detailed Component Design
 - Gravitas -- Verification Reference
@@ -611,25 +612,25 @@
 - Added
 - Context Module Dependency Graph
 - Companion Intelligence Engine — Architecture
-- provider_core/src/lib.rs
+- OfficeDocumentKind
+- 03 — Design Systems, Tokens & Component APIs
 - Remotion Skill
 - Temporal—durable execution platform
 - VOXY Recovery Flow
 - PHANTOM Desktop Runtime — Benchmark Report
 - PHASE 23 — VOICE VERIFICATION REPORT
-- CompanionPersonality
+- LearningError
 - VOXY Voice Runtime Performance Benchmark Report
 - VOXY Voice Runtime Performance Benchmark Report
 - Gravitas -- Delegation Reference
 - Gravitas -- Interruption Recovery Reference
 - Gravitas -- Task Contract Reference
 - VOXY Voice Runtime Performance Benchmark Report
-- AudioDevice
-- 03 — Code Review & PR Workflow
-- 02 — Versioning, Evolution & Deprecation
-- TaskHandle
-- 01 — Methodology: Measure, Budget, Decide, Protect
+- RetrievalEngine
 - 01 — Language baseline & idioms
+- 06-ad-hoc-commands.md
+- 03 — Behavior & Lifecycle
+- 01 — Tooling & Project Setup
 - Firecrawl Build Scrape
 - VOXY Runtime Health Monitoring
 - VOXY Self-Healing System
@@ -661,9 +662,9 @@
 - Gravitas -- Model Routing Reference
 - Gravitas -- Adaptive Reasoning Reference
 - Gravitas -- Reconnaissance Reference
-- 02 — Injection: SQL, shell, and XSS
 - Process
-- scoring.py
+- Process
+- src/activity.rs
 - Coding Tools MCP Spec
 - Firecrawl Build Onboarding
 - External Skills and Developer Tool Capability Registry Architecture
@@ -681,25 +682,25 @@
 - 2. Threat Model Analysis & Residual Boundaries
 - Process
 - Process
-- PlannerError
+- SubtitleGen
 - Optimization Patterns
 - 15. Implementation Plan
 - 16. Event Replay
 - OSMOO Production Release Verification Report
-- RuntimeSnapshot
+- simulation/src/lib.rs
 - OSMOO FINAL PRODUCTION & LAUNCH VERIFICATION AUDIT REPORT
-- .add
+- 05 — Security
 - Execution Progress
 - HDR Update Sequence
 - Asset Director - Avatar Spokesperson Pipeline
-- home/src/traits.rs
+- priority.rs
 - INDEX.md
-- 04 — Sessions, auth, crypto, and web hardening
+- 04-sessions-auth-web-hardening.md
 - Process
 - Process
 - Shipping and Launch
 - Process
-- 05 — Constructs & Cleanup: arrays, IFS, traps, tests, globbing
+- KlingTTS
 - Issue 3: Sandbox Runner Isolation Guarantees & Host Credential Leakage
 - Issue 4: Windows UI Automation & DPI Scaling Incompleteness
 - Issue 2: Process Supervision Failure Handling (Fail-Closed Enforcement)
@@ -762,9 +763,9 @@
 - Subsystem A: Coding Harness & Agent Sandboxing
 - Process
 - Process
-- VadDetector
+- 1. What You Can Say to OSMOO Right Now (Verified Working)
 - MathAnimate
-- style_bridge
+- AudioDevice
 - Screen Recording Pipeline
 - Process
 - Executive Producer — Cinematic Pipeline
@@ -773,9 +774,9 @@
 - Process
 - DoubaoTTS
 - GeminiOmniVideo
-- JimengVideo
+- 04 — I/O & Network Performance
 - MiniMaxVideo
-- AnthropicClient
+- 06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition)
 - score_slideshow_risk
 - properties
 - properties
@@ -788,8 +789,8 @@
 - Process
 - PixabayMusic
 - API and Interface Design
-- 04 — Regulatory Landscape: Engineering Obligations
-- MemoryMoments
+- AzureSpeechToText
+- MemoryKind
 - humor.rs
 - properties
 - Enhancement Strategy Skill
@@ -802,10 +803,10 @@
 - Process
 - Browser Testing with DevTools
 - SoraVideo
-- InMemoryTaskHandle
-- DeliveryPromise
+- cognitive_orchestrator/src/config.rs
+- Pipeline Stage Director Skills
 - Frontend UI Engineering
-- AzureSpeechToText
+- 03 — Per-Component Threat Catalogs
 - Protocol
 - Key Patterns
 - B-Roll Planning for OpenMontage
@@ -827,15 +828,15 @@
 - Executive Producer — Podcast Repurpose Pipeline
 - OsmooBrainBridge
 - Process
-- DashscopeAsr
+- MemoryMoments
 - VideoAnalyzer
-- ContainerError
+- 04 — Sessions, auth, crypto, and web hardening
 - CI/CD and Automation
-- SubtitleGen
-- RemotionCaptionBurn
+- SkillContext
+- Upscale
 - Constraint-Driven Development
-- TalkingHead
-- ArchiveSecurityError
+- PresenceEventType
+- Security and Hardening
 - Diagram Generation Usage for OpenMontage
 - HunyuanVideo 1.5 — Prompting Guide
 - Idea Director - Clip Factory Pipeline
@@ -846,11 +847,11 @@
 - Process
 - Deprecation and Migration
 - ScreenRecorder
-- OfflineSyncProvider
-- LocalModelMetadata
+- BackendCommand
+- 05 — Static/Dynamic Analysis & Non-Bypassable Gates
 - CostTracker
-- SwarmCapability
-- PHASE 21 — VOXY Voice Production Readiness Report
+- 08 — Registry Security (the registry as a supply-chain trust anchor)
+- 07 — Anti-Patterns Catalog
 - type
 - properties
 - Background Removal Usage for OpenMontage
@@ -872,9 +873,8 @@
 - Idea Director - Localization Dub Pipeline
 - Process
 - Process
-- Idea Director - Screen Demo Pipeline
 - Process
-- ConversationContextProvider
+- unsplash.py
 - SunoMusic
 - DashscopeImage
 - MiniMaxImage
@@ -897,15 +897,15 @@
 - Process
 - Idea Director — Talking Head Pipeline
 - Process
-- shared/src/error.rs
-- 03 — Networking, DNS, TLS & Edge
+- 04 — Regulatory Landscape: Engineering Obligations
+- DeliveryPromise
 - Documentation and ADRs
 - Incremental Implementation
 - 08 — NATS JetStream
 - 02 — Schema Evolution & Migrations
 - 08 — SurrealDB & Multi-Model
-- OpenMontage - Shared Project Context
-- ObservabilityError
+- OsmooBrainBridge
+- traits
 - properties
 - properties
 - WhisperX / Transcription Skill
@@ -925,162 +925,167 @@
 - Process
 - Debugging and Error Recovery
 - 05 — Reliability & Scale
-- SdkError
-- 02 — API design, disposal, exceptions, DI
+- sota-secrets-management/SKILL.md
+- 01 — Idioms: modern C#, nullability, error handling
 - env_loader.py
 - 06 — Memory & Resource Safety
 - structure_analysis
 - Animated Drawing — animate a supplied drawing/photo with real mocap
 - ManimCE Usage for OpenMontage
-- Animation Runtime Selector
-- Protocol
+- IntentType
+- AgentRole
 - Publish Director - Animation Pipeline
 - Process
 - Process
 - Proposal Director — Explainer Pipeline
 - Process
 - Process
-- 02 — Privacy by Design Patterns
-- MusicLibrary
+- 06 — Webhooks
+- Language
 - 04 — Mobile Security
-- WindowPlatform
+- TaskHandle
 - Ink Theater — hand-drawn "moving art" (creative skill)
 - VEO 3.1 / VEO 3 — Prompting Guide
 - Creative Intake
 - Process
-- PresenceEventType
-- 01 — Documentation Architecture
-- human_dynamics/tests/integration_tests.rs
-- TypeScript Configuration & Type Craft
-- Process — Standard Path (Corpus + CLIP Retrieval)
+- 04 — SLOs & Alerting
+- 02 — Output, Exit Codes & Interaction
+- SkillsError
+- 02 — API design, disposal, exceptions, DI
+- 02 — Privacy by Design Patterns
+- clipboard.rs
 - Sora 2 — Prompting Guide
 - Interview Me
 - Asset Director - Character Animation Pipeline
 - Character Design Director - Character Animation Pipeline
 - Proposal Director - Character Animation Pipeline
-- .execute
+- Rules 05 — Production Engineering
 - Executive Producer - Documentary Montage Pipeline
 - Planning and Task Breakdown
-- 03-behavior-lifecycle.md
+- 01 — Language baseline & idioms
 - FalElevenLabsMusic
 - .execute
 - 01 — Detection Engineering as a Discipline
-- Async JavaScript
+- 01 — Ownership, Borrowing & API Design
 - OSMOO: Claude-Code-Inspired Autonomous Senior Engineering Harness
+- 06 — Performance
 - .reserve
 - ReOrder: Keep Your Regulars Ordering Direct
 - Idea Refine
 - DependencyError
 - Install and Usage
 - shot_prompt_builder.py
-- cognitive_orchestrator/src/config.rs
+- media_profiles.py
 - Voice Performance Director
 - Compose Director - Character Animation Pipeline
 - Edit Director - Character Animation Pipeline
 - Executive Producer - Character Animation Pipeline
 - Rig Plan Director - Character Animation Pipeline
 - Script Director - Character Animation Pipeline
-- 05 — Web Platform Security
+- 07 — Audit Bug Catalog: Signatures, Severity, Fixes
 - 01 — Architecture Styles & Decision-Making
 - cost_tracker.py
-- 05 — Sandboxing AI & Agent Workloads
+- 03 — Unsafe Discipline
 - 3. pytest mastery
-- 01 — Ownership, Borrowing & API Design
+- prelude
 - ConversationTiming
 - OSMOO Autonomous Senior Engineering Harness — Final Engineering & Verification Report
 - 3D World Generation
 - Publish Director - Character Animation Pipeline
 - Research Director - Character Animation Pipeline
 - Scene Director - Character Animation Pipeline
-- 06 — Webhooks
-- 02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering)
+- 2. Core Security Controls & Verification
+- 2. Raw Test Outputs by Subsystem
 - 03 — Distributed Systems, Messaging & Eventing
+- 04 — Alerting, Triage, SOC & SOAR
 - 2. The diagnostics, highest yield first
-- sota-databases/SKILL.md
-- 05 — Credential Types
-- SceneTrigger
+- 02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering)
+- 04 — Risk Rating & Treatment
+- Idea Director - Screen Demo Pipeline
 - operation_routes
-- 03 — Query & Index Craft
-- 04 — HTTP & services: timeouts, shutdown, middleware, slog
+- stock_sources/pixabay_video.py
+- VoxyVoiceEngine
 - fonts.d.ts
 - _load_dotenv
+- Root.tsx
 - 04 — Transactions & Concurrency
 - reset_default_cache
-- src/components/computer_control.rs
-- 04 — gRPC, Protobuf Evolution & Protocol Choice
+- PlatformError
+- sota-async-concurrency/SKILL.md
 - 04 — UX Patterns: Forms, States, Feedback & Flow
 - 07 — Suite Health & CI
-- overlay/components/mode_views.rs
-- SkillContext
-- Language
+- BehaviorAdaptation
+- AgentId
+- DesktopEventBridge
+- VerificationEngine
 - Offline-first
-- 05-security-supply-chain.md
-- 02 — API, nullability, immutability, exceptions, resources
-- SOTA Shell Scripting
+- voice_tts/src/lib.rs
+- SOTA Web Frameworks (2026)
+- OrchestratorError
 - 01 — Methodology Selection & Continuous Threat Modeling
-- src/components/context_layer.rs
-- overlay/components/context_layer.rs
-- GovernorError
-- 05 — Caching: Hierarchy, Invalidation, Stampedes
-- Process
-- Quantization
+- MessageType
+- sota-javascript-typescript/SKILL.md
+- 03 — GraphQL
+- executor/src/lib.rs
+- behavior_spec.rs
+- 4. Triggering Tools from the Coding Agent or LLM
 - Doubt-Driven Development
 - Process
-- CoreEntity
-- CoreEntity
-- 06 — Performance
-- 01 — Commands, Flags, Args & Configuration
-- HomeConfig
+- EntityType
+- ShowWindow
+- AuthContext
+- 03 — Kubernetes Network Policy Depth
+- 05 — Sandboxing AI & Agent Workloads
 - Senior Open Source Engineer
-- TaskScheduler
+- 04 — Security: CERT/MISRA, banned APIs, injection, hardened builds
 - 07 — Vector Search & AI-Era Data
 - 01 — Pipeline Security (CI workflows, tokens, triggers, runners)
-- ErrorContext
-- load_playbook
-- 07 — Visual Craft, Hierarchy & Anti-Generic Design
-- VisualPresenceConfig
+- ExportBundle
+- ContainerError
+- AutoLauncher
+- ExecutorError
 - 01 — Isolation Boundaries: Principles & Boundary Selection
-- 04 — SLOs & Alerting
-- SentenceChunker
-- 03 — Test Doubles & Test Data
-- src/client_js.rs
+- WindowPlatform
+- 03 — Streaming & CDC
+- Credentials
+- 02 — Algorithmic & Data-Structure Performance
 - overlay/client_js.rs
 - overlay/styles.rs
 - 02 — Microcopy: The Words in Components
-- 09 — Untrusted Data Ingestion
-- 04 — Event-Loop Hygiene: Never Block the Loop
+- 03 — Behavior & Lifecycle
+- 02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities
 - Using Agent Skills
 - Repository Adaptation Rules
-- 01 — REST/HTTP API Design
+- WorkflowStage
 - 05 — WebSockets, SSE & Realtime
 - 04 — Resilience & Failure Design
-- 07 — Anti-Patterns Catalog
+- FreesoundMusic
 - 2. Where silent no-ops hide
-- 03 — Remote Attestation: Verify Before You Trust
+- Hardening Controls
 - 2. Detections (vendor-neutral logic sketches)
 - 02 — Artifact Provenance & Signing (SLSA, in-toto, Sigstore)
 - 03 — Dependencies & Supply Chain (lockfiles, registries, SBOM, scanning, updates)
-- 03 — Design Systems, Tokens & Component APIs
+- 04 — Compute Selection: Serverless, Containers, Kubernetes, VMs
 - 05 — Security: injection, paths, TLS, integers, supply chain
-- 03 — Idioms, Pitfalls, Exceptions & Logging
+- MusicLibrary
 - 2. Detailed Verification by Capability
-- AuthContext
-- 04 — Security: CERT/MISRA, banned APIs, injection, hardened builds
+- 13 — Context-Dependent Silence: correct here, broken there
+- sota-c-cpp/rules/04-security.md
 - resolveAsset
-- 02 — IAM Design
-- reflection/src/lib.rs
+- 04 — gRPC, Protobuf Evolution & Protocol Choice
+- Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance
 - Spec-Driven Development
-- 05 — Scalability, State & Data Architecture
-- 06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition)
-- SOTA JVM — Java & Kotlin (2026)
+- PlannerError
+- EntityType
+- SceneTrigger
 - 02 — IdP Operations
 - 01 — Input Handling & Injection
 - 05 — PETs & Computing on Encrypted Data (FHE, MPC, ZKP, PSI)
 - 02 — Telemetry Coverage & the SIEM/Data Layer
 - 04 — Build Integrity & Containers (hermetic builds, Dockerfiles, base images, registries)
 - 02 — Layout, Spacing & Responsive (Modern CSS)
-- 06 — Motion Design & Animation Engineering
-- JavaScript/TypeScript Security
+- human_dynamics/src/types.rs
+- RouterError
 - Performance: Bundles, React, Memory, Event Loop
 - Rules
 - 02 — Typing & Correctness
@@ -1089,138 +1094,137 @@
 - 04 — Detection & Remediation
 - 02 — Robustness & Correctness
 - B. Extracting the model from an existing codebase (AUDIT mode)
-- 02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities
-- WorkflowStatus
-- 01 — Idioms: RAII, ownership, value semantics, error handling
+- KPIGrid.tsx
+- CharacterTrait
+- fixtures/mod.rs
 - Source-Driven Development
 - senior-open-source-engineer/SKILL.md
 - Issue Selection Rules
-- sota/SKILL.md
-- 03 — GraphQL
-- 05 — Operational Readiness
+- sota-performance/SKILL.md
+- 01 — REST/HTTP API Design
+- 02 — IAM Design
 - 14 — The Control That Is Not In Force
 - 04 — Confidential Kubernetes: Nodes, Pods & Confidential Containers
+- 05 — Security & Supply Chain
 - 01 — Federation Protocols & Their Attack Catalog
 - Testing & Tooling
 - 2. The escalation traps (each a High/Critical finding)
 - Rules 07 — Evaluating generated code
 - Rules
 - Security Invariants & Crash Recovery Audit
-- 07 — PowerShell (`pwsh`) — CI steps, deploy scripts, entrypoints
+- 04 — Data Quality & Contracts
 - 04 — Supply chain & tooling: Bundler, linting, scanning, CI
 - 05 — Outputs & Operationalization
-- ModelFamily
-- CharacterTrait
+- 02 — Segmentation & Blast-Radius Containment
+- 03 — Errors, Warnings & Feedback
 - Refinement & Evaluation Criteria
 - Hardening Patterns
-- Hardening Controls
-- Security and Hardening
+- 04 — Event-Loop Hygiene: Never Block the Loop
+- AgentRole
 - 07 — API Security & Operations
-- 03 — Behavior & Lifecycle
+- SkillsEvent
 - 02 — Authentication, Sessions, Tokens
 - 04 — Cryptography & Secrets
 - 02 — TEE Technologies: Landscape & Selection
 - 07 — Runtime Enforcement & Operations (admission, policy as code, logging, recovery)
-- 03 — Undefined behavior and the optimizer
+- LipSync
 - 05 — Accessibility (WCAG 2.2 AA Floor)
 - 3. Subsystem Breakdown and Audit Details
 - Rules 01 — Evals: the centerpiece of LLM engineering
 - Rules
 - Rules
-- hardware/src/lib.rs
-- 01 — Secret Lifecycle & Workload Identity
-- 08 — Registry Security (the registry as a supply-chain trust anchor)
+- DeviceRegistry
+- sota-golang/SKILL.md
+- TaskStatus
 - 04 — Async: Structured Concurrency Done Right
 - 02 — Error Handling & Panic Policy
-- Rules 05 — Production Engineering
+- 2. Threat Vector Analysis & Implemented Defenses
 - 02 — Test Design & Quality
-- 01 — Org, Accounts & Governance
+- 03 — Rule Languages & Detection Engines
 - RealtimeAudioSession
-- LipSync
+- HdrError
 - 2. Command Categories
 - Engineering Checklist
 - Issue Research Rules
 - 2. Identified Gaps
-- Autonomous Software Engineering / Code Harness Enhancement for OSMOO
-- 05 — Performance: GC, JIT, profiling, allocation, native image
+- 2. Test Execution Details by Crate
+- ModelInfo
 - 03 — Authorization & Access Control
 - 07 — Output, Errors, Logging & Data Exposure
 - Verifying the Verifier — the mutation probe
 - 2. Your instrument is a control
 - 01 — Threat Model & Selection: When Confidential Computing Is the Answer
 - 01 — Architecture & Modeling
-- 04 — Alerting, Triage, SOC & SOAR
+- Autonomous Software Engineering / Code Harness Enhancement for OSMOO
 - 06 — Incident Response & Detection Validation
 - 13 — Vulnerability Triage Inputs and Remediation (transitive fixes, suppression, blocked fixes, disclosure)
-- GuardianContract
+- TaskStatus
 - 01 — Typography & Color
 - 02 — API & package design: interfaces, layout, context, options
 - Rules 03 — RAG & Retrieval Architecture
 - 01 — Structured Logging
-- 03 — Rule Languages & Detection Engines
-- 06 — MFA, Passwordless, Federation Risk & Assurance
-- 07 — XML: XXE, XSLT and Parser Hardening
-- 01 — Language baseline & idioms
-- 01 — Idioms: modern C#, nullability, error handling
+- reflection/src/lib.rs
+- BuildInfo
+- 09 — Untrusted Data Ingestion
+- WorldModelError
 - 03 — Application Patterns
 - 03 — Security
 - SOTA Engineering Skills — Master Router
 - 01 — Strategy & Suite Shape
-- LinuxPlatform
-- Rules 02 — Prompt & Context Engineering
-- KPIGrid.tsx
+- OWASP Top 10 Prevention Patterns
+- 03 — Containers, microVMs & Kubernetes Hardening
 - SOTA Threat Modeling
-- MacOSPlatform
-- Pipeline Stage Director Skills
-- 03 — Consent & User Rights Engineering
-- 03 — Web hardening (framework-neutral)
-- sota-docs-workflow/SKILL.md
-- RiskLevel
-- WorldModelError
+- 02 — Pipelines & Orchestration
+- SOTA Frontend Design
+- Summary of Remediated Defects
+- provider_core/src/config.rs
+- sota-testing/SKILL.md
+- HardwareEvent
+- OSMOO Autonomous AI Operating Companion: Complete Capability Verification Audit
 - 01 — Concurrency Models & Structured Concurrency
-- parse_dt
-- TypedEvent
-- 03 — Distributed Tracing (OpenTelemetry)
+- TaskPriority
+- 03 — Authorization Models & Design
+- certification.rs
+- 04 — Service Mesh & mTLS / Internal Encryption
 - 06 — Operations & Governance
-- 05 — Static/Dynamic Analysis & Non-Bypassable Gates
+- AdaptiveThreshold
 - 06 — IaC & Deployment Security (Terraform, GitOps, progressive delivery)
 - 2. Verification Command Outputs
 - 10 — Declared but not Reached — the inert-dependency sweep
 - 2. Module Specifications
 - 04 — Security: injection, deserialization, ASP.NET Core, crypto
 - 01 — Errors: handling, wrapping, design
-- 06 — Observability Audit Playbook
+- 01 — Voice, Tone & Plain Language
 - 07 — Active Directory, Kerberos & ADCS Hardening
 - 01 — Control Plane, etcd & Node/Distro Hardening
-- Credentials
+- 04 — Accessible & Localizable Language
 - Rules 04 — Agents & Tool Use
 - ClaudeCliBackend
-- 02 — IAM Design
-- 03 — Kubernetes Network Policy Depth
+- SOTA UX Writing & Product Copy
+- 05 — Operational Readiness
 - 02 — Metrics
 - AgentError
 - 03 — Memory: Allocation, Layout, Leaks, GC
 - SOTA Performance Engineering
-- BuildInfo
+- CompressionEngine
 - 02 — Security: injection, deserialization, ReDoS, secrets
 - 05 — Concurrency & performance: GVL, jobs, JIT, GC, N+1
-- 04 — Async Rust & Tokio
-- 01 — Zero-Trust Architecture
-- 02 — Storage Backends
-- AccessDecision
-- 06 — Ad-hoc commands: the ones you type to check something
+- TaskStatus
+- TrustLevel
+- _copy_file
+- HiggsFieldVideo
 - 04 — Integration, Contract & System Testing
-- 02 — Memory safety: lifetimes, bounds, use-after-free, sanitizers
-- PolicyCondition
-- SOTA C & C++ (2026)
+- OSMOO Office Compilers & Native Capabilities: End-to-End Verification Report
+- DarefulSource
+- 02 — Storage Backends
 - 3. Detailed Component Design
-- SOTA Privacy & Compliance Engineering
-- PolicyContract
-- HdrError
-- 03 — Async/await and concurrency
-- ModelInfo
-- 03 — Concurrency: virtual threads, the JMM, j.u.c, coroutines
-- 05 — Performance: GC, allocations, spans, AOT
+- Silent Control Failure — controls that look enabled and do nothing
+- 04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer
+- ESASource
+- 07 — Helm/Kustomize Supply Chain & K8s Audit Logging
+- JAXASource
+- SOTA API Design & Audit
+- 01 — Control Frameworks as Code (NIST CSF 2.0 spine)
 - Ideation Frameworks Reference
 - What improved
 - senior-open-source-engineer
@@ -1229,102 +1233,116 @@
 - Engineering Mindset
 - Testing Rules
 - 05 — Concurrency: the memory model, races, atomics, locks
-- reset_default_asset_cache
-- 04 — Compute Selection: Serverless, Containers, Kubernetes, VMs
-- SOTA C# / .NET (2026)
-- 03 — Secure SDLC: NIST SSDF (SP 800-218)
+- .headers
+- LibraryOfCongressSource
+- MixkitSource
+- SsrfSafeDnsResolver
 - SOTA Cloud Infrastructure
-- 03 — Authorization Models & Design
-- 01 — Idioms: modern Java & Kotlin, error handling
-- 04 — Application-Level Sandboxing: risky parsers, privilege separation, WASM, subprocess hygiene, macOS
-- GeminiOmniFalVideo
+- 04 — Library map: which `rules/` file holds what
+- runtime/src/config.rs
+- 03 — Distributed Tracing (OpenTelemetry)
 - SOTA Identity & Access
-- 01 — Control Frameworks as Code (NIST CSF 2.0 spine)
-- SeedanceReplicate
+- 14 — SBOM Content, Quality and Handling (what an SBOM must hold, and who may read it)
+- 21 — File Upload Handling (CWE-434)
 - SOTA Network Security
-- PolicyEffect
+- NOAASource
 - 05 — ISA/IEC 62443 for OT / ICS / Embedded
 - SOTA Secrets Management
 - 04 — EU Cyber Resilience Act (CRA)
-- ToolStepStatus
-- RedactingMakeWriter<M>
+- ShutdownPriority
+- 04 — GitOps Controller Security (Argo CD, Flux)
 - 06 — Property-Based Testing, Fuzzing, Mutation & Approval Testing
 - 06 — AUDIT Mode: Reconstructing a Threat Model from an Existing System
-- SOTA Web Frameworks (2026)
-- 05 — Privileged Access & Workload Identity
-- ExportBundle
+- KodusSecurityBoundary
+- 03 — Remote Attestation: Verify Before You Trust
+- TaskAssignmentStatus
 - 2. Integrated MCP Servers & Tool Suites
-- 02 — NIST 800-53 / 800-171 / CMMC / FedRAMP
+- Urgency
 - 2. Windows Security Model & Sandboxing Boundaries
 - Git and PR Rules
-- CompanionError
+- 04 — Async Rust & Tokio
 - 07 — Performance: profile, allocate less, respect the cache
 - 08 — LLM & AI Application Security
-- GroundingError
+- 06 — MFA, Passwordless, Federation Risk & Assurance
 - 20 — Browser Response Hardening
 - SOTA Code Security
 - 05 — Threat Hunting, Intelligence & Deception
 - Gates That Hold — a gate that can fail, still covers you, and says why
 - SOTA DevSecOps & Supply Chain Security
-- 07 — Framework security: boundary, authz, SSRF, CVEs
-- CheckpointValidationError
-- 04 — Lifecycle & Provisioning
-- _extract_mid_thumbnail
+- CompanionError
+- GroundingError
+- GovernorError
+- ScheduleSpec
+- BrowserConfig
 - SOTA Kubernetes Platform Security & Operations
 - Rules 06 — Data & Lifecycle
 - SOTA LLM Engineering
-- .execute
-- KlingVideo
+- ApiRequest
+- sota/SKILL.md
 - Claude CLI Backend (`ClaudeCliBackend`) Audit Report
-- AppScreen
+- 05 — Storage & Performance
 - Environment and Discovery Inventory
 - SOTA Ruby (2026)
 - BUILD mode — the reasoning behind the four steps
 - Audit Findings — Severity, Evidence, Decisions, Refutation & Reporting
 - Reverse Engineering Investigation Audit
-- AuthMode
+- 06 — DNS, TLS & PKI
 - 1. Summary of Identified Defects
-- 02-trust-boundary-and-capability.md
-- FeatureFlagError
+- OpenAITTS
+- 04 — Lifecycle & Provisioning
 - Engineering Skills Discovery & Dynamic Injection Audit
 - Model Context Protocol (MCP) Integration & Gating Audit
-- ReflectionError
-- sdk/src/lib.rs
-- secret_scanner.rs
-- ModelFormat
-- Self-Review Rules
-- SimulationError
-- Silent Control Failure — controls that look enabled and do nothing
-- LoggingError
-- Connection pooling
-- TrustLevel
-- 06 — Build, tooling, supply chain, CI
-- SOTA JavaScript / TypeScript Engineering
-- 04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer
-- SOTA Observability & Reliability
-- REA Technical Assessment & Operational Boundaries
-- Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance
-- SOTA Security & Compliance Engineering
-- 09 — Listing and selection: the tool answered a different question
-- InvocationId
-- SkillRouter
-- PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION
-- OSMOO Dynamic Skills Integration
+- KlingVideo
+- MiniMaxFalVideo
+- RunwayVideo
 - 19 — Anti-Automation & Abuse of Value-Granting Features
+- Self-Review Rules
+- HomeConfig
+- SeedanceReplicate
+- sota-devsecops/SKILL.md
+- SOTA Detection Engineering, SOC & Incident Response
+- DashscopeTTS
+- AgentInfo
+- FeatureFlagError
+- 02-trust-boundary-and-capability.md
+- BreakerState
+- REA Technical Assessment & Operational Boundaries
+- ObservabilityError
+- Frame
+- ReflectionError
+- SdkError
+- SimulationError
+- Connection pooling
 - OSMOO / VOXY Codebase Map
-- 12 — SCM and CI Platform Governance (org-level settings)
-- AppliedMigration
+- OSMOO Dynamic Skills Integration
+- 05 — Privileged Access & Workload Identity
+- SOTA JavaScript / TypeScript Engineering
+- 02 — NIST 800-53 / 800-171 / CMMC / FedRAMP
+- InvocationId
+- TaskPriority
 - feature-parity-matrix.md
-- 06 — Build, tooling, supply chain, CI
+- LocalDiffusion
 - implementation-checklist.md
-- ExtensionNotPermitted
-- _requests_deadline
-- runtime/src/config.rs
-- 08 — Child Processes & Outbound Requests (server-side)
-- list_schemas
+- probe_output
+- OSMOO Production Implementation: Executive Summary
+- probe_output
+- _stdin_reader_worker
+- LogLevel
+- .execute
+- PluginLifecycle
+- OSMOO / VOXY: Production Readiness & Verification Audit Ledger
+- PageObservation
 - Resume Bullet Template
+- RecraftImage
+- OSMOO Known Limitations & Operational Boundaries
+- OSMOO Remaining Work & Future Roadmap
+- Autonomous Coding Workflow & Harness Validation
+- .with_default_agents
 - STAR Story Template
+- skills_loader.rs
+- 23 — LLM Platform & Supply Chain: Models, Prompts, MCP Servers, Logging
 - 22 — Constant-Time Comparison (CWE-208)
+- reset_default_asset_cache
 - Issue Summary Template
 - idea-refine.sh
 - implement.md
@@ -1334,6 +1352,17 @@
 - prompts/testing.md
 - seo/README.md
 - seo/SKILL.md
+- list_schemas
+- OSMOO v0.1.0 Release Notes
+- 08 — The Web Layer: Actuator, Request Binding, Authorization Rules, Filters
+- RUNTIME
+- osmoo-installer
+- OSMOO_Sample_Document_2ae4eb3b.md
+- OSMOO_Sample_Document_a475f2e2.md
+- 17 — Sessions & Tokens
+- 18 — Tamper-Evident Logs & Audit Ledgers
+- OSMOO_Sample_Spreadsheet_0760249f.md
+- OSMOO_Sample_Spreadsheet_a1687e25.md
 
 ## God Nodes (most connected - your core abstractions)
 1. `ToolResult` - 517 edges
@@ -1345,9 +1374,11 @@
 7. `Determinism` - 246 edges
 8. `ExecutionMode` - 236 edges
 9. `ToolRuntime` - 212 edges
-10. `Value` - 192 edges
+10. `Value` - 210 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Checking Daemon Health & Tool Availability:` --references--> `ToolRegistry`  [INFERRED]
+  artifacts/production-implementation/2026-10-28/INTEGRATION_SETUP.md → crates/video_studio/enclave/tools/tool_registry.py
 - `4. Verification & Automated Test Coverage` --references--> `ToolRegistry`  [INFERRED]
   docs/architecture/SKILL_CAPABILITY_REGISTRY.md → crates/video_studio/enclave/tools/tool_registry.py
 - `2. Comprehensive Feature Matrix` --references--> `ToolRegistry`  [INFERRED]
@@ -1356,57 +1387,55 @@
   docs/engineering/rea-project/14-final-completion-report.md → crates/video_studio/enclave/tools/tool_registry.py
 - `1. System Overview` --references--> `ToolRegistry`  [INFERRED]
   PHASE_2_3_ARCHITECTURE.md → crates/video_studio/enclave/tools/tool_registry.py
-- `Key Milestones Delivered:` --references--> `ToolRegistry`  [INFERRED]
-  PHASE_2_3_VERIFICATION_REPORT.md → crates/video_studio/enclave/tools/tool_registry.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (1374 total, 186 thin omitted)
+## Communities (1399 total, 191 thin omitted)
 
 ### Community 0 - "windows_uia.rs"
 Cohesion: 0.03
-Nodes (73): BitBlt(), BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject() (+65 more)
+Nodes (85): BitBlt(), BITMAP, BITMAPINFO, BITMAPINFOHEADER, build_window_target(), CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC() (+77 more)
 
-### Community 2 - "StorageProvider"
-Cohesion: 0.02
-Nodes (62): EntitlementEngine, FeatureFlag, CloudVoice, CodingHarness, ComputerControl, MultiAgentTeams, OfficeAutomation, PriorityCloudRouting (+54 more)
+### Community 1 - "SupervisorError"
+Cohesion: 0.07
+Nodes (31): assign_sidecar_to_job_object(), build_spawn_command(), PipecatConfig, PipecatState, Degraded, Ready, Starting, Stopped (+23 more)
 
 ### Community 3 - "orchestrator/src/lib.rs"
 Cohesion: 0.02
 Nodes (22): make_test_task(), make_test_task_with_id(), test_default_cancellation_manager(), test_default_interruption_manager(), test_default_system_coordinator_background_task(), test_default_system_coordinator_cancel_task(), test_default_system_coordinator_submit_task(), test_default_system_coordinator_submit_when_paused() (+14 more)
 
-### Community 4 - "VideoCompose"
+### Community 4 - "RecoveryEngine"
 Cohesion: 0.05
-Nodes (4): Remotion scene types available in `remotion-composer/`, get_profile(), VideoCompose, visit()
+Nodes (11): RecoveryContext, RecoveryEngine, RecoveryStrategy, Abort, Diagnostic, FocusWindow, ResetInput, RestoreWindow (+3 more)
 
 ### Community 5 - "Rect"
-Cohesion: 0.01
-Nodes (116): Rect, rect_creation(), rect_serialization(), make_test_frame(), test_provider_creates(), test_recognize(), test_recognize_with_default_language(), WindowsOcrProvider (+108 more)
+Cohesion: 0.02
+Nodes (96): Rect, rect_creation(), rect_serialization(), make_test_frame(), test_provider_creates(), test_recognize(), test_recognize_with_default_language(), WindowsOcrProvider (+88 more)
 
 ### Community 6 - "autonomous_workflows.rs"
 Cohesion: 0.06
 Nodes (57): already_running_error(), cancel_workflow(), capacity_limit(), complete_workflow(), event_log(), not_found_error(), pause_resume_workflow(), register_workflow() (+49 more)
 
 ### Community 7 - "CommercialStore"
-Cohesion: 0.03
-Nodes (58): AuthContext, AuthMiddleware, AuthIdentityRecord, CommercialStore, ConsentRecord, EntitlementRecord, get_commercial_migrations(), OtpCodeRecord (+50 more)
+Cohesion: 0.04
+Nodes (25): AuthIdentityRecord, CommercialStore, ConsentRecord, get_commercial_migrations(), OtpCodeRecord, ScopedMemoryRecord, SessionRecord, SkillRecord (+17 more)
 
-### Community 8 - "database/src/lib.rs"
-Cohesion: 0.06
-Nodes (9): DatabaseError, BackupFailed, ConnectionFailed, EncryptionFailed, IO, MigrationFailed, NotFound, QueryFailed (+1 more)
+### Community 8 - "entitlement.rs"
+Cohesion: 0.18
+Nodes (11): EntitlementEngine, FeatureFlag, CloudVoice, CodingHarness, ComputerControl, MultiAgentTeams, OfficeAutomation, PriorityCloudRouting (+3 more)
 
 ### Community 9 - "handlers.rs"
-Cohesion: 0.07
-Nodes (25): ApiError, BadRequest, Forbidden, Internal, NotFound, RateLimitExceeded, Unauthorized, ApiHandlers (+17 more)
+Cohesion: 0.06
+Nodes (26): ApiError, BadRequest, Forbidden, Internal, NotFound, RateLimitExceeded, Unauthorized, ApiHandlers (+18 more)
 
 ### Community 10 - "cognition/src/lib.rs"
 Cohesion: 0.03
 Nodes (15): test_action_id_hash(), test_goal_creation(), test_goal_id_newtype(), test_plan_step_creation(), test_step_id_newtype(), test_validation_result_creation(), ActionId, GoalId (+7 more)
 
 ### Community 11 - "RemoteDatabase"
-Cohesion: 0.05
-Nodes (18): RemoteConfig, RemoteDatabase, test_remote_connect_no_server(), test_remote_disconnect(), test_remote_health_disconnected(), test_remote_new(), test_remote_unsupported_execute(), test_remote_unsupported_query() (+10 more)
+Cohesion: 0.08
+Nodes (9): RemoteConfig, RemoteDatabase, test_remote_connect_no_server(), test_remote_disconnect(), test_remote_health_disconnected(), test_remote_new(), test_remote_unsupported_execute(), test_remote_unsupported_query() (+1 more)
 
 ### Community 12 - "goal_engine_v2.rs"
 Cohesion: 0.07
@@ -1418,11 +1447,15 @@ Nodes (81): osmoo-e2e-tests, voxy-agent-runtime, voxy-anthropic, voxy-api-server
 
 ### Community 14 - "sqlite.rs"
 Cohesion: 0.08
-Nodes (39): AUDIT_COLUMNS, CONV_COLUMNS, cosine_similarity(), MSG_COLUMNS, rusqlite_value_to_json(), SqliteDatabase, test_auto_migrate_applies_all_migrations(), test_backup_file_created() (+31 more)
+Nodes (43): AUDIT_COLUMNS, CONV_COLUMNS, cosine_similarity(), MSG_COLUMNS, parse_dt(), row_to_audit_entry(), row_to_conversation(), row_to_message() (+35 more)
 
-### Community 17 - "agent_runtime/src/orchestrator.rs"
+### Community 15 - "LlmProvider"
 Cohesion: 0.05
-Nodes (51): AgentId, AgentInfo, AgentMessage, AgentRole, Browser, Coder, Desktop, Memory (+43 more)
+Nodes (9): FailingCloudLlm, WorkingLocalLlm, FailingCloudLlm, WorkingLocalLlm, AutonomousRepairMockLlm, MockLlm, LlmProvider, MockLlm (+1 more)
+
+### Community 17 - "MultiAgentOrchestrator"
+Cohesion: 0.26
+Nodes (4): AgentMessage, AgentTask, message_log(), MultiAgentOrchestrator
 
 ### Community 18 - "RuntimeManagerError"
 Cohesion: 0.20
@@ -1432,17 +1465,17 @@ Nodes (7): RuntimeManagerError, DependencyCycle, HealthCheckFailed, RestartFaile
 Cohesion: 0.05
 Nodes (18): AgentAction, Click, CustomTool, DoubleClick, Drag, FocusWindow, KeyCombination, KeyPress (+10 more)
 
-### Community 20 - "office/src/lib.rs"
-Cohesion: 0.04
-Nodes (36): AuditStatus, Cancelled, Denied, Failed, Success, OfficeAuditEvent, OfficeAuditTrail, CalendarConnector (+28 more)
+### Community 20 - "ScopeSet"
+Cohesion: 0.03
+Nodes (54): AuditStatus, Cancelled, Denied, Failed, Success, OfficeAuditEvent, OfficeAuditTrail, CalendarConnector (+46 more)
 
 ### Community 21 - "DefaultSystemCoordinator"
 Cohesion: 0.06
 Nodes (3): DefaultSystemCoordinator, SystemCoordinator, uuid_cor_id()
 
-### Community 22 - "PriceQuoteRequired"
-Cohesion: 0.04
-Nodes (20): AzureTTS, CartesiaTTS, ElevenLabsSoundtrack, ElevenLabsTTS, FalElevenLabsTTS, GrokTTS, HeyGenCatalogTTS, HeyGenTTS (+12 more)
+### Community 22 - "FalMedia"
+Cohesion: 0.05
+Nodes (12): TTSSelector, FalMedia, BriaFalImage, Flux3FalImage, GeminiFalImage, IdeogramFalImage, OpenAIFalImage, filter_explicit_route() (+4 more)
 
 ### Community 23 - "production_validation.rs"
 Cohesion: 0.06
@@ -1450,23 +1483,23 @@ Nodes (46): test_reflection_engine(), test_assembled_context_creation(), test_as
 
 ### Community 24 - "sqlite_engine.rs"
 Cohesion: 0.08
-Nodes (14): BehaviorAnalysis, ExperienceAnalysis, HabitDetection, HermesClassification, HermesEngine, PatternDetection, PreferenceExtraction, ReflectionLearning (+6 more)
+Nodes (16): BehaviorAnalysis, ExperienceAnalysis, HabitDetection, HermesClassification, HermesEngine, PatternDetection, PreferenceExtraction, ReflectionLearning (+8 more)
 
 ### Community 25 - "conversation/src/session.rs"
 Cohesion: 0.06
 Nodes (15): ConversationSession, InMemorySession, InMemorySessionManager, SessionId, SessionManager, SessionMetadata, SessionState, Active (+7 more)
 
-### Community 26 - "Value"
+### Community 26 - "OpenClawBackend"
 Cohesion: 0.09
-Nodes (16): ContextMerger, make_snapshot(), test_deep_merge(), test_latest_wins(), test_merge_empty(), test_merge_two(), test_priority_override(), Value (+8 more)
+Nodes (3): base64_decode(), base64_encode(), OpenClawBackend
 
 ### Community 27 - "companion_intelligence/src/conversation.rs"
-Cohesion: 0.06
-Nodes (28): ConversationContext, ConversationIntelligence, ConversationMemory, ConversationTurn, create_test_turn(), Entity, EntityType, Application (+20 more)
+Cohesion: 0.08
+Nodes (19): ConversationContext, ConversationIntelligence, ConversationMemory, ConversationTurn, create_test_turn(), Entity, ReferenceCandidate, ReferenceResolver (+11 more)
 
 ### Community 28 - "NodeId"
-Cohesion: 0.04
-Nodes (36): EdgeType, AssignedTo, ConnectedTo, Created, Custom, DependsOn, Dislikes, Likes (+28 more)
+Cohesion: 0.07
+Nodes (12): GraphEdge, GraphNode, GraphQuery, KnowledgeGraph, NodeId, InMemoryKnowledgeGraph, test_graph_edge_creation(), test_graph_node_creation() (+4 more)
 
 ### Community 29 - "Speaker"
 Cohesion: 0.05
@@ -1476,13 +1509,17 @@ Nodes (7): AudioConfig, HardwareConfig, VideoConfig, Camera, HardwareMonitor, Mi
 Cohesion: 0.07
 Nodes (6): MemorySynapse, MockHermesEngine, MockMemoryApi, next_memory_id(), SynapseStats, test_synapse_creation()
 
+### Community 31 - "StorageProvider"
+Cohesion: 0.09
+Nodes (9): AppliedMigration, create_duckdb_provider(), create_postgres_provider(), create_remote_provider(), create_sqlite_provider(), create_storage_provider(), HealthStatus, SearchResult (+1 more)
+
 ### Community 32 - "boot.rs"
 Cohesion: 0.07
 Nodes (35): abort_does_not_change_phase_status(), boot_duration(), boot_sequence_creation(), BootPhase, Agents, Automation, Config, Dashboard (+27 more)
 
-### Community 33 - "Corpus"
+### Community 33 - "FreshnessEngine"
 Cohesion: 0.12
-Nodes (3): ClipRecord, Corpus, filters_for()
+Nodes (17): FreshnessEngine, FreshnessStatus, Aging, Expired, Fresh, Stale, Unknown, make_snapshot() (+9 more)
 
 ### Community 34 - "MemoryItem"
 Cohesion: 0.06
@@ -1492,9 +1529,9 @@ Nodes (6): EpisodicMemory, ProceduralMemory, SemanticMemory, ShortTermMemory, Ve
 Cohesion: 0.06
 Nodes (13): Counter, counter_increments(), Gauge, gauge_operations(), Histogram, histogram_records(), MetricsRegistry, prometheus_export() (+5 more)
 
-### Community 36 - "trinity_swarm/src/lib.rs"
-Cohesion: 0.08
-Nodes (10): ProviderKind, Cloud, Local, create_test_router(), test_full_mission_execution_via_coordinator(), test_tool_calling_access_denial_for_untrusted_users(), setup_test_coordinator(), test_collaboration_workflow_bounded_loop() (+2 more)
+### Community 36 - "VadDetector"
+Cohesion: 0.05
+Nodes (22): ActivationMode, AutoVad, Muted, PushToTalk, WakeWord, test_push_to_talk_mode(), test_vad_silence_to_speech_to_utterance(), VadConfig (+14 more)
 
 ### Community 37 - "dependency/src/graph.rs"
 Cohesion: 0.08
@@ -1505,12 +1542,12 @@ Cohesion: 0.06
 Nodes (21): DatabaseEncryption, test_decrypt_invalid_data(), test_decrypt_wrong_key(), test_encrypt_decrypt_empty(), test_encrypt_decrypt_large(), test_encrypt_decrypt_roundtrip(), test_from_base64_key(), test_from_hex_key() (+13 more)
 
 ### Community 39 - "voice_audio/src/lib.rs"
-Cohesion: 0.06
-Nodes (20): AudioCaptureHandle, AudioConfig, AudioDeviceManager, AudioError, BufferUnderflow, DeviceBusy, DeviceNotFound, HostError (+12 more)
+Cohesion: 0.05
+Nodes (22): AudioCaptureHandle, AudioConfig, AudioDeviceManager, AudioError, BufferUnderflow, DeviceBusy, DeviceNotFound, HostError (+14 more)
 
 ### Community 40 - "VoicePipeline"
-Cohesion: 0.06
-Nodes (18): CompanionState, Error, Idle, Interrupted, Listening, Responding, Speaking, Thinking (+10 more)
+Cohesion: 0.05
+Nodes (24): CompanionState, Error, Idle, Interrupted, Listening, Responding, Speaking, Thinking (+16 more)
 
 ### Community 41 - "decision_engine.rs"
 Cohesion: 0.08
@@ -1520,19 +1557,19 @@ Nodes (44): ActionEvaluation, ActionOption, ActionType, Communicate, Create, Cus
 Cohesion: 0.06
 Nodes (28): make_snapshot(), MockProvider, test_cache_basic_operations(), test_cache_eviction(), test_cache_ttl_expiration(), test_confidence_effective_calculation(), test_confidence_floor_filtering(), test_conflict_resolver_detection() (+20 more)
 
-### Community 43 - "migration.rs"
-Cohesion: 0.22
-Nodes (8): get_all_migrations(), get_core_migrations(), MigrationRunner, MigrationStatus, test_migration_status(), test_register_all(), test_register_migration(), Migration
+### Community 43 - "tcp_loopback.rs"
+Cohesion: 0.13
+Nodes (11): DaemonStateSnapshot, read_framed_message(), write_framed_message(), authenticated_sidecar_receives_snapshot_and_delivers_command(), handle_sidecar_connection(), handshake_frame(), start_fails_closed_without_token(), TcpLoopbackServer (+3 more)
 
 ### Community 44 - "memory/src/lib.rs"
 Cohesion: 0.04
-Nodes (5): CompressionEngine, ImportanceScorer, MemoryRanker, CompressionPolicy, ImportanceScore
+Nodes (3): ImportanceScorer, MemoryRanker, ImportanceScore
 
 ### Community 45 - "in_memory.rs"
 Cohesion: 0.08
 Nodes (19): CognitionConfig, DANGEROUS_ACTIONS, InMemoryActionValidator, InMemoryContextAssembler, InMemoryGoalDecomposer, InMemoryIntentAnalyzer, test_cognitive_engine_low_confidence(), test_confidence_estimator() (+11 more)
 
-### Community 46 - "ProjectManager"
+### Community 46 - "project_manager.rs"
 Cohesion: 0.10
 Nodes (37): add_milestone(), add_repository(), add_risk(), capacity_limit(), complete_milestone(), create_project(), manager_creation(), MilestoneId (+29 more)
 
@@ -1542,142 +1579,146 @@ Nodes (33): InMemoryPlanner, Plan, PlanAction, Abort, Continue, Pause, Reschedul
 
 ### Community 48 - "platform_windows/src/platform.rs"
 Cohesion: 0.04
-Nodes (66): BITMAPINFO, BITMAPINFOHEADER, close_window(), CloseHandle(), CreateToolhelp32Snapshot(), DIB_RGB_COLORS, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, enum_windows_callback() (+58 more)
+Nodes (49): BITMAPINFO, BITMAPINFOHEADER, close_window(), DIB_RGB_COLORS, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, enumerate_audio_output_devices(), GetCursorPos(), hostname() (+41 more)
 
 ### Community 49 - "AuthProvider"
 Cohesion: 0.14
 Nodes (4): AuthProvider, LocalAuthProvider, SessionInfo, TokenPair
 
 ### Community 50 - "Event"
-Cohesion: 0.08
-Nodes (14): create_event(), deserialize_event(), Event, event_builder_chain(), event_creation(), event_json_roundtrip(), event_with_cancellation(), event_with_correlation() (+6 more)
+Cohesion: 0.07
+Nodes (16): create_event(), deserialize_event(), Event, event_builder_chain(), event_creation(), event_json_roundtrip(), event_with_cancellation(), event_with_correlation() (+8 more)
 
-### Community 51 - "companion_intelligence/src/lib.rs"
+### Community 51 - "ExperienceBridge"
+Cohesion: 0.07
+Nodes (16): ExperienceBridge, ExperienceInput, DesktopActivityChanged, DesktopFocusChanged, DesktopIdle, MemoryStored, SystemEvent, VoiceActivity (+8 more)
+
+### Community 52 - "SecurityError"
 Cohesion: 0.06
-Nodes (20): ExperienceBridge, ExperienceInput, DesktopActivityChanged, DesktopFocusChanged, DesktopIdle, MemoryStored, SystemEvent, VoiceActivity (+12 more)
+Nodes (34): SecurityError, ApprovalError, CapabilityAlreadyRegistered, CapabilityNotFound, ConsentRequestNotFound, GuardianDenied, IdentityAlreadyRegistered, IdentityNotFound (+26 more)
 
-### Community 52 - "ssrf.rs"
-Cohesion: 0.13
-Nodes (11): is_host_restricted(), is_ip_restricted(), is_ipv4_restricted(), is_ipv6_restricted(), safe_connect_tcp(), safe_resolve_destination(), test_allows_valid_public_ip_and_socket(), validate_destination_url() (+3 more)
+### Community 54 - "KlingOfficialImage"
+Cohesion: 0.14
+Nodes (6): KlingOfficialImage, element_ids(), get_custom_element(), list_custom_elements(), list_preset_elements(), normalize_element_list()
 
-### Community 54 - "Urgency"
-Cohesion: 0.33
-Nodes (5): Urgency, Critical, High, Low, Medium
+### Community 55 - "ChangeKind"
+Cohesion: 0.14
+Nodes (14): ChangeKind, ApplicationStateChanged, ContentAppeared, ContentDisappeared, ElementAppeared, ElementDisappeared, ElementMoved, RegionUpdated (+6 more)
 
 ### Community 56 - "ExecutionContext"
 Cohesion: 0.07
 Nodes (25): AuditEvent, CancellationFlag, ExecutionContext, PipelineInput, PipelineOutput, PipelineStage, Cognition, Conversation (+17 more)
 
 ### Community 57 - "EmotionalStateMachine"
-Cohesion: 0.11
-Nodes (21): EmotionalConfig, EmotionalSignal, EmotionalSnapshot, EmotionalStateMachine, EmotionState, EmotionType, Bored, Busy (+13 more)
+Cohesion: 0.07
+Nodes (26): EmotionalConfig, EmotionalSignal, EmotionalSnapshot, EmotionalStateMachine, EmotionState, EmotionType, Bored, Busy (+18 more)
 
-### Community 58 - "ToolRegistry"
-Cohesion: 0.13
-Nodes (11): test_emergency_stop_aborts_tool_execution(), test_parse_tool_call_valid(), ToolCall, ToolRegistry, ToolResult, 1.1 Test Scenario Description, 1.2 Execution Log & Verified Milestones, 1. Autonomous Coding Task Verification (+3 more)
+### Community 58 - ".run_command"
+Cohesion: 0.02
+Nodes (8): VisualQA, AudioMixer, ToolCommandError, GreenScreenComposite, GreenScreenProcessor, RemotionCaptionBurn, SilenceCutter, VideoStitch
 
 ### Community 59 - "cognitive_orchestrator/src/orchestrator.rs"
 Cohesion: 0.08
 Nodes (36): CognitiveConfig, CognitiveContext, CognitiveDecision, CognitiveOrchestrator, CognitiveTask, DecisionType, AnswerNow, Delegate (+28 more)
 
 ### Community 60 - "ltm_v2.rs"
-Cohesion: 0.10
-Nodes (31): add_relationship(), archived_not_in_query(), forgetting_algorithm(), importance_scoring(), ImportanceFactors, LongTermMemoryV2, memory_count(), memory_creation() (+23 more)
+Cohesion: 0.09
+Nodes (33): add_relationship(), archived_not_in_query(), forgetting_algorithm(), importance_scoring(), ImportanceFactors, LongTermMemoryV2, memory_count(), memory_creation() (+25 more)
 
 ### Community 61 - "archive.rs"
-Cohesion: 0.11
-Nodes (25): ArchiveRollbackTracker, ArchiveSecurityLimits, ensure_dir_tracked(), ensure_within_root(), safe_extract_tar(), safe_extract_zip(), strip_verbatim_prefix(), test_blocks_absolute_and_drive_paths() (+17 more)
+Cohesion: 0.05
+Nodes (46): ArchiveRollbackTracker, ArchiveSecurityError, CompressedSizeExceeded, EntryCountExceeded, EntrySizeExceeded, IllegalLinkDetected, IllegalStreamDetected, IoError (+38 more)
 
-### Community 62 - "uuid"
+### Community 62 - "database/src/lib.rs"
 Cohesion: 0.06
-Nodes (20): SwarmCoordinator, SwarmError, AccessDenied, CanaryFailed, Cancelled, CyclicDependency, HarnessError, InvalidHandoff (+12 more)
+Nodes (12): DatabaseKind, DuckDb, Postgres, Remote, Sqlite, make_store(), populate_store(), test_backup_registry_list_and_delete() (+4 more)
 
 ### Community 63 - "approval.rs"
-Cohesion: 0.10
-Nodes (27): ApprovalBroker, ApprovalDecision, ApprovalRequest, ApprovalRiskLevel, Destructive, LowRisk, Modify, Privileged (+19 more)
-
-### Community 64 - "ContextPriority"
 Cohesion: 0.06
-Nodes (32): ConfidenceEngine, make_snapshot(), test_composite_score_ordering(), test_effective_confidence_fresh(), test_effective_confidence_stale(), test_filter_by_confidence(), test_meets_confidence_floor(), test_priority_bonus() (+24 more)
+Nodes (36): test_emergency_stop_aborts_tool_execution(), ToolRegistry, ToolResult, 1.1 Test Scenario Description, 1.2 Execution Log & Verified Milestones, 1. Autonomous Coding Task Verification, 2. Daemon & IPC Integration Verification, 3. Desktop UI Overlay & Telemetry Verification (+28 more)
+
+### Community 65 - "trinity_swarm/src/lib.rs"
+Cohesion: 0.02
+Nodes (71): Agent, agent_runtime_creates(), AgentRuntime, HealthStatus, AuthenticationFailed, Checking, Degraded, Healthy (+63 more)
 
 ### Community 66 - "WorldModelEvent"
-Cohesion: 0.05
-Nodes (30): SynapseState, BridgeState, DesktopContext, DesktopEventBridge, test_bridge_creation(), test_bridge_state_update(), ApplicationLifecycleEvent, ContextEmitter (+22 more)
+Cohesion: 0.07
+Nodes (23): SynapseState, ContextEmitter, test_emit_application_launched(), test_emit_desktop_updated(), test_emitter_creation(), WorldModelEvent, ActivityChanged, ApplicationClosed (+15 more)
 
 ### Community 67 - "background.rs"
 Cohesion: 0.09
 Nodes (24): BackgroundRuntime, curiosity_task(), experience_replay_task(), goal_progress_task(), health_monitor_task(), knowledge_validation_task(), knowledge_validation_worker_task(), KnowledgeValidationSubmitter (+16 more)
 
-### Community 68 - "human_dynamics/src/types.rs"
-Cohesion: 0.08
-Nodes (32): ConfidenceLevel, High, Low, Medium, VeryHigh, VeryLow, ConfidenceOutput, HdrInput (+24 more)
+### Community 68 - "human_dynamics/tests/integration_tests.rs"
+Cohesion: 0.44
+Nodes (11): default_config(), make_input(), test_full_pipeline_critical_action_denied(), test_full_pipeline_high_trust(), test_full_pipeline_latency_under_100us(), test_full_pipeline_low_trust_no_initiative(), test_full_pipeline_meeting_blocked(), test_full_pipeline_recovery_on_errors() (+3 more)
 
-### Community 69 - "DaemonMessage"
-Cohesion: 0.08
-Nodes (24): DaemonMessage, ApprovalRequested, ApprovalResolved, AudioEnergy, ChatMessage, CodingHarnessEvent, CursorUpdate, EmergencyStopChanged (+16 more)
+### Community 69 - "WindowsUiaBackend"
+Cohesion: 0.05
+Nodes (29): build_mouse_input(), build_mouse_input_raw(), char_to_vk(), CloseWindow(), INPUT, key_to_vk(), logical_to_physical(), MoveWindow() (+21 more)
 
 ### Community 71 - "VOXY Health Architecture Design"
 Cohesion: 0.04
 Nodes (48): 10.1 Recovery Strategies, 10.2 Standard Recovery Flows, 10. Auto Recovery Engine, 11.1 Anomaly Detection, 11.2 Features, 11.3 Models, 11. Predictive Failure Detection, 12.1 Kernel Integration (+40 more)
 
-### Community 72 - "RecoveryEngine"
-Cohesion: 0.05
-Nodes (11): RecoveryContext, RecoveryEngine, RecoveryStrategy, Abort, Diagnostic, FocusWindow, ResetInput, RestoreWindow (+3 more)
+### Community 72 - "legal/src/lib.rs"
+Cohesion: 0.09
+Nodes (15): ConsentManager, PolicyType, AiDataDisclosure, PrivacyPolicy, TelemetryOptIn, TermsOfService, CURRENT_AI_DISCLOSURE_VERSION, CURRENT_PRIVACY_POLICY_VERSION (+7 more)
 
 ### Community 73 - "PresenceEngine"
 Cohesion: 0.12
 Nodes (17): PresenceEngine, PresenceEvent, PresenceSnapshot, PresenceState, Celebrating, EmergencyMode, FocusMode, Idle (+9 more)
 
 ### Community 74 - "Message"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (14): Conversation, ConversationStats, ConversationStore, InMemoryConversationStore, Message, MessageRole, Assistant, System (+6 more)
 
 ### Community 75 - "human_dynamics/src/policy.rs"
 Cohesion: 0.08
-Nodes (31): PolicyConfig, ProtectionConfig, PolicyEngine, PolicyViolation, test_action(), test_meeting_interruption_blocked(), test_no_violation_normal_speech(), test_protect_before_obey() (+23 more)
+Nodes (32): PolicyConfig, ProtectionConfig, PolicyEngine, PolicyViolation, test_action(), test_meeting_interruption_blocked(), test_no_violation_normal_speech(), test_protect_before_obey() (+24 more)
 
 ### Community 76 - "VideoStudioEnclave"
-Cohesion: 0.03
-Nodes (24): collect_markdown_files(), VideoStudioEnclave, StudioError, EnclaveNotFound, Io, PipelineError, ProcessFailed, SecurityViolation (+16 more)
-
-### Community 77 - "AutomationBackend"
 Cohesion: 0.06
-Nodes (4): BackendPair, HybridBuilder, HybridConfig, AutomationBackend
+Nodes (16): collect_markdown_files(), VideoStudioEnclave, get_test_enclave(), test_access_enforcement_blocks_direct_user(), test_enclave_enumerates_installed_pipelines_and_skills(), test_pipeline_tool_blocks_unauthorized_user(), test_skills_loader_registers_capabilities(), ProductionStage (+8 more)
+
+### Community 77 - "DaemonMessage"
+Cohesion: 0.06
+Nodes (25): IpcBridge, DaemonMessage, ApprovalRequested, ApprovalResolved, AudioEnergy, ChatMessage, CodingHarnessEvent, CursorUpdate (+17 more)
 
 ### Community 78 - "self_improvement.rs"
 Cohesion: 0.09
 Nodes (30): analyze_patterns(), BehaviorPattern, correction_count_increases(), engine_creation(), fast_operation_no_insight(), high_impact_insights(), ImprovementError, InsightNotFound (+22 more)
 
-### Community 79 - "LlmProvider"
-Cohesion: 0.06
-Nodes (10): create_llm_provider(), create_ollama_provider(), FailingCloudLlm, WorkingLocalLlm, FailingCloudLlm, WorkingLocalLlm, MockLlm, LlmProvider (+2 more)
+### Community 79 - "ProviderInfo"
+Cohesion: 0.12
+Nodes (11): DefaultProviderRegistry, Unavailable, ProviderInfo, ProviderRegistry, test_default_registry_register_and_get(), test_provider_health_default(), test_registry_find_by_capability(), test_registry_unregister() (+3 more)
 
 ### Community 80 - "ProactiveEngine"
 Cohesion: 0.09
 Nodes (23): CooldownEntry, create_test_context(), ProactiveConfig, ProactiveEngine, ProactiveSuggestion, SuggestionContext, SuggestionType, BreakReminder (+15 more)
 
 ### Community 81 - "EventBus"
-Cohesion: 0.08
-Nodes (19): EventBridge, bus_error_conversion(), BusError, SerializationFailed, SubscriberQueueFull, SubscriptionDropped, TopicNotFound, clear_dead_letters() (+11 more)
+Cohesion: 0.07
+Nodes (22): EventBridge, ABSOLUTE_MAX_TOPICS, bus_error_conversion(), BusError, SerializationFailed, SubscriberQueueFull, SubscriptionDropped, TopicNotFound (+14 more)
 
 ### Community 82 - "MoodState"
 Cohesion: 0.03
 Nodes (32): InMemoryPersonalityManager, InMemoryPersonalityProfile, PersonalityConfig, PersonalityEvent, MoodChanged, ProfileLoaded, ProfileSaved, StyleChanged (+24 more)
 
-### Community 83 - "ProviderInfo"
-Cohesion: 0.10
-Nodes (14): DefaultProviderRegistry, ProviderInfo, ProviderRegistry, ProviderStatus, Available, Busy, Degraded, Unavailable (+6 more)
+### Community 83 - "WorkflowStatus"
+Cohesion: 0.20
+Nodes (10): WorkflowStatus, Cancelled, Completed, Created, Failed, Paused, Queued, Running (+2 more)
 
-### Community 84 - "sota-devsecops/SKILL.md"
-Cohesion: 0.04
-Nodes (72): AUDIT mode, BUILD mode, Purpose, Rules index, SOTA Confidential Computing & PETs, Top-10 non-negotiables, AUDIT mode, BUILD mode (+64 more)
+### Community 84 - "01 — Zero-Trust Architecture"
+Cohesion: 0.20
+Nodes (10): 01 — Zero-Trust Architecture, 1. The core tenet: location is not a credential, 2. PDP / PEP: the decision and enforcement split, 3. Identity-aware access over network-location access, 4. De-perimeterization mindset, 5. ZTNA vs traditional VPN, 6. Identity-aware proxy (BeyondCorp pattern), 7. Maturity, not perfection (CISA ZTMM v2.0) (+2 more)
 
 ### Community 85 - "cognitive_orchestrator/src/reflection.rs"
 Cohesion: 0.11
 Nodes (23): ReflectionSubmitter, ReflectionConfig, ConversationRecord, Lesson, LessonCategory, ContextAwareness, KnowledgeGap, ResponseQuality (+15 more)
 
 ### Community 86 - "Mood"
-Cohesion: 0.06
+Cohesion: 0.08
 Nodes (18): BasePersonality, Mood, Calm, Cheerful, Excited, Focused, Playful, Serious (+10 more)
 
 ### Community 87 - "Turn"
@@ -1706,15 +1747,15 @@ Nodes (28): make_adaptive_threshold(), make_behavior_pattern(), make_calibration
 
 ### Community 93 - "ContextManager"
 Cohesion: 0.08
-Nodes (11): BrainConfig, ContextManager, ContextSnapshotSet, ManagerConfig, MockProvider, test_manager_cache(), test_manager_collect(), test_manager_collect_one() (+3 more)
+Nodes (10): ContextManager, ContextSnapshotSet, ManagerConfig, MockProvider, test_manager_cache(), test_manager_collect(), test_manager_collect_one(), test_manager_health_check() (+2 more)
 
 ### Community 94 - "planning.rs"
 Cohesion: 0.10
 Nodes (27): PlanningConfig, MAX_EXECUTION_LOG, MAX_PLANS, Plan, PlanningEngine, PlanStatus, Cancelled, Completed (+19 more)
 
-### Community 95 - "executor/src/lib.rs"
-Cohesion: 0.24
-Nodes (6): executor_creates(), ExecutorRuntime, RetryPolicy, Exponential, Immediate, None
+### Community 95 - "threejs_asset_catalog.py"
+Cohesion: 0.10
+Nodes (9): imported_plugin_names(), main(), sha256(), _hash_file(), _download(), _sha256(), ThreeJSAssetCatalog, hash_file() (+1 more)
 
 ### Community 96 - "transport.rs"
 Cohesion: 0.07
@@ -1725,12 +1766,12 @@ Cohesion: 0.10
 Nodes (20): create_rich_test_item(), create_test_item(), InMemoryMemoryPipeline, MemoryPhase, Classification, HermesAnalysis, ImportanceAnalysis, Indexing (+12 more)
 
 ### Community 98 - "voice_stt/src/lib.rs"
-Cohesion: 0.09
-Nodes (22): create_stt_engine(), DEFAULT_MULTILINGUAL_PROMPT, encode_wav_16k_mono(), GroqSttEngine, LocalWhisperSttEngine, MockSttEngine, SttEngine, SttError (+14 more)
+Cohesion: 0.10
+Nodes (21): DEFAULT_MULTILINGUAL_PROMPT, encode_wav_16k_mono(), GroqSttEngine, LocalWhisperSttEngine, MockSttEngine, SttEngine, SttError, EmptyAudio (+13 more)
 
 ### Community 99 - "curiosity.rs"
-Cohesion: 0.10
-Nodes (27): CuriosityConfig, CuriosityEngine, MAX_OBSERVATION_LOG, MAX_PATTERNS, MAX_SUGGESTIONS, Pattern, PatternCategory, Anomaly (+19 more)
+Cohesion: 0.09
+Nodes (24): CuriosityConfig, CuriosityEngine, Pattern, PatternCategory, Anomaly, AppUsage, Behavior, Preference (+16 more)
 
 ### Community 100 - "replay.rs"
 Cohesion: 0.07
@@ -1740,17 +1781,17 @@ Nodes (23): DeliveryGuarantee, AtLeastOnce, AtMostOnce, ExactlyOnce, EventMetada
 Cohesion: 0.11
 Nodes (25): artifact_expired(), artifact_revoked_signer(), artifact_tampered_content(), artifact_unknown_signer(), artifact_valid_signature(), ArtifactType, Model, Plugin (+17 more)
 
-### Community 102 - "04 — I/O & Network Performance"
-Cohesion: 0.04
-Nodes (40): 04 — I/O & Network Performance, 1. Syscalls: batch and buffer, 2. Zero-copy, 3. Connection pooling and reuse, 4. Round trips, concurrency, and coalescing, 5. HTTP/2 and HTTP/3, 6. Compression tradeoffs, 7. TLS efficiency (+32 more)
+### Community 102 - "ProviderCapability"
+Cohesion: 0.13
+Nodes (17): CapabilityDiscovery, CapabilityMatch, CapabilityScore, DefaultCapabilityDiscovery, make_provider(), test_default_discovery_finds_best(), test_default_discovery_no_match(), test_default_discovery_unavailable_lower_score() (+9 more)
 
 ### Community 103 - "sota-mobile/SKILL.md"
 Cohesion: 0.03
 Nodes (83): 07 — Swift in apps, 1. Isolation for UI code, 2. View-owned tasks, 3. Leaks in UI code, 4. Tests that stay on XCTest, 5. Binary SDKs in an app, Audit checklist, AUDIT mode (+75 more)
 
-### Community 104 - "voice_tts/src/lib.rs"
-Cohesion: 0.08
-Nodes (15): create_tts_engine(), ChatterboxTtsEngine, CloudTtsEngine, LocalTtsEngine, MockTtsEngine, test_chatterbox_tts_properties(), test_empty_tts_rejection(), test_mock_tts_synthesis() (+7 more)
+### Community 104 - "super"
+Cohesion: 0.02
+Nodes (54): safe_launch_application(), test_parse_tool_call_valid(), test_safe_launch_blocks_command_injection(), ToolCall, DEFAULT_MODEL, DEFAULT_RESEND_API_URL, ENV_LOCK, SendEmailRequest (+46 more)
 
 ### Community 105 - "knowledge_validation.rs"
 Cohesion: 0.10
@@ -1760,77 +1801,77 @@ Nodes (26): KnowledgeValidationConfig, KnowledgeItem, KnowledgeValidator, make_i
 Cohesion: 0.11
 Nodes (21): create_test_memory(), ImportanceConfig, ImportanceLevel, Critical, High, Low, Medium, Negligible (+13 more)
 
-### Community 107 - "ToolMetadata"
-Cohesion: 0.02
-Nodes (50): EngineeringTaskSpec, ProductionEngineeringWorkflow, test_production_engineering_workflow_e2e(), OsmooBenchmarkRunTool, OsmooCodeReviewDiffTool, OsmooEngineeringWorkflowRunTool, OsmooLanguageProfileGetTool, OsmooProjectDetectLanguagesTool (+42 more)
+### Community 107 - "Value"
+Cohesion: 0.01
+Nodes (111): Value, Bool, Bytes, F64, I64, Null, String, LearningPolicy (+103 more)
 
 ### Community 108 - "runtime/src/scheduler.rs"
-Cohesion: 0.16
+Cohesion: 0.14
 Nodes (9): InMemoryScheduler, TaskEntry, test_scheduler_cancel(), test_scheduler_cancel_not_found(), test_scheduler_pause_resume(), test_scheduler_schedule(), test_scheduler_status(), test_scheduler_submit_and_list() (+1 more)
 
 ### Community 109 - "rollback.rs"
 Cohesion: 0.10
 Nodes (24): bulk_rollback_status_update(), pending_rollbacks(), rollback_execute(), rollback_expired(), rollback_not_found(), rollback_register_and_can_rollback(), rollback_since(), RollbackManager (+16 more)
 
-### Community 110 - "InMemorySelfMonitor"
-Cohesion: 0.07
-Nodes (9): InMemorySelfMonitor, test_self_monitor(), HealthStatus, Critical, Degraded, Healthy, LatencyRecord, SelfMonitor (+1 more)
+### Community 110 - "TaskContext"
+Cohesion: 0.03
+Nodes (51): CapabilityRiskLevel, Destructive, Modify, Privileged, Read, ExternalCapabilityCategory, ArchitectureDesign, CodingTools (+43 more)
 
 ### Community 111 - "CapabilityManifest"
 Cohesion: 0.08
 Nodes (20): ManifestError, DuplicateId, InvalidManifest, NotFound, SerializationError, ValidationError, CapabilityManifest, ManifestCategory (+12 more)
 
 ### Community 112 - "WeatherContext"
-Cohesion: 0.09
-Nodes (24): GreetingConfig, GreetingEngine, GreetingTemplate, test_greeting_dedup(), test_greeting_max_per_session(), test_greeting_morning(), test_greeting_return(), TimeContext (+16 more)
+Cohesion: 0.07
+Nodes (31): GreetingConfig, GreetingEngine, GreetingTemplate, test_greeting_dedup(), test_greeting_max_per_session(), test_greeting_morning(), test_greeting_return(), GreetingKind (+23 more)
 
 ### Community 113 - "hub.rs"
 Cohesion: 0.11
 Nodes (16): aggregate_healthy(), aggregate_unhealthy(), event_bus_accessible(), hub_creation(), mark_started(), register_duplicate_fails(), register_service(), register_with_dependencies() (+8 more)
 
-### Community 114 - "sota-frontend-design/SKILL.md"
-Cohesion: 0.03
-Nodes (82): 01 — Positioning & Value Proposition, 1. Audience before adjectives, 2. Value proposition: the sentence everything else serves, 3. Benefit first, feature as proof, 4. Message hierarchy & message match, 5. Differentiation without fiction, 6. Evidence: the proof layer, Audit checklist (+74 more)
+### Community 114 - "04-claims-legal-trust.md"
+Cohesion: 0.05
+Nodes (41): 01 — Positioning & Value Proposition, 1. Audience before adjectives, 2. Value proposition: the sentence everything else serves, 3. Benefit first, feature as proof, 4. Message hierarchy & message match, 5. Differentiation without fiction, 6. Evidence: the proof layer, Audit checklist (+33 more)
 
 ### Community 115 - "companion_moments.rs"
 Cohesion: 0.14
 Nodes (19): CompanionMoment, MomentContext, MomentEngine, test_battery_warning(), test_daily_debrief(), test_daily_debrief_not_fired_with_zero_tasks(), test_focused_work(), test_focused_work_not_fired_below_threshold() (+11 more)
 
 ### Community 117 - "identity.rs"
-Cohesion: 0.12
-Nodes (18): deactivate_identity(), EntityType, Agent, Device, Home, Organization, Plugin, Service (+10 more)
+Cohesion: 0.19
+Nodes (10): deactivate_identity(), find_by_type(), hierarchy_lookup(), Identity, identity_creation(), identity_registration(), IdentityHierarchy, IdentityId (+2 more)
 
 ### Community 118 - "Cognitive Loop"
 Cohesion: 0.04
 Nodes (46): 1. Rapid Successive Inputs, 1. Stage Timeout, 2. Interrupted Mid-Cycle, 2. Memory Exhaustion, 3. Decision Conflict, 3. Resource Exhaustion Mid-Cycle, 4. Contradictory Instructions, 4. Resource Starvation (+38 more)
 
 ### Community 119 - "windows_capture.rs"
-Cohesion: 0.06
-Nodes (40): BitBlt(), BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), GetDC() (+32 more)
+Cohesion: 0.11
+Nodes (23): BitBlt(), BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), GetDC() (+15 more)
 
-### Community 120 - "WindowsUiaBackend"
-Cohesion: 0.06
-Nodes (15): build_mouse_input(), build_mouse_input_raw(), char_to_vk(), INPUT, key_to_vk(), send_key(), send_key_down(), send_key_up() (+7 more)
-
-### Community 121 - "tcp_loopback.rs"
-Cohesion: 0.13
-Nodes (11): DaemonStateSnapshot, read_framed_message(), write_framed_message(), authenticated_sidecar_receives_snapshot_and_delivers_command(), handle_sidecar_connection(), handshake_frame(), start_fails_closed_without_token(), TcpLoopbackServer (+3 more)
+### Community 120 - "PlanId"
+Cohesion: 0.09
+Nodes (16): InMemoryRecoveryManager, test_recovery_manager(), test_plan_creation(), test_plan_id_newtype(), test_recovery_strategy_variants(), RecoveryManager, RecoveryPlan, RecoveryStrategy (+8 more)
 
 ### Community 122 - "brain/src/session.rs"
 Cohesion: 0.15
 Nodes (18): DEFAULT_MAX_SESSIONS, DEFAULT_SESSION_TTL, ManagedSession, PRUNE_INTERVAL, SessionManager, SessionManagerConfig, SessionManagerStats, test_capacity_eviction() (+10 more)
 
+### Community 123 - "ProviderError"
+Cohesion: 0.07
+Nodes (30): ChatCompletionResponse, ChatMessage, Choice, EmbeddingData, EmbeddingResponse, ModelInfo, ModelsResponse, OpenAIClient (+22 more)
+
 ### Community 124 - "goal_manager.rs"
 Cohesion: 0.12
 Nodes (20): GoalManagerConfig, Goal, GoalManager, GoalProgress, GoalStatus, Active, Cancelled, Completed (+12 more)
 
-### Community 125 - "coding_harness/src/types.rs"
-Cohesion: 0.03
-Nodes (52): ContextExplorer, GrepMatch, IGNORED_DIRS, CodingEngine, ActiveTransaction, JournaledFile, TransactionJournal, TransactionManifest (+44 more)
+### Community 125 - "grounding/src/lib.rs"
+Cohesion: 0.04
+Nodes (46): ContentExtractor, .MAX_EXTRACTED_BYTES, ExtractedDocument, test_html_tag_stripping_and_title_extraction(), GroundingEngine, GroundingRequest, InMemoryGroundingEngine, ResolvedTarget (+38 more)
 
 ### Community 126 - "logging/src/lib.rs"
-Cohesion: 0.09
-Nodes (25): cleanup_old_logs(), cleanup_old_logs_does_not_panic(), create_span(), create_span_works(), filter_json_preserves_non_sensitive(), filter_json_redacts_sensitive_fields(), filter_json_value(), filter_log_line() (+17 more)
+Cohesion: 0.05
+Nodes (32): cleanup_old_logs(), cleanup_old_logs_does_not_panic(), create_span(), create_span_works(), filter_json_preserves_non_sensitive(), filter_json_redacts_sensitive_fields(), filter_json_value(), filter_log_line() (+24 more)
 
 ### Community 127 - "security/src/audit.rs"
 Cohesion: 0.07
@@ -1840,36 +1881,32 @@ Nodes (30): audit_chain_integrity(), audit_chain_tamper_detection(), audit_entry
 Cohesion: 0.11
 Nodes (20): AutoDefense, decay_reduces_scores(), DefenseAction, None, PermBan, RateLimited, TempBan, Warned (+12 more)
 
-### Community 129 - "end_to_end_integration_test.rs"
-Cohesion: 0.06
-Nodes (13): DebugAnalysis, Debugger, Diagnostic, DiagnosticSeverity, Error, Note, Warning, LanguageToolchain (+5 more)
+### Community 129 - "tier2_boundary_corner.rs"
+Cohesion: 0.04
+Nodes (33): add_file_to_zip(), find_rc_exe(), main(), default_config(), default_config_creates(), DatabaseConfig, OfficeError, Cancelled (+25 more)
 
 ### Community 130 - "CognitionEvent"
 Cohesion: 0.07
 Nodes (25): AssembledContext, ContextAssembler, ContextAssemblyInput, ContextSource, ExternalService, Personality, SystemState, UserHistory (+17 more)
 
-### Community 131 - "brain/tests/integration_tests.rs"
-Cohesion: 0.05
-Nodes (26): MockCognitiveEngine, InMemoryCognitiveEngine, IntentInput, test_cognitive_result_creation(), test_goal_decomposition_creation(), test_intent_id_newtype(), CognitiveEngine, CognitiveResult (+18 more)
+### Community 131 - "CodingEvent"
+Cohesion: 0.20
+Nodes (10): CodingEvent, ApprovalRequested, ApprovalResolved, CommandExecuted, FileModified, PlanCreated, ReviewComment, StepCompleted (+2 more)
 
 ### Community 132 - "desktop_ui/src/main.rs"
-Cohesion: 0.11
-Nodes (9): Runtime, BRIDGE, DISPATCHER, get_bridge(), get_dispatcher(), get_runtime(), init_bridge(), main() (+1 more)
+Cohesion: 0.05
+Nodes (21): Runtime, DownloadManager, DownloadProgress, DownloadState, DownloadStatus, Cancelled, Completed, Downloading (+13 more)
 
 ### Community 133 - "security/src/policy.rs"
 Cohesion: 0.12
 Nodes (27): condition_custom(), condition_resource_match(), condition_trust_level(), default_rules_complete_matrix(), default_rules_evaluated_in_priority_order(), default_rules_no_shadowing(), make_input(), policy_allow_rule() (+19 more)
-
-### Community 134 - "ordering"
-Cohesion: 0.11
-Nodes (8): RUNTIME, BrowserConfig, BrowserPageInfo, BrowserRuntime, BrowserType, Chrome, Custom, Edge
 
 ### Community 135 - "OllamaProvider"
 Cohesion: 0.11
 Nodes (6): OllamaProvider, test_ollama_complete_connection_error(), test_ollama_embedding_error(), test_ollama_health_no_server(), test_ollama_provider_creation(), test_ollama_with_custom_config()
 
 ### Community 136 - "agentic_loop.rs"
-Cohesion: 0.07
+Cohesion: 0.06
 Nodes (27): ActionVerification, AgenticOperationLoop, AgentPlanner, DesktopObservation, HeuristicAgentPlanner, LoopState, Acting, AwaitingApproval (+19 more)
 
 ### Community 137 - "query.rs"
@@ -1877,20 +1914,20 @@ Cohesion: 0.14
 Nodes (17): ALLOWED_OPERATORS, QueryBuilder, QueryOp, Insert, Select, test_build_compound(), test_build_insert(), test_build_insert_without_columns() (+9 more)
 
 ### Community 138 - "integration/src/pipeline.rs"
-Cohesion: 0.12
-Nodes (16): MockFailingHandler, MockInputHandler, MockSttHandler, pipeline_creation(), pipeline_execute_success(), pipeline_execute_with_failure(), pipeline_request_from_audio(), pipeline_request_from_text() (+8 more)
+Cohesion: 0.08
+Nodes (28): MockFailingHandler, MockInputHandler, MockSttHandler, pipeline_creation(), pipeline_execute_success(), pipeline_execute_with_failure(), pipeline_request_from_audio(), pipeline_request_from_text() (+20 more)
 
 ### Community 139 - "kernel/src/lib.rs"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (19): FlagService, Kernel, kernel_creates(), kernel_initializes(), kernel_start_and_shutdown(), ManagedService, Outcome, Err (+11 more)
 
 ### Community 140 - "SqliteMemoryEngine"
-Cohesion: 0.09
-Nodes (7): MemoryStats, noop_graph(), noop_hermes(), SqliteMemoryEngine, test_sqlite_memory_empty_path_rejected(), test_sqlite_memory_fts5_triggers(), test_sqlite_memory_wal_mode_and_persistence_across_restart()
+Cohesion: 0.11
+Nodes (4): SqliteMemoryEngine, test_sqlite_memory_empty_path_rejected(), test_sqlite_memory_fts5_triggers(), test_sqlite_memory_wal_mode_and_persistence_across_restart()
 
 ### Community 141 - "VisualState"
-Cohesion: 0.06
-Nodes (28): ChatMessage, DesktopMode, Compact, ComputerControl, EdgeDock, Floating, FullExperience, Minimal (+20 more)
+Cohesion: 0.10
+Nodes (17): ContextBottomBar(), ContextTopBar(), CompactModeView(), EdgeDockView(), MinimalView(), VisualState, Disabled, Error (+9 more)
 
 ### Community 142 - "goals.rs"
 Cohesion: 0.10
@@ -1900,45 +1937,45 @@ Nodes (22): Goal, GoalDecomposer, GoalDecomposition, GoalPriority, Critical, Hig
 Cohesion: 0.07
 Nodes (24): DesktopEventBridge, DOWNLOAD_COMPLETED, DOWNLOAD_FAILED, DOWNLOAD_STARTED, DownloadPayload, event_bridge_creation(), NOTIFICATION_CLICKED, NOTIFICATION_SENT (+16 more)
 
+### Community 144 - "MemoryApi"
+Cohesion: 0.09
+Nodes (3): MemoryBridge, MemoryApi, MemoryStats
+
 ### Community 145 - "Explainer.tsx"
 Cohesion: 0.06
 Nodes (63): Cut types (`cut.type`), Overlay types (`overlay.type`), CalloutBox(), CalloutBoxProps, CalloutType, TYPE_DEFAULTS, BarAnimationStyle, BarChart() (+55 more)
 
 ### Community 146 - "event_bridge.rs"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (15): AgentCompletedEvent, DecisionResultEvent, event_bridge_creation(), EventBridge, GoalCompletedEvent, ImprovementInsightEvent, LlmResponseEvent, MemoryStoredEvent (+7 more)
 
 ### Community 147 - "TrustLevel"
 Cohesion: 0.09
 Nodes (10): check_authorized_gating(), trust_manager_operations(), TrustLevel, Blocked, Compromised, Known, Trusted, Unknown (+2 more)
 
-### Community 148 - "FalMedia"
-Cohesion: 0.08
-Nodes (10): FalMedia, BriaFalImage, Flux3FalImage, GeminiFalImage, IdeogramFalImage, OpenAIFalImage, Flux3Video, H3MaxVideo (+2 more)
+### Community 148 - "ToolResult"
+Cohesion: 0.02
+Nodes (24): Remotion scene types available in `remotion-composer/`, Tool Class Naming Convention, get_profile(), When Building New Tools, CompositionValidator, MistralSTT, MusicGen, PiperTTS (+16 more)
 
 ### Community 149 - "LifecycleState"
 Cohesion: 0.08
 Nodes (17): StateMachineError, InvalidTransition, StateNotFound, invalid_transition(), LifecycleState, Busy, Created, Failed (+9 more)
 
-### Community 150 - "ModelRouter"
-Cohesion: 0.06
-Nodes (30): BreakerEntry, BreakerState, Closed, HalfOpen, Open, make_provider(), MockLlm, MockStt (+22 more)
+### Community 150 - "model_router/src/lib.rs"
+Cohesion: 0.14
+Nodes (27): make_provider(), RoutingMode, Auto, CloudOnly, ForceModel, ForceProvider, LocalOnly, test_auto_mode_preserves_fallback_on_error() (+19 more)
 
 ### Community 151 - "cursor.rs"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (26): AutomationAction, ConfirmationStatus, Approved, Pending, Rejected, TimedOut, DestructiveActionGuard, RiskEvaluation (+18 more)
 
 ### Community 152 - "VeoVideo"
 Cohesion: 0.04
 Nodes (10): GeminiTTS, GoogleTTS, get_genai_client(), has_google_credentials(), resolve_google_location(), resolve_project_id(), service_account_configured(), _dims_to_aspect_ratio() (+2 more)
 
-### Community 153 - "FreshnessEngine"
-Cohesion: 0.11
-Nodes (17): FreshnessEngine, FreshnessStatus, Aging, Expired, Fresh, Stale, Unknown, make_snapshot() (+9 more)
-
-### Community 154 - "brain/src/engine.rs"
-Cohesion: 0.05
-Nodes (24): ComponentHealth, Degraded, Healthy, Unhealthy, extract_response_text(), HealthReport, UnifiedBrainEngine, LatencySnapshot (+16 more)
+### Community 153 - "ContextInvalidation"
+Cohesion: 0.21
+Nodes (9): ContextInvalidation, InvalidationResult, make_snapshot(), test_check_expired(), test_check_fresh(), test_check_needs_refresh(), test_clear_invalidation(), test_consecutive_invalidation_tracking() (+1 more)
 
 ### Community 155 - "PriorityTaskScheduler"
 Cohesion: 0.10
@@ -1952,17 +1989,21 @@ Nodes (22): Capability, capability_creation(), capability_matching(), Capability
 Cohesion: 0.09
 Nodes (10): ContextError, AssemblyError, CacheError, Cancelled, NotFound, ProviderError, ProviderNotFound, Serialization (+2 more)
 
-### Community 158 - "bridge/auth.rs"
-Cohesion: 0.14
-Nodes (12): EntitlementCheckResponse, AuthBridge, AuthSession, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData(), CryptUnprotectData(), DataBlob, LocalFree() (+4 more)
+### Community 158 - "Skill"
+Cohesion: 0.11
+Nodes (5): test_skill_id_newtype(), test_skill_id_creation(), Skill, SkillRegistry, SkillId
 
-### Community 159 - "src/components/mode_views.rs"
-Cohesion: 0.57
-Nodes (3): CompactModeView(), EdgeDockView(), MinimalView()
+### Community 159 - "ContextPriority"
+Cohesion: 0.13
+Nodes (15): ConfidenceEngine, make_snapshot(), test_composite_score_ordering(), test_effective_confidence_fresh(), test_effective_confidence_stale(), test_filter_by_confidence(), test_meets_confidence_floor(), test_priority_bonus() (+7 more)
 
 ### Community 160 - "dodo_client.rs"
-Cohesion: 0.14
-Nodes (12): CheckoutSessionResponse, DodoEnvironment, Live, Test, DodoError, ApiError, Config, Network (+4 more)
+Cohesion: 0.09
+Nodes (18): BillingInterval, Month, Year, CheckoutSessionResponse, CreateCheckoutSessionRequest, CustomerPayload, DodoEnvironment, Live (+10 more)
+
+### Community 161 - "HyperFramesCompose"
+Cohesion: 0.07
+Nodes (6): _first(), _font(), _motion_easing(), _render_design_md(), style_bridge(), HyperFramesCompose
 
 ### Community 162 - "ConversationError"
 Cohesion: 0.08
@@ -1974,71 +2015,75 @@ Nodes (9): InMemoryWakeStateManager, is_valid_transition(), WakeState, Asleep, A
 
 ### Community 164 - "BehaviorState"
 Cohesion: 0.08
-Nodes (21): BehaviorEngine, test_initial_state(), test_invalid_transition(), test_suggest_deep_focus(), test_suggest_sleeping(), test_transition_cooldown(), test_valid_transition(), TransitionRecord (+13 more)
+Nodes (20): BehaviorEngine, test_initial_state(), test_invalid_transition(), test_suggest_deep_focus(), test_suggest_sleeping(), test_transition_cooldown(), test_valid_transition(), TransitionRecord (+12 more)
 
 ### Community 165 - "SecurityMonitor"
 Cohesion: 0.13
 Nodes (13): alerts_filter_by_threshold(), category_filter(), critical_unmitigated_filter(), ForensicsEvent, max_events_eviction(), mitigate_event(), recent_events_ordering(), record_and_retrieve() (+5 more)
 
-### Community 166 - "AppConfig"
-Cohesion: 0.11
-Nodes (10): config_manager_set_and_get(), config_manager_subscribe(), ConfigManager, ConfigProvider, file_provider_load_save(), FileConfigProvider, config_bridge_creation(), ConfigBridge (+2 more)
+### Community 166 - "guardian.rs"
+Cohesion: 0.19
+Nodes (16): guardian_allows_low_risk(), guardian_allows_low_risk_during_recovery(), guardian_blocks_blocked_entity(), guardian_blocks_unknown_capability(), guardian_denies_critical_when_recovery_active(), guardian_denies_medium_when_recovery_active(), guardian_integrity_check_blocks_critical_without_data(), guardian_integrity_check_blocks_tampered_resource() (+8 more)
 
 ### Community 167 - "dodo_e2e_lifecycle.rs"
 Cohesion: 0.16
 Nodes (25): active_payload(), future_period_end(), now_epoch(), past_timestamp(), setup_handler(), setup_store(), sign_standard_webhooks(), test_authoritative_expiration_denies_access() (+17 more)
 
 ### Community 168 - "daemon/src/main.rs"
-Cohesion: 0.03
-Nodes (27): CHAT_MSG_ID, conversation_memory_keeps_newest_when_over_budget(), conversation_memory_no_trim_with_large_budget(), conversation_memory_trims_to_character_budget(), ConversationMemory, detect_cpu_features(), detect_simd(), get_memory_usage() (+19 more)
+Cohesion: 0.06
+Nodes (30): CHAT_MSG_ID, conversation_memory_keeps_newest_when_over_budget(), conversation_memory_no_trim_with_large_budget(), conversation_memory_trims_to_character_budget(), ConversationMemory, create_llm_provider(), create_ollama_provider(), create_stt_engine() (+22 more)
 
 ### Community 169 - "PresenceSystem"
-Cohesion: 0.08
-Nodes (25): PresenceSnapshot, PresenceState, Alert, Blinking, Breathing, Focused, LookingAround, Pulsing (+17 more)
+Cohesion: 0.12
+Nodes (16): PresenceSnapshot, PresenceState, Alert, Blinking, Breathing, Focused, LookingAround, Pulsing (+8 more)
 
-### Community 170 - "ContextCache"
-Cohesion: 0.14
-Nodes (10): CacheConfig, CacheEntry, CacheStats, ContextCache, make_snapshot(), test_get_by_id(), test_insert_and_get(), test_invalidate_source() (+2 more)
+### Community 170 - "guard.rs"
+Cohesion: 0.16
+Nodes (9): dashboard_generation(), get_memory_usage(), guard_creation(), GuardConfig, heartbeat_tracking(), register_subsystem(), RuntimeGuard, set_metadata() (+1 more)
 
 ### Community 171 - "HookEvent"
 Cohesion: 0.10
 Nodes (11): HookEvent, InputReceived, MoodChange, OutputGenerated, SessionEnd, SessionStart, TurnEnd, TurnStart (+3 more)
 
-### Community 172 - "WindowTarget"
-Cohesion: 0.07
-Nodes (27): build_window_target(), CloseWindow(), EnumChildWindows(), EnumWindows(), find_child_windows(), find_windows(), FindWindowW(), get_class_name() (+19 more)
+### Community 172 - "AuditLogEntry"
+Cohesion: 0.14
+Nodes (8): AuditLogEntry, AuditLogStore, InMemoryAuditLogStore, make_entry(), test_clear(), test_count(), test_record_and_retrieve(), test_verify_chain()
 
 ### Community 173 - "security/src/recovery.rs"
 Cohesion: 0.16
 Nodes (18): recovery_abort(), recovery_abort_when_normal_returns_none(), recovery_cannot_enter_twice(), recovery_enter_and_exit(), recovery_exit_when_normal_returns_err(), recovery_record_rotation(), recovery_record_tokens_revoked(), recovery_record_verification() (+10 more)
 
-### Community 174 - "SOTA API Design & Audit"
-Cohesion: 0.25
-Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA API Design & Audit, Top-10 non-negotiables
+### Community 174 - "VoxyIpcServer"
+Cohesion: 0.11
+Nodes (5): VoxyIpcServer, ToolStepStatus, Completed, Failed, Running
 
 ### Community 175 - "Decision Pipeline"
 Cohesion: 0.04
 Nodes (45): 1. Contradictory Instructions, 1. Intent Recognition Failure, 2. Impossible Request, 2. No Viable Options, 3. Partially Impossible Request, 3. Risk Assessment Overload, 4. Circular Request, 4. Scoring Conflict (+37 more)
+
+### Community 176 - "WindowsPlatform"
+Cohesion: 0.09
+Nodes (11): move_window(), resize_window(), SetWindowPos(), windows_display_enumeration(), windows_dpi_awareness(), windows_filesystem_operations(), windows_foreground_window(), windows_platform_creation() (+3 more)
 
 ### Community 177 - "ReflectionReport"
 Cohesion: 0.14
 Nodes (14): InMemoryReflectionEngine, test_reflection_report_creation(), ContextChange, InsightSource, Context, Execution, GoalAlignment, Planning (+6 more)
 
 ### Community 178 - "companion/src/engine.rs"
-Cohesion: 0.14
-Nodes (10): CompanionEngine, make_input(), test_engine_latency(), test_engine_records_milestone(), test_engine_update(), test_engine_update_count(), MissionCompanion, test_auto_complete_on_activity_change() (+2 more)
+Cohesion: 0.12
+Nodes (12): CompanionConfig, ConversationConfig, MemoryConfig, MissionConfig, PresenceConfig, ScoreWeights, SilenceConfig, make_input() (+4 more)
 
 ### Community 179 - "InMemoryContextTracker"
 Cohesion: 0.08
 Nodes (3): ContextTracker, ConversationContext, InMemoryContextTracker
 
-### Community 180 - "PolicyType"
-Cohesion: 0.21
-Nodes (6): ConsentManager, PolicyType, AiDataDisclosure, PrivacyPolicy, TelemetryOptIn, TermsOfService
+### Community 180 - "UnifiedBrainEngine"
+Cohesion: 0.05
+Nodes (18): ComponentHealth, Degraded, Healthy, Unhealthy, extract_response_text(), HealthReport, UnifiedBrainEngine, LatencySnapshot (+10 more)
 
 ### Community 181 - "observability/src/lib.rs"
-Cohesion: 0.12
-Nodes (10): diagnostics_export(), latency_tracker_millis(), latency_tracker_records(), latency_tracker_reset(), latency_tracker_summary(), LatencyTracker, observability_creates(), ObservabilityRuntime (+2 more)
+Cohesion: 0.18
+Nodes (5): latency_tracker_millis(), latency_tracker_records(), latency_tracker_reset(), latency_tracker_summary(), LatencyTracker
 
 ### Community 182 - "TaskGraph"
 Cohesion: 0.13
@@ -2048,65 +2093,61 @@ Nodes (9): GraphError, CycleDetected, EmptyGraph, InvalidTransition, NodeNotFoun
 Cohesion: 0.05
 Nodes (28): config_defaults(), config_serde_roundtrip(), config_validation_ok(), HealthConfig, HealthError, CheckFailed, InvalidConfig, NotFound (+20 more)
 
-### Community 184 - "skills/src/lib.rs"
-Cohesion: 0.02
-Nodes (84): ActivationDecision, ActivationEngine, ActiveCapabilityContext, CapabilityRiskLevel, Destructive, Modify, Privileged, Read (+76 more)
+### Community 184 - "grounding.rs"
+Cohesion: 0.06
+Nodes (37): VisionError, AnalysisFailed, CaptureFailed, ChangeDetectionFailed, CoordinateMappingFailed, ElementNotFound, GroundingFailed, InsufficientConfidence (+29 more)
 
-### Community 185 - "DepthDrawer"
-Cohesion: 0.18
-Nodes (6): DepthDrawer(), DrawerTab, Automation, Conversation, Settings, Telemetry
+### Community 185 - "builtin/memory.rs"
+Cohesion: 0.12
+Nodes (11): PromptInjectionDefense, SanitizedContent, test_clean_content_preserved(), test_sanitization_detects_and_neutralizes_injection(), calculate_relevance(), MemoryForgetTool, MemoryRecallTool, MemoryStoreTool (+3 more)
 
-### Community 186 - "Supervisor"
-Cohesion: 0.05
-Nodes (33): get_supervisor(), get_global(), GLOBAL_SUPERVISOR, set_global(), Supervisor, SupervisorConfig, SupervisorError, AssignProcessFailed (+25 more)
+### Community 186 - "DatabaseConfig"
+Cohesion: 0.25
+Nodes (6): BackupEntry, BackupManager, test_backup_manager_create_list(), test_backup_manager_delete(), test_backup_manager_restore(), test_backup_manager_restore_nonexistent()
 
-### Community 187 - "companion/src/types.rs"
-Cohesion: 0.09
-Nodes (24): CompanionInput, CompanionOutput, ExpressionMetadata, Greeting, GreetingKind, CheckIn, Milestone, Morning (+16 more)
+### Community 187 - "StdResult"
+Cohesion: 0.12
+Nodes (3): SqliteAuditLogStore, SqliteConversationStore, test_conversation_store_fts5_search_and_triggers()
 
-### Community 188 - "Skill"
-Cohesion: 0.11
-Nodes (5): test_skill_id_newtype(), test_skill_id_creation(), Skill, SkillRegistry, SkillId
+### Community 188 - "RuntimeSnapshot"
+Cohesion: 0.17
+Nodes (12): dashboard_from_snapshot(), dashboard_html_not_empty(), DashboardData, escape_html(), generate_html(), RuntimeSnapshot, snapshot_all_healthy(), snapshot_creation() (+4 more)
 
 ### Community 189 - "experience_replay.rs"
 Cohesion: 0.17
 Nodes (14): ExperienceReplayConfig, ExperienceEntry, ExperienceReplay, ExperienceScores, make_entry(), MAX_REPLAY_RESULTS, ReplayResult, test_add_entry() (+6 more)
 
-### Community 190 - "SystemComponent"
-Cohesion: 0.07
-Nodes (25): ComponentStatus, Degraded, Healthy, Paused, Starting, Stopping, Unhealthy, SystemComponent (+17 more)
+### Community 190 - "KlingClient"
+Cohesion: 0.16
+Nodes (4): KlingClient, _code_str(), is_retryable_kling_error(), KlingAPIError
 
-### Community 191 - "AuditLogEntry"
-Cohesion: 0.14
-Nodes (8): AuditLogEntry, AuditLogStore, InMemoryAuditLogStore, make_entry(), test_clear(), test_count(), test_record_and_retrieve(), test_verify_chain()
+### Community 191 - "bridge/auth.rs"
+Cohesion: 0.10
+Nodes (14): EntitlementCheckResponse, RateLimitMiddleware, ApiRouter, AuthBridge, AuthSession, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData(), CryptUnprotectData() (+6 more)
 
-### Community 192 - "capture_screenshot"
+### Community 192 - "ConfigManager"
 Cohesion: 0.11
-Nodes (21): BitBlt(), capture_screenshot(), collect_monitors(), CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), EnumDisplayMonitors() (+13 more)
+Nodes (10): config_manager_set_and_get(), config_manager_subscribe(), ConfigManager, ConfigProvider, file_provider_load_save(), FileConfigProvider, config_bridge_creation(), ConfigBridge (+2 more)
 
 ### Community 193 - "report.rs"
-Cohesion: 0.11
-Nodes (15): ComponentType, Cpu, Custom, Database, EventBus, Ipc, Memory, Service (+7 more)
+Cohesion: 0.18
+Nodes (7): HealthReport, report_creation(), report_serde_roundtrip(), report_unhealthy(), report_with_component_type(), report_with_details(), report_with_latency()
 
-### Community 194 - "ProviderError"
-Cohesion: 0.08
-Nodes (19): ChatCompletionResponse, ChatMessage, EmbeddingData, EmbeddingResponse, ModelInfo, ModelsResponse, OpenAIClient, Usage (+11 more)
+### Community 194 - "SystemComponent"
+Cohesion: 0.07
+Nodes (25): ComponentStatus, Degraded, Healthy, Paused, Starting, Stopping, Unhealthy, SystemComponent (+17 more)
 
 ### Community 195 - "secrets.rs"
 Cohesion: 0.16
 Nodes (8): SecretEntry, SecretVault, vault_clear(), vault_delete(), vault_list_keys(), vault_requires_master_key(), vault_rotation(), vault_store_and_retrieve()
-
-### Community 196 - "Candidate"
-Cohesion: 0.02
-Nodes (42): ArchiveOrgSource, _license_from_collection(), _looks_like_year(), _parse_length(), _pick_video_file(), _safe_int(), _to_text(), Candidate (+34 more)
 
 ### Community 197 - "consent.rs"
 Cohesion: 0.16
 Nodes (15): consent_deny(), consent_expiry(), consent_request_lifecycle(), consent_request_with_resource_and_duration(), consent_revoke(), ConsentGrant, ConsentManager, ConsentRequest (+7 more)
 
 ### Community 198 - "ErrorKind"
-Cohesion: 0.08
-Nodes (19): ErrorKind, Auth, Cancelled, Config, Dependency, Internal, InvalidInput, IO (+11 more)
+Cohesion: 0.06
+Nodes (22): error_creation(), error_display(), error_into_kind(), ErrorKind, Auth, Cancelled, Config, Dependency (+14 more)
 
 ### Community 199 - "PresenceRenderer"
 Cohesion: 0.10
@@ -2114,51 +2155,47 @@ Nodes (8): PresenceRenderer, PresenceState, Error, Idle, Listening, Speaking, Th
 
 ### Community 200 - "BaseTool"
 Cohesion: 0.03
-Nodes (62): imported_plugin_names(), main(), sha256(), AudioEnergy, AudioProbe, FrameSampler, AudioEnhance, FreesoundMusic (+54 more)
+Nodes (51): AudioEnergy, AudioProbe, probe_duration(), AudioEnhance, GoogleMusic, InworldTTS, HeyGenAvatar, get() (+43 more)
 
-### Community 201 - "FishAudioTTS"
-Cohesion: 0.05
-Nodes (14): asset_cache_enabled(), get_default_asset_cache(), emit_event(), infer_project_dir(), read_events(), FishAudioTTS, _cache_execute(), wrapper() (+6 more)
+### Community 201 - "pipeline_loader.py"
+Cohesion: 0.04
+Nodes (13): asset_cache_enabled(), get_default_asset_cache(), emit_event(), infer_project_dir(), read_events(), _cache_execute(), wrapper(), _fingerprint_value() (+5 more)
 
-### Community 202 - "guardian.rs"
-Cohesion: 0.19
-Nodes (16): guardian_allows_low_risk(), guardian_allows_low_risk_during_recovery(), guardian_blocks_blocked_entity(), guardian_blocks_unknown_capability(), guardian_denies_critical_when_recovery_active(), guardian_denies_medium_when_recovery_active(), guardian_integrity_check_blocks_critical_without_data(), guardian_integrity_check_blocks_tampered_resource() (+8 more)
+### Community 202 - "coding_harness/src/lib.rs"
+Cohesion: 0.02
+Nodes (79): ContextExplorer, GrepMatch, IGNORED_DIRS, DebugAnalysis, Debugger, Diagnostic, DiagnosticSeverity, Error (+71 more)
 
 ### Community 203 - "ActivityKind"
 Cohesion: 0.09
 Nodes (21): ActivityKind, Browsing, Coding, Communication, Debugging, Designing, Documenting, Gaming (+13 more)
 
-### Community 204 - "SettingsManager"
-Cohesion: 0.06
-Nodes (25): AppearanceSettings, AutomationSettings, DeveloperSettings, MemorySettings, ModelSettings, PerformanceSettings, PluginSettings, PrivacySettings (+17 more)
+### Community 204 - "src/settings.rs"
+Cohesion: 0.05
+Nodes (44): AppearanceSettings, AutomationSettings, CompanionSettings, default_browser_access(), default_char_size(), default_close_behavior(), default_companion_char(), default_expression() (+36 more)
 
 ### Community 205 - "ContextProvider"
 Cohesion: 0.14
 Nodes (6): ContextProvider, ContextRegistry, MockProvider, test_collect_all(), test_register_and_collect(), test_unregister()
 
-### Community 206 - "download.rs"
-Cohesion: 0.11
-Nodes (13): do_download(), download_cancel_nonexistent(), download_progress_empty(), DownloadManager, DownloadProgress, DownloadState, DownloadStatus, Cancelled (+5 more)
+### Community 207 - "PluginError"
+Cohesion: 0.12
+Nodes (20): default_plugin_registry(), enabled_plugins_only(), initialize_all_plugins(), invoke_nonexistent_plugin(), invoke_unknown_command(), list_plugins(), MockPlugin, Plugin (+12 more)
 
-### Community 207 - "sdk.rs"
-Cohesion: 0.06
-Nodes (33): default_plugin_registry(), DefaultPlatformQuery, enabled_plugins_only(), initialize_all_plugins(), invoke_nonexistent_plugin(), invoke_unknown_command(), list_plugins(), MockPlugin (+25 more)
-
-### Community 208 - "ProviderCapability"
+### Community 208 - "HeartbeatTracker"
 Cohesion: 0.13
-Nodes (17): CapabilityDiscovery, CapabilityMatch, CapabilityScore, DefaultCapabilityDiscovery, make_provider(), test_default_discovery_finds_best(), test_default_discovery_no_match(), test_default_discovery_unavailable_lower_score() (+9 more)
+Nodes (7): check_all_alive_empty(), HeartbeatEntry, HeartbeatTracker, register_and_beat(), tracker_creation(), unregister(), unregistered_is_dead()
 
-### Community 209 - "IntelligenceError"
-Cohesion: 0.17
-Nodes (12): IntelligenceError, Config, Conversation, Decision, Emotional, InvalidState, MemoryImportance, Personality (+4 more)
+### Community 209 - "BOOL"
+Cohesion: 0.10
+Nodes (26): do_download(), SingleInstanceGuard, test_single_instance_acquisition_and_conflict(), CloseHandle(), CreateToolhelp32Snapshot(), enum_windows_callback(), enumerate_windows(), EnumWindows() (+18 more)
 
-### Community 210 - "compatibility.rs"
-Cohesion: 0.15
-Nodes (9): CompatibilityEngine, CompatibilityTier, CpuOnly, FullGpu, Incompatible, PartialOffload, ModelResourceEstimate, test_estimate_7b_q4_requirements() (+1 more)
-
-### Community 211 - "WindowsPlatform"
+### Community 210 - "ImageSelector"
 Cohesion: 0.07
-Nodes (16): hostname(), INPUT, key_press(), keyboard_type(), mouse_click(), SendInput(), SetCursorPos(), windows_display_enumeration() (+8 more)
+Nodes (15): _compute_continuity(), _compute_control(), _compute_cost_efficiency(), _compute_task_fit(), _expand_synonyms(), format_ranking(), _is_stock_like_provider(), _keyword_overlap() (+7 more)
+
+### Community 211 - "NodeType"
+Cohesion: 0.07
+Nodes (25): EdgeType, AssignedTo, ConnectedTo, Created, Custom, DependsOn, Dislikes, Likes (+17 more)
 
 ### Community 212 - "integrity.rs"
 Cohesion: 0.14
@@ -2172,21 +2209,21 @@ Nodes (17): DiscoveredLocalProvider, DiscoveredModel, LocalProviderDetector, Loc
 Cohesion: 0.14
 Nodes (13): threat_clear_old_events(), threat_event_recording(), threat_rapid_failure_detection(), threat_severity_filter(), threat_unhandled_tracking(), ThreatDetector, ThreatEvent, ThreatSeverity (+5 more)
 
-### Community 215 - "10-silent-control-failure.md"
-Cohesion: 0.10
-Nodes (22): 06 — Build, tooling, and CI, 1. CMake hygiene (the de-facto standard), 1a. Build configurations: Debug, Release, and what NDEBUG means, 2. Warnings and static analysis, 3. Sanitizers in CI (non-negotiable), 4. Fuzzing for input parsers, 5. Dependencies and supply chain, 6. Reproducible, deterministic builds (+14 more)
+### Community 215 - "webhook.rs"
+Cohesion: 0.22
+Nodes (10): test_webhook_authoritative_lifecycle_and_idempotency(), verify_webhook_signature(), verify_webhook_timestamp(), WebhookError, DatabaseError, InvalidSignature, MalformedPayload, MissingSignature (+2 more)
 
-### Community 216 - "openai/src/client.rs"
-Cohesion: 0.12
-Nodes (17): BillingInterval, Month, Year, CreateCheckoutSessionRequest, CustomerPayload, ProductCartItem, Choice, parse_stream_frame() (+9 more)
+### Community 216 - "installer/src/main.rs"
+Cohesion: 0.14
+Nodes (21): APP_DISPLAY_NAME, APP_NAME, APP_PUBLISHER, APP_VERSION, check_webview2_runtime(), create_shortcut(), extract_payload(), get_default_install_dir() (+13 more)
 
 ### Community 217 - "skill_discovery.rs"
 Cohesion: 0.17
 Nodes (14): SkillDiscoveryConfig, MAX_ACTION_HISTORY, MAX_PATTERNS, MAX_SUGGESTIONS, SkillDiscovery, SkillSuggestion, TaskPattern, test_detect_patterns_above_threshold() (+6 more)
 
-### Community 218 - "Root.tsx"
-Cohesion: 0.06
-Nodes (49): Composition Authoring Mode — Templated vs Atelier, signalFromTomorrowWithMusicFixture, CinematicBaseScene, CinematicCaptionConfig, CinematicRendererProps, CinematicScene, CinematicSoundtrack, CinematicTitleScene (+41 more)
+### Community 218 - "Animation Runtime Selector"
+Cohesion: 0.20
+Nodes (9): Animation library decision matrix, Animation Runtime Selector, Check against the pipeline's stage director, HARD RULE — present both runtimes, don't silently default, Never do, Running GSAP deterministically inside Remotion, Runtime choice (Remotion vs HyperFrames vs FFmpeg), The "keep it simple" bias (+1 more)
 
 ### Community 219 - "ComponentState"
 Cohesion: 0.14
@@ -2200,13 +2237,9 @@ Nodes (8): BudgetConfig, BudgetMode, CheckpointConfig, CheckpointPolicy, LLMConf
 Cohesion: 0.12
 Nodes (8): DefaultInterruptionManager, InterruptionEvent, InterruptionManager, InterruptionSeverity, Critical, Emergency, Info, Warning
 
-### Community 222 - "api_server/src/lib.rs"
-Cohesion: 0.11
-Nodes (9): setup_test_router(), test_admin_rbac_protection(), test_api_auth_middleware(), test_api_rate_limiting(), test_api_structured_error_responses(), test_api_webhook_and_checkout_dispatch(), test_otp_flow_and_password_reset(), RateLimitMiddleware (+1 more)
-
-### Community 223 - "07 — Audit Bug Catalog: Signatures, Severity, Fixes"
-Cohesion: 0.07
-Nodes (23): 07 — Audit Bug Catalog: Signatures, Severity, Fixes, 10. Double-execution & ordering assumptions — MEDIUM→HIGH, 11. Async iterator / generator cleanup — LOW→MEDIUM, 12. Test-only / heisenbug smells — MEDIUM, 1. Fire-and-forget tasks swallowing exceptions — HIGH, 2. Missing await — HIGH (often CRITICAL in tests), 3. Shared mutable state across tasks — HIGH→CRITICAL, 4. Lock held across await — HIGH (deadlock-capable: CRITICAL) (+15 more)
+### Community 223 - ".run"
+Cohesion: 0.08
+Nodes (17): 3. Shared mutable state across tasks — HIGH→CRITICAL, Request context: AsyncLocalStorage, 01 — Idioms: modern Java & Kotlin, error handling, 1. Modern Java idioms (21/25), 2. Modern Kotlin idioms (2.x), 3. Java ↔ Kotlin interop, 4. Error handling, 5. Immutability and finality (+9 more)
 
 ### Community 224 - "ComfyUIClient"
 Cohesion: 0.04
@@ -2216,16 +2249,16 @@ Nodes (7): ComfyUIMusic, ComfyUIClient, ComfyUIError, missing_models_payload(), 
 Cohesion: 0.13
 Nodes (20): MicroConfig, MicroContext, MicroEngine, MicroTemplate, test_micro_cooldown(), test_micro_dedup(), test_micro_generation(), test_micro_respects_limit() (+12 more)
 
-### Community 226 - "ContextFusionEngine"
-Cohesion: 0.15
-Nodes (11): ContextFusionEngine, FreshnessEngine, FreshnessEngineExt, FusionStats, make_snapshot(), test_fuse_basic(), test_fuse_deterministic_output(), test_fuse_empty() (+3 more)
+### Community 226 - "SchemaMedia"
+Cohesion: 0.10
+Nodes (7): AtlasRefreshImage, Flux3ReplicateImage, GeminiReplicateImage, SchemaMedia, LTXAPIVideo, WanAtlasVideo, WanReplicateVideo
 
 ### Community 227 - "HealthMonitor"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (7): check_all_empty(), check_not_found(), HealthMonitor, monitor_creation(), register_and_check(), remove_check(), set_state_tracker()
 
 ### Community 228 - "token.rs"
-Cohesion: 0.13
+Cohesion: 0.15
 Nodes (11): CapabilityToken, grant_creation(), PermissionGrant, token_creation(), token_expired_fails_validation(), token_hmac_sign_and_verify(), token_tampered_payload_rejected(), token_tampered_signature_rejected() (+3 more)
 
 ### Community 229 - "workflow_learning.rs"
@@ -2234,47 +2267,47 @@ Nodes (12): WorkflowLearningConfig, make_step(), test_delete_workflow(), test_du
 
 ### Community 230 - "owner_command_center.rs"
 Cohesion: 0.19
-Nodes (20): acknowledge_nonexistent_alert(), AgentId, AgentSnapshot, command_center_creation(), CpuMetrics, GoalId, GoalProgress, GoalSnapshot (+12 more)
+Nodes (22): AgentId, AgentSnapshot, AlertSnapshot, CpuMetrics, GoalId, GoalProgress, GoalSnapshot, GpuMetrics (+14 more)
 
-### Community 231 - "CompanionConfig"
-Cohesion: 0.12
-Nodes (12): CompanionConfig, ConversationConfig, MemoryConfig, MissionConfig, PresenceConfig, ScoreWeights, SilenceConfig, make_input() (+4 more)
+### Community 231 - "mcp_bridge.rs"
+Cohesion: 0.13
+Nodes (6): McpContentItem, McpServerInfo, McpStdioClient, McpToolCallResult, McpToolDefinition, NativeToolAdapter
 
-### Community 232 - "app.rs"
-Cohesion: 0.09
-Nodes (21): App(), AssistantCore(), CompanionMode, ParticleOrb, Robot, CoreState, Error, Idle (+13 more)
+### Community 232 - "compatibility.rs"
+Cohesion: 0.08
+Nodes (28): LocalModelMetadata, ModelFamily, DeepSeek, Gemma, Llama, Mistral, Other, Phi (+20 more)
 
 ### Community 233 - "FusionPolicy"
-Cohesion: 0.13
-Nodes (18): ConflictResolution, CompositeScore, ConfidenceBased, FlagAndKeep, PriorityBased, TemporalFirst, FusionPolicy, MergeStrategy (+10 more)
+Cohesion: 0.15
+Nodes (11): ContextFusionEngine, FreshnessEngine, FreshnessEngineExt, FusionStats, make_snapshot(), test_fuse_basic(), test_fuse_deterministic_output(), test_fuse_empty() (+3 more)
 
 ### Community 234 - "ActivityContextProvider"
 Cohesion: 0.11
 Nodes (10): ActivityContextProvider, ActivityType, Active, AppInteraction, Idle, Listening, Reading, test_collect_app_interaction() (+2 more)
 
 ### Community 235 - "WindowTracker"
-Cohesion: 0.08
-Nodes (10): DesktopRuntime, RuntimeConfig, save_load_state(), TrackedWindow, WindowState, Hidden, Maximized, Minimized (+2 more)
+Cohesion: 0.10
+Nodes (8): save_load_state(), TrackedWindow, WindowState, Hidden, Maximized, Minimized, Normal, WindowTracker
 
 ### Community 237 - "MessageType"
 Cohesion: 0.08
 Nodes (23): MessageType, AuthRequest, AuthResponse, CancelAck, CancelRequest, EventNotify, EventPublish, EventSubscribe (+15 more)
 
-### Community 238 - "memory/src/preferences.rs"
-Cohesion: 0.15
-Nodes (8): Preference, PreferenceStats, PreferenceTracker, PreferenceTrackerState, test_stable_preference(), test_to_memory_items(), test_track_app_usage(), test_tracker_creation()
+### Community 238 - "AutomationBackend"
+Cohesion: 0.05
+Nodes (4): BackendPair, HybridBuilder, HybridConfig, AutomationBackend
 
-### Community 239 - "ReasoningOutput"
-Cohesion: 0.06
-Nodes (23): ConfidenceEstimator, InMemoryConfidenceEstimator, InMemoryReasoner, test_reasoner(), Reasoner, ReasoningInput, ReasoningOutput, ReasoningStep (+15 more)
-
-### Community 240 - "companion_intelligence/src/lib.rs"
+### Community 239 - "ContextCache"
 Cohesion: 0.15
-Nodes (13): MomentType, BatteryLow, CodeCompiled, DailyDebrief, DownloadComplete, FocusedWork, GoodMorning, GoodNight (+5 more)
+Nodes (10): CacheConfig, CacheEntry, CacheStats, ContextCache, make_snapshot(), test_get_by_id(), test_insert_and_get(), test_invalidate_source() (+2 more)
+
+### Community 240 - "companion/src/types.rs"
+Cohesion: 0.09
+Nodes (26): CompanionInput, CompanionOutput, ExpressionMetadata, Greeting, MemoryMoment, MissionState, Active, Completed (+18 more)
 
 ### Community 241 - "PluginManager"
 Cohesion: 0.08
-Nodes (13): PluginEntry, PluginDependency, PluginManifest, ToolDefinition, PluginContext, PluginLifecycle, PluginState, Error (+5 more)
+Nodes (14): list_plugins_empty(), PluginEntry, PluginManager, PluginDependency, PluginManifest, ToolDefinition, PluginContext, PluginState (+6 more)
 
 ### Community 242 - "AnimationGraph"
 Cohesion: 0.13
@@ -2292,23 +2325,23 @@ Nodes (5): ParticleConfig, Particle, ParticleEngine, ParticleUniforms, test_part
 Cohesion: 0.12
 Nodes (10): Container, container_creation(), register_and_resolve(), resolve_unregistered(), Scope, Scoped, Singleton, Transient (+2 more)
 
-### Community 246 - "ChangeKind"
-Cohesion: 0.14
-Nodes (14): ChangeKind, ApplicationStateChanged, ContentAppeared, ContentDisappeared, ElementAppeared, ElementDisappeared, ElementMoved, RegionUpdated (+6 more)
+### Community 246 - "Candidate"
+Cohesion: 0.10
+Nodes (4): Candidate, CoverrSource, NARASource, VidevoSource
 
 ### Community 247 - "_wan_engine.py"
-Cohesion: 0.07
-Nodes (24): model_info(), channel_stats(), derive_pipeline(), export_frames(), free_wan_pipelines(), _generate_chained(), _generate_single(), generate_wan() (+16 more)
+Cohesion: 0.06
+Nodes (25): model_info(), channel_stats(), derive_pipeline(), export_frames(), free_wan_pipelines(), _generate_chained(), _generate_single(), generate_wan() (+17 more)
 
 ### Community 248 - "world-runtime.js"
 Cohesion: 0.07
 Nodes (41): addMesh(), altitude, buildLandmark(), camera, cameraAt(), canvas, catalogModels, color (+33 more)
 
-### Community 249 - "self_healing.rs"
+### Community 249 - "SelfHealer"
 Cohesion: 0.13
-Nodes (11): backoff_calculation(), heal_failure(), heal_is_idempotent_while_recovering(), heal_success(), heal_success_resets_attempt_budget(), healing_config_defaults(), max_attempts_exceeded(), RecoveryState (+3 more)
+Nodes (12): backoff_calculation(), heal_failure(), heal_is_idempotent_while_recovering(), heal_success(), heal_success_resets_attempt_budget(), healing_config_defaults(), HealingConfig, max_attempts_exceeded() (+4 more)
 
-### Community 250 - "vram_manager.rs"
+### Community 250 - "VramManager"
 Cohesion: 0.12
 Nodes (13): AllocatedSlot, EngineRole, LargeLanguageModel, SpeechToText, TextToSpeech, Vision, test_vram_manager_budgeting(), VramAllocationError (+5 more)
 
@@ -2320,29 +2353,29 @@ Nodes (21): IpcError, AlreadyConnected, AuthFailed, Cancelled, CapabilityDenied,
 Cohesion: 0.25
 Nodes (18): executor_next_batch(), executor_skip_dependents_on_failure(), graph_add_dependency(), graph_add_node(), graph_cancel_all(), graph_creation(), graph_critical_path(), graph_cycle_detection() (+10 more)
 
-### Community 253 - "01 — Language baseline & idioms"
-Cohesion: 0.06
-Nodes (32): 03 — Files, deserialization, and SSRF, 1. File uploads: validate content, own the name, deny execution, 2. Path traversal, LFI/RFI, and stream wrappers, 3. Deserialization: unserialize() is code execution; JSON is data, 4. XML: XXE and entity expansion, 5. SSRF: server-side fetching of user-influenced URLs, 6. FFI — PHP calling C, Audit checklist (+24 more)
+### Community 253 - "GeminiProvider"
+Cohesion: 0.13
+Nodes (5): GeminiProvider, test_gemini_available_models(), test_gemini_complete_no_api_key(), test_gemini_provider_creation(), test_gemini_with_custom_model()
 
-### Community 254 - "OpenClawBackend"
-Cohesion: 0.09
-Nodes (3): base64_decode(), base64_encode(), OpenClawBackend
+### Community 254 - "voice_tts/src/lib.rs"
+Cohesion: 0.11
+Nodes (13): IncrementalSpeechChunker, MockTtsEngine, SentenceChunker, test_chatterbox_tts_properties(), test_empty_tts_rejection(), test_incremental_speech_chunker_flush_trailing_tokens(), test_incremental_speech_chunker_immediate_first_word(), test_incremental_speech_chunker_multibyte_safety() (+5 more)
 
 ### Community 255 - "skills/src/lib.rs"
 Cohesion: 0.02
-Nodes (96): Reviewer, BenchmarkCaseResult, BenchmarkScorecard, BenchmarkTaskCategory, BugFix, CrossModuleChange, FeatureImplementation, MixedLanguageChange (+88 more)
+Nodes (90): Reviewer, BenchmarkCaseResult, BenchmarkScorecard, BenchmarkTaskCategory, BugFix, CrossModuleChange, FeatureImplementation, MixedLanguageChange (+82 more)
 
 ### Community 256 - "platform_core/src/lib.rs"
-Cohesion: 0.04
-Nodes (18): PlatformRegistry, DisplayPlatform, FileSystemPlatform, InputPlatform, NetworkPlatform, Platform, ProcessPlatform, DisplayInfo (+10 more)
+Cohesion: 0.08
+Nodes (14): DisplayPlatform, FileSystemPlatform, NetworkPlatform, ProcessPlatform, DisplayInfo, FileInfo, NetworkInfo, NetworkInterface (+6 more)
 
 ### Community 257 - "fetch"
-Cohesion: 0.06
-Nodes (35): Audit checklist, Background work in services, Env and config: parse once, crash fast, Graceful shutdown, Health checks and readiness, HTTP server hardening, Native ESM in Node, `node:crypto` AEAD traps (+27 more)
+Cohesion: 0.04
+Nodes (50): 05 — Web Platform Security, 1. XSS — context-aware output encoding (CWE-79), 2. Content Security Policy, 3. CSRF (CWE-352), 4. CORS (CWE-942), 5. Clickjacking & framing (CWE-1021), 6. Security headers (baseline set), 7. Cookies (CWE-1004/614/565) (+42 more)
 
 ### Community 258 - "playbook_loader.py"
-Cohesion: 0.08
-Nodes (19): check_color_blind_safety(), _composite_alpha(), compute_type_scale(), generate_harmony(), _has_alpha(), _hex_to_hsl(), _hex_to_rgb(), _hsl_to_hex() (+11 more)
+Cohesion: 0.07
+Nodes (21): check_color_blind_safety(), _composite_alpha(), compute_type_scale(), generate_harmony(), _has_alpha(), _hex_to_hsl(), _hex_to_rgb(), _hsl_to_hex() (+13 more)
 
 ### Community 259 - "assembled.rs"
 Cohesion: 0.19
@@ -2356,9 +2389,9 @@ Nodes (18): ConversationEvent, Error, InputReceived, InterruptionDetected, MoodC
 Cohesion: 0.14
 Nodes (5): BargeInConfig, BargeInManager, InMemoryBargeInManager, InterruptionEvent, SignalPacket
 
-### Community 262 - "BackendCommand"
-Cohesion: 0.05
-Nodes (25): BackendCommand, CompleteOnboarding, EmergencyStop, GetChatHistory, GetSystemTelemetry, LoadSettings, SaveSettings, SendPrompt (+17 more)
+### Community 262 - "VoxyIpcServer"
+Cohesion: 0.06
+Nodes (21): constant_time_eq(), handle_client_connection(), VoxyIpcClient, ClientCommand, ClientHandshake, ConfirmAction, EmergencyStop, ExecuteCodingTask (+13 more)
 
 ### Community 263 - "HardwareError"
 Cohesion: 0.09
@@ -2376,73 +2409,73 @@ Nodes (20): OrchestratorEvent, AuditEvent, BackgroundTaskCompleted, BackgroundTa
 Cohesion: 0.05
 Nodes (37): UiElementKind, Button, CheckBox, ComboBox, Dialog, DropDown, Footer, Generic (+29 more)
 
-### Community 267 - "StdResult"
-Cohesion: 0.16
-Nodes (3): SqliteAuditLogStore, SqliteConversationStore, test_conversation_store_fts5_search_and_triggers()
+### Community 267 - "DocxDocument"
+Cohesion: 0.11
+Nodes (7): DocxDocument, DocxElement, BulletItem, Heading, PageBreak, Paragraph, Table
 
 ### Community 269 - "notifications.rs"
 Cohesion: 0.17
 Nodes (11): Notification, notification_clear_history(), notification_history(), notification_manager_send(), NotificationManager, NotificationPriority, Critical, High (+3 more)
 
-### Community 270 - "AdaptiveThreshold"
-Cohesion: 0.17
-Nodes (7): ConfidenceCalibration, AdaptiveThresholds, AdaptiveThreshold, BehaviorPattern, CalibrationSample, StrategyEffectiveness, UserPreferenceProfile
-
-### Community 271 - "health.rs"
+### Community 270 - "capture_screenshot"
 Cohesion: 0.13
-Nodes (7): LlmBenchmarkRunner, NoopHealthChecker, ProviderBenchmarkResult, ProviderHealthChecker, test_benchmark_runner_creation(), test_noop_health_checker(), test_noop_is_healthy()
+Nodes (20): BitBlt(), capture_screenshot(), collect_monitors(), CreateCompatibleBitmap(), CreateCompatibleDC(), DeleteDC(), DeleteObject(), EnumDisplayMonitors() (+12 more)
+
+### Community 271 - "FusionPolicy"
+Cohesion: 0.13
+Nodes (18): ConflictResolution, CompositeScore, ConfidenceBased, FlagAndKeep, PriorityBased, TemporalFirst, FusionPolicy, MergeStrategy (+10 more)
 
 ### Community 272 - "version.rs"
-Cohesion: 0.12
+Cohesion: 0.14
 Nodes (9): current_version(), default_version(), version(), version_creation(), version_full(), version_partial_eq(), version_with_build_metadata(), version_with_prerelease() (+1 more)
 
-### Community 273 - "ui_state_test.rs"
-Cohesion: 0.10
-Nodes (9): DEFAULT_MODELS, ModelCatalogItem, PROVIDER_CATALOG, ProviderCatalogItem, SUBSCRIPTION_PLANS, SubscriptionTier, VOICE_CATALOG, VoiceModelItem (+1 more)
+### Community 273 - "provider_core/src/lib.rs"
+Cohesion: 0.08
+Nodes (4): EmbeddingProvider, SttProvider, TtsProvider, VisionProvider
 
-### Community 274 - "SchemaMedia"
-Cohesion: 0.10
-Nodes (7): AtlasRefreshImage, Flux3ReplicateImage, GeminiReplicateImage, SchemaMedia, LTXAPIVideo, WanAtlasVideo, WanReplicateVideo
+### Community 274 - "archive_org.py"
+Cohesion: 0.12
+Nodes (7): ArchiveOrgSource, _license_from_collection(), _looks_like_year(), _parse_length(), _pick_video_file(), _safe_int(), _to_text()
 
 ### Community 275 - "silence.rs"
 Cohesion: 0.14
 Nodes (17): AttentionState, make_attention(), SilenceDecision, Silent, Speak, SilenceIntelligence, SilenceReason, AnnoyanceThreshold (+9 more)
 
 ### Community 276 - "human_dynamics/src/confidence.rs"
-Cohesion: 0.27
-Nodes (6): ConfidenceEngine, test_average_confidence(), test_high_confidence(), test_low_confidence(), test_trend(), ConfidenceConfig
+Cohesion: 0.15
+Nodes (13): ConfidenceEngine, test_average_confidence(), test_high_confidence(), test_low_confidence(), test_trend(), ConfidenceConfig, ConfidenceLevel, High (+5 more)
 
 ### Community 277 - "2. Core Components"
 Cohesion: 0.04
 Nodes (44): 1. Overview, 2.10 Guardian Mode, 2.11 Recovery Mode, 2.12 Secure Shutdown, 2.14.1 Guardian Decision Flow, 2.14.2 Guardian Implementation, 2.14.3 Risk Analyzer, 2.14 Guardian Policy Engine (+36 more)
 
-### Community 278 - "GpuVendor"
-Cohesion: 0.13
-Nodes (11): GpuInfo, GpuVendor, Amd, Intel, Nvidia, Other, Qualcomm, Software (+3 more)
+### Community 278 - "RelationshipLevel"
+Cohesion: 0.18
+Nodes (13): InitiativeConfig, InitiativeEngine, test_initiative_allowed(), test_initiative_cooldown(), test_initiative_deep_focus_blocks(), test_initiative_disabled(), test_initiative_low_trust_blocks(), InitiativeDecision (+5 more)
 
-### Community 279 - "ProviderHealth"
+### Community 279 - "brain/tests/integration_tests.rs"
+Cohesion: 0.19
+Nodes (17): make_brain(), make_input(), test_brain_cancel_turn(), test_brain_events(), test_brain_health_check(), test_brain_init_and_shutdown(), test_brain_latency_tracking(), test_brain_multiple_turns() (+9 more)
+
+### Community 280 - "SettingsManager"
 Cohesion: 0.10
-Nodes (12): TtsProvider, HealthStatus, AuthenticationFailed, Checking, Degraded, Healthy, RateLimited, Unavailable (+4 more)
-
-### Community 280 - "sota-golang/rules/05-security.md"
-Cohesion: 0.05
-Nodes (37): 03 — Concurrency: goroutines, channels, sync, races, 1. Goroutine lifecycle ownership, 2. Goroutine leak catalog, 3. Channels vs mutexes, 4. sync primitives, 5. Data races, 6. Bounding concurrency: pools and semaphores, Audit checklist (+29 more)
+Nodes (5): DesktopRuntime, RuntimeConfig, settings_manager_new(), SettingsManager, SettingsBridge
 
 ### Community 281 - "CancellationToken"
 Cohesion: 0.18
 Nodes (9): cancellation_handle_cancels_token(), CancellationHandle, CancellationToken, concurrent_cancellation_safety(), multiple_cancels_idempotent(), token_cancellation(), token_equality_by_id(), token_not_cancelled_by_default() (+1 more)
 
-### Community 282 - "DatabaseConfig"
-Cohesion: 0.22
-Nodes (7): BackupEntry, BackupManager, REGISTRY_FILE, test_backup_manager_create_list(), test_backup_manager_delete(), test_backup_manager_restore(), test_backup_manager_restore_nonexistent()
+### Community 282 - "MemoryEvent"
+Cohesion: 0.12
+Nodes (14): MemoryEvent, ConsolidationRun, ForgettingRun, GraphEdgeAdded, GraphNodeAdded, HermesClassification, ItemArchived, ItemCompressed (+6 more)
 
 ### Community 283 - "sanitizer.rs"
 Cohesion: 0.07
 Nodes (23): detect_injection_patterns(), LAYER_1_IDENTITY, LAYER_2_SECURITY, LAYER_3_CAPABILITIES, LAYER_4_CONVERSATION, SystemPromptBuilder, test_delimiter_injection_blocked(), test_injection_detection() (+15 more)
 
-### Community 284 - "overlay/src/types.rs"
-Cohesion: 0.06
-Nodes (28): ChatMessage, DesktopMode, Compact, ComputerControl, EdgeDock, Floating, FullExperience, Minimal (+20 more)
+### Community 284 - "AutomationCapability"
+Cohesion: 0.12
+Nodes (10): AutomationCapability, ElementDetection, Hybrid, Keyboard, Mouse, Ocr, Recovery, ScreenCapture (+2 more)
 
 ### Community 285 - "Reviewer — Meta Skill"
 Cohesion: 0.05
@@ -2452,21 +2485,21 @@ Nodes (40): At compose stage:, At compose stage:, At compose stage (when composi
 Cohesion: 0.09
 Nodes (9): ptt_barge_in(), ptt_creation(), ptt_force_deactivate(), ptt_toggle(), PttState, Active, Barging, Idle (+1 more)
 
-### Community 287 - "ToolResult"
-Cohesion: 0.02
-Nodes (31): Tool Class Naming Convention, When Building New Tools, CompositionValidator, MistralSTT, VisualQA, InworldTTS, MusicGen, PiperTTS (+23 more)
+### Community 287 - "CapRecorder"
+Cohesion: 0.18
+Nodes (5): CapRecorder, _find_cap_binary(), _find_cap_recordings_dir(), _get_recent_recordings(), _is_cap_running()
 
 ### Community 288 - "icons.rs"
-Cohesion: 0.15
-Nodes (23): IconAlertCircle(), IconArrowLeft(), IconCheck(), IconChevronRight(), IconCpu(), IconEye(), IconEyeOff(), IconLayers() (+15 more)
+Cohesion: 0.09
+Nodes (36): IconActivity(), IconAlertCircle(), IconArrowLeft(), IconBrain(), IconCheck(), IconChevronRight(), IconCpu(), IconEye() (+28 more)
 
 ### Community 289 - "Senior Open Source Engineer Skill"
 Cohesion: 0.05
 Nodes (40): Agent-specific setup, Amp and similar agents, Architecture learning, Better usage, Bug fix, Claude Code, Cline and Roo Code, Codex CLI (+32 more)
 
-### Community 290 - "overlay/src/main.rs"
-Cohesion: 0.07
-Nodes (14): App(), APP_STATE, get_app_state(), get_ipc_client(), GlobalAppState, IPC_CLIENT, main(), App() (+6 more)
+### Community 290 - "PptxPresentation"
+Cohesion: 0.14
+Nodes (6): PptxPresentation, PptxSlide, SlideContent, BulletSlide, TableSlide, TitleSlide
 
 ### Community 291 - "protocol.rs"
 Cohesion: 0.10
@@ -2474,19 +2507,19 @@ Nodes (10): EventMessage, Heartbeat, IPC_PROTOCOL_VERSION, MAX_FRAME_SIZE, Metho
 
 ### Community 292 - "ToolRegistry"
 Cohesion: 0.06
-Nodes (7): Provider Menu (Mandatory at Preflight), Step 3: Animation Approach Selection, Step 3a: Tool Availability Scan, Step 3b: Animation Approach Decision Matrix, Step 3c: Mode Selection Rules, _scrub_unicode_dashes(), ToolRegistry
+Nodes (7): ToolRegistry, 1. Executive Summary & Mission, 2. Relational Schema: Migration 105 (`skills_and_workflows`), 3. Skill Manifest Specification, 4. Runtime & Security Boundary Enforcement, PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION, Subsystem: Skills + Workflows Ecosystem
 
 ### Community 293 - "journal.rs"
 Cohesion: 0.21
 Nodes (7): AiActionEntry, AiActionJournal, journal_entry_confidence(), journal_mark_rollback(), journal_query_by_subject(), journal_query_by_tool(), journal_records_action()
 
-### Community 294 - "SecurityError"
-Cohesion: 0.08
-Nodes (23): SecurityError, ApprovalError, CapabilityAlreadyRegistered, CapabilityNotFound, ConsentRequestNotFound, GuardianDenied, IdentityAlreadyRegistered, IdentityNotFound (+15 more)
+### Community 294 - "07-security-governance.md"
+Cohesion: 0.03
+Nodes (65): 01 — ML systems architecture, 1. The model is the small part, 2. Training vs serving paths, 3. Feature store, 4. Model registry & artifacts, 5. Reproducibility is architectural, 6. Trust domains: training, evaluation, serving, 7. The Hidden-Technical-Debt anti-patterns (+57 more)
 
-### Community 295 - "delta.rs"
-Cohesion: 0.23
-Nodes (9): ContextDelta, ContextDeltaGenerator, FieldDelta, make_snapshot(), test_field_added(), test_field_changed(), test_no_changes(), test_source_added() (+1 more)
+### Community 295 - "nasa.py"
+Cohesion: 0.13
+Nodes (5): _encode_url_path(), NasaSource, _pick_image_url(), _pick_video_url(), _sanitize_source_id()
 
 ### Community 296 - "providers/memory.rs"
 Cohesion: 0.19
@@ -2500,13 +2533,13 @@ Nodes (21): action_err(), AutomationError, ActionFailed, BackendUnavailable, Can
 Cohesion: 0.16
 Nodes (7): feature_flag_operations(), FeatureFlags, FeatureFlagValue, Bool, Float, Integer, String
 
-### Community 299 - "._process_candidate"
-Cohesion: 0.10
-Nodes (10): _as_feature_tensor(), embed_images(), embed_texts(), _load(), pool_frames(), _extract_video_thumbs(), _guess_ext(), _is_safe_clip_id() (+2 more)
+### Community 299 - "ContextSnapshot"
+Cohesion: 0.07
+Nodes (24): ContextMerger, make_snapshot(), test_deep_merge(), test_latest_wins(), test_merge_empty(), test_merge_two(), test_priority_override(), ContextId (+16 more)
 
-### Community 300 - "pipecat_pipeline.py"
-Cohesion: 0.10
-Nodes (9): Major subsystems (Graphify communities, source-verified), AudioRawFrame, CancelFrame, Frame, FrameProcessor, OsmooAudioSink, OsmooBrainProcessor, TextFrame (+1 more)
+### Community 300 - "Subscription"
+Cohesion: 0.15
+Nodes (9): BillingProvider, OfflineBillingProvider, Subscription, SubscriptionStatus, Active, Cancelled, Expired, Trial (+1 more)
 
 ### Community 301 - "learning/src/engine.rs"
 Cohesion: 0.13
@@ -2516,85 +2549,89 @@ Nodes (3): LearningConfig, LearningEngine, LearningStats
 Cohesion: 0.05
 Nodes (39): dependencies, d3-geo, fast-uri, react, react-dom, remotion, @remotion/captions, @remotion/cli (+31 more)
 
-### Community 303 - "CogVideoVideo"
-Cohesion: 0.08
-Nodes (5): CogVideoVideo, estimate_local_runtime(), local_generation_enabled(), local_generation_status(), plan_segments()
+### Community 303 - "DeviceStatus"
+Cohesion: 0.15
+Nodes (10): DeviceInfo, DeviceStatus, Available, Busy, Disconnected, Error, DeviceType, Camera (+2 more)
 
 ### Community 304 - "AudioReactive"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (7): AudioReactive, test_audio_reactive_creation(), test_glow_intensity(), test_peak_tracking(), test_pulse(), test_rms_update(), AudioReactiveConfig
 
-### Community 305 - "MemoryEvent"
-Cohesion: 0.12
-Nodes (14): MemoryEvent, ConsolidationRun, ForgettingRun, GraphEdgeAdded, GraphNodeAdded, HermesClassification, ItemArchived, ItemCompressed (+6 more)
-
-### Community 306 - "guard.rs"
+### Community 305 - "03 — Idioms, Pitfalls, Exceptions & Logging"
 Cohesion: 0.13
-Nodes (10): dashboard_generation(), get_memory_usage(), guard_creation(), GuardConfig, heartbeat_tracking(), register_subsystem(), RuntimeGuard, set_metadata() (+2 more)
+Nodes (15): 03 — Idioms, Pitfalls, Exceptions & Logging, 10. Exception design, 11. Logging done right, 12. Small-but-deadly grab bag, 13. Public API surface — what you are promising, 1. Mutable default arguments (B006), 2. Late-binding closures (B023), 3. Comprehensions vs loops (+7 more)
+
+### Community 306 - "OfflineSyncProvider"
+Cohesion: 0.15
+Nodes (6): ConflictResolution, Merge, UseLocal, UseRemote, OfflineSyncProvider, SyncProvider
 
 ### Community 307 - "Attention System"
 Cohesion: 0.05
 Nodes (43): 1. Attention Overflow, 1. Simultaneous User Inputs, 2. Focus Starvation, 2. Interrupt During Critical Operation, 3. Attention Deadlock, 3. Priority Inversion, 4. Attention Fragmentation, 4. Attention Livelock (+35 more)
 
-### Community 309 - "OwnerCommandCenter"
-Cohesion: 0.21
-Nodes (13): add_and_retrieve_logs(), log_buffer_respects_limit(), LogEntry, LogLevel, Debug, Error, Info, Warn (+5 more)
+### Community 308 - "ui_state_test.rs"
+Cohesion: 0.04
+Nodes (32): App(), AppScreen, Auth, MainHud, Onboarding, Splash, AssistantCore(), CompanionMode (+24 more)
 
 ### Community 310 - "ConfigError"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (11): config_error_into_voxy_error(), ConfigError, FileNotFound, Io, Json, ParseError, Toml, ValidationFailed (+3 more)
 
-### Community 311 - "ElementSelector"
-Cohesion: 0.15
-Nodes (3): ElementInfo, ElementSelector, StateVerification
+### Community 311 - "conflict.rs"
+Cohesion: 0.26
+Nodes (9): ConflictResolutionResult, ContextConflict, ContextConflictResolver, make_snapshot(), test_detect_conflicts(), test_no_conflicts_same_source(), test_pick_winner(), test_resolve_confidence_based() (+1 more)
 
-### Community 312 - "HeartbeatTracker"
-Cohesion: 0.13
-Nodes (7): check_all_alive_empty(), HeartbeatEntry, HeartbeatTracker, register_and_beat(), tracker_creation(), unregister(), unregistered_is_dead()
+### Community 312 - "world_model/src/traits.rs"
+Cohesion: 0.15
+Nodes (4): DesktopState, WindowInfo, WorkspaceInfo, DesktopMonitor
 
 ### Community 313 - "HomeManager"
 Cohesion: 0.13
 Nodes (3): HomeManager, ProjectSpec, RoomSpec
 
 ### Community 314 - "CentralTelemetry"
-Cohesion: 0.16
-Nodes (4): CentralTelemetry, SubsystemMetrics, SystemTelemetrySnapshot, TelemetryAlert
+Cohesion: 0.14
+Nodes (15): acknowledge_alert(), alert_max_limit(), alert_on_high_errors(), alert_on_high_latency(), CentralTelemetry, clear(), get_metrics(), no_alert_within_thresholds() (+7 more)
 
 ### Community 317 - "ResourceGovernor"
 Cohesion: 0.14
 Nodes (4): concurrency_tracking(), governor_creation(), memory_tracking(), ResourceGovernor
 
-### Community 318 - "07-security-governance.md"
-Cohesion: 0.03
-Nodes (65): 01 — ML systems architecture, 1. The model is the small part, 2. Training vs serving paths, 3. Feature store, 4. Model registry & artifacts, 5. Reproducibility is architectural, 6. Trust domains: training, evaluation, serving, 7. The Hidden-Technical-Debt anti-patterns (+57 more)
+### Community 318 - "delta.rs"
+Cohesion: 0.23
+Nodes (9): ContextDelta, ContextDeltaGenerator, FieldDelta, make_snapshot(), test_field_added(), test_field_changed(), test_no_changes(), test_source_added() (+1 more)
 
 ### Community 319 - "checkpoint.py"
-Cohesion: 0.15
-Nodes (15): _archive_superseded_checkpoint(), _checkpoint_path(), _decision_log_path(), _enforce_stage_prerequisites(), get_completed_stages(), get_latest_checkpoint(), get_next_stage(), get_pipeline_stages() (+7 more)
+Cohesion: 0.12
+Nodes (18): _archive_superseded_checkpoint(), _checkpoint_path(), CheckpointValidationError, _decision_log_path(), _enforce_stage_prerequisites(), get_completed_stages(), get_latest_checkpoint(), get_next_stage() (+10 more)
 
 ### Community 320 - "VisualPresenceConfig"
-Cohesion: 0.15
-Nodes (10): EventIntegration, ExperienceOutput, DesktopActivityChanged, DesktopFocusChanged, DesktopIdle, MoodChanged, PresenceChanged, Shutdown (+2 more)
+Cohesion: 0.10
+Nodes (12): RenderingConfig, VisualPresenceConfig, EventIntegration, ExperienceOutput, DesktopActivityChanged, DesktopFocusChanged, DesktopIdle, MoodChanged (+4 more)
 
 ### Community 321 - "CognitiveError"
-Cohesion: 0.10
+Cohesion: 0.12
 Nodes (16): CognitiveError, Cancelled, Curiosity, ExperienceReplay, GoalManager, Integration, KnowledgeValidation, Orchestrator (+8 more)
+
+### Community 322 - "hardware/src/lib.rs"
+Cohesion: 0.05
+Nodes (21): CompatibilityEngine, CompatibilityTier, CpuOnly, FullGpu, Incompatible, PartialOffload, ModelResourceEstimate, test_estimate_7b_q4_requirements() (+13 more)
 
 ### Community 323 - "shortcuts.rs"
 Cohesion: 0.23
 Nodes (5): Modifiers, Shortcut, shortcut_register(), shortcut_unregister_all(), ShortcutManager
 
-### Community 324 - "sota-python/rules/05-security.md"
-Cohesion: 0.17
-Nodes (12): 08 — Dependency & Supply-Chain Hygiene, Static-Analysis Gates, 1. Dependency & supply-chain hygiene, 2. Static analysis gates, Audit checklist, AUDIT mode, BUILD mode, Finding format, Purpose (+4 more)
+### Community 324 - "api_server/src/lib.rs"
+Cohesion: 0.15
+Nodes (7): setup_test_router(), test_admin_rbac_protection(), test_api_auth_middleware(), test_api_rate_limiting(), test_api_structured_error_responses(), test_api_webhook_and_checkout_dispatch(), test_otp_flow_and_password_reset()
 
 ### Community 325 - "OrchestratorError"
 Cohesion: 0.11
 Nodes (17): OrchestratorError, AutomationError, CancellationError, GuardianOverride, HomeError, IntegrationError, InterruptionError, InvalidConfig (+9 more)
 
-### Community 326 - "brain/tests/integration_tests.rs"
-Cohesion: 0.19
-Nodes (17): make_brain(), make_input(), test_brain_cancel_turn(), test_brain_events(), test_brain_health_check(), test_brain_init_and_shutdown(), test_brain_latency_tracking(), test_brain_multiple_turns() (+9 more)
+### Community 326 - "InMemoryCognitiveEngine"
+Cohesion: 0.05
+Nodes (26): MockCognitiveEngine, InMemoryCognitiveEngine, IntentInput, test_cognitive_result_creation(), test_goal_decomposition_creation(), test_intent_id_newtype(), CognitiveEngine, CognitiveResult (+18 more)
 
 ### Community 327 - "shared/src/traits.rs"
 Cohesion: 0.10
@@ -2609,8 +2646,8 @@ Cohesion: 0.06
 Nodes (34): Adding a new scene type, Existing synthetic-UI components, Remotion Composer — Scene & Overlay Cheat Sheet, ScreenshotStep, RenderedLine, RenderedPill, TerminalScene(), TerminalSceneProps (+26 more)
 
 ### Community 330 - "main"
-Cohesion: 0.14
-Nodes (6): EndFrame, main(), feed_and_stop(), PipecatVoiceService, _stdin_reader_worker(), stdin_supervisor_loop()
+Cohesion: 0.20
+Nodes (5): EndFrame, main(), feed_and_stop(), PipecatVoiceService, stdin_supervisor_loop()
 
 ### Community 331 - "SubscriptionStatus"
 Cohesion: 0.17
@@ -2628,9 +2665,13 @@ Nodes (16): CognitionError, ConfidenceEstimationFailed, ContextAssemblyFailed, E
 Cohesion: 0.23
 Nodes (7): ActionValidator, ValidationResult, ValidationStatus, Approved, Rejected, RequiresConsent, RequiresReview
 
-### Community 336 - "DeviceStatus"
-Cohesion: 0.15
-Nodes (10): DeviceInfo, DeviceStatus, Available, Busy, Disconnected, Error, DeviceType, Camera (+2 more)
+### Community 335 - "ConfidenceScore"
+Cohesion: 0.06
+Nodes (23): ConfidenceEstimator, InMemoryConfidenceEstimator, InMemoryReasoner, test_reasoner(), Reasoner, ReasoningInput, ReasoningOutput, ReasoningStep (+15 more)
+
+### Community 336 - "OSMOO Comprehensive Capability Matrix (Domains A – M)"
+Cohesion: 0.13
+Nodes (14): Domain A: Web Research & Browser Automation, Domain B: Desktop & PC Control, Domain C: Calendar, Reminders & Scheduling, Domain D: Meetings & Real-Time Assistance, Domain E: Office Work (DOCX, PPTX, XLSX, CSV, Reports), Domain F: Email & Communication, Domain G: Payments & Financial Workflows, Domain H: Flights, Travel & Booking (+6 more)
 
 ### Community 337 - "health/src/diagnostics.rs"
 Cohesion: 0.22
@@ -2641,20 +2682,20 @@ Cohesion: 0.13
 Nodes (12): HomeEvent, DeviceAdded, DeviceRemoved, DeviceStatusChanged, EnvironmentChanged, ProjectCreated, ProjectDeleted, RoomAdded (+4 more)
 
 ### Community 339 - "pipecat.rs"
-Cohesion: 0.07
-Nodes (29): assign_sidecar_to_job_object(), build_spawn_command(), PipecatConfig, PipecatState, Degraded, Ready, Starting, Stopped (+21 more)
+Cohesion: 0.06
+Nodes (31): get_supervisor(), get_global(), GLOBAL_SUPERVISOR, set_global(), Supervisor, SupervisorConfig, SupervisorError, AssignProcessFailed (+23 more)
 
-### Community 340 - "shutdown.rs"
-Cohesion: 0.16
-Nodes (11): GracefulShutdown, ShutdownPriority, Background, Final, Flush, Services, ShutdownStep, test_execute_shutdown() (+3 more)
+### Community 340 - "migration.rs"
+Cohesion: 0.22
+Nodes (8): get_all_migrations(), get_core_migrations(), MigrationRunner, MigrationStatus, test_migration_status(), test_register_all(), test_register_migration(), Migration
 
 ### Community 341 - "pipeline_loader.py"
-Cohesion: 0.10
-Nodes (13): _condition_is_active(), get_permitted_extensions(), get_reference_input_config(), get_required_tools(), get_stage_review_focus(), get_stage_skill(), get_stage_sub_stages(), list_pipelines() (+5 more)
+Cohesion: 0.08
+Nodes (16): check_extension_permitted(), _condition_is_active(), ExtensionNotPermitted, get_permitted_extensions(), get_reference_input_config(), get_required_tools(), get_stage_order(), get_stage_review_focus() (+8 more)
 
 ### Community 342 - "Process — Standard Path (Corpus + CLIP Retrieval)"
-Cohesion: 0.09
-Nodes (21): Acquisition Rules, Asset Director - Documentary Montage Pipeline, Children's / Fairy-Tale Content — Source Override, Common Pitfalls, F1. Run `direct_clip_search` In Background, F2. Inspect Thumbnails, F3. Cross-Act Reuse, F4. Fill Gaps With Targeted Searches (+13 more)
+Cohesion: 0.06
+Nodes (32): 10. Quality Gate, 1. Resolve The Corpus Directory, 2. Fan Out The Queries Into `corpus_builder`, 3. Sanity-Check The Corpus Before Retrieval, 4. Rank Candidates Per Slot, 5. Pick With Judgement, Not By Score, 6. Grow The Corpus When Retrieval Is Weak, 7. Diversify Adjacent Picks (+24 more)
 
 ### Community 343 - "Planner"
 Cohesion: 0.05
@@ -2668,10 +2709,6 @@ Nodes (15): MemoryError, CompressionError, ConsolidationError, ForgettingError, 
 Cohesion: 0.12
 Nodes (16): Array method selection, Audit checklist, Dates: Temporal, and surviving without it, Designing a public surface — what consumers can reach, and what you can change, Equality and coercion, Error handling, Functions and modules over classes; classes where they earn it, Immutability patterns (+8 more)
 
-### Community 346 - "conflict.rs"
-Cohesion: 0.26
-Nodes (9): ConflictResolutionResult, ContextConflict, ContextConflictResolver, make_snapshot(), test_detect_conflicts(), test_no_conflicts_same_source(), test_pick_winner(), test_resolve_confidence_based() (+1 more)
-
 ### Community 347 - "TaskType"
 Cohesion: 0.15
 Nodes (13): graph_builder_fluent(), task_type_variants(), TaskGraphBuilder, TaskType, Code, Command, Communication, Custom (+5 more)
@@ -2684,17 +2721,17 @@ Nodes (6): HeadTrackingConfig, HeadTracker, test_head_tracker_creation(), test_h
 Cohesion: 0.07
 Nodes (3): OpenAIProvider, test_openai_complete_connection_error(), test_openai_provider_creation()
 
-### Community 351 - "ApiResponseEnvelope"
-Cohesion: 0.15
-Nodes (5): ApiErrorBody, ApiResponseEnvelope, ApiResponseEnvelope<T>, ApiRequest, ApiResponse
+### Community 351 - "MicrophoneArrayProcessor"
+Cohesion: 0.22
+Nodes (10): BeamformerConfig, ChannelTopology, Mono, MultiChannel, Stereo, DirectionOfArrival, MicrophoneArrayProcessor, test_mono_channel_topology_single_channel_enhancement() (+2 more)
 
-### Community 352 - "ModelLifecycleManager"
+### Community 352 - "model_lifecycle.rs"
 Cohesion: 0.13
 Nodes (10): ManagedModel, ModelLifecycleInfo, ModelLifecycleManager, ModelLifecycleState, Active, Evicted, Loaded, Loading (+2 more)
 
 ### Community 353 - "Alert"
-Cohesion: 0.19
-Nodes (11): add_and_acknowledge_alerts(), Alert, alert_buffer_respects_limit(), AlertSeverity, Critical, Info, Warning, AlertSnapshot (+3 more)
+Cohesion: 0.14
+Nodes (18): acknowledge_nonexistent_alert(), add_and_acknowledge_alerts(), add_and_retrieve_logs(), Alert, alert_buffer_respects_limit(), AlertSeverity, Critical, Info (+10 more)
 
 ### Community 354 - "DecisionEngine"
 Cohesion: 0.11
@@ -2704,17 +2741,17 @@ Nodes (20): create_test_context(), Decision, DecisionConfig, DecisionContext, De
 Cohesion: 0.36
 Nodes (14): make_input(), test_config(), test_engine_config_access(), test_engine_creation(), test_engine_greeting_on_return(), test_engine_latency_under_load(), test_engine_milestone_recording(), test_engine_mission_lifecycle() (+6 more)
 
-### Community 356 - "auth_middleware.rs"
-Cohesion: 0.31
-Nodes (20): AuthRequest, authenticate_and_validate(), cleanup_expired_sessions(), make_auth_request(), make_middleware(), rate_limiting(), reject_insufficient_capabilities(), reject_no_token() (+12 more)
+### Community 356 - "MockLlm"
+Cohesion: 0.14
+Nodes (3): MockLlm, MockStt, MockTts
 
-### Community 357 - "hotreload.rs"
-Cohesion: 0.22
-Nodes (4): hot_reload_manager_default(), hot_reloader_subscribe(), HotReloader, HotReloadManager
+### Community 357 - "AnthropicClient"
+Cohesion: 0.15
+Nodes (10): AnthropicClient, is_healthy_status(), create_synthetic_audio_chunk(), generate_test_auth_token(), generate_test_pipe_name(), test_acceptance_criteria_a1_process_lifecycle_and_ipc(), test_tier1_a1_process_lifecycle_named_pipe_ipc(), test_tier2_a1_ipc_rejects_unauthorized_commands() (+2 more)
 
-### Community 358 - "PlanId"
-Cohesion: 0.09
-Nodes (16): InMemoryRecoveryManager, test_recovery_manager(), test_plan_creation(), test_plan_id_newtype(), test_recovery_strategy_variants(), RecoveryManager, RecoveryPlan, RecoveryStrategy (+8 more)
+### Community 358 - "WorldModelProvider"
+Cohesion: 0.13
+Nodes (4): WorldSnapshot, ConnectedDevice, ActiveTask, WorldModelProvider
 
 ### Community 359 - "Data Visualization Strategy Skill"
 Cohesion: 0.06
@@ -2724,9 +2761,9 @@ Nodes (31): Accessibility Rules, Animation Mistakes, Animation Sequencing, Bar C
 Cohesion: 0.05
 Nodes (43): 1. No Evidence, 1. Reasoning Loop, 2. Contradiction, 2. Contradictory Evidence, 3. Ambiguous Evidence, 3. Insufficient Evidence, 4. Circular Reasoning, 4. Reasoning Bias (+35 more)
 
-### Community 361 - "ExperienceLayer"
-Cohesion: 0.07
-Nodes (13): ConversationConfig, DecisionConfig, EmotionalConfig, IntelligenceConfig, MemoryConfig, PersonalityConfig, PresenceConfig, ProactiveConfig (+5 more)
+### Community 361 - "IntelligenceConfig"
+Cohesion: 0.12
+Nodes (8): ConversationConfig, DecisionConfig, EmotionalConfig, IntelligenceConfig, MemoryConfig, PersonalityConfig, PresenceConfig, ProactiveConfig
 
 ### Community 362 - "SpatialMotion"
 Cohesion: 0.26
@@ -2738,15 +2775,15 @@ Nodes (31): Animation Styles, Art Movements, Audio Descriptions, Camera Angle (r
 
 ### Community 364 - "AttentionScore"
 Cohesion: 0.07
-Nodes (10): AttentionFactors, AttentionScore, AttentionSystem, ContextSummary, Diagnostics, DiagnosticsSnapshot, LatencyDiagnostics, InMemoryAttentionSystem (+2 more)
+Nodes (9): InMemorySelfMonitor, test_self_monitor(), HealthStatus, Critical, Degraded, Healthy, LatencyRecord, SelfMonitor (+1 more)
 
 ### Community 365 - "Task Manager"
 Cohesion: 0.05
 Nodes (43): 1. Task Starvation, 1. Task Without Dependencies, 2. Task Deadlock, 2. Task With Circular Dependencies, 3. Resource Exhaustion, 3. Task With Unrealistic Deadline, 4. Task Abandonment, 4. Task Thrashing (+35 more)
 
-### Community 366 - "GeminiProvider"
+### Community 366 - "health.rs"
 Cohesion: 0.13
-Nodes (5): GeminiProvider, test_gemini_available_models(), test_gemini_complete_no_api_key(), test_gemini_provider_creation(), test_gemini_with_custom_model()
+Nodes (7): LlmBenchmarkRunner, NoopHealthChecker, ProviderBenchmarkResult, ProviderHealthChecker, test_benchmark_runner_creation(), test_noop_health_checker(), test_noop_is_healthy()
 
 ### Community 367 - "RuntimeError"
 Cohesion: 0.14
@@ -2760,21 +2797,21 @@ Nodes (13): GuardianError, AccessDenied, AuditError, AuthenticationRequired, Con
 Cohesion: 0.05
 Nodes (42): 1. First Experience, 1. Reflection Fatigue, 2. Contradictory Experiences, 2. Pattern Overfitting, 3. Ambiguous Outcomes, 3. Self-Model Drift, 4. Emotional Experiences, 4. Lesson Conflict (+34 more)
 
-### Community 370 - "ResearchOrchestrator"
-Cohesion: 0.14
-Nodes (13): ResearchConfig, ResearchOrchestrator, ResearchState, Cancelled, Completed, Discovering, Evaluating, Extracting (+5 more)
+### Community 370 - "runtime_guard/src/lib.rs"
+Cohesion: 0.11
+Nodes (7): GuardError, HeartbeatMissed, InvalidConfig, MaxRestartsExceeded, NotRunning, SelfHealingFailed, SubsystemNotFound
 
-### Community 372 - "security_integration_tests.rs"
-Cohesion: 0.10
-Nodes (5): RedactingWriter, RedactingWriter<W>, test_redacting_writer_filters_stream(), test_tar_extraction_clean_rollback_on_traversal(), test_tar_extraction_rejects_symlink_escape()
+### Community 372 - "home/src/traits.rs"
+Cohesion: 0.15
+Nodes (4): ClimateSettings, EnvironmentConfig, ZoneCoordinates, ZoneSpec
 
 ### Community 373 - "runtime/src/traits.rs"
 Cohesion: 0.10
 Nodes (10): RuntimeLifecycle, RuntimeState, Created, Failed, Initializing, Paused, Running, Stopped (+2 more)
 
-### Community 374 - "AuthMiddleware"
-Cohesion: 0.08
-Nodes (12): AuthError, AuthenticationFailed, InsufficientCapabilities, NoToken, RateLimited, TokenExpired, TokenUnsigned, AuthMiddleware (+4 more)
+### Community 374 - "auth_middleware.rs"
+Cohesion: 0.10
+Nodes (32): AuthRequest, authenticate_and_validate(), AuthError, AuthenticationFailed, InsufficientCapabilities, NoToken, RateLimited, TokenExpired (+24 more)
 
 ### Community 375 - "Self-Monitoring"
 Cohesion: 0.05
@@ -2782,23 +2819,19 @@ Nodes (42): 1. Monitoring Blind Spot, 1. No Metrics Available, 2. Alert Storm, 2
 
 ### Community 376 - "voxy_live_system.py"
 Cohesion: 0.04
-Nodes (28): count_source_files(), detect_language(), main(), suggest_budget(), main(), detect_language(), run_verification(), check_scene_variation() (+20 more)
-
-### Community 377 - "ContextInvalidation"
-Cohesion: 0.21
-Nodes (9): ContextInvalidation, InvalidationResult, make_snapshot(), test_check_expired(), test_check_fresh(), test_check_needs_refresh(), test_clear_invalidation(), test_consecutive_invalidation_tracking() (+1 more)
+Nodes (29): count_source_files(), detect_language(), main(), suggest_budget(), main(), detect_language(), run_verification(), check_scene_variation() (+21 more)
 
 ### Community 378 - "AutomationConfig"
 Cohesion: 0.20
 Nodes (11): AutomationConfig, BackendType, Hybrid, OpenClaw, Recovery, Verification, WindowsUia, OpenClawConfig (+3 more)
 
+### Community 379 - "PriceQuoteRequired"
+Cohesion: 0.04
+Nodes (20): AzureTTS, CartesiaTTS, ElevenLabsSoundtrack, ElevenLabsTTS, FalElevenLabsTTS, GrokTTS, HeyGenCatalogTTS, HeyGenTTS (+12 more)
+
 ### Community 380 - "Optimization Strategies"
 Cohesion: 0.05
 Nodes (42): 1. Event Bus Optimization, 2. Memory System Optimization, 3. Task Graph Optimization, 4. Goal Engine Optimization, 5. Audio System Optimization, 6. LLM Provider Optimization, Alert Thresholds, Benchmark Categories (+34 more)
-
-### Community 381 - "MemoryKind"
-Cohesion: 0.17
-Nodes (11): MemoryEntry, SharedJourney, test_max_entries(), test_record_and_retrieve(), test_used_count_limits(), MemoryKind, Achievement, Milestone (+3 more)
 
 ### Community 382 - "GuardianEvent"
 Cohesion: 0.14
@@ -2816,65 +2849,57 @@ Nodes (39): Architecture Rules, Building, Code Style, Commit Messages, Contribut
 Cohesion: 0.05
 Nodes (38): 10.1 Provider Conformance Tests, 10.2 Property-Based Tests, 10.3 Chaos Testing, 10. Testing Strategy, 11. Implementation Roadmap, 12. Review Checklist, 1. Overview, 2. StorageProvider Trait (Complete) (+30 more)
 
-### Community 387 - "PluginError"
+### Community 387 - "OSMOO Engineering Roadmap: Closing Capability Gaps"
 Cohesion: 0.14
-Nodes (11): PluginError, Crashed, DependencyMissing, ExecutionFailed, InvalidManifest, IPCFailed, LoadFailed, NotFound (+3 more)
+Nodes (13): Objective, Objective, Objective, Objective, OSMOO Engineering Roadmap: Closing Capability Gaps, Priority 1: Native Office Document Compilation (DOCX, XLSX, PPTX), Priority 2: Persistent Calendar Engine & Cloud Sync, Priority 3: User Email Client with Draft-and-Confirm Security (+5 more)
 
-### Community 388 - "VoxyIpcClient"
+### Community 388 - "anthropic/src/lib.rs"
 Cohesion: 0.14
-Nodes (3): constant_time_eq(), handle_client_connection(), VoxyIpcClient
+Nodes (5): AnthropicProvider, test_anthropic_available_models(), test_anthropic_complete_no_api_key(), test_anthropic_provider_creation(), test_anthropic_with_custom_model()
 
-### Community 390 - "RelationshipLevel"
-Cohesion: 0.19
-Nodes (12): InitiativeConfig, InitiativeEngine, test_initiative_allowed(), test_initiative_cooldown(), test_initiative_deep_focus_blocks(), test_initiative_disabled(), test_initiative_low_trust_blocks(), RelationshipLevel (+4 more)
+### Community 390 - "07 — Visual Craft, Hierarchy & Anti-Generic Design"
+Cohesion: 0.12
+Nodes (16): 07 — Visual Craft, Hierarchy & Anti-Generic Design, 10. Imagery, illustration & data-viz craft, 10b. Deceptive patterns: auto-fail list, 11. Visual QA: the recurring pixel bugs, 12. Audit rubric (visual quality grading), 13. Build vs audit calibration, 1. Visual hierarchy: engineer the scan path, 2. Gestalt mechanics (the rules that actually do the work) (+8 more)
 
 ### Community 391 - "Tool Orchestration"
 Cohesion: 0.06
 Nodes (33): 1. Parallel by Default, 2. Tool Selection Hierarchy, 3. Never Retry Verbatim, 4. Confirm Before Destructive Actions, After implementation, After write, Always capture output, Always read before write (+25 more)
 
-### Community 392 - "companion/src/lib.rs"
-Cohesion: 0.15
-Nodes (4): bench_engine_update_latency(), bench_full_pipeline_latency(), bench_presence_score_latency(), make_input()
+### Community 392 - "05-security-supply-chain.md"
+Cohesion: 0.25
+Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA Rust (2026), Top-10 non-negotiables
 
-### Community 393 - "providers/device.rs"
+### Community 393 - "wikimedia.py"
+Cohesion: 0.18
+Nodes (7): _build_search_queries(), _kind_from_mime(), _looks_like_year(), _matches_orientation(), _meta_value(), _page_to_candidate(), WikimediaSource
+
+### Community 394 - "world_model/src/lib.rs"
 Cohesion: 0.19
-Nodes (3): DeviceContextProvider, test_capabilities(), test_collect_device()
-
-### Community 394 - "A2AMessage"
-Cohesion: 0.11
-Nodes (13): A2AMessage, A2AMessageBus, A2AMessageType, ArtifactSubmission, CanaryCheck, FailureAlert, Handoff, ProgressUpdate (+5 more)
+Nodes (5): AmbientConditions, Location, test_user_environment_default(), UserEnvironment, EnvironmentTracker
 
 ### Community 395 - "Frame"
 Cohesion: 0.27
 Nodes (4): CancelRequest, Frame, frame_json_payload(), frame_with_builder()
 
-### Community 396 - "LearningError"
-Cohesion: 0.15
-Nodes (12): LearningError, BehaviorError, CalibrationError, EvolutionError, FeedbackError, InvalidConfig, MemoryAccessError, PolicyError (+4 more)
-
-### Community 397 - "trinity_swarm/src/coordinator.rs"
-Cohesion: 0.05
-Nodes (26): test_swarmclaw_blackboard_and_handoff(), test_trinity_a2a_message_routing(), TaskGraph, AgentId, AgentRole, Architect, QaTester, Reviewer (+18 more)
-
-### Community 398 - "agent_runtime/src/lib.rs"
-Cohesion: 0.12
-Nodes (3): Agent, agent_runtime_creates(), AgentRuntime
+### Community 396 - "core_entity.rs"
+Cohesion: 0.14
+Nodes (12): OSMOO_CAT_DATA_URI, OSMOO_CAT_PNG_BASE64, OSMOO_CAT_SHADOW_DATA_URI, OSMOO_CAT_SHADOW_PNG_BASE64, OSMOO_CAT_DATA_URI, RIG_BODY_DATA_URI, RIG_EAR_LEFT_DATA_URI, RIG_EAR_RIGHT_DATA_URI (+4 more)
 
 ### Community 399 - "conditioning.rs"
-Cohesion: 0.30
-Nodes (8): AudioConditioner, ConditioningConfig, test_echo_suppression_attenuates_low_level_spill(), test_high_pass_filter_removes_dc_offset(), test_no_suppression_when_speaker_inactive(), test_noise_gate_attenuation_and_hysteresis(), test_soft_limiter_clamps_peaks(), test_user_speech_preserved_during_playback_for_barge_in()
-
-### Community 400 - "AssetCache"
-Cohesion: 0.12
-Nodes (5): AssetCache, AssetCacheEntry, _copy_file(), default_asset_cache_dir(), default_max_total_bytes()
+Cohesion: 0.29
+Nodes (9): AudioConditioner, ConditioningConfig, test_echo_suppression_attenuates_low_level_spill(), test_high_pass_filter_removes_dc_offset(), test_no_suppression_when_speaker_inactive(), test_noise_gate_attenuation_and_hysteresis(), test_quiet_speech_is_preserved_without_consonant_clipping(), test_soft_limiter_clamps_peaks() (+1 more)
 
 ### Community 401 - "Typography for Video Production"
 Cohesion: 0.07
 Nodes (28): Animation Durations, Applying to OpenMontage, Broadcast Standard, Caption Timing, Character Limits by Platform, Contrast & Readability, Duration on Screen, Easing Curves (+20 more)
 
 ### Community 402 - "BrainEvent"
-Cohesion: 0.12
-Nodes (15): BrainEvent, CognitionProcessed, CognitionProcessing, CompanionUpdated, CompanionUpdating, ContextCollected, ContextCollecting, HdrUpdated (+7 more)
+Cohesion: 0.09
+Nodes (22): BrainEvent, CognitionProcessed, CognitionProcessing, CompanionUpdated, CompanionUpdating, ContextCollected, ContextCollecting, HdrUpdated (+14 more)
+
+### Community 403 - "Response"
+Cohesion: 0.24
+Nodes (6): EchoHandler, handle_echo_request(), handle_unknown_method(), IPCServer, server_creation(), server_start_stop()
 
 ### Community 404 - "relationship.rs"
 Cohesion: 0.28
@@ -2885,20 +2910,20 @@ Cohesion: 0.17
 Nodes (10): RoomType, Bathroom, Bedroom, Custom, Garage, Hallway, Kitchen, LivingRoom (+2 more)
 
 ### Community 406 - "corpus_builder.py"
-Cohesion: 0.08
-Nodes (12): get_default_cache(), CorpusBuilder, timeout_result(), _guess_ext(), StockSource, all_sources(), available_sources(), get_source() (+4 more)
+Cohesion: 0.03
+Nodes (44): ORM pitfalls & N+1, Rule: Drop to SQL when the query is the feature., Rule: Know your ORM's transaction defaults — "implicit" is where the bugs live., Rule: N+1 is the default ORM behavior; eradicate it explicitly., Rule: No `SELECT *` (and no ORM full-entity hydration on hot reads)., _as_feature_tensor(), embed_images(), embed_texts() (+36 more)
 
 ### Community 408 - "LearningEvent"
 Cohesion: 0.17
 Nodes (9): LearningEvent, BehaviorAdapted, ConfidenceCalibrated, FeedbackProcessed, LearningPolicyUpdated, PreferenceUpdated, ReinforcementApplied, StrategyEvolved (+1 more)
 
-### Community 410 - "IntentType"
-Cohesion: 0.12
-Nodes (14): IntentAnalysis, IntentAnalyzer, IntentType, Command, Communication, Creation, Custom, Deletion (+6 more)
+### Community 410 - "companion/src/lib.rs"
+Cohesion: 0.16
+Nodes (4): bench_engine_update_latency(), bench_full_pipeline_latency(), bench_presence_score_latency(), make_input()
 
 ### Community 411 - "Severity"
-Cohesion: 0.18
-Nodes (6): Severity, Critical, Debug, Error, Info, Warning
+Cohesion: 0.10
+Nodes (8): Severity, Critical, Debug, Error, Info, Warning, error_context_display(), ErrorContext
 
 ### Community 412 - "FileRollbackStore"
 Cohesion: 0.08
@@ -2912,37 +2937,37 @@ Nodes (10): log_fail(), log_info(), log_pass(), log_warn(), verify.sh script, de
 Cohesion: 0.07
 Nodes (28): After ASSETS stage:, After COMPOSE stage:, After EDIT stage:, After IDEA stage:, After SCENE_PLAN stage:, After SCRIPT stage:, Common Pitfalls, Cumulative State (+20 more)
 
-### Community 415 - "providers/environment.rs"
-Cohesion: 0.16
-Nodes (4): EnvironmentContextProvider, test_collect_environment(), test_health_check(), test_name_and_source()
+### Community 415 - "IntelligenceError"
+Cohesion: 0.17
+Nodes (12): IntelligenceError, Config, Conversation, Decision, Emotional, InvalidState, MemoryImportance, Personality (+4 more)
 
-### Community 416 - "runtime_guard/src/lib.rs"
-Cohesion: 0.10
-Nodes (7): GuardError, HeartbeatMissed, InvalidConfig, MaxRestartsExceeded, NotRunning, SelfHealingFailed, SubsystemNotFound
+### Community 416 - "Response"
+Cohesion: 0.27
+Nodes (3): Request, request_creation(), Response
 
-### Community 417 - "clipboard.rs"
-Cohesion: 0.29
-Nodes (4): clipboard_clear(), clipboard_creation(), clipboard_read(), ClipboardManager
+### Community 417 - "01 — Idioms: RAII, ownership, value semantics, error handling"
+Cohesion: 0.14
+Nodes (14): 01 — Idioms: RAII, ownership, value semantics, error handling, 1. RAII and the rule of zero/five, 2. Ownership: smart pointers, not raw owning pointers, 3. Value semantics and move, 4. const, constexpr, and immutability, 5. References vs pointers, and casts, 6. Type-system leverage, 7. Error handling: exceptions vs expected vs codes (+6 more)
 
-### Community 418 - "telemetry.rs"
-Cohesion: 0.32
-Nodes (11): acknowledge_alert(), alert_max_limit(), alert_on_high_errors(), alert_on_high_latency(), clear(), get_metrics(), no_alert_within_thresholds(), remove_subsystem() (+3 more)
+### Community 418 - "SignalType"
+Cohesion: 0.12
+Nodes (16): SignalType, CodeCompilation, ErrorCount, IdleTime, LongCodingSession, LongPause, MeetingActive, RapidTyping (+8 more)
 
 ### Community 419 - "2. Subsystem List"
 Cohesion: 0.06
 Nodes (31): 1. Architecture Overview, 2.1 Presence System (`crates/companion/src/purpose/presence.rs`), 2.2 Conversation Engine (`crates/companion/src/purpose/conversation.rs`), 2.3 Voice Personality (`crates/personality/src/purpose/voice.rs`), 2.4 Memory Synapse (`crates/companion/src/purpose/memory.rs`), 2.5 Desktop Presence (`crates/world_model/src/purpose/awareness.rs`), 2.6 Proactive Beacon (`crates/companion/src/purpose/proactive.rs`), 2.7 Companion Moments (`crates/companion/src/purpose/moments.rs`) (+23 more)
 
-### Community 420 - "VisualPresenceError"
-Cohesion: 0.13
-Nodes (13): test_error_display(), VisualPresenceError, Animation, Audio, Config, Gpu, HeadTracking, Integration (+5 more)
+### Community 420 - "voxy_protocol.rs"
+Cohesion: 0.23
+Nodes (11): decode_ipc_payload(), encode_ipc_frame(), IpcEnvelope<T>, MAX_IPC_FRAME_SIZE, test_client_command_roundtrip(), test_daemon_message_roundtrip(), test_hardware_status_update_roundtrip(), test_routing_status_update_roundtrip() (+3 more)
 
 ### Community 421 - "IntegrationError"
-Cohesion: 0.18
+Cohesion: 0.11
 Nodes (10): IntegrationError, BootFailed, Config, Container, EventBridge, PipelineStageFailed, RecoveryFailed, ServiceAlreadyRegistered (+2 more)
 
-### Community 422 - ".support_envelope"
-Cohesion: 0.12
-Nodes (14): Composition Runtimes (Inside video_compose), Critical Rule: Motion-Required Requests, Mandatory Preflight, Setup Offer Protocol, Knowledge Architecture, Prerequisites, Common Pitfalls, Gate Reminder (Binding) (+6 more)
+### Community 422 - ".provider_menu_summary"
+Cohesion: 0.07
+Nodes (23): Composition Runtimes (Inside video_compose), Critical Rule: Motion-Required Requests, Mandatory Preflight, Provider Menu (Mandatory at Preflight), Setup Offer Protocol, Knowledge Architecture, Anti-Patterns, Onboarding — Meta Skill (+15 more)
 
 ### Community 425 - "TaskNode"
 Cohesion: 0.25
@@ -2976,6 +3001,10 @@ Nodes (11): 1. Skill Discovery & Compliance Matrix, 2. Workspace Architecture & 
 Cohesion: 0.20
 Nodes (7): StreamOpen, StreamType, Binary, Event, File, Text, Video
 
+### Community 433 - "PreferenceTracker"
+Cohesion: 0.13
+Nodes (8): Preference, PreferenceStats, PreferenceTracker, PreferenceTrackerState, test_stable_preference(), test_to_memory_items(), test_track_app_usage(), test_tracker_creation()
+
 ### Community 434 - "TaskNodeState"
 Cohesion: 0.20
 Nodes (10): TaskNodeState, Cancelled, Completed, Failed, Pending, Ready, Running, Skipped (+2 more)
@@ -2985,24 +3014,20 @@ Cohesion: 0.31
 Nodes (4): retry_delay_backoff(), retry_policy_defaults(), retry_policy_max_delay_cap(), RetryPolicy
 
 ### Community 436 - "human_dynamics/src/recovery.rs"
-Cohesion: 0.24
+Cohesion: 0.10
 Nodes (6): RecoveryEngine, RecoveryRecord, test_recovery_cooldown(), test_recovery_generated(), test_recovery_max_attempts(), test_recovery_reset()
 
-### Community 437 - "super"
-Cohesion: 0.02
-Nodes (64): safe_launch_application(), test_safe_launch_blocks_command_injection(), DEFAULT_MODEL, DEFAULT_RESEND_API_URL, ENV_LOCK, SendEmailRequest, SubscriptionStateMachine, ProcessRunner (+56 more)
-
-### Community 438 - "SkillsEvent"
-Cohesion: 0.20
-Nodes (7): SkillsEvent, CapabilityDiscovered, SkillExecutionCompleted, SkillExecutionFailed, SkillExecutionStarted, SkillRegistered, SkillUnregistered
+### Community 437 - "shutdown.rs"
+Cohesion: 0.22
+Nodes (5): GracefulShutdown, test_execute_shutdown(), test_register_simple(), test_register_with_flush(), test_shutdown_creation()
 
 ### Community 439 - "VOXY Recovery and Troubleshooting"
 Cohesion: 0.06
 Nodes (30): 1. Check Logs, 1. Voice Pipeline Failure, 2. Check Health, 2. Memory Database Locked, 3. Check Memory, 3. Event Bus Overflow, 4. Check Event Bus, 4. LLM Provider Timeout (+22 more)
 
-### Community 440 - "TaskState"
-Cohesion: 0.14
-Nodes (9): TaskState, Cancelled, Completed, Failed, Interrupted, Paused, Pending, Queued (+1 more)
+### Community 440 - "ConversationContextProvider"
+Cohesion: 0.21
+Nodes (3): ConversationContextProvider, test_collect_conversation(), test_default_state()
 
 ### Community 441 - "GoalStatus"
 Cohesion: 0.22
@@ -3020,25 +3045,21 @@ Nodes (15): ApiKeysConfig, AppConfig, config_getters(), config_schema_version(),
 Cohesion: 0.07
 Nodes (27): After ASSETS stage:, After COMPOSE stage:, After EDIT stage:, After PROPOSAL stage:, After RESEARCH stage:, After SCENE_PLAN stage:, After SCRIPT stage:, Common Pitfalls (+19 more)
 
-### Community 445 - "KlingClient"
-Cohesion: 0.02
-Nodes (47): KlingTTS, KlingAvatar, KlingLipSync, DependencyError, KlingOfficialImage, account_usage_hint_for_error(), _cache_key(), get_account_costs() (+39 more)
-
-### Community 447 - "DesktopOverlay"
-Cohesion: 0.17
-Nodes (5): OverlayConfig, DesktopOverlay, test_overlay_click_through_toggle(), test_overlay_creation(), test_overlay_resize()
+### Community 445 - "DatabaseError"
+Cohesion: 0.20
+Nodes (9): DatabaseError, BackupFailed, ConnectionFailed, EncryptionFailed, IO, MigrationFailed, NotFound, QueryFailed (+1 more)
 
 ### Community 448 - "PolicyEnforcementMode"
 Cohesion: 0.28
 Nodes (7): GuardianConfig, PolicyEnforcementMode, AuditOnly, Disabled, Enforce, WarnOnly, test_guardian_config_defaults()
 
-### Community 449 - "ClientCommand"
-Cohesion: 0.07
-Nodes (19): IpcBridge, ClientCommand, ClientHandshake, ConfirmAction, EmergencyStop, ExecuteCodingTask, HeartbeatPong, InterruptSpeech (+11 more)
+### Community 449 - "OSMOO Implemented Features Deep Dive"
+Cohesion: 0.10
+Nodes (20): 1.1 Native Microsoft Word (`.docx`) Compiler (`crates/office/src/docx_generator.rs`), 1.2 Native Microsoft Excel (`.xlsx`) Compiler (`crates/office/src/xlsx_generator.rs`), 1.3 Native Microsoft PowerPoint (`.pptx`) Presentation Generator (`crates/office/src/pptx_generator.rs`), 1.4 Office Package Structural Validator (`crates/office/src/office_validator.rs`), 1. Domain A: Advanced Document & Presentation Generation, 2.1 Persistent SQLite Architecture, 2.2 Recurrence Engine & Conflict Detection, 2. Domain B: Real Calendar & Schedule Management (`crates/office/src/calendar_connector.rs`) (+12 more)
 
-### Community 450 - "priority.rs"
-Cohesion: 0.25
-Nodes (9): ContextPriorityResolver, make_snapshot(), SOURCE_PRIORITY_HIERARCHY, test_is_higher_priority(), test_resolve_prefers_higher_rank(), test_resolve_same_rank_prefers_priority(), test_sort_by_priority(), test_system_state_highest_rank() (+1 more)
+### Community 450 - "02 — Versioning, Evolution & Deprecation"
+Cohesion: 0.15
+Nodes (13): 02 — Versioning, Evolution & Deprecation, 10. Changelogs and client communication, 1. The prime directive: evolve, don't version, 2. What is breaking vs additive, 3. Tolerant reader / never break parsers, 4. Version placement: URL vs header, 5. Deprecation lifecycle, 6. Enum and schema evolution (+5 more)
 
 ### Community 451 - "Code Review and Quality"
 Cohesion: 0.07
@@ -3048,37 +3069,37 @@ Nodes (29): 1. Correctness, 2. Readability & Simplicity, 3. Architecture, 4. Sec
 Cohesion: 0.11
 Nodes (17): 1. System Overview, 2.10 Session State & Context Compaction, 2.11 Permission & Approval Framework, 2.12 Crash Recovery & Persistence, 2.13 Windows Platform Specifics, 2.1 CLI Entry Points, Arguments, Commands & Flags, 2.2 Tool Suite & Schema Definitions, 2.3 Planning & Task Decomposition (+9 more)
 
-### Community 454 - "03 — Unsafe Discipline"
-Cohesion: 0.06
-Nodes (31): 03 — Unsafe Discipline, 1. Minimize, then isolate, 2. SAFETY comments — non-negotiable, 3. The UB catalog — what actually bites, 3a. Layout, provenance, and Pin — the subtler contracts, 3b. The FFI boundary — types that cross, values that arrive, 3c. Leaks are safe, not free, 4. Miri, sanitizers, fuzzing — CI for the unchecked (+23 more)
+### Community 454 - "XlsxWorkbook"
+Cohesion: 0.14
+Nodes (6): CellValue, Formula, Number, String, XlsxSheet, XlsxWorkbook
 
 ### Community 455 - "OpenMontage - Agent Guide"
 Cohesion: 0.06
 Nodes (35): Announce Before Execution, Ask Before Major Changes, Available Pipelines, Capability Discovery, Communication Protocol, Decision Communication Contract, Escalate Blockers Explicitly, First Interaction — Onboarding (+27 more)
 
 ### Community 456 - "kodus_review/src/lib.rs"
-Cohesion: 0.02
-Nodes (77): deduplicate_findings(), extract_changed_files(), filter_diff_noise(), KodusReviewEngine, parse_kodus_findings(), KodusReviewError, DiffError, Io (+69 more)
+Cohesion: 0.04
+Nodes (50): deduplicate_findings(), extract_changed_files(), filter_diff_noise(), KodusReviewEngine, parse_kodus_findings(), create_test_router(), test_findings_parsing_and_deduplication(), test_kodus_tool_blocks_user_and_allows_osmoo() (+42 more)
 
-### Community 457 - "DepthDrawer"
-Cohesion: 0.17
-Nodes (6): DepthDrawer(), DrawerTab, Automation, Conversation, Settings, Telemetry
+### Community 457 - "InMemoryCapabilityRegistry"
+Cohesion: 0.18
+Nodes (3): CapabilityDescriptor, CapabilityRegistry, InMemoryCapabilityRegistry
 
-### Community 458 - "PlatformError"
-Cohesion: 0.22
-Nodes (6): PlatformError, ApiNotAvailable, InitializationFailed, PermissionDenied, QueryFailed, UnsupportedPlatform
+### Community 458 - "PluginError"
+Cohesion: 0.14
+Nodes (11): PluginError, Crashed, DependencyMissing, ExecutionFailed, InvalidManifest, IPCFailed, LoadFailed, NotFound (+3 more)
 
-### Community 460 - "SwarmBlackboard"
-Cohesion: 0.20
-Nodes (3): HandoffEnvelope, SwarmArtifact, SwarmBlackboard
+### Community 460 - "checkpoint.rs"
+Cohesion: 0.24
+Nodes (5): DesktopCheckpoint, test_untrusted_payload_sanitizer(), test_workflow_checkpoint_record_and_retrieve(), UntrustedPayloadSanitizer, WorkflowCheckpointManager
 
-### Community 461 - "provider_core/src/config.rs"
-Cohesion: 0.39
-Nodes (4): ProviderConfig, RetryConfig, test_provider_config_default(), test_retry_config_default()
+### Community 461 - "03 — Networking, DNS, TLS & Edge"
+Cohesion: 0.15
+Nodes (13): 03 — Networking, DNS, TLS & Edge, 10. DDoS posture, 11. IPv6 stance, 1. VPC design: three tiers, multi-AZ, deny-by-default, 2. CIDR planning: allocate like you'll have 50 VPCs, 3. Egress control, 4. Private connectivity to managed services, 5. Topology: flat → peered → hub-spoke (+5 more)
 
-### Community 462 - "05 — Security"
-Cohesion: 0.12
-Nodes (17): 05 — Security, 11. `ctypes`, `cffi` and C extensions — Python without its safety, 1. Deserialization & code execution bans, 2. Subprocess: argv lists, never shell=True, 3. SQL: parameters, never interpolation, 3a. Template strings (3.14, PEP 750): the consumer is the control, 4. Path traversal, 4a. Temporary files: the name is not the file (+9 more)
+### Community 462 - "ToolDescription"
+Cohesion: 0.29
+Nodes (5): InMemoryToolSelector, ToolDescription, ToolSelection, ToolSelectionInput, ToolSelector
 
 ### Community 463 - "Long-Form Video Pipeline (10+ Minutes)"
 Cohesion: 0.07
@@ -3100,9 +3121,9 @@ Nodes (26): Audience-Aware Query Variants, Common Pitfalls, Example: Good vs Bad
 Cohesion: 0.07
 Nodes (29): 1. Correctness, 2. Readability & Simplicity, 3. Architecture, 4. Security, 5. Performance, Change Descriptions, Change Sizing, Code Review and Quality (+21 more)
 
-### Community 468 - "AutomationCapability"
-Cohesion: 0.12
-Nodes (10): AutomationCapability, ElementDetection, Hybrid, Keyboard, Mouse, Ocr, Recovery, ScreenCapture (+2 more)
+### Community 468 - "TaskState"
+Cohesion: 0.14
+Nodes (9): TaskState, Cancelled, Completed, Failed, Interrupted, Paused, Pending, Queued (+1 more)
 
 ### Community 469 - "Test-Driven Development"
 Cohesion: 0.07
@@ -3114,31 +3135,35 @@ Nodes (29): 10. Review Checklist, 1.1 Current Dependency Graph, 1.2 Validation: 
 
 ### Community 471 - "ReinforcementSignal"
 Cohesion: 0.15
-Nodes (3): ReinforcementHook, StrategyEvolution, ReinforcementSignal
+Nodes (7): ReinforcementHook, StrategyEvolution, BehaviorPattern, CalibrationSample, ReinforcementSignal, StrategyEffectiveness, UserPreferenceProfile
 
 ### Community 473 - "TrustEngine"
 Cohesion: 0.18
 Nodes (7): test_autonomy_derived(), test_breakdown(), test_trust_decays(), test_trust_grows(), test_trust_initial(), TrustBreakdown, TrustEngine
 
 ### Community 474 - "SettingsTab"
-Cohesion: 0.20
-Nodes (10): SettingsTab, AgentIdentity, AiProviders, Appearance, Diagnostics, General, LocalModels, PrivacySecurity (+2 more)
+Cohesion: 0.12
+Nodes (12): SettingsTab, AiModels, Automation, Companion, Diagnostics, General, Integrations, Memory (+4 more)
 
 ### Community 475 - "VOXY Deployment Guide"
 Cohesion: 0.07
 Nodes (29): 1. Build, 2. Verify, 3. Configure, 4. Run, Audio Issues, Backup and Recovery, Backup Memory, Building for Production (+21 more)
 
-### Community 476 - "VideoSelector"
-Cohesion: 0.07
-Nodes (3): TTSSelector, filter_explicit_route(), VideoSelector
+### Community 476 - "companion/src/engine.rs"
+Cohesion: 0.14
+Nodes (10): CompanionEngine, make_input(), test_engine_latency(), test_engine_records_milestone(), test_engine_update(), test_engine_update_count(), MissionCompanion, test_auto_complete_on_activity_change() (+2 more)
+
+### Community 477 - "guardian/src/traits.rs"
+Cohesion: 0.05
+Nodes (31): AccessDecision, Denied, Granted, PendingConsent, PendingMfa, AccessRequest, AuditContract, AuditRecord (+23 more)
 
 ### Community 478 - "TaskStatus"
 Cohesion: 0.29
 Nodes (7): TaskStatus, Cancelled, Completed, Failed, Paused, Queued, Running
 
-### Community 480 - "src/activity.rs"
-Cohesion: 0.08
-Nodes (20): ActivityClassification, ActivityClassifier, ActivityType, Browsing, Coding, Communication, Gaming, Idle (+12 more)
+### Community 480 - "providers/environment.rs"
+Cohesion: 0.19
+Nodes (4): EnvironmentContextProvider, test_collect_environment(), test_health_check(), test_name_and_source()
 
 ### Community 481 - "Conversation Context"
 Cohesion: 0.07
@@ -3148,9 +3173,9 @@ Nodes (28): Algorithms, Conversation Compression, Conversation Context, Conversa
 Cohesion: 0.14
 Nodes (11): detect_media_type(), has_user_media(), _infer_audio_usability(), _infer_video_usability(), _parse_fps(), _probe_audio(), _probe_image(), _probe_video() (+3 more)
 
-### Community 483 - "SignalType"
-Cohesion: 0.12
-Nodes (16): SignalType, CodeCompilation, ErrorCount, IdleTime, LongCodingSession, LongPause, MeetingActive, RapidTyping (+8 more)
+### Community 483 - "01 — Documentation Architecture"
+Cohesion: 0.05
+Nodes (35): 03 — Primitives: Locks, Semaphores, Condvars, Channels, Select, Once, Audit checklist, Channels & queues: bounded or it's a bug, Condition variables: two famous bugs, Mutex vs RwLock — RwLock is not "mutex but faster", Once / lazy init, Picking the primitive, Reentrancy & lock scope hygiene (+27 more)
 
 ### Community 485 - "Version"
 Cohesion: 0.29
@@ -3160,9 +3185,9 @@ Nodes (4): Version, version_compatibility(), version_parsing(), VersionNegotiati
 Cohesion: 0.29
 Nodes (7): GraphState, Building, Cancelled, Completed, Executing, Paused, Ready
 
-### Community 487 - "TaskPriority"
-Cohesion: 0.29
-Nodes (6): TaskPriority, Background, Critical, High, Low, Medium
+### Community 487 - "OSMOO: Full-System Deep Validation, Real Execution, and Failure-Driven Hardening Report"
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary, 2. NVIDIA NIM Provider Verification, 4. Subsystem Verification Breakdown, 5. Artifact Directory, OSMOO: Full-System Deep Validation, Real Execution, and Failure-Driven Hardening Report
 
 ### Community 488 - "ipc/src/auth.rs"
 Cohesion: 0.09
@@ -3172,9 +3197,9 @@ Nodes (19): auth_response_success(), AuthResponse, canonical_payload_bounds_over
 Cohesion: 0.07
 Nodes (27): Baseline (before implementation), C#, Edge Case Matrix, Evidence Format (cite verbatim), Evidence Requirements, Go, Issuing VERDICT: FAIL, Issuing VERDICT: PASS (+19 more)
 
-### Community 490 - "03 — Idioms, Pitfalls, Exceptions & Logging"
-Cohesion: 0.13
-Nodes (15): 03 — Idioms, Pitfalls, Exceptions & Logging, 10. Exception design, 11. Logging done right, 12. Small-but-deadly grab bag, 13. Public API surface — what you are promising, 1. Mutable default arguments (B006), 2. Late-binding closures (B023), 3. Comprehensions vs loops (+7 more)
+### Community 490 - "02-domain-modeling-and-boundaries.md"
+Cohesion: 0.08
+Nodes (28): AUDIT mode — reviewing existing code or designs, BUILD mode — designing or writing code, Purpose, Rules index, SOTA Architecture (2026), Top-10 non-negotiables, 06 — Backpressure & Flow Control, Audit checklist (+20 more)
 
 ### Community 491 - "REQUIREMENTS.json"
 Cohesion: 0.29
@@ -3185,8 +3210,8 @@ Cohesion: 0.33
 Nodes (6): AgentState, Error, Idle, Offline, Waiting, Working
 
 ### Community 493 - "ModelStatus"
-Cohesion: 0.33
-Nodes (6): ModelInfo, ModelStatus, Error, Loaded, Loading, Unloaded
+Cohesion: 0.40
+Nodes (5): ModelStatus, Error, Loaded, Loading, Unloaded
 
 ### Community 494 - "ProjectPhase"
 Cohesion: 0.33
@@ -3196,13 +3221,17 @@ Nodes (6): ProjectPhase, Deployment, Development, Maintenance, Planning, Testing
 Cohesion: 0.08
 Nodes (24): 1. Sequential Stitching, 2. Spatial Stitching, 3. AI Clip Chaining (LTX-2 / CogVideo), 4. Hybrid Stitching, Aspect Ratio Mixing, Audio at Stitch Points, Audio Coordination, Audio Drift in Long Stitches (+16 more)
 
-### Community 496 - "get_profile"
-Cohesion: 0.24
-Nodes (4): AspectRatio, ffmpeg_output_args(), get_profiles_for_platform(), MediaProfile
-
-### Community 498 - "InMemoryCapabilityRegistry"
+### Community 496 - "CompanionPersonality"
 Cohesion: 0.18
-Nodes (3): CapabilityDescriptor, CapabilityRegistry, InMemoryCapabilityRegistry
+Nodes (5): CompanionPersonality, test_formality(), test_interrupt_respects_protectiveness(), test_personality_express(), test_robot_personality()
+
+### Community 497 - "06 — Motion Design & Animation Engineering"
+Cohesion: 0.14
+Nodes (14): 06 — Motion Design & Animation Engineering, 1. Purpose test — every animation must answer one, 2. Duration & easing: the numeric standards, 3. Choreography, 4. Technique selection: CSS vs WAAPI vs FLIP vs libraries, 4b. Micro-interaction catalog (the standard answers), 4c. View Transitions recipe, 5. Performance: the compositor contract (+6 more)
+
+### Community 498 - "DesktopWatcher"
+Cohesion: 0.13
+Nodes (5): ApplicationInfo, DesktopSnapshot, DesktopWatcher, DesktopWatcherState, ProjectInfo
 
 ### Community 499 - "Git Workflow and Versioning"
 Cohesion: 0.07
@@ -3212,33 +3241,33 @@ Nodes (26): 1. Commit Early, Commit Often, 2. Atomic Commits, 3. Descriptive Mes
 Cohesion: 0.07
 Nodes (26): 10. Phase 25 Before/After Comparison, 11. Whisper Stability Verdict, 12. Sherpa-ONNX Decision, 13. Remaining Limitations, 14. VERIFIED / PARTIALLY VERIFIED / UNVERIFIED Matrix, 15. Final Recommendation, 1. STT Contention Map, 2. Exact Root Cause (+18 more)
 
-### Community 502 - "certification.rs"
-Cohesion: 0.53
-Nodes (4): BenchmarkResult, certification_report_generates(), CertificationReport, report_contains_all_sections()
+### Community 502 - "MomentType"
+Cohesion: 0.15
+Nodes (13): MomentType, BatteryLow, CodeCompiled, DailyDebrief, DownloadComplete, FocusedWork, GoodMorning, GoodNight (+5 more)
 
 ### Community 503 - "Context Management"
 Cohesion: 0.08
 Nodes (25): Context Budgeting, Context Hygiene Rules, Context Management, Context Structure (by Task Size), Cross-session continuity, Don't pass:, Large task (full codebase, 200K–1M tokens), Long Session Management (+17 more)
 
-### Community 504 - "CapabilityId"
-Cohesion: 0.15
-Nodes (9): test_capability_id_newtype(), CapabilityId, test_capability_descriptor_creation(), test_capability_id_creation(), test_registry_find(), test_registry_list(), test_registry_register_and_has(), test_registry_unregister() (+1 more)
-
-### Community 505 - "OnboardingStep"
-Cohesion: 0.25
-Nodes (8): OnboardingStep, CloudProviders, CredentialEntry, Identity, LocalRuntime, SubscriptionTiers, Summary, VoiceConfig
+### Community 505 - "DesktopOverlay"
+Cohesion: 0.19
+Nodes (5): OverlayConfig, DesktopOverlay, test_overlay_click_through_toggle(), test_overlay_creation(), test_overlay_resize()
 
 ### Community 507 - "GrokImage"
 Cohesion: 0.30
 Nodes (3): _file_to_data_uri(), GrokImage, _normalize_image_input()
 
+### Community 512 - "cognitive_orchestrator/src/lib.rs"
+Cohesion: 0.08
+Nodes (13): DefaultPlatformQuery, Platform, Android, platform_capabilities(), platform_detection(), Ios, Linux, MacOS (+5 more)
+
 ### Community 527 - "OSMOO Desktop Backend Integration Implementation Plan"
 Cohesion: 0.22
 Nodes (8): OSMOO Desktop Backend Integration Implementation Plan, Task 1: Create Typed Backend Command & Service Dispatch Module, Task 2: Wire Chat Dialogue & Conversation History to SQLite Persistence, Task 3: Wire Settings Modal to Atomic `SettingsManager` Persistence, Task 4: Connect Onboarding Completion to Real Configuration & Provisioning, Task 5: Wire Authentication View to Real `AuthBridge` & DPAPI, Task 6: Real System Telemetry & Health Stream, Task 7: Full Workspace Verification & Report Generation
 
-### Community 528 - "world_model/src/lib.rs"
-Cohesion: 0.05
-Nodes (21): WorldSnapshot, ApplicationInfo, DesktopState, WindowInfo, WorkspaceInfo, ConnectedDevice, AmbientConditions, Location (+13 more)
+### Community 528 - "05 — Scalability, State & Data Architecture"
+Cohesion: 0.14
+Nodes (14): 05 — Scalability, State & Data Architecture, 10. Hot keys and skew, 11. Derived data and projections, 12. Large objects and blob handling, 1. Stateless services by default, 2. Scale out, not up; know your bottleneck first, 3. The database is the hard part, 4. Caching: every cache is a consistency decision (+6 more)
 
 ### Community 529 - "API and Interface Design"
 Cohesion: 0.08
@@ -3324,9 +3353,9 @@ Nodes (20): 1. Coverage check, 2. Test quality check, 3. Security spot-check (if
 Cohesion: 0.20
 Nodes (9): EmailError, ApiError, Network, NotConfigured, Serialization, ResendMailer, SendEmailResponse, test_from_env_missing_key() (+1 more)
 
-### Community 550 - "grounding/src/lib.rs"
-Cohesion: 0.06
-Nodes (33): ContentExtractor, .MAX_EXTRACTED_BYTES, ExtractedDocument, test_html_tag_stripping_and_title_extraction(), GroundingEngine, GroundingRequest, InMemoryGroundingEngine, ResolvedTarget (+25 more)
+### Community 550 - "health/src/lib.rs"
+Cohesion: 0.09
+Nodes (8): ComponentType, Cpu, Custom, Database, EventBus, Ipc, Memory, Service
 
 ### Community 551 - "PHANTOM Desktop Runtime — Integration Report"
 Cohesion: 0.10
@@ -3348,9 +3377,9 @@ Nodes (5): 1. Overview & Capabilities, 2. Universal Agent Adapter Interface, Cor
 Cohesion: 0.10
 Nodes (19): 10. Verification Matrix, 11. Final Recommendation, 1. Bottleneck Map, 2. Measured Latency Breakdown (Phase 27, THREADS=8), 3. Optimizations Performed, 4. Before/After Comparison, 5. Regression Test Results, 6. Barge-in Regression (+11 more)
 
-### Community 556 - "OSMOO / VOXY: Production Readiness & Verification Audit Ledger"
-Cohesion: 0.40
-Nodes (4): AudioConfig, 1. Subsystem Production Readiness Matrix, 2. Verified Resolutions & Proof Ledger, OSMOO / VOXY: Production Readiness & Verification Audit Ledger
+### Community 556 - "pexels.py"
+Cohesion: 0.21
+Nodes (3): PexelsSource, _pick_video_rendition(), _slug_tags_from_url()
 
 ### Community 557 - "Planning and Task Breakdown"
 Cohesion: 0.11
@@ -3368,9 +3397,9 @@ Nodes (23): 15-Second Quick Tip, 30-Second Explainer, 3-Second Retention and Alg
 Cohesion: 0.11
 Nodes (17): 10. Humor Engine, 1. Relationship Engine, 2. Trust Engine, 3. Behavior Engine, 4. Protection Engine, 5. Initiative Engine, 6. Confidence Engine, 7. Style Engine (+9 more)
 
-### Community 561 - "ScheduledTask"
-Cohesion: 0.13
-Nodes (8): NoopTask, ScheduledTask, ScheduleSpec, Cron, Delay, Immediate, Interval, Periodic
+### Community 561 - "DeviceContextProvider"
+Cohesion: 0.19
+Nodes (3): DeviceContextProvider, test_capabilities(), test_collect_device()
 
 ### Community 562 - "PHASE 23 — VOICE REFERENCE SCORECARD"
 Cohesion: 0.11
@@ -3388,9 +3417,9 @@ Nodes (16): Before saving, Cross-Session Continuity Pattern, Don't save, `feedba
 Cohesion: 0.12
 Nodes (16): Architecture, Audio Processing Pipeline, Barge-in Config, Barge-in Flow, Components, Configuration, EchoCanceller, Integration Flow (+8 more)
 
-### Community 566 - "PipelineStage"
-Cohesion: 0.13
-Nodes (12): PipelineStage, AgentOrchestrator, Automation, Conversation, DecisionEngine, Input, MemoryUpdate, Output (+4 more)
+### Community 566 - "09 — Security Testing"
+Cohesion: 0.20
+Nodes (10): 09 — Security Testing, 1. Security testing is non-optional on security-critical paths, 2. WSTG as the verification map, 3. The security-regression set (write these as code), 3a. Operating the authorization suite: matrix, contract negatives, wiring guard, 4. Business-logic & abuse-case testing, 5. Where automated tooling fits — and its ceiling, 5a. Manual assessment and penetration testing (+2 more)
 
 ### Community 567 - "Performance Optimization"
 Cohesion: 0.12
@@ -3428,6 +3457,10 @@ Nodes (9): 1. Root Cause Confirmation, 2. Remediation, 3. Regression Tests Added
 Cohesion: 0.07
 Nodes (28): 01 — Choosing the Engine & Modeling the Data, Audit checklist, Audit & history tables (temporal patterns), Engine selection, JSONB usage rules, Ledgers: money and consumable balances, Modeling hygiene (defaults unless justified), Multi-tenancy (+20 more)
 
+### Community 576 - "SwarmCapability"
+Cohesion: 0.22
+Nodes (8): RoleManifest, SwarmCapability, ArchitecturalDesign, CanaryTesting, CodeImplementation, CodeReview, ContextHandoff, PlanAndSupervise
+
 ### Community 577 - "Phase 25 Conversational Latency Optimization Report"
 Cohesion: 0.13
 Nodes (14): 10. Resource Impact, 11. Limitations & Risks, 12. Verification Matrix, 13. Final Recommendation, 1. Baseline Performance, 2. Root Cause Analysis, 3. Serialization Point, 4. Root Cause (+6 more)
@@ -3440,21 +3473,21 @@ Nodes (13): DECISION RECORDS, DEEP REFERENCES, DELEGATION, EFFORT PROFILES, Evid
 Cohesion: 0.14
 Nodes (13): Architecture, BrainEvent (Streaming), BrainInput, BrainOutput, Integration Tests, Key Types, Latency Tracking, Lifecycle (+5 more)
 
-### Community 580 - "simulation/src/lib.rs"
-Cohesion: 0.24
-Nodes (6): MockAutomationBackend, MockLlmProvider, MockMicrophone, MockSpeaker, simulation_creates(), SimulationRuntime
+### Community 580 - "VisualPresenceError"
+Cohesion: 0.15
+Nodes (13): test_error_display(), VisualPresenceError, Animation, Audio, Config, Gpu, HeadTracking, Integration (+5 more)
 
-### Community 581 - "ExecutorError"
-Cohesion: 0.25
-Nodes (5): ExecutorError, ExecutionFailed, RollbackFailed, StepFailed, Timeout
+### Community 581 - "HotReloader"
+Cohesion: 0.22
+Nodes (4): hot_reload_manager_default(), hot_reloader_subscribe(), HotReloader, HotReloadManager
 
-### Community 582 - "ToolDescription"
-Cohesion: 0.29
-Nodes (5): InMemoryToolSelector, ToolDescription, ToolSelection, ToolSelectionInput, ToolSelector
+### Community 582 - "observability/src/lib.rs"
+Cohesion: 0.27
+Nodes (5): diagnostics_export(), observability_creates(), ObservabilityRuntime, system_metrics_collect(), SystemMetrics
 
-### Community 583 - "voxy_protocol.rs"
-Cohesion: 0.23
-Nodes (11): decode_ipc_payload(), encode_ipc_frame(), IpcEnvelope<T>, MAX_IPC_FRAME_SIZE, test_client_command_roundtrip(), test_daemon_message_roundtrip(), test_hardware_status_update_roundtrip(), test_routing_status_update_roundtrip() (+3 more)
+### Community 583 - "HdrConfig"
+Cohesion: 0.15
+Nodes (5): BrainConfig, BehaviorConfig, HdrConfig, RecoveryConfig, TrustConfig
 
 ### Community 584 - "Master Product Completion & Single-EXE Release Plan: OSMOO"
 Cohesion: 0.14
@@ -3469,8 +3502,8 @@ Cohesion: 0.14
 Nodes (13): API Latency Profile, Backend Initialization (main.rs), Bridge Latency Profile, File Inventory, Mock Inventory: ZERO, New Files (26 files), OPERATION ZERO MOCKS - Audit Report, Remaining Blockers Before Beta (+5 more)
 
 ### Community 587 - ".ingest"
-Cohesion: 0.11
-Nodes (7): CacheEntry, ClipCache, default_cache_dir(), default_max_total_bytes(), _is_safe_clip_id(), _link_or_copy(), _safe_blob_path()
+Cohesion: 0.07
+Nodes (20): CacheEntry, ClipCache, default_cache_dir(), default_max_total_bytes(), _is_safe_clip_id(), _link_or_copy(), _safe_blob_path(), 10. VERIFIED / PARTIALLY VERIFIED / UNVERIFIED Matrix (+12 more)
 
 ### Community 588 - "PHASE 24 — Windows Production Voice Validation Report"
 Cohesion: 0.14
@@ -3488,17 +3521,21 @@ Nodes (12): 1.1 Direct Test Suite Verification Commands & Results, 1.2 Clippy & 
 Cohesion: 0.15
 Nodes (12): 10. Conclusion, 1. Latency Benchmarks, 2. Memory Validation, 3. Concurrency Safety, 4. Stress Tests, 5. Failure Injection, 6. Correctness Tests, 7. Observability (+4 more)
 
+### Community 592 - "skills/src/tests.rs"
+Cohesion: 0.08
+Nodes (8): test_capability_id_newtype(), CapabilityId, test_capability_descriptor_creation(), test_capability_id_creation(), test_registry_find(), test_registry_list(), test_registry_register_and_has(), test_registry_unregister()
+
 ### Community 593 - "playbook_generator.py"
 Cohesion: 0.19
 Nodes (6): _create_minimal_playbook(), generate_playbook(), list_playbooks(), load_existing_playbook(), _load_playbook_schema(), save_playbook()
 
 ### Community 594 - "human_dynamics/src/engine.rs"
-Cohesion: 0.13
-Nodes (11): HdrConfig, RecoveryConfig, TrustConfig, HumanDynamicsEngine, make_input(), test_engine_latency(), test_engine_no_action(), test_engine_produces_output() (+3 more)
+Cohesion: 0.27
+Nodes (8): HumanDynamicsEngine, make_input(), test_engine_latency(), test_engine_no_action(), test_engine_produces_output(), test_engine_protection_blocks(), test_engine_recovery(), test_engine_relationship()
 
-### Community 595 - "Subscription"
-Cohesion: 0.15
-Nodes (9): BillingProvider, OfflineBillingProvider, Subscription, SubscriptionStatus, Active, Cancelled, Expired, Trial (+1 more)
+### Community 595 - "AttentionScore"
+Cohesion: 0.07
+Nodes (10): AttentionFactors, AttentionScore, AttentionSystem, ContextSummary, Diagnostics, DiagnosticsSnapshot, LatencyDiagnostics, InMemoryAttentionSystem (+2 more)
 
 ### Community 596 - "VOXY System Architecture"
 Cohesion: 0.15
@@ -3576,6 +3613,14 @@ Nodes (10): Context Module Dependency Graph, Crate Integration Points, Critical 
 Cohesion: 0.18
 Nodes (10): Architecture Overview, Companion Intelligence Engine — Architecture, Data Flow Diagram, Design Principles, Memory Diagram — Data Retention, Performance, Platform Support, Purpose (+2 more)
 
+### Community 616 - "OfficeDocumentKind"
+Cohesion: 0.22
+Nodes (7): OfficeDocumentKind, ExcelXlsx, PowerPointPptx, Unknown, WordDocx, OfficeValidator, ValidationReport
+
+### Community 617 - "03 — Design Systems, Tokens & Component APIs"
+Cohesion: 0.13
+Nodes (15): 03 — Design Systems, Tokens & Component APIs, 1. Design tokens: three tiers, W3C format, 1b. Token naming & governance, 2. Component API: composition over configuration, 3. Controlled / uncontrolled: support both, 4. State completeness: the 9-state contract, 5. Headless + styled layers, 5b. Styling strategy & encapsulation (+7 more)
+
 ### Community 618 - "Remotion Skill"
 Cohesion: 0.09
 Nodes (21): calculateMetadata(), Anime Scene — Multi-Image Crossfade + Particles, Architecture, Audio Layering, Dynamic Duration with calculateMetadata, How Artifacts Map to Remotion Props, Key Patterns, Media Profile Mapping (+13 more)
@@ -3596,9 +3641,9 @@ Nodes (10): Benchmark Results (Debug Mode), Environment, Fast (< 10μs), I/O Bou
 Cohesion: 0.18
 Nodes (10): 1. What changed, 2. Test suite, 3. STT thread-cap tuning (measured), 4. Runtime / starvation, 5. Sentence-chunking (word-threshold emission), 6. Warm-up, 7. End-to-end data (post-change), 8. Honest limitations / UNVERIFIED (+2 more)
 
-### Community 623 - "CompanionPersonality"
-Cohesion: 0.18
-Nodes (5): CompanionPersonality, test_formality(), test_interrupt_respects_protectiveness(), test_personality_express(), test_robot_personality()
+### Community 623 - "LearningError"
+Cohesion: 0.15
+Nodes (12): LearningError, BehaviorError, CalibrationError, EvolutionError, FeedbackError, InvalidConfig, MemoryAccessError, PolicyError (+4 more)
 
 ### Community 624 - "VOXY Voice Runtime Performance Benchmark Report"
 Cohesion: 0.18
@@ -3624,29 +3669,21 @@ Nodes (9): Acceptance Criteria, Action Lock, Allowed Write Scope, Gravitas -- Ta
 Cohesion: 0.20
 Nodes (9): Bottleneck Analysis (Ranked by Impact), End-to-End Voice Metrics, Optimization Recommendations (Priority Order), Phase 1: Critical Bottlenecks (Immediate), Phase 3: Medium Impact (Long-term), Pipeline Stage Latencies, System Information, System Resource Usage (Average) (+1 more)
 
-### Community 630 - "AudioDevice"
-Cohesion: 0.16
-Nodes (10): AudioPlatform, AudioDevice, enumerate_audio_input_devices(), enumerate_audio_output_devices(), WAVEINCAPSW, waveInGetDevCapsW(), waveInGetNumDevs(), WAVEOUTCAPSW (+2 more)
-
-### Community 631 - "03 — Code Review & PR Workflow"
-Cohesion: 0.17
-Nodes (12): 03 — Code Review & PR Workflow, §1 Small PRs are the highest-leverage practice, §2 PR description discipline, §3 Reviewer behavior, §3a `git diff main..pr` is not what the PR changes, §4 Author behavior, §5 Draft and stacked PRs, §5a The change surface is a design decision, not a side effect (+4 more)
-
-### Community 632 - "02 — Versioning, Evolution & Deprecation"
-Cohesion: 0.15
-Nodes (13): 02 — Versioning, Evolution & Deprecation, 10. Changelogs and client communication, 1. The prime directive: evolve, don't version, 2. What is breaking vs additive, 3. Tolerant reader / never break parsers, 4. Version placement: URL vs header, 5. Deprecation lifecycle, 6. Enum and schema evolution (+5 more)
-
-### Community 633 - "TaskHandle"
-Cohesion: 0.10
-Nodes (12): TaskHandle, TaskPriority, Critical, High, Low, Normal, TaskStatus, Cancelled (+4 more)
-
-### Community 634 - "01 — Methodology: Measure, Budget, Decide, Protect"
-Cohesion: 0.15
-Nodes (13): 01 — Methodology: Measure, Budget, Decide, Protect, 10. Performance regression testing in CI, 1. Measure first — with the right instrument, 2. Reading flamegraphs, 3. Benchmarks that don't lie, 4. Percentiles, not averages, 5. Orders of magnitude — internalize this table, 6. USE and RED (+5 more)
-
-### Community 635 - "01 — Language baseline & idioms"
+### Community 631 - "01 — Language baseline & idioms"
 Cohesion: 0.17
 Nodes (12): 01 — Language baseline & idioms, 1. Version baseline: know the support windows, 2. strict_types and real types, everywhere, 3. Enums over constants; match over switch, 4. Comparison and juggling discipline, 4a. In-band sentinels — `strpos` is the textbook case, 5. Errors and exceptions, not silence, 6. Fibers and concurrency (8.1+) (+4 more)
+
+### Community 633 - "06-ad-hoc-commands.md"
+Cohesion: 0.03
+Nodes (67): 01 — Safety Baseline, 1. Shebang discipline, 2. The preamble and what `set -e` actually does, 2a. A background job's completion signal is about the launcher, 2b. A non-zero exit is evidence about one attempt, not about the world, 3. Quoting: quote every expansion (SC2086), Audit checklist, 04 — CI & Operational Scripts (+59 more)
+
+### Community 634 - "03 — Behavior & Lifecycle"
+Cohesion: 0.08
+Nodes (24): 01 — Commands, Flags, Args & Configuration, 1. Command grammar, 2. Flag syntax — POSIX/GNU, no improvisation, 3. Args vs flags vs stdin, 4. Defaults, 5. Dangerous operations, 6. Configuration precedence, 7. Environment variables (+16 more)
+
+### Community 635 - "01 — Tooling & Project Setup"
+Cohesion: 0.15
+Nodes (13): 01 — Tooling & Project Setup, 10. Repo hygiene quick list, 1. uv is the default toolchain, 2. pyproject.toml — single source of truth, 3. ruff replaces flake8 + black + isort + pyupgrade, 4. Type checking — one strict checker, enforced in CI, 5. src/ layout, 6. pre-commit — fast checks only (+5 more)
 
 ### Community 636 - "Firecrawl Build Scrape"
 Cohesion: 0.20
@@ -3772,17 +3809,17 @@ Nodes (7): Gravitas -- Adaptive Reasoning Reference, Reasoning by Scenario, Reas
 Cohesion: 0.25
 Nodes (7): Dependency-Directed Recon, Extended Recon (unfamiliar codebase or high fan-out), Gravitas -- Reconnaissance Reference, Recon Completeness Check, Recon Principle, Standard Recon (Tier 1 tasks), What Not to Do
 
-### Community 667 - "02 — Injection: SQL, shell, and XSS"
-Cohesion: 0.17
-Nodes (12): 02 — Injection: SQL, shell, and XSS, 1. SQL: prepared statements with bound parameters, nothing else, 2. Command execution: no shell between you and the binary, 2a. Dynamic code evaluation: `eval`, generated templates, expression engines, 3. XSS: escape at output, for the exact context, 4. Header and log injection, 4a. `header('Location')` does not stop the script (CWE-698), 5. Attacker-chosen names: classes, session keys, properties (+4 more)
+### Community 667 - "Process"
+Cohesion: 0.18
+Nodes (10): 2. Use Chapter Markers As Navigation, 3. Thumbnail Strategy, 4. Package By Platform, 5. Quality Gate, Common Pitfalls, Gate Reminder (Binding), Prerequisites, Process (+2 more)
 
 ### Community 668 - "Process"
 Cohesion: 0.09
 Nodes (21): Compose Director — Talking Head Pipeline, Prerequisites, Process, Runtime Routing (HARD CONSTRAINT — Remotion or FFmpeg only), Step 0: Pre-flight Checks, Step 10: Submit, Step 1: Run Enhancement Chain, Step 1b: Speed Adjustment (if requested) (+13 more)
 
-### Community 669 - "scoring.py"
-Cohesion: 0.07
-Nodes (15): _compute_continuity(), _compute_control(), _compute_cost_efficiency(), _compute_task_fit(), _expand_synonyms(), format_ranking(), _is_stock_like_provider(), _keyword_overlap() (+7 more)
+### Community 669 - "src/activity.rs"
+Cohesion: 0.16
+Nodes (16): ActivityClassification, ActivityClassifier, ActivityType, Browsing, Coding, Communication, Gaming, Idle (+8 more)
 
 ### Community 670 - "Coding Tools MCP Spec"
 Cohesion: 0.25
@@ -3852,10 +3889,6 @@ Nodes (20): 0. Guardrails — No Silent Major Changes, 10. Quality Gate, 1. Set 
 Cohesion: 0.10
 Nodes (20): Animation authoring — which runtime, Asset Director — Explainer Pipeline, Common Pitfalls, Gate Reminder (Binding), Mid-Production Fact Verification, Pre/Post Self-Review for Generation Prompts, Prerequisites, Process (+12 more)
 
-### Community 687 - "PlannerError"
-Cohesion: 0.29
-Nodes (4): PlannerError, DependencyCycle, InvalidGoal, PlanningFailed
-
 ### Community 688 - "Optimization Patterns"
 Cohesion: 0.07
 Nodes (25): Connection Pool Exhaustion, Large Bundle Size, Missing Caching (Backend), Missing Image Optimization (Frontend), N+1 Queries (Backend), Optimization Patterns, Queries That Ignore Their Index, Unbounded Data Fetching (+17 more)
@@ -3872,17 +3905,17 @@ Nodes (7): 16.1 Consumption Modes, 16.2 Replay Protocol, 16.3 Recovery Mode Prot
 Cohesion: 0.29
 Nodes (6): 1. Subsystem Verification Status Matrix, 2. Release Build Artifacts & Cryptographic Checksums, 3. Strict Release Gate Checklist, 4. Final Verdict, OSMOO Production Release Verification Report, **VERDICT: PRODUCTION READY FOR RELEASE**
 
-### Community 692 - "RuntimeSnapshot"
-Cohesion: 0.19
-Nodes (12): dashboard_from_snapshot(), dashboard_html_not_empty(), DashboardData, escape_html(), generate_html(), RuntimeSnapshot, snapshot_all_healthy(), snapshot_creation() (+4 more)
+### Community 692 - "simulation/src/lib.rs"
+Cohesion: 0.24
+Nodes (6): MockAutomationBackend, MockLlmProvider, MockMicrophone, MockSpeaker, simulation_creates(), SimulationRuntime
 
 ### Community 693 - "OSMOO FINAL PRODUCTION & LAUNCH VERIFICATION AUDIT REPORT"
 Cohesion: 0.29
 Nodes (6): 1. EXECUTIVE SUMMARY & RELEASE ARTIFACTS, 2. 36-AREA COMPREHENSIVE PRODUCTION AUDIT, 3. REGRESSION & VERIFICATION TEST METRICS, 4. LAUNCH SIGN-OFF VERDICT, OSMOO FINAL PRODUCTION & LAUNCH VERIFICATION AUDIT REPORT, Release Binaries Generated & Verified:
 
-### Community 694 - ".add"
-Cohesion: 0.14
-Nodes (10): 1. Executive Summary, 2. NVIDIA NIM Provider Verification, 3. Real Autonomous Coding Harness Lifecycle, 4. Subsystem Verification Breakdown, 5. Artifact Directory, OSMOO: Full-System Deep Validation, Real Execution, and Failure-Driven Hardening Report, 1. Test Methodology, 2. Phased Pipeline Execution (+2 more)
+### Community 694 - "05 — Security"
+Cohesion: 0.12
+Nodes (17): 05 — Security, 11. `ctypes`, `cffi` and C extensions — Python without its safety, 1. Deserialization & code execution bans, 2. Subprocess: argv lists, never shell=True, 3. SQL: parameters, never interpolation, 3a. Template strings (3.14, PEP 750): the consumer is the control, 4. Path traversal, 4a. Temporary files: the name is not the file (+9 more)
 
 ### Community 695 - "Execution Progress"
 Cohesion: 0.33
@@ -3896,21 +3929,21 @@ Nodes (5): Blocked Action — Meeting in Progress, Happy Path — Normal Operati
 Cohesion: 0.10
 Nodes (19): 1. Lock The Avatar Generation Path, 1b. Sample Preview (Prevents Wasted Spend), 2. Resolve Narration Before Support Graphics, 3. Build The Minimal Support Kit, 4. Use Metadata For Capability Truth, 5. Quality Gate, Asset Director - Avatar Spokesperson Pipeline, Common Pitfalls (+11 more)
 
-### Community 698 - "home/src/traits.rs"
-Cohesion: 0.15
-Nodes (4): ClimateSettings, EnvironmentConfig, ZoneCoordinates, ZoneSpec
+### Community 698 - "priority.rs"
+Cohesion: 0.23
+Nodes (9): ContextPriorityResolver, make_snapshot(), SOURCE_PRIORITY_HIERARCHY, test_is_higher_priority(), test_resolve_prefers_higher_rank(), test_resolve_same_rank_prefers_priority(), test_sort_by_priority(), test_system_state_highest_rank() (+1 more)
 
 ### Community 699 - "INDEX.md"
 Cohesion: 0.20
 Nodes (7): Evidence Inventory, Instructions for Independent Evaluator (ChatGPT), OSMOO Evidence Directory: Index & Navigation, Raw Execution Logs Directory (`./logs/`), 1. Unverified Claims & Explicit Boundaries, 2. Non-Fatal Warnings in Test Builds, OSMOO Engineering Audit: Limitations, Blockers & Unverified Claims
 
-### Community 700 - "04 — Sessions, auth, crypto, and web hardening"
-Cohesion: 0.17
-Nodes (12): 04 — Sessions, auth, crypto, and web hardening, 1. Session hardening, 1a. Cookies the app sets itself: `setcookie()` has none of §1's defaults, 2. Passwords: password_hash, nothing homemade, 3. General crypto: sodium first, random_bytes always, 4. CSRF, 5. Production php.ini hardening, 5a. Secrets that reach output: stack-trace arguments and `phpinfo()` (+4 more)
+### Community 700 - "04-sessions-auth-web-hardening.md"
+Cohesion: 0.05
+Nodes (44): 02 — Injection: SQL, shell, and XSS, 1. SQL: prepared statements with bound parameters, nothing else, 2. Command execution: no shell between you and the binary, 2a. Dynamic code evaluation: `eval`, generated templates, expression engines, 3. XSS: escape at output, for the exact context, 4. Header and log injection, 4a. `header('Location')` does not stop the script (CWE-698), 5. Attacker-chosen names: classes, session keys, properties (+36 more)
 
 ### Community 701 - "Process"
-Cohesion: 0.10
-Nodes (20): 3a: Title and Emotional Hook, 3b: Emotional Arc, 3c: Delivery Promise, 3d: Visual Treatment, 3e: Renderer Family Selection, 4a: Progressive Reveal, 4b: Diversity Check, 4c: Invite Mixing (+12 more)
+Cohesion: 0.07
+Nodes (27): 3a: Title and Emotional Hook, 3b: Emotional Arc, 3c: Delivery Promise, 3d: Visual Treatment, 3e: Renderer Family Selection, 4a: Progressive Reveal, 4b: Diversity Check, 4c: Invite Mixing (+19 more)
 
 ### Community 702 - "Process"
 Cohesion: 0.10
@@ -3923,10 +3956,6 @@ Nodes (25): Accessibility, Code Quality, Common Rationalizations, Documentation,
 ### Community 704 - "Process"
 Cohesion: 0.10
 Nodes (19): Common Pitfalls, Enhancement Cues, Example: Well-Written Section, Gate Reminder (Binding), Mid-Production Fact Verification, Prerequisites, Process, Pronunciation Guides (+11 more)
-
-### Community 705 - "05 — Constructs & Cleanup: arrays, IFS, traps, tests, globbing"
-Cohesion: 0.17
-Nodes (12): 05 — Constructs & Cleanup: arrays, IFS, traps, tests, globbing, 1. Arrays for command building (SC2089/SC2090/SC2086), 2. IFS handling, 3. trap-based cleanup and mktemp, 3a. Sourcing a script to test one function relocates the script, 3b. In-place edit on a symlink — and why `sed -i` is the trap, not the fix, 3c. A hard link does not survive the way tools actually update files, 3d. Rewriting a script that is still running changes what it runs (+4 more)
 
 ### Community 706 - "Issue 3: Sandbox Runner Isolation Guarantees & Host Credential Leakage"
 Cohesion: 0.40
@@ -4112,13 +4141,13 @@ Nodes (18): Common Pitfalls, Execution Constraints, Prerequisites, Process, Qual
 Cohesion: 0.11
 Nodes (18): 1. Turn The Shape Into A Beat Count, 2. Decompose The Thematic Question Into Concrete Beats, 3. Write The Slot Description, 4. Write 2-3 Queries Per Slot, 5. Target Sources Per Slot (Era-Aware), 6. Mark Hero Slots, 7. Leave Headroom For The Asset Stage, 8. Record The Shot List (+10 more)
 
-### Community 769 - "VadDetector"
-Cohesion: 0.06
-Nodes (21): ActivationMode, AutoVad, Muted, PushToTalk, WakeWord, test_push_to_talk_mode(), test_vad_silence_to_speech_to_utterance(), VadDetector (+13 more)
+### Community 769 - "1. What You Can Say to OSMOO Right Now (Verified Working)"
+Cohesion: 0.18
+Nodes (10): 1. What You Can Say to OSMOO Right Now (Verified Working), 2. Prerequisites & Setup Instructions, 3. What Will Fail Explicitly (Unsupported Operations), A. Desktop Automation & System Control, B. Software Engineering & Coding, C. File & Process Diagnostics, D. Memory & Persistent Context, Environment Variables (+2 more)
 
-### Community 771 - "style_bridge"
-Cohesion: 0.27
-Nodes (5): _first(), _font(), _motion_easing(), _render_design_md(), style_bridge()
+### Community 771 - "AudioDevice"
+Cohesion: 0.31
+Nodes (4): AudioPlatform, AudioDevice, enumerate_audio_input_devices(), waveInGetNumDevs()
 
 ### Community 772 - "Screen Recording Pipeline"
 Cohesion: 0.11
@@ -4144,13 +4173,13 @@ Nodes (17): Common Pitfalls, Gate Reminder (Binding), Prerequisites, Process, Re
 Cohesion: 0.11
 Nodes (17): 1. Prioritize Utility Over Decoration, 1b. Hero Scene Sample (Mandatory), 2. Generate Subtitles First, 3. Build A Reusable Overlay Kit, 4. Clean Or Generate Audio Pragmatically, 5. Only Generate Supplementary Visuals When They Earn It, 6. Build The Asset Manifest Cleanly, 7. Quality Gate (+9 more)
 
-### Community 778 - "DoubaoTTS"
-Cohesion: 0.11
-Nodes (4): probe_duration(), DashscopeTTS, DoubaoTTS, OpenAITTS
+### Community 780 - "04 — I/O & Network Performance"
+Cohesion: 0.09
+Nodes (21): 04 — I/O & Network Performance, 1. Syscalls: batch and buffer, 2. Zero-copy, 3. Connection pooling and reuse, 4. Round trips, concurrency, and coalescing, 5. HTTP/2 and HTTP/3, 6. Compression tradeoffs, 7. TLS efficiency (+13 more)
 
-### Community 782 - "AnthropicClient"
-Cohesion: 0.08
-Nodes (7): AnthropicClient, is_healthy_status(), AnthropicProvider, test_anthropic_available_models(), test_anthropic_complete_no_api_key(), test_anthropic_provider_creation(), test_anthropic_with_custom_model()
+### Community 782 - "06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition)"
+Cohesion: 0.14
+Nodes (14): 06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition), 10. Supply-chain integrity, 11. Environments: ephemeral over snowflake, 12. Telemetry cost and cardinality discipline, 1. Build/release/run: one artifact, promoted everywhere, 2. Config: environment-injected, schema-validated, secrets separate, 3. Processes, disposability, and concurrency, 4. Observability is a launch requirement (the 13th factor) (+6 more)
 
 ### Community 783 - "score_slideshow_risk"
 Cohesion: 0.21
@@ -4196,17 +4225,13 @@ Nodes (16): Gate Reminder (Binding), Prerequisites, Process, Scene Director — 
 Cohesion: 0.08
 Nodes (24): 1. Contract First, 2. Consistent Error Semantics, 3. Validate at Boundaries, 4. Prefer Addition Over Modification, 5. Predictable Naming, 6. Honouring an Idempotency Key, API and Interface Design, Common Rationalizations (+16 more)
 
-### Community 795 - "04 — Regulatory Landscape: Engineering Obligations"
+### Community 796 - "MemoryKind"
 Cohesion: 0.17
-Nodes (12): 04 — Regulatory Landscape: Engineering Obligations, 0. Applicability triage (run this first), 1. GDPR / UK GDPR — the mechanics that hit engineering, 2. US state privacy laws — the patchwork, 2b. Children's & minors' data — strictest tier everywhere, 2c. One capability set serves all regimes, 3. HIPAA — technical safeguards (when you're a covered entity or business associate), 4. PCI DSS 4.x — scope is the whole game (+4 more)
-
-### Community 796 - "MemoryMoments"
-Cohesion: 0.29
-Nodes (5): MemoryMoments, StoredMoment, test_max_references(), test_record_and_reference(), test_used_count_limit()
+Nodes (11): MemoryEntry, SharedJourney, test_max_entries(), test_record_and_retrieve(), test_used_count_limits(), MemoryKind, Achievement, Milestone (+3 more)
 
 ### Community 797 - "humor.rs"
-Cohesion: 0.33
-Nodes (8): HumorConfig, HumorEngine, make_context(), test_humor_appropriate(), test_humor_cooldown(), test_humor_disabled(), test_humor_low_relationship(), HumorContext
+Cohesion: 0.30
+Nodes (9): HumorConfig, HumorEngine, make_context(), test_humor_appropriate(), test_humor_cooldown(), test_humor_disabled(), test_humor_low_relationship(), HumorContext (+1 more)
 
 ### Community 798 - "properties"
 Cohesion: 0.12
@@ -4248,17 +4273,25 @@ Nodes (15): Asset Director — Talking Head Pipeline, Gate Reminder (Binding), M
 Cohesion: 0.08
 Nodes (24): Accessibility Verification with DevTools, Available Tools, Browser Testing with DevTools, Clean Console Standard, Common Rationalizations, Console Analysis Patterns, Content Boundary Markers, For Network Issues (+16 more)
 
-### Community 810 - "DeliveryPromise"
-Cohesion: 0.21
-Nodes (3): classify_from_brief(), DeliveryPromise, PromiseType
+### Community 809 - "cognitive_orchestrator/src/config.rs"
+Cohesion: 0.18
+Nodes (7): IntegrationConfig, OrchestratorConfig, RiskLevel, Critical, High, Low, Medium
+
+### Community 810 - "Pipeline Stage Director Skills"
+Cohesion: 0.06
+Nodes (30): Architecture: Instruction-Driven (Agent-First), Available Pipelines, Identity, Key Files, Key Patterns, Knowledge Architecture (3 Layers), OpenMontage - Shared Project Context, Source of Truth (+22 more)
 
 ### Community 811 - "Frontend UI Engineering"
 Cohesion: 0.08
 Nodes (24): Accessibility (WCAG 2.1 AA), ARIA Labels, Avoid the AI Aesthetic, Color, Common Rationalizations, Component Architecture, Component Patterns, Design System Adherence (+16 more)
 
+### Community 812 - "03 — Per-Component Threat Catalogs"
+Cohesion: 0.18
+Nodes (11): 03 — Per-Component Threat Catalogs, 1. Web frontend (browser-executed code), 2. API / backend service, 3. Database / data tier, 4. Message queue / event stream, 5. File storage / upload pipelines, 6. CI/CD & build pipeline, 7. Mobile clients (+3 more)
+
 ### Community 813 - "Protocol"
-Cohesion: 0.17
-Nodes (11): Checkpoint Protocol — Meta Skill, Key Principles, Protocol, Sample Checkpoint (Reference-Driven Productions), Step 1: Check Manifest Policy, Step 2: Prepare Checkpoint Data, Step 4: Intra-Stage Checkpointing (Resume Support + Liveness), Step 5: Human Approval (If Required) (+3 more)
+Cohesion: 0.13
+Nodes (13): init_project(), Checkpoint Protocol — Meta Skill, Key Principles, Protocol, Sample Checkpoint (Reference-Driven Productions), Step 1: Check Manifest Policy, Step 2: Prepare Checkpoint Data, Step 3: Write Checkpoint (+5 more)
 
 ### Community 814 - "Key Patterns"
 Cohesion: 0.13
@@ -4334,31 +4367,43 @@ Nodes (14): After ASSETS stage:, After COMPOSE stage:, After EDIT stage:, After 
 
 ### Community 832 - "OsmooBrainBridge"
 Cohesion: 0.12
-Nodes (3): 6. Redirects and SSRF, 1. Build Searchable Metadata, OsmooBrainBridge
+Nodes (15): 08 — Child Processes & Outbound Requests (server-side), Audit checklist, Command injection via child_process, SSRF and server-side validation, 03 — Web hardening (framework-neutral), 1. XSS and output escaping, 2. Mass assignment, 3. CSRF (+7 more)
 
 ### Community 833 - "Process"
 Cohesion: 0.13
 Nodes (14): 1. Decide The Script Mode, 2. Build The Action Map, 3. Write Sections By Step, 4. Keep The Narration Procedural, 5. Mark Pacing Decisions, 6. Use Metadata For Screen-Specific Detail, 7. Quality Gate, Common Pitfalls (+6 more)
 
+### Community 834 - "MemoryMoments"
+Cohesion: 0.29
+Nodes (5): MemoryMoments, StoredMoment, test_max_references(), test_record_and_reference(), test_used_count_limit()
+
 ### Community 835 - "VideoAnalyzer"
 Cohesion: 0.04
-Nodes (5): SceneDetect, Transcriber, TranscriptFetcher, VideoAnalyzer, VideoDownloader
+Nodes (6): FrameSampler, SceneDetect, Transcriber, TranscriptFetcher, VideoAnalyzer, VideoDownloader
 
-### Community 836 - "ContainerError"
-Cohesion: 0.25
-Nodes (5): ContainerError, DuplicateRegistration, LifecycleError, NotRegistered, ResolutionFailed
+### Community 836 - "04 — Sessions, auth, crypto, and web hardening"
+Cohesion: 0.17
+Nodes (12): 04 — Sessions, auth, crypto, and web hardening, 1. Session hardening, 1a. Cookies the app sets itself: `setcookie()` has none of §1's defaults, 2. Passwords: password_hash, nothing homemade, 3. General crypto: sodium first, random_bytes always, 4. CSRF, 5. Production php.ini hardening, 5a. Secrets that reach output: stack-trace arguments and `phpinfo()` (+4 more)
 
 ### Community 837 - "CI/CD and Automation"
 Cohesion: 0.08
 Nodes (23): Automation Beyond CI, Basic CI Pipeline, Build Cop Role, CI/CD and Automation, CI Optimization, Common Rationalizations, Dependabot / Renovate, Deployment Strategies (+15 more)
 
+### Community 838 - "SkillContext"
+Cohesion: 0.20
+Nodes (4): SkillsConfig, SkillContext, SkillInput, SkillOutput
+
 ### Community 840 - "Constraint-Driven Development"
 Cohesion: 0.08
 Nodes (22): Adapting it, Contract, Floor guard: reference implementation, Reference (Node, ~stack-agnostic patterns), Common Rationalizations, Constraint-Driven Development, Escalation Path, Loading Constraints (+14 more)
 
-### Community 842 - "ArchiveSecurityError"
-Cohesion: 0.14
-Nodes (14): ArchiveSecurityError, CompressedSizeExceeded, EntryCountExceeded, EntrySizeExceeded, IllegalLinkDetected, IllegalStreamDetected, IoError, PathDepthExceeded (+6 more)
+### Community 841 - "PresenceEventType"
+Cohesion: 0.15
+Nodes (13): PresenceEventType, AchievementUnlocked, ActivityDetected, EmergencyAlert, SleepTimerExpired, SystemEvent, TaskCompleted, UserIdle (+5 more)
+
+### Community 842 - "Security and Hardening"
+Cohesion: 0.17
+Nodes (12): Always Do (No Exceptions), Ask First (Requires Human Approval), Common Rationalizations, Never Do, Overview, Process: Threat Model First, Red Flags, Review Checklist (+4 more)
 
 ### Community 843 - "Diagram Generation Usage for OpenMontage"
 Cohesion: 0.14
@@ -4400,21 +4445,21 @@ Nodes (23): Adapter Pattern, Code Is a Liability, Common Rationalizations, Compu
 Cohesion: 0.20
 Nodes (3): _detect_audio_device_mac(), _detect_audio_device_windows(), ScreenRecorder
 
-### Community 853 - "OfflineSyncProvider"
-Cohesion: 0.15
-Nodes (6): ConflictResolution, Merge, UseLocal, UseRemote, OfflineSyncProvider, SyncProvider
+### Community 853 - "BackendCommand"
+Cohesion: 0.04
+Nodes (32): BackendCommand, CompleteOnboarding, EmergencyStop, ExportDiagnostics, GetChatHistory, GetSystemTelemetry, LoadSettings, PurgeStoredMemories (+24 more)
 
-### Community 854 - "LocalModelMetadata"
-Cohesion: 0.40
-Nodes (3): LocalModelMetadata, Other, ModelScanner
+### Community 854 - "05 — Static/Dynamic Analysis & Non-Bypassable Gates"
+Cohesion: 0.20
+Nodes (10): 05 — Static/Dynamic Analysis & Non-Bypassable Gates, 5.1 SAST: Opengrep + CodeQL, 5.2 Secret scanning, 5.3 IaC scanning, 5.4 DAST basics, 5.5 License compliance, 5.6 Gates for agent-authored changes: out-of-scope files and invisible characters, 5.7 Test discipline — no flaky-mute culture (+2 more)
 
-### Community 856 - "SwarmCapability"
-Cohesion: 0.22
-Nodes (8): RoleManifest, SwarmCapability, ArchitecturalDesign, CanaryTesting, CodeImplementation, CodeReview, ContextHandoff, PlanAndSupervise
+### Community 856 - "08 — Registry Security (the registry as a supply-chain trust anchor)"
+Cohesion: 0.20
+Nodes (10): 08 — Registry Security (the registry as a supply-chain trust anchor), 8.1 The trust-anchor model — why this is tier-0, 8.2 AuthN/AuthZ — no anonymous write, least-privilege everything, 8.3 Image integrity & immutability — defeating tag mutation, 8.4 Vulnerability management at the registry, 8.5 Supply-chain pull hygiene, 8.6 Retention, GC & availability — without breaking running deploys, 8.7 Network & deployment hardening of the registry (+2 more)
 
-### Community 857 - "PHASE 21 — VOXY Voice Production Readiness Report"
-Cohesion: 0.14
-Nodes (13): 10. VERIFIED / PARTIALLY VERIFIED / UNVERIFIED Matrix, 11. Remaining Blockers, 12. Readiness Verdict, 1. Final Architecture, 2. Runtime Data Flow (one utterance), 3. Backends and Fallbacks, 4. Latency Instrumentation (T0–T9), 5. STT Accuracy / TTS Quality (+5 more)
+### Community 857 - "07 — Anti-Patterns Catalog"
+Cohesion: 0.13
+Nodes (15): 07 — Anti-Patterns Catalog, 10. Resume-driven and dogma-driven architecture, 11. Lava layer / strangler that never strangles, 12. Snowflake environments and config sprawl, 13. Smaller but deadly (quick list), 1. Distributed monolith, 2. Shared database integration, 3. God service / god module / god aggregate (+7 more)
 
 ### Community 858 - "type"
 Cohesion: 0.15
@@ -4500,17 +4545,13 @@ Nodes (12): 1. Build Source Transcript Truth, 2. Produce Reviewable Target Copy,
 Cohesion: 0.15
 Nodes (12): 1. Pick The Right Treatment Per Deliverable, 2. Avoid Pretend Complexity, 3. Define Scene Families, 4. Use Metadata For Layout Strategy, 5. Plan Safe Zones And Attribution, 6. Quality Gate, Common Pitfalls, Gate Reminder (Binding) (+4 more)
 
-### Community 879 - "Idea Director - Screen Demo Pipeline"
-Cohesion: 0.15
-Nodes (12): 1. Inspect The Source, 2. Classify The Demo, 3. Set Deliverable Intent, 4. Choose A Viable Output Shape, 5. Build The Brief, 6. Quality Gate, Common Pitfalls, Gate Reminder (Binding) (+4 more)
-
 ### Community 880 - "Process"
 Cohesion: 0.15
 Nodes (12): Gate Reminder (Binding), Mid-Production Fact Verification, Prerequisites, Process, Script Director — Talking Head Pipeline, Step 1: Transcribe, Step 2: Segment into Sections, Step 3: Enhance Section Metadata (+4 more)
 
-### Community 881 - "ConversationContextProvider"
-Cohesion: 0.21
-Nodes (3): ConversationContextProvider, test_collect_conversation(), test_default_state()
+### Community 881 - "unsplash.py"
+Cohesion: 0.24
+Nodes (5): _build_download_url(), _matches_orientation(), _orientation_for_unsplash(), _photo_to_candidate(), UnsplashSource
 
 ### Community 885 - "compilerOptions"
 Cohesion: 0.17
@@ -4588,13 +4629,13 @@ Nodes (11): Gate Reminder (Binding), Idea Director — Talking Head Pipeline, Pr
 Cohesion: 0.17
 Nodes (11): Gate Reminder (Binding), Prerequisites, Process, Publish Director — Talking Head Pipeline, Step 1: Generate Metadata, Step 2: Thumbnail Concept, Step 3: Package Export, Step 4: Build Publish Log (+3 more)
 
-### Community 904 - "shared/src/error.rs"
-Cohesion: 0.18
-Nodes (3): error_creation(), error_display(), error_into_kind()
+### Community 904 - "04 — Regulatory Landscape: Engineering Obligations"
+Cohesion: 0.17
+Nodes (12): 04 — Regulatory Landscape: Engineering Obligations, 0. Applicability triage (run this first), 1. GDPR / UK GDPR — the mechanics that hit engineering, 2. US state privacy laws — the patchwork, 2b. Children's & minors' data — strictest tier everywhere, 2c. One capability set serves all regimes, 3. HIPAA — technical safeguards (when you're a covered entity or business associate), 4. PCI DSS 4.x — scope is the whole game (+4 more)
 
-### Community 905 - "03 — Networking, DNS, TLS & Edge"
-Cohesion: 0.15
-Nodes (13): 03 — Networking, DNS, TLS & Edge, 10. DDoS posture, 11. IPv6 stance, 1. VPC design: three tiers, multi-AZ, deny-by-default, 2. CIDR planning: allocate like you'll have 50 VPCs, 3. Egress control, 4. Private connectivity to managed services, 5. Topology: flat → peered → hub-spoke (+5 more)
+### Community 905 - "DeliveryPromise"
+Cohesion: 0.21
+Nodes (3): classify_from_brief(), DeliveryPromise, PromiseType
 
 ### Community 906 - "Documentation and ADRs"
 Cohesion: 0.09
@@ -4609,20 +4650,16 @@ Cohesion: 0.09
 Nodes (23): 08 — NATS JetStream, Anti-patterns (JetStream-specific), Audit checklist, Clustering, HA & multi-tenancy: accounts are the isolation boundary, Consumers: pull is the modern default; explicit ack after processing, Core NATS vs JetStream: choose per subject, not per cluster, Error handling: ack/nak/term/inprogress, and the DLQ you must build, KV & Object stores: config, coordination, and the claim-check (+15 more)
 
 ### Community 909 - "02 — Schema Evolution & Migrations"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (23): 02 — Schema Evolution & Migrations, Audit checklist, Backfills, Core invariants, Lock-aware DDL on hot tables, Migration tooling & testing, MySQL differences (when the project is MySQL/MariaDB), ORM-specific traps (+15 more)
 
 ### Community 910 - "08 — SurrealDB & Multi-Model"
 Cohesion: 0.09
 Nodes (23): 08 — SurrealDB & Multi-Model, Audit checklist, Backups, Capabilities hardening, Indexes & query planner, Least-privilege system users, Multi-model modeling, Network exposure & TLS (+15 more)
 
-### Community 911 - "OpenMontage - Shared Project Context"
+### Community 912 - "traits"
 Cohesion: 0.09
-Nodes (19): Architecture: Instruction-Driven (Agent-First), Available Pipelines, Identity, Key Files, Key Patterns, Knowledge Architecture (3 Layers), OpenMontage - Shared Project Context, Source of Truth (+11 more)
-
-### Community 912 - "ObservabilityError"
-Cohesion: 0.33
-Nodes (3): ObservabilityError, ExportFailed, TrackingFailed
+Nodes (6): Platform, PlatformInfo, linux_platform_info(), LinuxPlatform, macos_platform_info(), MacOSPlatform
 
 ### Community 913 - "properties"
 Cohesion: 0.18
@@ -4700,13 +4737,13 @@ Nodes (21): Build Failure Triage, Common Rationalizations, Debugging and Error R
 Cohesion: 0.09
 Nodes (21): 05 — Reliability & Scale, Audit checklist, Backups & PITR, Monitoring — the metric set that matters, Partitioning, Redis & the caching layer, Replication & read replicas, Rule: A backup is restorable, point-in-time, off-box, and rehearsed — or it isn't a backup. (+13 more)
 
-### Community 932 - "SdkError"
-Cohesion: 0.33
-Nodes (3): SdkError, InvalidApi, VersionMismatch
+### Community 932 - "sota-secrets-management/SKILL.md"
+Cohesion: 0.03
+Nodes (88): 01 — Org, Accounts & Governance, 1. Accounts/projects are the unit of isolation, 2. Organize by OU/folder, attach policy at the container, 3. Guardrails: preventive controls at the org layer, 4. Centralized logging and billing, 5. Tagging/labeling standard — non-negotiable, 6. Landing zone: bootstrap once, vend forever, 7. Anti-patterns (+80 more)
 
-### Community 933 - "02 — API design, disposal, exceptions, DI"
-Cohesion: 0.18
-Nodes (11): 02 — API design, disposal, exceptions, DI, 1. Nullability as contract, 1a. In-band sentinels vs `int?` and the Try pattern, 2. Immutability & value semantics, 3. Disposal & resource lifetime, 4. Exceptions in the contract, 5. Dependency injection & options, 6. Visibility & API surface (+3 more)
+### Community 933 - "01 — Idioms: modern C#, nullability, error handling"
+Cohesion: 0.03
+Nodes (56): 03 — Query & Index Craft, Audit checklist, Composite index design, CTEs, window functions, set-based thinking, Geospatial: the three ways the index is lost, Index types — pick by operator, not habit, Pagination, Prepared statements & plan management (+48 more)
 
 ### Community 934 - "env_loader.py"
 Cohesion: 0.20
@@ -4728,13 +4765,13 @@ Nodes (9): Animated Drawing — animate a supplied drawing/photo with real mocap
 Cohesion: 0.20
 Nodes (9): 2D vs 3D Decision, Animation Timing, Applying to OpenMontage, Color Usage, ManimCE Usage for OpenMontage, Pacing Rule (3Blue1Brown Convention), Quick Reference Card, Render Settings for OpenMontage (+1 more)
 
-### Community 939 - "Animation Runtime Selector"
-Cohesion: 0.20
-Nodes (9): Animation library decision matrix, Animation Runtime Selector, Check against the pipeline's stage director, HARD RULE — present both runtimes, don't silently default, Never do, Running GSAP deterministically inside Remotion, Runtime choice (Remotion vs HyperFrames vs FFmpeg), The "keep it simple" bias (+1 more)
+### Community 939 - "IntentType"
+Cohesion: 0.12
+Nodes (14): IntentAnalysis, IntentAnalyzer, IntentType, Command, Communication, Creation, Custom, Deletion (+6 more)
 
-### Community 940 - "Protocol"
+### Community 940 - "AgentRole"
 Cohesion: 0.18
-Nodes (10): Anti-Patterns, Onboarding — Meta Skill, Protocol, Step 1: Run Preflight Discovery, Step 2: Determine the User's Setup Tier, Step 3: Greet and Orient, Step 4: Offer Starter Prompts, Step 5: Explain the Workflow (Briefly) (+2 more)
+Nodes (10): AgentRole, Browser, Coder, Desktop, Memory, Planner, QA, Researcher (+2 more)
 
 ### Community 941 - "Publish Director - Animation Pipeline"
 Cohesion: 0.20
@@ -4760,13 +4797,21 @@ Nodes (9): 1. Preserve Structure By Default, 2. Apply The Chosen Dub Mode, 3. Ke
 Cohesion: 0.20
 Nodes (9): 1. Package By Locale, 2. Keep Naming Precise, 3. Preserve Review Context, 4. Quality Gate, Common Pitfalls, Gate Reminder (Binding), Process, Publish Director - Localization Dub Pipeline (+1 more)
 
-### Community 947 - "02 — Privacy by Design Patterns"
-Cohesion: 0.06
-Nodes (29): 02 — Privacy by Design Patterns, 1. Data minimization — the field you don't store can't leak, 2. Purpose limitation in code, 3. Pseudonymization, tokenization — and why most "anonymization" fails, 4. Differential privacy & privacy-preserving analytics — when aggregates are exposed, 5. Default-private settings, 5b. Network-level privacy — remote content leaks the IP address, 5c. Coercion-resistant design for at-risk users (+21 more)
+### Community 947 - "06 — Webhooks"
+Cohesion: 0.20
+Nodes (10): 06 — Webhooks, 1. Payload & contract design, 2. Signing — HMAC with timestamp, 3. Replay protection, 4. Delivery, retries & idempotent consumers, 5. Ordering caveats, 6. Consumer-side endpoint hygiene, 7. Webhooks vs alternatives — when not to webhook (+2 more)
+
+### Community 948 - "Language"
+Cohesion: 0.18
+Nodes (11): Language, C, Cpp, CSharp, Go, Java, JavaScript, Python (+3 more)
 
 ### Community 949 - "04 — Mobile Security"
 Cohesion: 0.10
 Nodes (20): 04 — Mobile Security, 4.10 Privacy is a security surface and a store-enforcement surface, 4.11 Where non-secret app data lives: app-private vs shared storage, file protection classes, App Group containers, 4.12 Data read back from the device or downloaded is untrusted: integrity and safe parsing, 4.13 Sensitive data in the UI: masking, clipboard, screenshots, 4.14 Inter-app surface beyond links: IPC components, overlays, extensions, 4.1 Secrets go in Keychain/Keystore — nothing else, ever, 4.2 Biometric auth gates a key, not a boolean (+12 more)
+
+### Community 950 - "TaskHandle"
+Cohesion: 0.10
+Nodes (8): NoopTask, ScheduledTask, TaskHandle, TaskPriority, Critical, High, Low, Normal
 
 ### Community 951 - "Ink Theater — hand-drawn "moving art" (creative skill)"
 Cohesion: 0.22
@@ -4784,25 +4829,29 @@ Nodes (8): Creative Intake, Handling Detailed Briefs, Handling Reference Video I
 Cohesion: 0.22
 Nodes (9): 1. Start With Deterministic Assets, 1b. Sample Preview (Prevents Wasted Spend), 1c. Multi-Image Generation for Image-Based Animation (Approach A), 2. Build Reusable Systems, 3. Narration Is Optional, But The Plan Must Be Explicit, 4. Use Metadata For Feasibility Truth, 5. Quality Gate, Mid-Production Fact Verification (+1 more)
 
-### Community 955 - "PresenceEventType"
+### Community 955 - "04 — SLOs & Alerting"
+Cohesion: 0.10
+Nodes (18): 04 — SLOs & Alerting, 1. SLI selection: measure user journeys, not infrastructure, 2. SLOs and error budgets, 3. Burn-rate alerts: the multi-window pattern, 4. Alert quality rules, 5. Fighting alert fatigue (operational practice), 6. SLO spec template and recording rules, 7. Page vs ticket decision table (+10 more)
+
+### Community 956 - "02 — Output, Exit Codes & Interaction"
+Cohesion: 0.18
+Nodes (11): 02 — Output, Exit Codes & Interaction, 1. The stream contract, 2. Machine-readable output, 3. Exit codes are API, 4. TTY detection, color & terminal respect, 5. Streaming & progress, 6. Prompts, 7. Error messages (+3 more)
+
+### Community 957 - "SkillsError"
 Cohesion: 0.15
-Nodes (13): PresenceEventType, AchievementUnlocked, ActivityDetected, EmergencyAlert, SleepTimerExpired, SystemEvent, TaskCompleted, UserIdle (+5 more)
+Nodes (12): SkillsError, CapabilityNotFound, ExecutionCancelled, InvalidConfig, InvalidInput, ManifestInvalid, PermissionDenied, SkillExecutionFailed (+4 more)
 
-### Community 956 - "01 — Documentation Architecture"
-Cohesion: 0.15
-Nodes (13): 01 — Documentation Architecture, §10 Day zero — a new repo inherits no context, however good your tooling, §11 A durable note records an invariant, not an observation, §1 Diátaxis: four modes, never mixed, §2 Docs-as-code, §3 README as front door, §4 The decay problem, §5 Runbooks (+5 more)
+### Community 958 - "02 — API design, disposal, exceptions, DI"
+Cohesion: 0.18
+Nodes (11): 02 — API design, disposal, exceptions, DI, 1. Nullability as contract, 1a. In-band sentinels vs `int?` and the Try pattern, 2. Immutability & value semantics, 3. Disposal & resource lifetime, 4. Exceptions in the contract, 5. Dependency injection & options, 6. Visibility & API surface (+3 more)
 
-### Community 957 - "human_dynamics/tests/integration_tests.rs"
-Cohesion: 0.44
-Nodes (11): default_config(), make_input(), test_full_pipeline_critical_action_denied(), test_full_pipeline_high_trust(), test_full_pipeline_latency_under_100us(), test_full_pipeline_low_trust_no_initiative(), test_full_pipeline_meeting_blocked(), test_full_pipeline_recovery_on_errors() (+3 more)
+### Community 959 - "02 — Privacy by Design Patterns"
+Cohesion: 0.18
+Nodes (11): 02 — Privacy by Design Patterns, 1. Data minimization — the field you don't store can't leak, 2. Purpose limitation in code, 3. Pseudonymization, tokenization — and why most "anonymization" fails, 4. Differential privacy & privacy-preserving analytics — when aggregates are exposed, 5. Default-private settings, 5b. Network-level privacy — remote content leaks the IP address, 5c. Coercion-resistant design for at-risk users (+3 more)
 
-### Community 958 - "TypeScript Configuration & Type Craft"
-Cohesion: 0.15
-Nodes (13): Audit checklist, Branded types for IDs and units, Discriminated unions are the workhorse, Enums: don't. Use unions or const objects, ESM-first and monorepo project references, Functions: generics, overloads, and shape, No `any`. Use `unknown` + narrowing, `satisfies` and `as const` (+5 more)
-
-### Community 960 - "Process — Standard Path (Corpus + CLIP Retrieval)"
-Cohesion: 0.17
-Nodes (11): 10. Quality Gate, 1. Resolve The Corpus Directory, 2. Fan Out The Queries Into `corpus_builder`, 3. Sanity-Check The Corpus Before Retrieval, 4. Rank Candidates Per Slot, 5. Pick With Judgement, Not By Score, 6. Grow The Corpus When Retrieval Is Weak, 7. Diversify Adjacent Picks (+3 more)
+### Community 960 - "clipboard.rs"
+Cohesion: 0.29
+Nodes (4): clipboard_clear(), clipboard_creation(), clipboard_read(), ClipboardManager
 
 ### Community 961 - "Sora 2 — Prompting Guide"
 Cohesion: 0.25
@@ -4824,9 +4873,9 @@ Nodes (7): Character Design Director - Character Animation Pipeline, Constraints
 Cohesion: 0.25
 Nodes (7): Cost Honesty, Gate Reminder (Binding), Goal, Proposal Director - Character Animation Pipeline, Required Proposal Elements, Runtime Selection, Sample-First Rule
 
-### Community 966 - ".execute"
-Cohesion: 0.22
-Nodes (5): _op_diversify(), _op_find_similar_set(), _op_get(), _op_rank_for_slot(), _op_stats()
+### Community 966 - "Rules 05 — Production Engineering"
+Cohesion: 0.20
+Nodes (10): 1. Model selection & routing, 2. Rate limits, retries, and errors, 3. Latency engineering, 4. Cost engineering, 5. Observability, 6. Graceful degradation, 7. Versioning & rollout, 8. Generated media: provenance and likeness (+2 more)
 
 ### Community 967 - "Executive Producer - Documentary Montage Pipeline"
 Cohesion: 0.25
@@ -4836,21 +4885,25 @@ Nodes (7): Common Pitfalls, Core Tools, Cross-Stage Rules, Executive Producer - 
 Cohesion: 0.11
 Nodes (18): Common Rationalizations, Output Files, Overview, Parallelization Opportunities, Plan Document Template, Planning and Task Breakdown, Red Flags, See Also (+10 more)
 
-### Community 969 - "03-behavior-lifecycle.md"
-Cohesion: 0.08
-Nodes (25): 02 — Output, Exit Codes & Interaction, 1. The stream contract, 2. Machine-readable output, 3. Exit codes are API, 4. TTY detection, color & terminal respect, 5. Streaming & progress, 6. Prompts, 7. Error messages (+17 more)
+### Community 969 - "01 — Language baseline & idioms"
+Cohesion: 0.14
+Nodes (14): Audit checklist, 01 — Language baseline & idioms, 1. Version baseline and support policy, 2. Frozen string literals, 3. Pattern matching, 4. Data vs Struct, 5. Exception design, 5a. In-band sentinels — the stdlib is clean, the converters are not (+6 more)
 
 ### Community 972 - "01 — Detection Engineering as a Discipline"
 Cohesion: 0.20
 Nodes (10): 01 — Detection Engineering as a Discipline, 1. The detection lifecycle, 2. Detection-as-Code (DaC), 3. The ADS framework (Palantir), 4. The Pyramid of Pain, 5. Coverage mapping: MITRE ATT&CK + Navigator, 6. Maturity & metrics, 7. Concurrent siblings & owned boundaries (+2 more)
 
-### Community 973 - "Async JavaScript"
-Cohesion: 0.15
-Nodes (13): AbortController everywhere, Async generator cleanup and resource safety, Async iteration and web streams, Async JavaScript, Audit checklist, Deferred patterns worth knowing, Event loop: microtasks vs macrotasks, Floating promises and unhandled rejections (+5 more)
+### Community 973 - "01 — Ownership, Borrowing & API Design"
+Cohesion: 0.18
+Nodes (11): 01 — Ownership, Borrowing & API Design, 1. Borrowing & clone discipline, 2. Rc/Arc/Box/RefCell: when shared ownership is right, 3. Newtype pattern, 4. Typestate pattern, 5. Builder pattern, 6. Trait design, sealed traits, coherence, 7. Exhaustive matching & `#[non_exhaustive]` (+3 more)
 
 ### Community 974 - "OSMOO: Claude-Code-Inspired Autonomous Senior Engineering Harness"
 Cohesion: 0.15
 Nodes (12): 1. Executive Summary, 2.1 Coding Harness Suite (`cargo test -p voxy-coding-harness`), 2.2 Workspace-Wide Health Check (`cargo check --workspace`), 2.3 Graphify Knowledge Graph, 2. Verification Test Suite Summary, 3.1 Model Routing & Governance, 3.2 Windows Process & Security Boundary, 3.3 Desktop UI & IPC Protocol (+4 more)
+
+### Community 975 - "06 — Performance"
+Cohesion: 0.18
+Nodes (11): 06 — Performance, 1. Profile first — tool selection, 2. The usual suspects (hot-loop killers), 3. Vectorize: numpy / polars over Python loops, 4. Caching with functools — and the caveats, 5. Concurrency model: threads vs processes vs asyncio, 6. Startup latency: lazy imports, 7. Memory (+3 more)
 
 ### Community 977 - "ReOrder: Keep Your Regulars Ordering Direct"
 Cohesion: 0.11
@@ -4868,9 +4921,9 @@ Nodes (6): DependencyError, CycleDetected, InvalidSpec, NotFound, ResolutionFail
 Cohesion: 0.11
 Nodes (17): Amp and similar coding agents, Bug fix, Claude Code, Cline and Roo Code, Codex CLI, Cursor, Gemini CLI, Generic installation pattern (+9 more)
 
-### Community 982 - "cognitive_orchestrator/src/config.rs"
-Cohesion: 0.18
-Nodes (7): IntegrationConfig, OrchestratorConfig, RiskLevel, Critical, High, Low, Medium
+### Community 982 - "media_profiles.py"
+Cohesion: 0.24
+Nodes (4): AspectRatio, ffmpeg_output_args(), get_profiles_for_platform(), MediaProfile
 
 ### Community 983 - "Voice Performance Director"
 Cohesion: 0.29
@@ -4896,9 +4949,9 @@ Nodes (6): Goal, Process, Quality Checks, Rig Plan Director - Character Animatio
 Cohesion: 0.29
 Nodes (6): Gate Reminder (Binding), Goal, Output Notes, Process, Script Director - Character Animation Pipeline, Writing Rules
 
-### Community 989 - "05 — Web Platform Security"
-Cohesion: 0.18
-Nodes (11): 05 — Web Platform Security, 1. XSS — context-aware output encoding (CWE-79), 2. Content Security Policy, 3. CSRF (CWE-352), 4. CORS (CWE-942), 5. Clickjacking & framing (CWE-1021), 6. Security headers (baseline set), 7. Cookies (CWE-1004/614/565) (+3 more)
+### Community 989 - "07 — Audit Bug Catalog: Signatures, Severity, Fixes"
+Cohesion: 0.14
+Nodes (14): 07 — Audit Bug Catalog: Signatures, Severity, Fixes, 10. Double-execution & ordering assumptions — MEDIUM→HIGH, 11. Async iterator / generator cleanup — LOW→MEDIUM, 12. Test-only / heisenbug smells — MEDIUM, 1. Fire-and-forget tasks swallowing exceptions — HIGH, 2. Missing await — HIGH (often CRITICAL in tests), 4. Lock held across await — HIGH (deadlock-capable: CRITICAL), 5. Blocking call in async context — HIGH (+6 more)
 
 ### Community 990 - "01 — Architecture Styles & Decision-Making"
 Cohesion: 0.11
@@ -4908,17 +4961,17 @@ Nodes (18): 01 — Architecture Styles & Decision-Making, 10. Edge composition: 
 Cohesion: 0.24
 Nodes (3): ApprovalRequiredError, BudgetExceededError, EntryStatus
 
-### Community 992 - "05 — Sandboxing AI & Agent Workloads"
-Cohesion: 0.22
-Nodes (9): 05 — Sandboxing AI & Agent Workloads, 1. Threat model: model output is attacker input, 2. Executing model-generated code, 3. Tool permission scoping, 4. Egress allowlists and resource limits, 5. Verification probe for agent sandboxes, 6. Multi-agent and computer-use specifics, 7. When your tool ingests other people's repositories (+1 more)
+### Community 992 - "03 — Unsafe Discipline"
+Cohesion: 0.18
+Nodes (11): 03 — Unsafe Discipline, 1. Minimize, then isolate, 2. SAFETY comments — non-negotiable, 3. The UB catalog — what actually bites, 3a. Layout, provenance, and Pin — the subtler contracts, 3b. The FFI boundary — types that cross, values that arrive, 3c. Leaks are safe, not free, 4. Miri, sanitizers, fuzzing — CI for the unchecked (+3 more)
 
 ### Community 993 - "3. pytest mastery"
 Cohesion: 0.11
 Nodes (18): 07 — FastAPI, Django, and pytest Mastery, 1. FastAPI, 2. Django, 3. pytest mastery, Audit checklist, Cookies the application sets (Flask, Starlette/FastAPI, Django), Dependency injection done right, Django misc (+10 more)
 
-### Community 994 - "01 — Ownership, Borrowing & API Design"
-Cohesion: 0.10
-Nodes (18): 14.1 Minimum SBOM content: identity, PURL, supplier, licence, dependency edges, 14.2 SBOM quality gate: schema-valid, complete metadata, valid SPDX licence IDs, 14.3 SBOMs are sensitive: access control and scrubbing before sharing, 14.4 Supplier SBOMs for procured software, 14.5 Patched and forked components: distinct identity, recorded pedigree, 14 — SBOM Content, Quality and Handling (what an SBOM must hold, and who may read it), Audit checklist, 01 — Ownership, Borrowing & API Design (+10 more)
+### Community 994 - "prelude"
+Cohesion: 0.04
+Nodes (34): ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon(), DepthDrawer(), DrawerTab, Automation, Conversation (+26 more)
 
 ### Community 995 - "ConversationTiming"
 Cohesion: 0.32
@@ -4944,53 +4997,53 @@ Nodes (5): Goal, Output Guidance, Process, Quality Bar, Research Director - Char
 Cohesion: 0.33
 Nodes (5): Complexity Budget, Gate Reminder (Binding), Goal, Scene Director - Character Animation Pipeline, Scene Planning Fields
 
-### Community 1001 - "06 — Webhooks"
+### Community 1001 - "2. Core Security Controls & Verification"
 Cohesion: 0.20
-Nodes (10): 06 — Webhooks, 1. Payload & contract design, 2. Signing — HMAC with timestamp, 3. Replay protection, 4. Delivery, retries & idempotent consumers, 5. Ordering caveats, 6. Consumer-side endpoint hygiene, 7. Webhooks vs alternatives — when not to webhook (+2 more)
+Nodes (9): 1. Threat Model & Security Posture Overview, 2. Core Security Controls & Verification, 3. Residual Risks & Recommended Hardening, A. Human-in-the-Loop Approval Broker (`voxy-security::approval`), B. Path Traversal & Boundary Guard (`voxy-security::path_guard`), C. Server-Side Request Forgery (SSRF) Guard (`voxy-security::ssrf_guard`), D. Process Isolation & Resource Limits (`voxy-coding-harness::process_runner`), E. Prompt Injection & System Prompt Leak Defense (+1 more)
 
-### Community 1002 - "02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering)"
-Cohesion: 0.12
-Nodes (17): 02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering), 10. Explicit state machines, 11. Domain services, factories, and where logic goes, 12. Queries and read models inside the architecture, 13. Sizing modules and avoiding entity-service decomposition, 14. The testability boundary (humble object), 1. Bounded contexts first, services second, 2. Use ubiquitous language end to end (+9 more)
+### Community 1002 - "2. Raw Test Outputs by Subsystem"
+Cohesion: 0.20
+Nodes (9): 1. Summary of Executed Test Suites, 2. Raw Test Outputs by Subsystem, A. Voice Audio Crate (`voxy-voice-audio`), B. Voice Activation & Spatial Beamforming (`voxy-voice-activation`), C. Voice Orchestrator & Token-to-Speech Streaming (`voxy-voice-orchestrator`), D. Tool Calling Registry (`voxy-tool-calling`), E. Desktop Automation Hybrid Backend (`voxy-automation`), F. Daemon Integration & Safety Controls (`voxy-daemon`) (+1 more)
 
 ### Community 1003 - "03 — Distributed Systems, Messaging & Eventing"
 Cohesion: 0.12
 Nodes (17): 03 — Distributed Systems, Messaging & Eventing, 10. Async request/response done right, 11. Competing consumers and partition assignment, 12. Distributed coordination: avoid it, then do it right, 13. The fallacies, applied, 1. CAP/PACELC: pick trade-offs per operation, not per system, 2. Idempotency is mandatory, everywhere, 3. Exactly-once delivery is a myth; exactly-once *processing* is yours to build (+9 more)
 
+### Community 1004 - "04 — Alerting, Triage, SOC & SOAR"
+Cohesion: 0.18
+Nodes (11): 04 — Alerting, Triage, SOC & SOAR, 1. Alert fatigue is the dominant failure, 2. Tuning & suppression — always with expiry, 3. Severity & priority, 4. Enrichment, 5. Deduplication & correlation, 6. Runbooks — every alert, no exceptions, 7. SOAR & automation — with guardrails (+3 more)
+
 ### Community 1005 - "2. The diagnostics, highest yield first"
 Cohesion: 0.12
 Nodes (17): 1. The governing observation: "zero" is a legitimate answer, 2.1 Duration, not result, 2.2 Scope of the check — print the denominator, 2.2a The empty comparand — the zero on the other operand, 2.3 Cross-scale delta, 2.4 Telemetry silence, 2.5 Did the changed code execute?, 2.6 When you cannot state the right answer, state how it must change (+9 more)
 
-### Community 1006 - "sota-databases/SKILL.md"
-Cohesion: 0.02
-Nodes (95): AUDIT mode — reviewing existing code or designs, BUILD mode — designing or writing code, Purpose, Rules index, SOTA Architecture (2026), Top-10 non-negotiables, 02 — Correctness: Races, Atomicity, Memory Ordering, Deadlock, Async-signal-safety (pointer) (+87 more)
+### Community 1006 - "02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering)"
+Cohesion: 0.12
+Nodes (17): 02 — Domain Modeling & Boundaries (DDD, Hexagonal, Clean Layering), 10. Explicit state machines, 11. Domain services, factories, and where logic goes, 12. Queries and read models inside the architecture, 13. Sizing modules and avoiding entity-service decomposition, 14. The testability boundary (humble object), 1. Bounded contexts first, services second, 2. Use ubiquitous language end to end (+9 more)
 
-### Community 1007 - "05 — Credential Types"
-Cohesion: 0.20
-Nodes (10): 05 — Credential Types, 1. Database credentials, 2. API keys (third-party SaaS), 3. Signing keys (code/artifact/webhook/general-purpose), 4. TLS private keys, 5. SSH keys, 6. JWT signing secrets and `kid` rotation, 7. Encryption keys vs KMS envelope encryption (+2 more)
+### Community 1007 - "04 — Risk Rating & Treatment"
+Cohesion: 0.18
+Nodes (11): 04 — Risk Rating & Treatment, 1. DREAD — know it, and know why not to trust it, 2. CVSS — what it's for and how to use it without lying, 3. Likelihood × impact — the default rating method, 4. Treatment: accept / mitigate / transfer / avoid, 5. Mapping mitigations to requirements and tests, 6. Residual risk documentation, 7. Rating anti-patterns (rejected on sight in review) (+3 more)
 
-### Community 1008 - "SceneTrigger"
-Cohesion: 0.22
-Nodes (7): SceneConfig, SceneDeviceState, SceneTrigger, DeviceEvent, Manual, TimeSchedule, VoiceCommand
+### Community 1008 - "Idea Director - Screen Demo Pipeline"
+Cohesion: 0.15
+Nodes (12): 1. Inspect The Source, 2. Classify The Demo, 3. Set Deliverable Intent, 4. Choose A Viable Output Shape, 5. Build The Brief, 6. Quality Gate, Common Pitfalls, Gate Reminder (Binding) (+4 more)
 
-### Community 1010 - "03 — Query & Index Craft"
-Cohesion: 0.09
-Nodes (22): 03 — Query & Index Craft, Audit checklist, Composite index design, CTEs, window functions, set-based thinking, Geospatial: the three ways the index is lost, Index types — pick by operator, not habit, ORM pitfalls & N+1, Pagination (+14 more)
-
-### Community 1011 - "04 — HTTP & services: timeouts, shutdown, middleware, slog"
-Cohesion: 0.17
-Nodes (12): 04 — HTTP & services: timeouts, shutdown, middleware, slog, 1. http.Server — set ALL the timeouts, 2. HTTP clients — timeouts, body hygiene, reuse, 3. Graceful shutdown, 4. Middleware, 4a. Cookies: the attributes are the security, not the value, 4b. Redirects: two different bugs, 4c. Debug surfaces and release mode (+4 more)
+### Community 1021 - "Root.tsx"
+Cohesion: 0.06
+Nodes (49): Composition Authoring Mode — Templated vs Atelier, signalFromTomorrowWithMusicFixture, CinematicBaseScene, CinematicCaptionConfig, CinematicRendererProps, CinematicScene, CinematicSoundtrack, CinematicTitleScene (+41 more)
 
 ### Community 1025 - "04 — Transactions & Concurrency"
 Cohesion: 0.12
 Nodes (17): 04 — Transactions & Concurrency, Audit checklist, Idempotency & retries, Isolation levels — what actually goes wrong, Locking, Long transactions — the silent killer, Rule: Advisory locks for app-level mutual exclusion — with discipline., Rule: Choose per workload, not globally. (+9 more)
 
-### Community 1036 - "src/components/computer_control.rs"
-Cohesion: 0.18
-Nodes (8): ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon(), ComputerControlBanner(), OverlayApprovalModal(), ToolExecutionTimeline(), VoxyCursorBeacon()
+### Community 1036 - "PlatformError"
+Cohesion: 0.22
+Nodes (6): PlatformError, ApiNotAvailable, InitializationFailed, PermissionDenied, QueryFailed, UnsupportedPlatform
 
-### Community 1037 - "04 — gRPC, Protobuf Evolution & Protocol Choice"
-Cohesion: 0.20
-Nodes (10): 04 — gRPC, Protobuf Evolution & Protocol Choice, 1. Choosing the protocol, 2. Proto evolution — the field-number contract, 3. Deadlines everywhere, 4. Streaming patterns, 5. Service design patterns (steal from AIPs), 6. Errors and metadata, 7. gRPC-Web, Connect, and the browser (+2 more)
+### Community 1037 - "sota-async-concurrency/SKILL.md"
+Cohesion: 0.03
+Nodes (63): 02 — Correctness: Races, Atomicity, Memory Ordering, Deadlock, Async-signal-safety (pointer), Atomicity: find the invariant, protect the whole transition, Audit checklist, Check-then-act / TOCTOU, Data race vs race condition — different bugs, different fixes, Deadlock, Idempotency under retries (+55 more)
 
 ### Community 1038 - "04 — UX Patterns: Forms, States, Feedback & Flow"
 Cohesion: 0.12
@@ -5000,53 +5053,61 @@ Nodes (17): 04 — UX Patterns: Forms, States, Feedback & Flow, 1. Forms: struct
 Cohesion: 0.17
 Nodes (12): 07 — Suite Health & CI, 7.10 A PR that deletes, skips or weakens tests needs a human sign-off, 7.1 Flaky-test policy, 7.2 Coverage philosophy, 7.3 Speed budgets, 7.4 Parallelization correctness, 7.5 CI sharding and pipeline shape, 7.6 Failure triage discipline (+4 more)
 
-### Community 1040 - "overlay/components/mode_views.rs"
-Cohesion: 0.57
-Nodes (3): CompactModeView(), EdgeDockView(), MinimalView()
+### Community 1041 - "AgentId"
+Cohesion: 0.29
+Nodes (5): AgentId, capacity_limit(), orchestrator_creation(), CapacityReached, register_agent()
 
-### Community 1042 - "SkillContext"
-Cohesion: 0.20
-Nodes (4): SkillsConfig, SkillContext, SkillInput, SkillOutput
+### Community 1042 - "DesktopEventBridge"
+Cohesion: 0.21
+Nodes (5): BridgeState, DesktopEventBridge, test_bridge_state_update(), ApplicationLifecycleEvent, DesktopContextUpdate
 
-### Community 1044 - "Language"
-Cohesion: 0.18
-Nodes (11): Language, C, Cpp, CSharp, Go, Java, JavaScript, Python (+3 more)
+### Community 1044 - "VerificationEngine"
+Cohesion: 0.05
+Nodes (4): VerificationEngine, ElementInfo, ElementSelector, StateVerification
 
 ### Community 1045 - "Offline-first"
 Cohesion: 0.12
 Nodes (17): 03 — Offline-First, Background Work & Push, 3.10 Push is a doorbell, not a delivery truck, 3.11 Rich, actionable, and well-channeled notifications, 3.12 Ask for notification permission in context, never at first launch, 3.1 Declare the offline posture; if offline-first, the local DB is the source of truth, 3.2 Queue mutations in a persistent outbox; make every mutation idempotent, 3.3 Optimistic UI with visible pending state and visible rollback, 3.4 Choose a conflict-resolution strategy per entity, explicitly (+9 more)
 
-### Community 1046 - "05-security-supply-chain.md"
-Cohesion: 0.25
-Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA Rust (2026), Top-10 non-negotiables
+### Community 1046 - "voice_tts/src/lib.rs"
+Cohesion: 0.07
+Nodes (17): create_tts_engine(), RecordingTtsEngine, test_barge_in_cancels_all_streaming_stages_promptly(), test_bounded_backpressure_under_slow_tts(), test_first_speakable_word_without_sentence_punctuation(), test_playback_starts_during_ongoing_generation(), test_token_boundary_combination_and_early_tts_dispatch(), ChatterboxTtsEngine (+9 more)
 
-### Community 1047 - "02 — API, nullability, immutability, exceptions, resources"
+### Community 1047 - "SOTA Web Frameworks (2026)"
 Cohesion: 0.22
-Nodes (9): 02 — API, nullability, immutability, exceptions, resources, 1. Nullability is part of the type, 1a. In-band sentinels: `-1` is not absence, 2. Immutability and value semantics, 3. equals / hashCode / toString, 4. Exceptions in the API contract, 5. Resource lifecycle, 6. Module/package structure (+1 more)
+Nodes (9): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Scope boundaries (what lives elsewhere), Severity conventions, SOTA Web Frameworks (2026) (+1 more)
 
-### Community 1048 - "SOTA Shell Scripting"
-Cohesion: 0.29
-Nodes (7): AUDIT mode, BUILD mode, Cross-references, First decision: should this be shell at all?, Rules index, SOTA Shell Scripting, Top 10 non-negotiables
+### Community 1048 - "OrchestratorError"
+Cohesion: 0.38
+Nodes (7): assign_and_complete(), OrchestratorError, AgentNotFound, QueueFull, TaskNotFound, submit_task(), TaskAssignmentId
 
 ### Community 1049 - "01 — Methodology Selection & Continuous Threat Modeling"
 Cohesion: 0.12
 Nodes (16): 01 — Methodology Selection & Continuous Threat Modeling, 1. Decision table — which method, when, 2. STRIDE — per-element vs. per-interaction, 3. LINDDUN — privacy threats (run WITH STRIDE when PII flows), 4. PASTA — when business context must drive the model, 5. Attack trees, 6. Kill chains / ATT&CK, 7. Lightweight: the four questions beat heavyweight process when... (+8 more)
 
-### Community 1052 - "GovernorError"
-Cohesion: 0.29
-Nodes (4): GovernorError, ConcurrencyExceeded, MemoryExceeded, TimeoutExceeded
+### Community 1050 - "MessageType"
+Cohesion: 0.20
+Nodes (10): MessageType, MemoryStore, ProvideHelp, RequestHelp, ReviewRequest, ReviewResult, SecurityCheck, StatusUpdate (+2 more)
 
-### Community 1053 - "05 — Caching: Hierarchy, Invalidation, Stampedes"
-Cohesion: 0.18
-Nodes (11): 05 — Caching: Hierarchy, Invalidation, Stampedes, 1. The cache hierarchy — place data deliberately, 2. Cache key design, 3. Invalidation strategies, 4. Stampede protection (dogpile), 5. Write strategies and consistency, 6. Negative caching, 7. Metrics — a cache without metrics is unfalsifiable (+3 more)
+### Community 1051 - "sota-javascript-typescript/SKILL.md"
+Cohesion: 0.06
+Nodes (34): Audit checklist, Branded types for IDs and units, Discriminated unions are the workhorse, Enums: don't. Use unions or const objects, ESM-first and monorepo project references, Functions: generics, overloads, and shape, No `any`. Use `unknown` + narrowing, `satisfies` and `as const` (+26 more)
 
-### Community 1054 - "Process"
-Cohesion: 0.18
-Nodes (10): 2. Use Chapter Markers As Navigation, 3. Thumbnail Strategy, 4. Package By Platform, 5. Quality Gate, Common Pitfalls, Gate Reminder (Binding), Prerequisites, Process (+2 more)
+### Community 1052 - "03 — GraphQL"
+Cohesion: 0.15
+Nodes (13): 03 — GraphQL, 10. Caching and federation notes, 11. Evolution, 1. When GraphQL is the wrong choice, 2. Schema design, 3. N+1 and dataloaders, 4. Query cost controls — non-negotiable on any exposed endpoint, 5. Persisted queries (+5 more)
 
-### Community 1055 - "Quantization"
-Cohesion: 0.18
-Nodes (10): Quantization, F16, F32, Q4_0, Q4_K_M, Q4_K_S, Q5_0, Q5_K_M (+2 more)
+### Community 1053 - "executor/src/lib.rs"
+Cohesion: 0.24
+Nodes (6): executor_creates(), ExecutorRuntime, RetryPolicy, Exponential, Immediate, None
+
+### Community 1054 - "behavior_spec.rs"
+Cohesion: 0.27
+Nodes (7): InteractionContext, CodingTechnical, ComputerControl, GeneralCompanion, VoiceSpoken, OsmooBehaviorSpecification, test_behavior_spec_guidance_generation()
+
+### Community 1055 - "4. Triggering Tools from the Coding Agent or LLM"
+Cohesion: 0.15
+Nodes (12): 1. Storage & Database Layout, 2. Environment Variables & OAuth Configuration, 3. Starting the Daemon with Builtin Tools, 4.1 Create a Word Document:, 4.2 Schedule a Calendar Event with Recurrence:, 4.3 Search Email and Draft a Response:, 4.4 Search Flights & Hotels:, 4. Triggering Tools from the Coding Agent or LLM (+4 more)
 
 ### Community 1056 - "Doubt-Driven Development"
 Cohesion: 0.12
@@ -5056,17 +5117,29 @@ Nodes (15): Common Rationalizations, Cross-model escalation, Doubt-Driven Develo
 Cohesion: 0.12
 Nodes (15): 1. Define "working" before instrumenting, 2. Pick the right signal for each question, 3. Structured logging, 4. Metrics, 5. Distributed tracing, 6. Alerting, 7. Verify the telemetry itself, Common Rationalizations (+7 more)
 
-### Community 1060 - "06 — Performance"
-Cohesion: 0.18
-Nodes (11): 06 — Performance, 1. Profile first — tool selection, 2. The usual suspects (hot-loop killers), 3. Vectorize: numpy / polars over Python loops, 4. Caching with functools — and the caveats, 5. Concurrency model: threads vs processes vs asyncio, 6. Startup latency: lazy imports, 7. Memory (+3 more)
-
-### Community 1061 - "01 — Commands, Flags, Args & Configuration"
+### Community 1058 - "EntityType"
 Cohesion: 0.20
-Nodes (10): 01 — Commands, Flags, Args & Configuration, 1. Command grammar, 2. Flag syntax — POSIX/GNU, no improvisation, 3. Args vs flags vs stdin, 4. Defaults, 5. Dangerous operations, 6. Configuration precedence, 7. Environment variables (+2 more)
+Nodes (8): EntityType, Agent, Device, Home, Organization, Plugin, Service, User
+
+### Community 1059 - "ShowWindow"
+Cohesion: 0.20
+Nodes (6): maximize_window(), minimize_window(), restore_window(), set_foreground_window(), SetForegroundWindow(), ShowWindow()
+
+### Community 1061 - "03 — Kubernetes Network Policy Depth"
+Cohesion: 0.20
+Nodes (10): 03 — Kubernetes Network Policy Depth, 1. The two failure modes this file exists to kill, 2. The namespaced default-deny pattern (ingress AND egress), 3. Standard NetworkPolicy: powers and limits, 4. CiliumNetworkPolicy: identity, L7, FQDN, 5. Egress control & DNS-aware egress, 6. Cluster-scoped baselines: ANP / BANP (alpha — handle with care), 7. Hubble flow visibility (+2 more)
+
+### Community 1062 - "05 — Sandboxing AI & Agent Workloads"
+Cohesion: 0.22
+Nodes (9): 05 — Sandboxing AI & Agent Workloads, 1. Threat model: model output is attacker input, 2. Executing model-generated code, 3. Tool permission scoping, 4. Egress allowlists and resource limits, 5. Verification probe for agent sandboxes, 6. Multi-agent and computer-use specifics, 7. When your tool ingests other people's repositories (+1 more)
 
 ### Community 1063 - "Senior Open Source Engineer"
 Cohesion: 0.12
 Nodes (16): Failure modes to avoid, Final response standard, Operating posture, Phase 10: Engineering journal, Phase 1: Issue selection, Phase 2: Intake and framing, Phase 3: Repository adaptation, Phase 4: Architecture learning (+8 more)
+
+### Community 1064 - "04 — Security: CERT/MISRA, banned APIs, injection, hardened builds"
+Cohesion: 0.20
+Nodes (10): 04 — Security: CERT/MISRA, banned APIs, injection, hardened builds, 1. Banned and dangerous functions, 2. Input validation at the boundary, 3. Format-string and injection, 4. Cryptography and randomness, 5. Hardened build (the OpenSSF baseline), 5a. Windows / MSVC binary hardening, 6. Memory-safety strategy (the meta-control) (+2 more)
 
 ### Community 1065 - "07 — Vector Search & AI-Era Data"
 Cohesion: 0.12
@@ -5076,41 +5149,45 @@ Nodes (16): 07 — Vector Search & AI-Era Data, Audit checklist, Cost & capacity
 Cohesion: 0.12
 Nodes (16): 01 — Pipeline Security (CI workflows, tokens, triggers, runners), 1.10 Secrets hygiene in CI, 1.10a Bot PRs get no repository secrets — and a gate that needs one will fail, 1.11 Prove the pipeline runs — before you trust anything it reports, 1.11a Copying a step between sibling pipelines rebinds it to names the destination may not declare, 1.1 Least-privilege CI tokens, 1.2 OIDC to cloud — no stored cloud keys, 1.3 Pin actions by commit SHA (+8 more)
 
-### Community 1068 - "load_playbook"
-Cohesion: 0.20
-Nodes (5): init_project(), _validate_style_playbook(), Step 3: Write Checkpoint, list_playbooks(), load_playbook()
+### Community 1067 - "ExportBundle"
+Cohesion: 0.21
+Nodes (3): load_schema(), validate_artifact(), ExportBundle
 
-### Community 1069 - "07 — Visual Craft, Hierarchy & Anti-Generic Design"
-Cohesion: 0.12
-Nodes (16): 07 — Visual Craft, Hierarchy & Anti-Generic Design, 10. Imagery, illustration & data-viz craft, 10b. Deceptive patterns: auto-fail list, 11. Visual QA: the recurring pixel bugs, 12. Audit rubric (visual quality grading), 13. Build vs audit calibration, 1. Visual hierarchy: engineer the scan path, 2. Gestalt mechanics (the rules that actually do the work) (+8 more)
+### Community 1068 - "ContainerError"
+Cohesion: 0.25
+Nodes (5): ContainerError, DuplicateRegistration, LifecycleError, NotRegistered, ResolutionFailed
+
+### Community 1070 - "ExecutorError"
+Cohesion: 0.25
+Nodes (5): ExecutorError, ExecutionFailed, RollbackFailed, StepFailed, Timeout
 
 ### Community 1071 - "01 — Isolation Boundaries: Principles & Boundary Selection"
 Cohesion: 0.12
 Nodes (16): 01 — Isolation Boundaries: Principles & Boundary Selection, 1. Core principles, 2. Boundary strength ranking, 3. Choosing the boundary for the threat, 4. Reference stacks (known-good compositions), 5. Verifying a boundary (boundaries are claims until tested), 6. Anti-patterns (instant findings), A. Untrusted CODE (you intentionally execute attacker-supplied logic) (+8 more)
 
-### Community 1072 - "04 — SLOs & Alerting"
+### Community 1073 - "03 — Streaming & CDC"
 Cohesion: 0.20
-Nodes (10): 04 — SLOs & Alerting, 1. SLI selection: measure user journeys, not infrastructure, 2. SLOs and error budgets, 3. Burn-rate alerts: the multi-window pattern, 4. Alert quality rules, 5. Fighting alert fatigue (operational practice), 6. SLO spec template and recording rules, 7. Page vs ticket decision table (+2 more)
+Nodes (10): 03 — Streaming & CDC, Audit checklist, Backpressure, CDC patterns, DLQ & poison messages, Exactly-once reality, Kafka-style log fundamentals, Schema registry & evolution (+2 more)
 
-### Community 1073 - "SentenceChunker"
-Cohesion: 0.35
-Nodes (4): SentenceChunker, test_sentence_chunker_flush_trailing(), test_sentence_chunker_punctuation_breaks(), test_sentence_chunker_url_and_abbrev_preservation()
+### Community 1074 - "Credentials"
+Cohesion: 0.29
+Nodes (6): AuthResult, Credentials, ApiKey, DeviceToken, EmailOtp, LocalSession
 
-### Community 1074 - "03 — Test Doubles & Test Data"
-Cohesion: 0.04
-Nodes (43): 03 — Test Doubles & Test Data, 3.1 Doubles taxonomy — use the words precisely, 3.2 Mock only at architectural boundaries, 3.3 Don't mock what you don't own, 3.4 Fakes must be verified against the real thing, 3.5 Test data: builders/factories over fixture files, 3.6 Seeding strategies and referential integrity, 3.7 Production data in tests — caveats first (+35 more)
+### Community 1075 - "02 — Algorithmic & Data-Structure Performance"
+Cohesion: 0.20
+Nodes (10): 02 — Algorithmic & Data-Structure Performance, 1. N+1 anything, 2. Accidental quadratic, 3. Choose structures by access pattern, 4. Hidden complexity in innocent calls, 5. Batching, 6. Streaming vs materializing, 7. Move work out of the hot path (+2 more)
 
 ### Community 1078 - "02 — Microcopy: The Words in Components"
 Cohesion: 0.18
 Nodes (11): 02 — Microcopy: The Words in Components, 1. Buttons & action labels, 2. Labels, placeholders, hints, 3. Empty states: three different scripts, 4. Onboarding, tooltips & in-product education, 5. Confirmation dialogs, 6. Notifications, toasts & badges, 7. Counts, plurals, time & truncation (+3 more)
 
-### Community 1080 - "09 — Untrusted Data Ingestion"
-Cohesion: 0.25
-Nodes (8): 09 — Untrusted Data Ingestion, 1. Treat the ingest boundary as a trust boundary, 2. Hostile parsers — sandbox them (the big one), 3. Resource & DoS controls at the ingest boundary, 4. Schema & content validation at the boundary, 5. Pipeline trust hygiene, 6. The exits — render and LLM boundaries, Audit checklist
+### Community 1080 - "03 — Behavior & Lifecycle"
+Cohesion: 0.17
+Nodes (12): 03 — Behavior & Lifecycle, 1. Startup performance, 2. Idempotency & dry-run, 2a. `--self-test` for tools whose output is a verdict, 3. Signals: Ctrl-C is sacred, 4. Crash-only, resumable design, 5. Network behavior, offline & self-update, 6. Telemetry & files on disk (+4 more)
 
-### Community 1081 - "04 — Event-Loop Hygiene: Never Block the Loop"
-Cohesion: 0.18
-Nodes (10): 04 — Event-Loop Hygiene: Never Block the Loop, Audit checklist, Detecting a blocked loop (build it in; check for it in audits), Long-task chunking, Microtask vs macrotask (JS — and the asyncio analogue), Offloading correctly, Sneaky blockers (audit-grade list), Sync-over-async: the self-deadlock (+2 more)
+### Community 1081 - "02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities"
+Cohesion: 0.20
+Nodes (10): 02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities, 1. Namespaces, 2. cgroups v2, 3. seccomp-bpf, 4. Landlock, 5. Capabilities, 6. LSMs: AppArmor / SELinux, 7. Filesystem & misc hardening (+2 more)
 
 ### Community 1082 - "Using Agent Skills"
 Cohesion: 0.13
@@ -5120,9 +5197,9 @@ Nodes (14): 1. Surface Assumptions, 2. Manage Confusion Actively, 3. Push Back W
 Cohesion: 0.13
 Nodes (14): Adaptation rules, Build system and tooling heuristics, CI, Commit history, Configuration files, Contribution docs, Deliverable from this phase, Preferred search order (+6 more)
 
-### Community 1084 - "01 — REST/HTTP API Design"
-Cohesion: 0.13
-Nodes (15): 01 — REST/HTTP API Design, 10. OpenAPI-first vs code-first; contract testing, 11. Async operations (202 pattern), 12. Bulk and batch endpoints, 13. Misc non-negotiables, 1. Resource modeling, 2. HTTP method semantics, 3. Status codes — the ones that matter (+7 more)
+### Community 1084 - "WorkflowStage"
+Cohesion: 0.20
+Nodes (9): WorkflowStage, Baseline, CorrectAndReverify, Implement, Plan, Report, ReviewIndependently, Understand (+1 more)
 
 ### Community 1085 - "05 — WebSockets, SSE & Realtime"
 Cohesion: 0.13
@@ -5132,17 +5209,13 @@ Nodes (15): 05 — WebSockets, SSE & Realtime, 1. Choosing the transport, 2.1 Au
 Cohesion: 0.13
 Nodes (15): 04 — Resilience & Failure Design, 10. Rate limiting: protect yourself and your dependencies, 11. Hedging and tail-latency control, 12. Failure-mode analysis as a design step, 13. Disaster recovery is resilience at the largest blast radius, 1. Timeouts: every remote call, no exceptions, 2. Retries: bounded, jittered, idempotent-only, 3. Circuit breakers: stop calling the dead (+7 more)
 
-### Community 1087 - "07 — Anti-Patterns Catalog"
-Cohesion: 0.13
-Nodes (15): 07 — Anti-Patterns Catalog, 10. Resume-driven and dogma-driven architecture, 11. Lava layer / strangler that never strangles, 12. Snowflake environments and config sprawl, 13. Smaller but deadly (quick list), 1. Distributed monolith, 2. Shared database integration, 3. God service / god module / god aggregate (+7 more)
-
 ### Community 1088 - "2. Where silent no-ops hide"
 Cohesion: 0.13
 Nodes (15): 16 — Where silent no-ops hide: the catalogue, 2.10–2.14 — the control that is not in force, 2.15 A flag that parses is not a feature that works, 2.16 The aggregate that masks the detection, 2.1 Weak existence checks standing in for real artifacts, 2.2 Optional-dependency degradation, 2.3 Empty or placeholder data loaded as real, 2.4 Swallowed exceptions on the enforcement path (+7 more)
 
-### Community 1089 - "03 — Remote Attestation: Verify Before You Trust"
-Cohesion: 0.22
-Nodes (9): 03 — Remote Attestation: Verify Before You Trust, 1. The RATS architecture (RFC 9334) — the map for every vendor diagram, 2. Attest-then-release — the only pattern that counts, 3. What Evidence must contain — and the hard verification rules, 4. Choosing a Verifier: hosted vs self-hosted, 5. Measurements, reference values, and TCB recovery, 6. Attested channels (RA-TLS), 7. Freshness, revocation, and monitoring (+1 more)
+### Community 1089 - "Hardening Controls"
+Cohesion: 0.17
+Nodes (12): AI / LLM features, Authentication and sessions, Dependencies and supply chain, Destructive operations on derived paths, Hardening Controls, Headers, CORS, and responses, Injection, XSS, and access control, Input validation and uploads (+4 more)
 
 ### Community 1090 - "2. Detections (vendor-neutral logic sketches)"
 Cohesion: 0.13
@@ -5156,53 +5229,53 @@ Nodes (15): 02 — Artifact Provenance & Signing (SLSA, in-toto, Sigstore), 2.1 
 Cohesion: 0.13
 Nodes (15): 03 — Dependencies & Supply Chain (lockfiles, registries, SBOM, scanning, updates), 3.1 Lockfiles always, installs frozen, 3.2 Dependency review gates, 3.3 Dependency confusion & registry scoping, 3.4.1 Lockfile poisoning in PRs, 3.4 Typosquatting & malicious-package indicators, 3.5 SBOM generation (CycloneDX / SPDX), 3.6 Vulnerability scanning with triage discipline (+7 more)
 
-### Community 1093 - "03 — Design Systems, Tokens & Component APIs"
-Cohesion: 0.13
-Nodes (15): 03 — Design Systems, Tokens & Component APIs, 1. Design tokens: three tiers, W3C format, 1b. Token naming & governance, 2. Component API: composition over configuration, 3. Controlled / uncontrolled: support both, 4. State completeness: the 9-state contract, 5. Headless + styled layers, 5b. Styling strategy & encapsulation (+7 more)
+### Community 1093 - "04 — Compute Selection: Serverless, Containers, Kubernetes, VMs"
+Cohesion: 0.22
+Nodes (9): 04 — Compute Selection: Serverless, Containers, Kubernetes, VMs, 1. The decision tree — simplest thing that meets requirements, 2. Serverless patterns, 3. Kubernetes architecture essentials, 4. VMs (when you must), Audit checklist, Autoscaling — three layers, configure all deliberately, Cluster operations (+1 more)
 
 ### Community 1094 - "05 — Security: injection, paths, TLS, integers, supply chain"
 Cohesion: 0.13
 Nodes (15): 05 — Security: injection, paths, TLS, integers, supply chain, 1. Input validation at trust boundaries, 2. SQL — parameterized always, 3. os/exec — argv, never shell, 4. Path traversal, 4a. Temp files, directories and permissions, 4b. SSH host keys and untrusted deserialization, 4c. SSRF — outbound requests to a caller-influenced destination (+7 more)
 
-### Community 1095 - "03 — Idioms, Pitfalls, Exceptions & Logging"
-Cohesion: 0.15
-Nodes (13): 01 — Tooling & Project Setup, 10. Repo hygiene quick list, 1. uv is the default toolchain, 2. pyproject.toml — single source of truth, 3. ruff replaces flake8 + black + isort + pyupgrade, 4. Type checking — one strict checker, enforced in CI, 5. src/ layout, 6. pre-commit — fast checks only (+5 more)
-
 ### Community 1096 - "2. Detailed Verification by Capability"
 Cohesion: 0.20
 Nodes (9): 1. Traceability Overview, 2.1 Planning & DAG Task Decomposition, 2.2 Context Exploration & Workspace Traversal, 2.3 Safe Multi-File Editing & Crash Journal, 2.4 Bounded Execution & Win32 Job Objects, 2.5 Strict Provider & Model Routing (Zero Fallback), 2. Detailed Verification by Capability, OSMOO Coding Harness: Source Code Traceability Matrix (+1 more)
 
-### Community 1098 - "04 — Security: CERT/MISRA, banned APIs, injection, hardened builds"
-Cohesion: 0.20
-Nodes (10): 04 — Security: CERT/MISRA, banned APIs, injection, hardened builds, 1. Banned and dangerous functions, 2. Input validation at the boundary, 3. Format-string and injection, 4. Cryptography and randomness, 5. Hardened build (the OpenSSF baseline), 5a. Windows / MSVC binary hardening, 6. Memory-safety strategy (the meta-control) (+2 more)
+### Community 1097 - "13 — Context-Dependent Silence: correct here, broken there"
+Cohesion: 0.22
+Nodes (9): 13 — Context-Dependent Silence: correct here, broken there, 1. Scale-dependent silence — correct small, broken large, 2. Stale-artifact no-op — a key narrower than the behaviour, 3. Format assumption generalised from one sample, 4. Contract drift by interaction — the seam nobody declared, 4a. The defaulted read — and the seam whose producer is a model, 5. Location-dependent silence — correct here, empty there, 6. An empty result that never names the store it queried (+1 more)
+
+### Community 1098 - "sota-c-cpp/rules/04-security.md"
+Cohesion: 0.07
+Nodes (34): 02 — Memory safety: lifetimes, bounds, use-after-free, sanitizers, 1. The bug classes, 2. Bounds: never index memory you didn't size-check, 3. Lifetimes: own clearly, observe carefully, 4. Iterator and reference invalidation, 5. Sanitizers — the ground truth, 6. Allocation hygiene, Audit checklist (+26 more)
 
 ### Community 1099 - "resolveAsset"
 Cohesion: 0.07
 Nodes (36): CardFlash(), CollageBurst(), CollageBurstProps, CollageCard(), CollageClip, CollageTransition, { fontFamily: playfairFamily }, { fontFamily: playfairItalic } (+28 more)
 
-### Community 1100 - "02 — IAM Design"
+### Community 1101 - "04 — gRPC, Protobuf Evolution & Protocol Choice"
 Cohesion: 0.20
-Nodes (10): 02 — IAM Design, 1. Humans: federated SSO, short-lived sessions, zero static keys, 2. Workloads: platform-issued identity, never embedded keys, 3. Policy authoring rules, 4. Permission boundaries & delegated administration, 5. Least privilege is iterative — wire the loop, 6. Cross-account / cross-project access, 7. Break-glass (+2 more)
+Nodes (10): 04 — gRPC, Protobuf Evolution & Protocol Choice, 1. Choosing the protocol, 2. Proto evolution — the field-number contract, 3. Deadlines everywhere, 4. Streaming patterns, 5. Service design patterns (steal from AIPs), 6. Errors and metadata, 7. gRPC-Web, Connect, and the browser (+2 more)
 
-### Community 1101 - "reflection/src/lib.rs"
-Cohesion: 0.24
-Nodes (6): Outcome, Failure, Partial, Success, reflection_creates(), ReflectionEngine
+### Community 1102 - "Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance"
+Cohesion: 0.29
+Nodes (7): 1. Reproduction steps — a field of its own on every finding, 2. Tracking fields — optional, but all-or-nothing once used, 3. Report provenance — who reviewed, against which checklist, 4. A verdict is bound to the commit it was made at, 5. A fix is verified by three runs, not one, Audit checklist — quality gate on reproduction, tracking and provenance, Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance
 
 ### Community 1103 - "Spec-Driven Development"
 Cohesion: 0.14
 Nodes (13): Common Rationalizations, Keeping the Spec Alive, Overview, Phase 0: Scope Check, Phase 1: Specify, Phase 2: Plan, Phase 3: Tasks, Phase 4: Implement (+5 more)
 
-### Community 1104 - "05 — Scalability, State & Data Architecture"
-Cohesion: 0.14
-Nodes (14): 05 — Scalability, State & Data Architecture, 10. Hot keys and skew, 11. Derived data and projections, 12. Large objects and blob handling, 1. Stateless services by default, 2. Scale out, not up; know your bottleneck first, 3. The database is the hard part, 4. Caching: every cache is a consistency decision (+6 more)
+### Community 1104 - "PlannerError"
+Cohesion: 0.29
+Nodes (4): PlannerError, DependencyCycle, InvalidGoal, PlanningFailed
 
-### Community 1105 - "06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition)"
-Cohesion: 0.14
-Nodes (14): 06 — Cloud-Native Operations, Config & Delivery (12-Factor, 2026 Edition), 10. Supply-chain integrity, 11. Environments: ephemeral over snowflake, 12. Telemetry cost and cardinality discipline, 1. Build/release/run: one artifact, promoted everywhere, 2. Config: environment-injected, schema-validated, secrets separate, 3. Processes, disposability, and concurrency, 4. Observability is a launch requirement (the 13th factor) (+6 more)
+### Community 1105 - "EntityType"
+Cohesion: 0.22
+Nodes (9): EntityType, Application, Command, Concept, Date, File, Number, Person (+1 more)
 
-### Community 1106 - "SOTA JVM — Java & Kotlin (2026)"
-Cohesion: 0.25
-Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA JVM — Java & Kotlin (2026), Top-10 non-negotiables
+### Community 1106 - "SceneTrigger"
+Cohesion: 0.22
+Nodes (7): SceneConfig, SceneDeviceState, SceneTrigger, DeviceEvent, Manual, TimeSchedule, VoiceCommand
 
 ### Community 1107 - "02 — IdP Operations"
 Cohesion: 0.20
@@ -5228,13 +5301,13 @@ Nodes (14): 04 — Build Integrity & Containers (hermetic builds, Dockerfiles, b
 Cohesion: 0.14
 Nodes (14): 02 — Layout, Spacing & Responsive (Modern CSS), 10. Scrolling & overflow discipline, 1. Spacing system: 4/8pt grid, tokenized, 2. Grid is the default; flexbox is for one axis, 3. Container queries: components respond to their container, 3b. Intrinsic sizing & layout primitives, 3c. Viewport units & mobile chrome, 4. Media queries that remain (+6 more)
 
-### Community 1113 - "06 — Motion Design & Animation Engineering"
-Cohesion: 0.14
-Nodes (14): 06 — Motion Design & Animation Engineering, 1. Purpose test — every animation must answer one, 2. Duration & easing: the numeric standards, 3. Choreography, 4. Technique selection: CSS vs WAAPI vs FLIP vs libraries, 4b. Micro-interaction catalog (the standard answers), 4c. View Transitions recipe, 5. Performance: the compositor contract (+6 more)
+### Community 1113 - "human_dynamics/src/types.rs"
+Cohesion: 0.12
+Nodes (21): HdrInput, RecoveryAction, RecoveryRecord, TrustEvent, TrustEventKind, Correction, FalseAlarm, ManualOverride (+13 more)
 
-### Community 1114 - "JavaScript/TypeScript Security"
-Cohesion: 0.14
-Nodes (14): Audit checklist, CSP integration, Invisible and bidirectional characters in source, JavaScript/TypeScript Security, Native addons and uninitialized buffers, npm supply chain, Open redirects and file uploads, postMessage and cross-origin (+6 more)
+### Community 1114 - "RouterError"
+Cohesion: 0.22
+Nodes (6): RouterError, AllProvidersExhausted, CircuitBreakerOpen, NoProviderAvailable, ProviderError, RoutingFailed
 
 ### Community 1115 - "Performance: Bundles, React, Memory, Event Loop"
 Cohesion: 0.14
@@ -5268,17 +5341,17 @@ Nodes (14): 02 — Robustness & Correctness, 10. Filenames are hostile input, 1.
 Cohesion: 0.14
 Nodes (14): 02 — System Decomposition: DFDs, Trust Boundaries, and Extraction from Code, 1. DFD element vocabulary, 2. Trust boundaries — the load-bearing concept, 3. Entry points, assets, actors, privilege levels, 4. Worked mini-example — 10-line DFD with threats, 5. Entry-point extraction by mechanism, 6. Stores, flows, and assets from code, 7. Inferring trust boundaries from an existing system (+6 more)
 
-### Community 1123 - "02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities"
-Cohesion: 0.20
-Nodes (10): 02 — Linux OS-Level Primitives: namespaces, cgroups, seccomp, Landlock, LSMs, capabilities, 1. Namespaces, 2. cgroups v2, 3. seccomp-bpf, 4. Landlock, 5. Capabilities, 6. LSMs: AppArmor / SELinux, 7. Filesystem & misc hardening (+2 more)
+### Community 1123 - "KPIGrid.tsx"
+Cohesion: 0.33
+Nodes (6): formatDisplayValue(), KPIAnimationStyle, KPICardContent(), KPICardContentProps, KPIGridProps, Metric
 
-### Community 1124 - "WorkflowStatus"
-Cohesion: 0.20
-Nodes (10): WorkflowStatus, Cancelled, Completed, Created, Failed, Paused, Queued, Running (+2 more)
+### Community 1124 - "CharacterTrait"
+Cohesion: 0.22
+Nodes (9): CharacterTrait, Assertiveness, Conciseness, Creativity, Custom, Empathy, Formality, Humor (+1 more)
 
-### Community 1125 - "01 — Idioms: RAII, ownership, value semantics, error handling"
-Cohesion: 0.14
-Nodes (14): 01 — Idioms: RAII, ownership, value semantics, error handling, 1. RAII and the rule of zero/five, 2. Ownership: smart pointers, not raw owning pointers, 3. Value semantics and move, 4. const, constexpr, and immutability, 5. References vs pointers, and casts, 6. Type-system leverage, 7. Error handling: exceptions vs expected vs codes (+6 more)
+### Community 1125 - "fixtures/mod.rs"
+Cohesion: 0.33
+Nodes (8): DEFAULT_MODELS, ModelCatalogItem, PROVIDER_CATALOG, ProviderCatalogItem, SUBSCRIPTION_PLANS, SubscriptionTier, VOICE_CATALOG, VoiceModelItem
 
 ### Community 1126 - "Source-Driven Development"
 Cohesion: 0.15
@@ -5292,17 +5365,17 @@ Nodes (7): ENGINEERING_LOG Entry Template, Commit Message Template, Conventional
 Cohesion: 0.15
 Nodes (12): Competition signals, Deliverable from this phase, Engineering value assessment, High-value issue types (ranked), Issue Selection Rules, Low-value issue types (avoid), Merge likelihood signals, Red flags — skip these issues (+4 more)
 
-### Community 1129 - "sota/SKILL.md"
-Cohesion: 0.07
-Nodes (17): 17 — Sessions & Tokens, 2. Session management (CWE-384, CWE-613), 3. JWT pitfalls (CWE-345, CWE-347), Audit checklist, 18 — Tamper-Evident Logs & Audit Ledgers, 1. Tamper-evident logs & audit ledgers (NIST AU-9/AU-10), 2. Signed request/response exchanges and receipts, Audit checklist (+9 more)
+### Community 1129 - "sota-performance/SKILL.md"
+Cohesion: 0.04
+Nodes (50): 01 — Methodology: Measure, Budget, Decide, Protect, 10. Performance regression testing in CI, 1. Measure first — with the right instrument, 2. Reading flamegraphs, 3. Benchmarks that don't lie, 4. Percentiles, not averages, 5. Orders of magnitude — internalize this table, 6. USE and RED (+42 more)
 
-### Community 1130 - "03 — GraphQL"
-Cohesion: 0.15
-Nodes (13): 03 — GraphQL, 10. Caching and federation notes, 11. Evolution, 1. When GraphQL is the wrong choice, 2. Schema design, 3. N+1 and dataloaders, 4. Query cost controls — non-negotiable on any exposed endpoint, 5. Persisted queries (+5 more)
+### Community 1130 - "01 — REST/HTTP API Design"
+Cohesion: 0.13
+Nodes (15): 01 — REST/HTTP API Design, 10. OpenAPI-first vs code-first; contract testing, 11. Async operations (202 pattern), 12. Bulk and batch endpoints, 13. Misc non-negotiables, 1. Resource modeling, 2. HTTP method semantics, 3. Status codes — the ones that matter (+7 more)
 
-### Community 1131 - "05 — Operational Readiness"
-Cohesion: 0.17
-Nodes (12): 05 — Operational Readiness, 1. Health endpoints: liveness ≠ readiness ≠ startup, 2. Graceful degradation must be visible, 3. Debug endpoints: powerful and dangerous, 4. Profiling in production, 5. Crash reporting & error tracking (Sentry-style), 6. Shutdown, crashes, and the last 10 seconds, 7. Dashboards that answer questions (+4 more)
+### Community 1131 - "02 — IAM Design"
+Cohesion: 0.20
+Nodes (10): 02 — IAM Design, 1. Humans: federated SSO, short-lived sessions, zero static keys, 2. Workloads: platform-issued identity, never embedded keys, 3. Policy authoring rules, 4. Permission boundaries & delegated administration, 5. Least privilege is iterative — wire the loop, 6. Cross-account / cross-project access, 7. Break-glass (+2 more)
 
 ### Community 1132 - "14 — The Control That Is Not In Force"
 Cohesion: 0.15
@@ -5311,6 +5384,10 @@ Nodes (13): 14 — The Control That Is Not In Force, 1. Unearned claims in repor
 ### Community 1133 - "04 — Confidential Kubernetes: Nodes, Pods & Confidential Containers"
 Cohesion: 0.15
 Nodes (13): 04 — Confidential Kubernetes: Nodes, Pods & Confidential Containers, 1. Two layers, two threat models, 2. Confidential nodes (managed offerings), 3. Confidential pods: the CoCo stack, 4. What changes operationally, 5. Image supply chain interplay, 6. Choosing a deployment shape, 7. Honest limitations (state these in every design doc) (+5 more)
+
+### Community 1134 - "05 — Security & Supply Chain"
+Cohesion: 0.09
+Nodes (20): 05 — Security & Supply Chain, 1. Dependency auditing in CI — cargo audit & cargo deny, 2. Vetting dependencies — cargo vet / supply-chain hygiene, 3. Integer overflow — release mode wraps, 4. Panics as DoS, 5. Secrets in memory — zeroize & constant time, 6. Parsing untrusted input — serde hardening, 7. Service-edge defaults (+12 more)
 
 ### Community 1135 - "01 — Federation Protocols & Their Attack Catalog"
 Cohesion: 0.15
@@ -5336,9 +5413,9 @@ Nodes (13): 05 — Performance & Quality, 5.1 Main-thread discipline is rule zer
 Cohesion: 0.22
 Nodes (8): 1.1 Windows Job Objects vs. Sandboxing Reality, 1. Security Architecture & Boundary Definition, 2. Path Traversal & Filesystem Guards, 3. Secret Detection & Static Review Guardrails, 4.1 In-Flight Transaction Rollback, 4.2 Durable Crash Recovery, 4. Transactional Atomic Rollback & Crash Recovery, Security Invariants & Crash Recovery Audit
 
-### Community 1141 - "07 — PowerShell (`pwsh`) — CI steps, deploy scripts, entrypoints"
-Cohesion: 0.06
-Nodes (32): 01 — Safety Baseline, 1. Shebang discipline, 2. The preamble and what `set -e` actually does, 2a. A background job's completion signal is about the launcher, 2b. A non-zero exit is evidence about one attempt, not about the world, 3. Quoting: quote every expansion (SC2086), Audit checklist, 04 — CI & Operational Scripts (+24 more)
+### Community 1141 - "04 — Data Quality & Contracts"
+Cohesion: 0.22
+Nodes (9): 04 — Data Quality & Contracts, Anomaly detection caution, Audit checklist, Data contracts at the producer boundary, Data incident response, Expectation testing — the core battery, Lineage, Severity tiers: block vs warn (+1 more)
 
 ### Community 1142 - "04 — Supply chain & tooling: Bundler, linting, scanning, CI"
 Cohesion: 0.15
@@ -5348,37 +5425,37 @@ Nodes (13): 04 — Supply chain & tooling: Bundler, linting, scanning, CI, 1.1 C
 Cohesion: 0.15
 Nodes (13): 05 — Outputs & Operationalization, 1. The threat model document — template, 2. Security requirements backlog, 3. Abuse cases as test cases, 4. Keeping the model living, 5. PR security-notes template (paste into PR template), 6. Threat-model review session format (when a workshop IS warranted), 7. Program health metrics (measure the machinery, not threat counts) (+5 more)
 
-### Community 1144 - "ModelFamily"
+### Community 1144 - "02 — Segmentation & Blast-Radius Containment"
 Cohesion: 0.22
-Nodes (9): ModelFamily, DeepSeek, Gemma, Llama, Mistral, Phi, Piper, Qwen (+1 more)
+Nodes (9): 02 — Segmentation & Blast-Radius Containment, 1. North-south vs east-west; segment both, 2. The flat-network anti-pattern, 3. The over-broad-rule trap (`any` / `0.0.0.0/0` / `world`), 4. Microsegmentation & choke points, 5. Stateful firewall / security-group policy, 6. Remote access: WireGuard vs ZTNA, bastion vs identity-aware proxy, 7. Containment in depth (+1 more)
 
-### Community 1145 - "CharacterTrait"
+### Community 1145 - "03 — Errors, Warnings & Feedback"
 Cohesion: 0.22
-Nodes (9): CharacterTrait, Assertiveness, Conciseness, Creativity, Custom, Empathy, Formality, Humor (+1 more)
+Nodes (9): 03 — Errors, Warnings & Feedback, 1. The error contract: what happened → why → what now, 2. Framing: the system takes the blame, 3. Validation messages: state the rule, not the verdict, 4. Security-sensitive errors: precise inside, vague outside, 5. Warnings vs errors vs info: spend alarm carefully, 6. Success & completion feedback, 7. Asking for things: permissions, upsells, reviews (+1 more)
 
 ### Community 1146 - "Refinement & Evaluation Criteria"
 Cohesion: 0.17
 Nodes (11): 1. User Value, 2. Feasibility, 3. Differentiation, Assumption Audit, Core Evaluation Dimensions, Decision Framework, Might Be True (Nice to Have), Must Be True (Dealbreakers) (+3 more)
 
 ### Community 1147 - "Hardening Patterns"
-Cohesion: 0.11
-Nodes (18): Broken Access Control, Broken Authentication, Cross-Site Scripting (XSS), Data Classification, Dependency Audit Triage, Destructive Operations on Derived Paths, File Upload Safety, Hardening Patterns (+10 more)
-
-### Community 1148 - "Hardening Controls"
 Cohesion: 0.17
-Nodes (12): AI / LLM features, Authentication and sessions, Dependencies and supply chain, Destructive operations on derived paths, Hardening Controls, Headers, CORS, and responses, Injection, XSS, and access control, Input validation and uploads (+4 more)
+Nodes (10): Data Classification, Dependency Audit Triage, Destructive Operations on Derived Paths, File Upload Safety, Hardening Patterns, Input Validation Patterns, LLM Output Handling, Rate Limiting (+2 more)
 
-### Community 1149 - "Security and Hardening"
-Cohesion: 0.14
-Nodes (12): Always Do (No Exceptions), Ask First (Requires Human Approval), Common Rationalizations, Never Do, Overview, Process: Threat Model First, Red Flags, Review Checklist (+4 more)
+### Community 1148 - "04 — Event-Loop Hygiene: Never Block the Loop"
+Cohesion: 0.18
+Nodes (10): 04 — Event-Loop Hygiene: Never Block the Loop, Audit checklist, Detecting a blocked loop (build it in; check for it in audits), Long-task chunking, Microtask vs macrotask (JS — and the asyncio analogue), Offloading correctly, Sneaky blockers (audit-grade list), Sync-over-async: the self-deadlock (+2 more)
+
+### Community 1149 - "AgentRole"
+Cohesion: 0.22
+Nodes (6): AgentRole, Architect, QaTester, Reviewer, SpecialistWorker, Supervisor
 
 ### Community 1150 - "07 — API Security & Operations"
 Cohesion: 0.17
 Nodes (12): 07 — API Security & Operations, 1. Authentication schemes — choosing, 2. Rate limiting, 3. Request size limits & input hygiene, 3a. HTTP message framing & request smuggling, 4. Timeout budgets, 5. CORS for APIs, 6. Audit logging (+4 more)
 
-### Community 1151 - "03 — Behavior & Lifecycle"
-Cohesion: 0.17
-Nodes (12): 03 — Behavior & Lifecycle, 1. Startup performance, 2. Idempotency & dry-run, 2a. `--self-test` for tools whose output is a verdict, 3. Signals: Ctrl-C is sacred, 4. Crash-only, resumable design, 5. Network behavior, offline & self-update, 6. Telemetry & files on disk (+4 more)
+### Community 1151 - "SkillsEvent"
+Cohesion: 0.20
+Nodes (7): SkillsEvent, CapabilityDiscovered, SkillExecutionCompleted, SkillExecutionFailed, SkillExecutionStarted, SkillRegistered, SkillUnregistered
 
 ### Community 1152 - "02 — Authentication, Sessions, Tokens"
 Cohesion: 0.17
@@ -5396,13 +5473,9 @@ Nodes (12): 02 — TEE Technologies: Landscape & Selection, 1.1 AMD SEV-SNP — 
 Cohesion: 0.17
 Nodes (12): 07 — Runtime Enforcement & Operations (admission, policy as code, logging, recovery), 7.1 Admission control: only verified images run, 7.2 Policy as code (OPA / Kyverno) — beyond image verification, 7.3.1 High-signal detections for the delivery chain, 7.3.2 Containment for a trusted dependency that turns malicious, 7.3 Incident-ready logging & deployment traceability, 7.4.1 Recovery scope matrix (verify each cell has an owner and a tested procedure), 7.4 Backup & restore testing (+4 more)
 
-### Community 1156 - "03 — Undefined behavior and the optimizer"
-Cohesion: 0.22
-Nodes (9): 03 — Undefined behavior and the optimizer, 1. The high-frequency UB catalog, 2. Integer overflow and conversions, 3. Strict aliasing and type punning, 4. Alignment, object lifetime, and pointer provenance, 5. Data races are UB (see [rules/05](05-concurrency.md)), 6. Tooling: make UB visible, 7. C++26 contracts are not input validation (+1 more)
-
 ### Community 1157 - "05 — Accessibility (WCAG 2.2 AA Floor)"
-Cohesion: 0.04
-Nodes (52): 05 — Accessibility (WCAG 2.2 AA Floor), 1. Semantic HTML first; ARIA is a last resort, 2. ARIA, when actually needed, 2b. Recipe: the three widgets that cause 80% of ARIA bugs, 3. Keyboard navigation & focus management, 4. Forms, errors, and live regions, 5. Visual & motion criteria (cross-references), 5b. WCAG 2.2 delta — the criteria added since 2.1 (+44 more)
+Cohesion: 0.15
+Nodes (13): 05 — Accessibility (WCAG 2.2 AA Floor), 1. Semantic HTML first; ARIA is a last resort, 2. ARIA, when actually needed, 2b. Recipe: the three widgets that cause 80% of ARIA bugs, 3. Keyboard navigation & focus management, 4. Forms, errors, and live regions, 5. Visual & motion criteria (cross-references), 5b. WCAG 2.2 delta — the criteria added since 2.1 (+5 more)
 
 ### Community 1158 - "3. Subsystem Breakdown and Audit Details"
 Cohesion: 0.20
@@ -5420,17 +5493,13 @@ Nodes (12): 01 — Platform & Stack Choice, 1.1 Choose the stack from team and p
 Cohesion: 0.17
 Nodes (12): 02 — Architecture & State, 2.1 Unidirectional data flow, exactly one pattern per codebase, 2.2 Model UI state as a closed type, not a pile of booleans, 2.3 State must survive process death and configuration change, 2.4 Effects are owned by the state owner and tied to lifecycle, 2.5 Dependency injection: constructor injection behind interfaces, one composition root, 2.6 Modularize for build time and ownership, not aesthetics, 2.7 Navigation is declarative, centralized, and deep-link-addressable (+4 more)
 
-### Community 1162 - "hardware/src/lib.rs"
-Cohesion: 0.08
-Nodes (7): HardwareEvent, AudioLevelChanged, DeviceConnected, DeviceDisconnected, DeviceError, HardwareStatusChanged, HardwareInfo
+### Community 1163 - "sota-golang/SKILL.md"
+Cohesion: 0.04
+Nodes (49): 03 — Concurrency: goroutines, channels, sync, races, 1. Goroutine lifecycle ownership, 2. Goroutine leak catalog, 3. Channels vs mutexes, 4. sync primitives, 5. Data races, 6. Bounding concurrency: pools and semaphores, Audit checklist (+41 more)
 
-### Community 1163 - "01 — Secret Lifecycle & Workload Identity"
+### Community 1164 - "TaskStatus"
 Cohesion: 0.22
-Nodes (9): 01 — Secret Lifecycle & Workload Identity, 1. Generation, 2. Distribution, 3. Rotation, revocation, expiry, 4. Short-lived beats long-lived — the workload identity ladder, 5. GitHub Actions OIDC (and CI federation generally), 6. Dynamic secrets in practice, 7. Storage policy summary (+1 more)
-
-### Community 1164 - "08 — Registry Security (the registry as a supply-chain trust anchor)"
-Cohesion: 0.20
-Nodes (10): 08 — Registry Security (the registry as a supply-chain trust anchor), 8.1 The trust-anchor model — why this is tier-0, 8.2 AuthN/AuthZ — no anonymous write, least-privilege everything, 8.3 Image integrity & immutability — defeating tag mutation, 8.4 Vulnerability management at the registry, 8.5 Supply-chain pull hygiene, 8.6 Retention, GC & availability — without breaking running deploys, 8.7 Network & deployment hardening of the registry (+2 more)
+Nodes (7): TaskStatus, Cancelled, Completed, Failed, InProgress, Paused, Pending
 
 ### Community 1165 - "04 — Async: Structured Concurrency Done Right"
 Cohesion: 0.17
@@ -5440,17 +5509,21 @@ Nodes (12): 04 — Async: Structured Concurrency Done Right, 10. Testing async c
 Cohesion: 0.17
 Nodes (12): 02 — Error Handling & Panic Policy, 1. The library/application split, 2. Designing library error types, 3. Context discipline, 4. unwrap/expect policy, 5. Panics: when, and what they cost, 6. Option/Result flow patterns, 6a. Don't unwrap an Option back into a sentinel (+4 more)
 
-### Community 1167 - "Rules 05 — Production Engineering"
+### Community 1167 - "2. Threat Vector Analysis & Implemented Defenses"
 Cohesion: 0.20
-Nodes (10): 1. Model selection & routing, 2. Rate limits, retries, and errors, 3. Latency engineering, 4. Cost engineering, 5. Observability, 6. Graceful degradation, 7. Versioning & rollout, 8. Generated media: provenance and likeness (+2 more)
+Nodes (9): 1. Security Architecture Principles, 2.1 Threat Vector 1: Accidental or Malicious Email Dispatch, 2.2 Threat Vector 2: Financial Hazard & Credit Card Leakage, 2.3 Threat Vector 3: Path Traversal & Unauthorized File Access, 2.4 Threat Vector 4: Unbounded Desktop Automation & Runaway Scripts, 2.5 Threat Vector 5: Audit Log Tampering, 2. Threat Vector Analysis & Implemented Defenses, 3. Summary of Security Test Results (+1 more)
 
 ### Community 1168 - "02 — Test Design & Quality"
 Cohesion: 0.17
 Nodes (12): 02 — Test Design & Quality, 2.10 Which method a durable guard is written in, 2.1 Test behavior, not implementation, 2.2 Arrange–Act–Assert, visibly, 2.3 One logical assertion per test, 2.4 Naming is specification, 2.5 Independence and isolation, 2.6 Determinism: inject clock, randomness, and network (+4 more)
 
-### Community 1169 - "01 — Org, Accounts & Governance"
+### Community 1169 - "03 — Rule Languages & Detection Engines"
 Cohesion: 0.22
-Nodes (9): 01 — Org, Accounts & Governance, 1. Accounts/projects are the unit of isolation, 2. Organize by OU/folder, attach policy at the container, 3. Guardrails: preventive controls at the org layer, 4. Centralized logging and billing, 5. Tagging/labeling standard — non-negotiable, 6. Landing zone: bootstrap once, vend forever, 7. Anti-patterns (+1 more)
+Nodes (9): 03 — Rule Languages & Detection Engines, 1. Engine selection, 2. Sigma (+ pySigma / sigma-cli), 3. YARA / YARA-X, 4. Suricata / Snort (network), 5. Falco vs. Tetragon (eBPF runtime / K8s), 6. SIEM-native query languages, 7. Rule quality principles (all engines) (+1 more)
+
+### Community 1171 - "HdrError"
+Cohesion: 0.25
+Nodes (5): HdrError, ConfigurationError, InvalidScore, StateError, TransitionDenied
 
 ### Community 1172 - "2. Command Categories"
 Cohesion: 0.20
@@ -5468,13 +5541,13 @@ Nodes (10): Analyze existing PRs on the issue, Build context before coding, Foll
 Cohesion: 0.20
 Nodes (9): 1. Context, 2.1 Missing Autonomous Coding Engine, 2.2 ModelRouter Fallback Leak, 2.3 Durable Multi-File Transaction Journal, 2.4 Windows Subprocess Leaks, 2.5 Security Path Canonicalization, 2.6 Multi-Language Toolchain Detection, 2. Identified Gaps (+1 more)
 
-### Community 1176 - "Autonomous Software Engineering / Code Harness Enhancement for OSMOO"
-Cohesion: 0.22
-Nodes (8): 1. Milestone Overview & Objectives, 2. Test Verification & Results, 3. Files Modified & Added, 4. Security & Safety Evaluation, 5. Final Verdict, Autonomous Software Engineering / Code Harness Enhancement for OSMOO, Key Enhancements Delivered:, PHASE 2.4 — VERIFICATION & AUDIT REPORT
+### Community 1176 - "2. Test Execution Details by Crate"
+Cohesion: 0.20
+Nodes (9): 1. Summary of Executed Test Suites, 2.1 `voxy-office` (13/13 PASSED), 2.2 `voxy-tool-calling` Unit Tests (22/22 PASSED), 2.3 `voxy-tool-calling` Integration Suite (4/4 PASSED), 2.4 `voxy-daemon` Tests (23/23 PASSED), 2.5 `voxy-coding-harness` Tests (22/22 PASSED), 2.6 `voxy-model-router` Tests (21/21 PASSED), 2. Test Execution Details by Crate (+1 more)
 
-### Community 1177 - "05 — Performance: GC, JIT, profiling, allocation, native image"
-Cohesion: 0.29
-Nodes (7): 05 — Performance: GC, JIT, profiling, allocation, native image, 1. Garbage collectors — pick by goal, 2. JIT and warmup, 3. Allocation is the usual cost, 4. Profiling — measure, don't guess, 5. GraalVM Native Image (trade-offs), Audit checklist
+### Community 1177 - "ModelInfo"
+Cohesion: 0.32
+Nodes (4): ModelCapabilities, ModelInfo, test_model_info_fields(), test_new_model_info()
 
 ### Community 1178 - "03 — Authorization & Access Control"
 Cohesion: 0.18
@@ -5500,25 +5573,25 @@ Nodes (11): 01 — Threat Model & Selection: When Confidential Computing Is the 
 Cohesion: 0.18
 Nodes (11): 01 — Architecture & Modeling, Audit checklist, Data mesh caution, Dimensional modeling still matters, ELT over ETL — and the exceptions, Layered modeling (medallion / staging-core-mart), One Big Table pragmatism, Semantic layers (+3 more)
 
-### Community 1184 - "04 — Alerting, Triage, SOC & SOAR"
-Cohesion: 0.18
-Nodes (11): 04 — Alerting, Triage, SOC & SOAR, 1. Alert fatigue is the dominant failure, 2. Tuning & suppression — always with expiry, 3. Severity & priority, 4. Enrichment, 5. Deduplication & correlation, 6. Runbooks — every alert, no exceptions, 7. SOAR & automation — with guardrails (+3 more)
+### Community 1184 - "Autonomous Software Engineering / Code Harness Enhancement for OSMOO"
+Cohesion: 0.22
+Nodes (8): 1. Milestone Overview & Objectives, 2. Test Verification & Results, 3. Files Modified & Added, 4. Security & Safety Evaluation, 5. Final Verdict, Autonomous Software Engineering / Code Harness Enhancement for OSMOO, Key Enhancements Delivered:, PHASE 2.4 — VERIFICATION & AUDIT REPORT
 
 ### Community 1185 - "06 — Incident Response & Detection Validation"
 Cohesion: 0.18
 Nodes (11): 06 — Incident Response & Detection Validation, 1. The IR lifecycle, 2. Playbooks & severity classification, 3. Forensic readiness, evidence & chain of custody, 4. Containment/eradication/recovery discipline, 5. Blameless post-incident review (PIR), 6. Tabletop exercises, 7. Detection validation via adversary emulation (for defense) (+3 more)
 
 ### Community 1186 - "13 — Vulnerability Triage Inputs and Remediation (transitive fixes, suppression, blocked fixes, disclosure)"
-Cohesion: 0.18
-Nodes (11): 13.1 Fixing a vulnerable transitive: find the parent, bump it, override last, 13.2 Suppression discipline, 13.3 Priority inputs beyond the score: workload privilege, environment, data classification, 13.4 Automated reachability beyond Go, 13.5 Choosing a scanner: advisory sources and recorded false positives, 13.6 A fix exists but cannot be applied yet: interim mitigation, 13.7 Backporting a security fix when the upgrade is blocked, 13.8 Found a vulnerability in a dependency? Report privately first (+3 more)
+Cohesion: 0.09
+Nodes (21): 12.1 Repository visibility and forking, 12.2 Org-wide MFA on SCM and CI platforms, 12.3 Fork-PR approval policy, and a self-hosted runner on a public repo, 12.4 Runner groups separate privilege tiers, 12.5 Review policy as an enforced setting: independent, qualified, risk-tiered approvers, 12.6 Least-privilege CI/CD administration, 12.7 Settings as governed configuration: distrust defaults, keep them as code, scan for drift, 12.8 Inventory CI plugins and build tools, and keep the workflow scanners current (+13 more)
 
-### Community 1187 - "GuardianContract"
-Cohesion: 0.33
-Nodes (3): AccessRequest, GuardianContract, PolicyRule
+### Community 1187 - "TaskStatus"
+Cohesion: 0.25
+Nodes (6): TaskStatus, Cancelled, Completed, Failed, Pending, Running
 
 ### Community 1188 - "01 — Typography & Color"
-Cohesion: 0.14
-Nodes (14): 01 — Typography & Color, 1. Type scale: use a ratio, cap the steps, 2. Line length, line height, alignment, 3. Font loading & variable fonts, 3b. Pairing, stacks & weight discipline, 4. Color: author in OKLCH, 4b. Deriving state colors & transparency tokens, 5. Contrast math — verify, never eyeball (+6 more)
+Cohesion: 0.18
+Nodes (11): 01 — Typography & Color, 1. Type scale: use a ratio, cap the steps, 2. Line length, line height, alignment, 3. Font loading & variable fonts, 3b. Pairing, stacks & weight discipline, 4. Color: author in OKLCH, 4b. Deriving state colors & transparency tokens, 5. Contrast math — verify, never eyeball (+3 more)
 
 ### Community 1189 - "02 — API & package design: interfaces, layout, context, options"
 Cohesion: 0.18
@@ -5532,25 +5605,17 @@ Nodes (11): 1. When RAG vs long context vs fine-tuning, 2. Chunking strategies, 
 Cohesion: 0.18
 Nodes (11): 01 — Structured Logging, 1. Emit JSON, one event per line, 2. Levels: ERROR means a human must act, 3. Correlation: trace_id in every line, 4. Redaction at the logger — secrets and PII never reach the sink, 5. Wide events: one canonical log line per unit of work, 6. Sampling and cost discipline, 6a. The logging path under attack and under failure (+3 more)
 
-### Community 1192 - "03 — Rule Languages & Detection Engines"
-Cohesion: 0.22
-Nodes (9): 03 — Rule Languages & Detection Engines, 1. Engine selection, 2. Sigma (+ pySigma / sigma-cli), 3. YARA / YARA-X, 4. Suricata / Snort (network), 5. Falco vs. Tetragon (eBPF runtime / K8s), 6. SIEM-native query languages, 7. Rule quality principles (all engines) (+1 more)
+### Community 1192 - "reflection/src/lib.rs"
+Cohesion: 0.24
+Nodes (6): Outcome, Failure, Partial, Success, reflection_creates(), ReflectionEngine
 
-### Community 1193 - "06 — MFA, Passwordless, Federation Risk & Assurance"
-Cohesion: 0.22
-Nodes (9): 06 — MFA, Passwordless, Federation Risk & Assurance, 1. Phishing-resistant MFA at the IdP, 2. Step-up, adaptive & conditional access, 3. Push-bombing / MFA-fatigue defenses, 4. B2B / B2C / social-login & account-linking risk, 5. Continuous Access Evaluation (CAEP / Shared Signals Framework), 6. Identity proofing & assurance levels (NIST SP 800-63-4), 7. Certificate-based authentication of users and devices (+1 more)
+### Community 1195 - "09 — Untrusted Data Ingestion"
+Cohesion: 0.25
+Nodes (8): 09 — Untrusted Data Ingestion, 1. Treat the ingest boundary as a trust boundary, 2. Hostile parsers — sandbox them (the big one), 3. Resource & DoS controls at the ingest boundary, 4. Schema & content validation at the boundary, 5. Pipeline trust hygiene, 6. The exits — render and LLM boundaries, Audit checklist
 
-### Community 1194 - "07 — XML: XXE, XSLT and Parser Hardening"
-Cohesion: 0.29
-Nodes (7): 07 — XML: XXE, XSLT and Parser Hardening, 1. XML and XXE, 2. Per-parser hardening matrix (DOM, SAX, StAX, Validator, Transformer), 3. Deny-all resolvers and one secure factory, 4. Wrapper and binding libraries (dom4j, JDOM, JAXB, XDK), 5. Document-carried stylesheet and schema references; restricting your own imports, Audit checklist
-
-### Community 1195 - "01 — Language baseline & idioms"
-Cohesion: 0.18
-Nodes (11): 01 — Language baseline & idioms, 1. Version baseline and support policy, 2. Frozen string literals, 3. Pattern matching, 4. Data vs Struct, 5. Exception design, 5a. In-band sentinels — the stdlib is clean, the converters are not, 6. Typing: RBS, Sorbet, Steep (+3 more)
-
-### Community 1196 - "01 — Idioms: modern C#, nullability, error handling"
-Cohesion: 0.22
-Nodes (9): 01 — Idioms: modern C#, nullability, error handling, 1. Records and immutability, 2. Nullable reference types (NRT), 3. Pattern matching & expressions, 4. C# 12–14 niceties, 5. LINQ discipline, 6. Error handling, 7. Strings: ordinal by default, culture only for display (+1 more)
+### Community 1196 - "WorldModelError"
+Cohesion: 0.39
+Nodes (8): test_world_model_error_display(), WorldModelError, DesktopError, DeviceNotFound, EnvironmentError, InvalidConfig, SnapshotError, TaskNotFound
 
 ### Community 1197 - "03 — Application Patterns"
 Cohesion: 0.18
@@ -5568,61 +5633,73 @@ Nodes (11): AUDIT mode — workflow, BUILD mode — workflow, Context budget dis
 Cohesion: 0.18
 Nodes (11): 01 — Strategy & Suite Shape, 1.1 Choose the shape by architecture, not by fashion, 1.2 Define the unit/integration boundary explicitly, 1.3 What NOT to test, 1.4 Risk-based prioritization, 1.5 Testing quadrants — coverage of *kinds*, not just layers, 1.6 The cost model: write + run + maintain, 1.7 Fixing an inverted suite (ice-cream cone) (+3 more)
 
-### Community 1202 - "Rules 02 — Prompt & Context Engineering"
-Cohesion: 0.22
-Nodes (9): 1. System prompt structure, 2. Context budget management, 3. Few-shot selection, 4. Injection-safe interpolation, 5. Caching-aware prompt structure, 6. Structured output: schema over parse-and-pray, 7. Prompt versioning, testing, and rot, Audit checklist (+1 more)
+### Community 1201 - "OWASP Top 10 Prevention Patterns"
+Cohesion: 0.25
+Nodes (8): Broken Access Control, Broken Authentication, Cross-Site Scripting (XSS), Injection, OWASP Top 10 Prevention Patterns, Security Misconfiguration, Sensitive Data Exposure, Server-Side Request Forgery (SSRF)
 
-### Community 1203 - "KPIGrid.tsx"
+### Community 1203 - "03 — Containers, microVMs & Kubernetes Hardening"
 Cohesion: 0.33
-Nodes (6): formatDisplayValue(), KPIAnimationStyle, KPICardContent(), KPICardContentProps, KPIGridProps, Metric
+Nodes (6): 03 — Containers, microVMs & Kubernetes Hardening, 1. Docker / OCI hardening checklist, 2. Sandboxed runtimes: gVisor, Kata, Firecracker, 3. Kubernetes pod security, 4. Runtime detection (the layer after prevention), Audit checklist
 
 ### Community 1204 - "SOTA Threat Modeling"
 Cohesion: 0.18
 Nodes (11): AUDIT Mode — Reconstructing a Threat Model from Code, BUILD Mode — Threat-Model-While-Designing, Continuous / incremental (agile, PR reviews), Finding format (every finding, no exceptions), Purpose, Rules Index, Severity conventions, SOTA Threat Modeling (+3 more)
 
-### Community 1206 - "Pipeline Stage Director Skills"
-Cohesion: 0.18
-Nodes (11): Animated Explainer Pipeline (`pipelines/explainer/`) — v2.0, Animation Pipeline (`pipelines/animation/`) — v2.0, Avatar Spokesperson Pipeline (`pipelines/avatar-spokesperson/`) — v2.0, Cinematic Pipeline (`pipelines/cinematic/`) — v2.0, Clip Factory Pipeline (`pipelines/clip-factory/`) — v2.0, Hybrid Pipeline (`pipelines/hybrid/`) — v2.0, Localization Dub Pipeline (`pipelines/localization-dub/`) — v2.0, Pipeline Stage Director Skills (+3 more)
+### Community 1205 - "02 — Pipelines & Orchestration"
+Cohesion: 0.25
+Nodes (8): 02 — Pipelines & Orchestration, Audit checklist, Backfill design, dbt-style transformation discipline, Idempotency — the prime directive, Incremental processing & watermarks, Logical time, not wall-clock time, Orchestration discipline
 
-### Community 1207 - "03 — Consent & User Rights Engineering"
-Cohesion: 0.22
-Nodes (9): 03 — Consent & User Rights Engineering, 1. Consent is a state machine, not a boolean, 2. Cookie & tracker governance, 3. DSAR — access & export engineering, 4. Deletion architecture — hard, soft, crypto-shred, 5. Deletion propagation — the graph is the architecture, 6. Retention enforced by automation, not policy docs, 7. Rectification & objection — the forgotten rights (+1 more)
+### Community 1206 - "SOTA Frontend Design"
+Cohesion: 0.25
+Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA Frontend Design, Top 10 non-negotiables
 
-### Community 1208 - "03 — Web hardening (framework-neutral)"
-Cohesion: 0.22
-Nodes (9): 03 — Web hardening (framework-neutral), 1. XSS and output escaping, 2. Mass assignment, 3. CSRF, 4. Sessions and cookies, 5. Headers and transport, 7. File uploads and downloads, 8. Auth-adjacent essentials (+1 more)
-
-### Community 1209 - "sota-docs-workflow/SKILL.md"
-Cohesion: 0.03
-Nodes (55): 02 — API Docs, Reference & Changelogs, §1 Generate reference from source, §2 Document the why, not just the what, §3 Examples that execute, §4 Error documentation, §5 Versioned docs, §6 Changelog discipline, §7 Migration guides for breaking changes (+47 more)
-
-### Community 1210 - "RiskLevel"
+### Community 1207 - "Summary of Remediated Defects"
 Cohesion: 0.29
-Nodes (6): RiskLevel, Critical, High, Low, Medium, None
+Nodes (6): 1. `crates/voice_audio/src/lib.rs`: Missing Constructor Field in `AudioStreamConfig`, 2. `apps/daemon/src/tools.rs`: Missing Tool Definitions for Core Native Engines, 3. `apps/daemon/src/main.rs`: Zero-Fallback Model Routing & Fake Echo Elimination, OSMOO Capability Audit: Changes Made During Audit Session, Source Diffs, Summary of Remediated Defects
 
-### Community 1211 - "WorldModelError"
+### Community 1208 - "provider_core/src/config.rs"
 Cohesion: 0.39
-Nodes (8): test_world_model_error_display(), WorldModelError, DesktopError, DeviceNotFound, EnvironmentError, InvalidConfig, SnapshotError, TaskNotFound
+Nodes (4): ProviderConfig, RetryConfig, test_provider_config_default(), test_retry_config_default()
+
+### Community 1209 - "sota-testing/SKILL.md"
+Cohesion: 0.03
+Nodes (72): 02 — API Docs, Reference & Changelogs, §1 Generate reference from source, §2 Document the why, not just the what, §3 Examples that execute, §4 Error documentation, §5 Versioned docs, §6 Changelog discipline, §7 Migration guides for breaking changes (+64 more)
+
+### Community 1210 - "HardwareEvent"
+Cohesion: 0.22
+Nodes (6): HardwareEvent, AudioLevelChanged, DeviceConnected, DeviceDisconnected, DeviceError, HardwareStatusChanged
+
+### Community 1211 - "OSMOO Autonomous AI Operating Companion: Complete Capability Verification Audit"
+Cohesion: 0.29
+Nodes (6): 1. Executive Verdict & Bottom-Line Assessment, 2. High-Level Capability Breakdown, 3. What OSMOO Can Genuinely Do Today (Verified Working), 4. What OSMOO Cannot Do Today (Hard Limitations), 5. Audit Recommendation & Readiness Score, OSMOO Autonomous AI Operating Companion: Complete Capability Verification Audit
 
 ### Community 1212 - "01 — Concurrency Models & Structured Concurrency"
 Cohesion: 0.20
 Nodes (9): 01 — Concurrency Models & Structured Concurrency, Audit checklist, Choosing a model, Decision tree, Hand-rolled actor (single-owner state), Per-runtime notes, Scope semantics to know, Sizing rules (+1 more)
 
-### Community 1214 - "parse_dt"
-Cohesion: 0.36
-Nodes (4): parse_dt(), row_to_audit_entry(), row_to_conversation(), row_to_message()
+### Community 1213 - "TaskPriority"
+Cohesion: 0.29
+Nodes (6): TaskPriority, Background, Critical, High, Low, Medium
 
-### Community 1216 - "03 — Distributed Tracing (OpenTelemetry)"
+### Community 1214 - "03 — Authorization Models & Design"
 Cohesion: 0.25
-Nodes (8): 03 — Distributed Tracing (OpenTelemetry), 1. OTel architecture: API vs SDK separation, 2. Span design: what deserves a span, 3. Context propagation: W3C traceparent everywhere, 4. Sampling: head vs tail, 5. Limits, overhead, and pipeline hardening, 6. Baggage: handle with caution, Audit checklist
+Nodes (8): 03 — Authorization Models & Design, 1. Choosing the model, 2. RBAC: role modeling and role explosion, 3. The group→role mapping discipline (default-deny), 4. Least privilege & segregation of duties, 5. Policy-as-code engines, 6. Policy testing (an audit requirement, not a nicety), Audit checklist
+
+### Community 1215 - "certification.rs"
+Cohesion: 0.53
+Nodes (4): BenchmarkResult, certification_report_generates(), CertificationReport, report_contains_all_sections()
+
+### Community 1216 - "04 — Service Mesh & mTLS / Internal Encryption"
+Cohesion: 0.25
+Nodes (8): 04 — Service Mesh & mTLS / Internal Encryption, 1. The plaintext-internal-traffic problem, 2. mTLS everywhere — STRICT, not permissive-forever, 3. Workload identity (SPIFFE) is the foundation, 4. Mesh authorization policy (the L7 PEP), 5. Choosing a mesh (or not), 6. Operational pitfalls, Audit checklist
 
 ### Community 1217 - "06 — Operations & Governance"
 Cohesion: 0.20
 Nodes (10): 06 — Operations & Governance, Access control, Audit checklist, Blue-green tables for breaking rebuilds, Deploying pipeline changes, Environments for data, Observability for pipelines, Retention & GDPR deletion in immutable-ish stores (+2 more)
 
-### Community 1218 - "05 — Static/Dynamic Analysis & Non-Bypassable Gates"
-Cohesion: 0.20
-Nodes (10): 05 — Static/Dynamic Analysis & Non-Bypassable Gates, 5.1 SAST: Opengrep + CodeQL, 5.2 Secret scanning, 5.3 IaC scanning, 5.4 DAST basics, 5.5 License compliance, 5.6 Gates for agent-authored changes: out-of-scope files and invisible characters, 5.7 Test discipline — no flaky-mute culture (+2 more)
+### Community 1218 - "AdaptiveThreshold"
+Cohesion: 0.17
+Nodes (3): ConfidenceCalibration, AdaptiveThresholds, AdaptiveThreshold
 
 ### Community 1219 - "06 — IaC & Deployment Security (Terraform, GitOps, progressive delivery)"
 Cohesion: 0.20
@@ -5648,9 +5725,9 @@ Nodes (10): 04 — Security: injection, deserialization, ASP.NET Core, crypto, 1
 Cohesion: 0.20
 Nodes (10): 01 — Errors: handling, wrapping, design, 1. Handle every error, exactly once, 2. Wrap with %w; add context, not noise, 3. Inspect with errors.Is / errors.As — never strings, 4. Sentinel vs typed vs opaque — choosing the error kind, 4a. In-band sentinels — Go's are documented, yours are not, 5. No panic for control flow, 6. Error flow patterns (+2 more)
 
-### Community 1225 - "06 — Observability Audit Playbook"
+### Community 1225 - "01 — Voice, Tone & Plain Language"
 Cohesion: 0.25
-Nodes (8): 06 — Observability Audit Playbook, 1. Method: trace real paths, distrust claims, 2. Evidence-gathering greps and probes, 3. Common gaps catalog, 4. Time-boxed audit plans, 5. Scoring rubric, 6. Report structure, Audit checklist (meta — did the audit itself cover everything)
+Nodes (8): 01 — Voice, Tone & Plain Language, 1. Voice: one identity, written down, 2. Plain language: the ISO 24495-1 spine, 3. Sentence mechanics, 4. Terminology: one concept, one name, 5. Tone: adapt to the user's state, not your mood, 6. Capitalization, punctuation & mechanics — pick once, enforce, Audit checklist
 
 ### Community 1226 - "07 — Active Directory, Kerberos & ADCS Hardening"
 Cohesion: 0.20
@@ -5660,21 +5737,21 @@ Nodes (10): 07 — Active Directory, Kerberos & ADCS Hardening, 1. Enterprise Ac
 Cohesion: 0.20
 Nodes (10): 01 — Control Plane, etcd & Node/Distro Hardening, 1. HA control plane, 2. API server hardening, 3. Kubelet hardening, 4. etcd security — "Secrets are base64, not encrypted", 5. Node hardening, 6. Immutable distros (e.g. Talos, including on ARM), 7. Version skew, EOL & CVE response (+2 more)
 
-### Community 1228 - "Credentials"
-Cohesion: 0.29
-Nodes (6): AuthResult, Credentials, ApiKey, DeviceToken, EmailOtp, LocalSession
+### Community 1228 - "04 — Accessible & Localizable Language"
+Cohesion: 0.25
+Nodes (8): 04 — Accessible & Localizable Language, 1. WCAG 2.2 language criteria (the copy-owned subset), 2. Accessible names: what the screen reader actually says, 3. Writing for the ear and the eye, 4. Localization-safe strings, 5. Layout-facing and locale-facing consequences, 6. Inclusive language, Audit checklist
 
 ### Community 1229 - "Rules 04 — Agents & Tool Use"
 Cohesion: 0.20
 Nodes (10): 1. Workflow first, agent when earned, 2. Tool design, 3. The loop: stopping conditions and budgets, 3a. Goal design — what the loop is allowed to call "done", 4. Human-in-the-loop gates, 5. Context management across turns, 6. MCP integration, 7. Multi-agent: patterns and their real costs (+2 more)
 
-### Community 1231 - "02 — IAM Design"
-Cohesion: 0.07
-Nodes (25): 05 — Data & Storage Architecture, 1. Object storage design, 2. Block vs file vs object, 3. Backup architecture: survive the account, not just the disk, 4. Encryption defaults & KMS key strategy, 5. Data placement hygiene, Audit checklist, 06 — Cost Engineering (FinOps) (+17 more)
+### Community 1231 - "SOTA UX Writing & Product Copy"
+Cohesion: 0.25
+Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA UX Writing & Product Copy, Top-10 non-negotiables
 
-### Community 1232 - "03 — Kubernetes Network Policy Depth"
-Cohesion: 0.20
-Nodes (10): 03 — Kubernetes Network Policy Depth, 1. The two failure modes this file exists to kill, 2. The namespaced default-deny pattern (ingress AND egress), 3. Standard NetworkPolicy: powers and limits, 4. CiliumNetworkPolicy: identity, L7, FQDN, 5. Egress control & DNS-aware egress, 6. Cluster-scoped baselines: ANP / BANP (alpha — handle with care), 7. Hubble flow visibility (+2 more)
+### Community 1232 - "05 — Operational Readiness"
+Cohesion: 0.17
+Nodes (12): 05 — Operational Readiness, 1. Health endpoints: liveness ≠ readiness ≠ startup, 2. Graceful degradation must be visible, 3. Debug endpoints: powerful and dangerous, 4. Profiling in production, 5. Crash reporting & error tracking (Sentry-style), 6. Shutdown, crashes, and the last 10 seconds, 7. Dashboards that answer questions (+4 more)
 
 ### Community 1233 - "02 — Metrics"
 Cohesion: 0.20
@@ -5700,69 +5777,53 @@ Nodes (10): 02 — Security: injection, deserialization, ReDoS, secrets, 1. SQL 
 Cohesion: 0.20
 Nodes (10): 05 — Concurrency & performance: GVL, jobs, JIT, GC, N+1, 1. The GVL and the concurrency decision table, 2. Thread correctness, 3. Fibers and Ractors, 4. Background jobs: at-least-once means idempotent, 5. YJIT and ZJIT, 6. Memory, GC, allocator, 7. N+1 queries and data-access performance (+2 more)
 
-### Community 1240 - "04 — Async Rust & Tokio"
-Cohesion: 0.20
-Nodes (10): 04 — Async Rust & Tokio, 1. Never block the runtime, 2. Decoding Send/Sync bounds errors, 3. Cancellation safety, 4. Structured concurrency, 5. Locks across `.await`, 6. Channel selection, 7. Async traits & API design (+2 more)
+### Community 1240 - "TaskStatus"
+Cohesion: 0.25
+Nodes (8): TaskStatus, Blocked, Cancelled, Completed, Failed, Pending, Ready, Running
 
-### Community 1241 - "01 — Zero-Trust Architecture"
-Cohesion: 0.05
-Nodes (34): 01 — Zero-Trust Architecture, 1. The core tenet: location is not a credential, 2. PDP / PEP: the decision and enforcement split, 3. Identity-aware access over network-location access, 4. De-perimeterization mindset, 5. ZTNA vs traditional VPN, 6. Identity-aware proxy (BeyondCorp pattern), 7. Maturity, not perfection (CISA ZTMM v2.0) (+26 more)
+### Community 1241 - "TrustLevel"
+Cohesion: 0.33
+Nodes (6): TrustLevel, Admin, Authenticated, Local, Unknown, Verified
 
-### Community 1242 - "02 — Storage Backends"
-Cohesion: 0.20
-Nodes (10): 02 — Storage Backends, 1. Decision table, 2. Vault / OpenBao, 3. Cloud secret managers, 4. SOPS + age (GitOps), 5. Kubernetes secret delivery, 6. Env vars vs file mounts, 7. In-memory handling (+2 more)
-
-### Community 1243 - "AccessDecision"
+### Community 1242 - "_copy_file"
 Cohesion: 0.29
-Nodes (5): AccessDecision, Denied, Granted, PendingConsent, PendingMfa
-
-### Community 1244 - "06 — Ad-hoc commands: the ones you type to check something"
-Cohesion: 0.20
-Nodes (10): 06 — Ad-hoc commands: the ones you type to check something, 1. zsh is not bash — the deviations that bite *pasted* commands, 2. The sweep that never ran: `grep -r` over symlinks — and the positive control that catches ANY broken sweep, 2a. `rg -r` is `--replace`, not "recursive" — the same trap inverted, 2b. An empty command substitution removes the filter rather than matching nothing, 2c. A search pattern that begins with `-` is parsed as a flag, 2d. `cmd 2>/dev/null || echo "missing X"` reports your broken sweep as their defect, 2e. A label that states the verdict is not evidence of the verdict (+2 more)
+Nodes (3): _copy_file(), default_asset_cache_dir(), default_max_total_bytes()
 
 ### Community 1245 - "04 — Integration, Contract & System Testing"
 Cohesion: 0.20
 Nodes (10): 04 — Integration, Contract & System Testing, 4.1 Real dependencies in containers, not lookalikes, 4.2 Database testing, 4.3 Per-test isolation: transaction rollback vs truncate, 4.4 API testing strategy (your own API), 4.5 Contract testing between services, 4.6 Message/queue testing, 4.7 Test environments: ephemeral over shared (+2 more)
 
-### Community 1246 - "02 — Memory safety: lifetimes, bounds, use-after-free, sanitizers"
-Cohesion: 0.25
-Nodes (8): 02 — Memory safety: lifetimes, bounds, use-after-free, sanitizers, 1. The bug classes, 2. Bounds: never index memory you didn't size-check, 3. Lifetimes: own clearly, observe carefully, 4. Iterator and reference invalidation, 5. Sanitizers — the ground truth, 6. Allocation hygiene, Audit checklist
+### Community 1246 - "OSMOO Office Compilers & Native Capabilities: End-to-End Verification Report"
+Cohesion: 0.20
+Nodes (9): 1. Executive Summary & Verification Verdict, 2.1 Newly Created Production Files (5,428 Lines / 199,658 Bytes), 2.2 Modified Repository Files (`git diff --stat`), 2. Actual Code & Git Diff Verification, 3. Physical File Inspection & Cryptographic Hashes, 4. Independent Python Office Validator Execution Logs, 5. Automated Defect Discovery & Remediation During Verification, OSMOO Office Compilers & Native Capabilities: End-to-End Verification Report (+1 more)
 
-### Community 1247 - "PolicyCondition"
-Cohesion: 0.29
-Nodes (7): PolicyCondition, ActionMatch, Custom, ResourceMatch, RiskLevelMax, SubjectMatch, TimeRestriction
-
-### Community 1248 - "SOTA C & C++ (2026)"
-Cohesion: 0.25
-Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA C & C++ (2026), Top-10 non-negotiables
+### Community 1248 - "02 — Storage Backends"
+Cohesion: 0.06
+Nodes (29): 01 — Secret Lifecycle & Workload Identity, 1. Generation, 2. Distribution, 3. Rotation, revocation, expiry, 4. Short-lived beats long-lived — the workload identity ladder, 5. GitHub Actions OIDC (and CI federation generally), 6. Dynamic secrets in practice, 7. Storage policy summary (+21 more)
 
 ### Community 1249 - "3. Detailed Component Design"
 Cohesion: 0.20
 Nodes (9): 1. Objectives & Executive Summary, 2. Architecture & Component Diagram, 3.1 Multi-Language Symbol Extraction (`repo_indexer.rs`), 3.2 Compiler & Test Diagnostic Parser (`diagnostic_parser.rs`), 3.4 Integration in `voxy-tool-calling`, 3. Detailed Component Design, 4. Security & Safety Boundaries, Autonomous Software Engineering / Code Harness Enhancement for OSMOO (+1 more)
 
-### Community 1250 - "SOTA Privacy & Compliance Engineering"
-Cohesion: 0.40
-Nodes (5): AUDIT mode, BUILD mode, Rules index, SOTA Privacy & Compliance Engineering, Top 10 non-negotiables
-
-### Community 1252 - "HdrError"
-Cohesion: 0.25
-Nodes (5): HdrError, ConfigurationError, InvalidScore, StateError, TransitionDenied
-
-### Community 1253 - "03 — Async/await and concurrency"
-Cohesion: 0.25
-Nodes (8): 03 — Async/await and concurrency, 1. Async all the way; never block on async, 2. ConfigureAwait, 3. async void and exceptions, 4. CancellationToken everywhere, 5. Concurrency primitives, 6. Testable time and the `Lock` type, Audit checklist
-
-### Community 1254 - "ModelInfo"
-Cohesion: 0.32
-Nodes (4): ModelCapabilities, ModelInfo, test_model_info_fields(), test_new_model_info()
-
-### Community 1255 - "03 — Concurrency: virtual threads, the JMM, j.u.c, coroutines"
+### Community 1250 - "Silent Control Failure — controls that look enabled and do nothing"
 Cohesion: 0.29
-Nodes (7): 03 — Concurrency: virtual threads, the JMM, j.u.c, coroutines, 1. The Java Memory Model essentials, 2. Prefer high-level concurrency utilities, 3. Virtual threads (Java 21+, finalized JEP 444), 4. Kotlin coroutines, 5. Tooling, Audit checklist
+Nodes (7): 1. The falsification question, 2. Where silent no-ops hide — moved to [`rules/16`](16-where-no-ops-hide.md), 3. Make degradation loud — one helper, deduped per cause, 4. Evidence rules for this hunt, 5. The mirror image: a control that fires too broadly, Audit checklist, Silent Control Failure — controls that look enabled and do nothing
 
-### Community 1256 - "05 — Performance: GC, allocations, spans, AOT"
+### Community 1251 - "04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer"
+Cohesion: 0.29
+Nodes (7): 04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer, 1. Deserialization — the signature Java RCE, 2. Injection (SQL, command, LDAP, expression), 4. Cryptography (the JCA), 5. Other boundaries, 7. Native and off-heap memory — JNI, FFM, `Unsafe`, Audit checklist
+
+### Community 1253 - "07 — Helm/Kustomize Supply Chain & K8s Audit Logging"
 Cohesion: 0.25
-Nodes (8): 05 — Performance: GC, allocations, spans, AOT, 1. The GC and allocation pressure, 2. Reduce allocations, 3. Span and friends, 4. Async & throughput, 5. Measuring, 6. Native AOT & trimming, Audit checklist
+Nodes (8): 07 — Helm/Kustomize Supply Chain & K8s Audit Logging, 1. `helm template` review before apply, 2. The RBAC-in-charts / privilege-values trap, 3. Chart & image provenance — enforced at admission, 4. Kubernetes API audit logging — produce the stream, 5. Ship the stream (tamper-resistant, retained), 6. Runtime security pointer, Audit checklist
+
+### Community 1255 - "SOTA API Design & Audit"
+Cohesion: 0.25
+Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA API Design & Audit, Top-10 non-negotiables
+
+### Community 1256 - "01 — Control Frameworks as Code (NIST CSF 2.0 spine)"
+Cohesion: 0.25
+Nodes (8): 01 — Control Frameworks as Code (NIST CSF 2.0 spine), 1. Use NIST CSF 2.0 as the spine, not the control catalog, 2. The crosswalk is the deliverable, 3. Inheritance and shared responsibility, 4. Encode controls as gates, not prose, 5. Baselines and tailoring, 6. Continuous, not point-in-time, Audit checklist
 
 ### Community 1257 - "Ideation Frameworks Reference"
 Cohesion: 0.22
@@ -5796,53 +5857,37 @@ Nodes (9): Choose the smallest effective test, Detect the testing model first, F
 Cohesion: 0.22
 Nodes (7): 05 — Concurrency: the memory model, races, atomics, locks, 1. Default: don't share mutable state, 2. Mutexes and RAII locking, 3. Atomics and memory order, 4. Threads, futures, and cancellation, 5. Tooling, Audit checklist
 
-### Community 1266 - "04 — Compute Selection: Serverless, Containers, Kubernetes, VMs"
-Cohesion: 0.22
-Nodes (9): 04 — Compute Selection: Serverless, Containers, Kubernetes, VMs, 1. The decision tree — simplest thing that meets requirements, 2. Serverless patterns, 3. Kubernetes architecture essentials, 4. VMs (when you must), Audit checklist, Autoscaling — three layers, configure all deliberately, Cluster operations (+1 more)
-
-### Community 1267 - "SOTA C# / .NET (2026)"
-Cohesion: 0.25
-Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA C# / .NET (2026), Top-10 non-negotiables
-
-### Community 1268 - "03 — Secure SDLC: NIST SSDF (SP 800-218)"
-Cohesion: 0.29
-Nodes (7): 03 — Secure SDLC: NIST SSDF (SP 800-218), 1. The four practice groups, 2. Make each practice a gate, not an intention, 3. Federal secure-software self-attestation, 4. SP 800-218A — AI / model development, 5. Don't rebuild — reference, Audit checklist
+### Community 1265 - ".headers"
+Cohesion: 0.05
+Nodes (39): 05 — Edge, Ingress & Egress, 1. Ingress / edge proxy hardening, 2. WAF (OWASP CRS on Coraza / ModSecurity), 3. TLS termination + re-encryption, 4. Reverse-proxy trusted-IP handling (behind a CDN), 5. DDoS posture, 6. Egress as a first-class control, Audit checklist (+31 more)
 
 ### Community 1269 - "SOTA Cloud Infrastructure"
 Cohesion: 0.22
 Nodes (9): AUDIT mode, BUILD mode, Finding format, Operating notes, Purpose, Rules index, Severity conventions, SOTA Cloud Infrastructure (+1 more)
 
-### Community 1270 - "03 — Authorization Models & Design"
-Cohesion: 0.25
-Nodes (8): 03 — Authorization Models & Design, 1. Choosing the model, 2. RBAC: role modeling and role explosion, 3. The group→role mapping discipline (default-deny), 4. Least privilege & segregation of duties, 5. Policy-as-code engines, 6. Policy testing (an audit requirement, not a nicety), Audit checklist
+### Community 1270 - "04 — Library map: which `rules/` file holds what"
+Cohesion: 0.50
+Nodes (4): 04 — Library map: which `rules/` file holds what, A routing gap ends as a test, not just a report, Audit checklist, Library map (rules files per skill)
 
-### Community 1271 - "01 — Idioms: modern Java & Kotlin, error handling"
+### Community 1273 - "03 — Distributed Tracing (OpenTelemetry)"
 Cohesion: 0.25
-Nodes (8): 01 — Idioms: modern Java & Kotlin, error handling, 1. Modern Java idioms (21/25), 2. Modern Kotlin idioms (2.x), 3. Java ↔ Kotlin interop, 4. Error handling, 5. Immutability and finality, 6. Text: name the charset, decide what happens to bad bytes, Audit checklist
-
-### Community 1272 - "04 — Application-Level Sandboxing: risky parsers, privilege separation, WASM, subprocess hygiene, macOS"
-Cohesion: 0.25
-Nodes (8): 04 — Application-Level Sandboxing: risky parsers, privilege separation, WASM, subprocess hygiene, macOS, 1. Sandbox the risky parser, not the whole service, 2. Privilege separation / broker pattern, 3. WASM as a sandbox, 4. V8 isolates, 5. Subprocess execution hygiene, 6. macOS specifics, Audit checklist
-
-### Community 1273 - "GeminiOmniFalVideo"
-Cohesion: 0.13
-Nodes (5): _api_key(), _download_file(), GeminiOmniFalVideo, SeedanceVideo, upload_image_fal()
+Nodes (8): 03 — Distributed Tracing (OpenTelemetry), 1. OTel architecture: API vs SDK separation, 2. Span design: what deserves a span, 3. Context propagation: W3C traceparent everywhere, 4. Sampling: head vs tail, 5. Limits, overhead, and pipeline hardening, 6. Baggage: handle with caution, Audit checklist
 
 ### Community 1274 - "SOTA Identity & Access"
 Cohesion: 0.22
 Nodes (9): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA Identity & Access, Sweep procedure (+1 more)
 
-### Community 1275 - "01 — Control Frameworks as Code (NIST CSF 2.0 spine)"
-Cohesion: 0.25
-Nodes (8): 01 — Control Frameworks as Code (NIST CSF 2.0 spine), 1. Use NIST CSF 2.0 as the spine, not the control catalog, 2. The crosswalk is the deliverable, 3. Inheritance and shared responsibility, 4. Encode controls as gates, not prose, 5. Baselines and tailoring, 6. Continuous, not point-in-time, Audit checklist
+### Community 1275 - "14 — SBOM Content, Quality and Handling (what an SBOM must hold, and who may read it)"
+Cohesion: 0.29
+Nodes (7): 14.1 Minimum SBOM content: identity, PURL, supplier, licence, dependency edges, 14.2 SBOM quality gate: schema-valid, complete metadata, valid SPDX licence IDs, 14.3 SBOMs are sensitive: access control and scrubbing before sharing, 14.4 Supplier SBOMs for procured software, 14.5 Patched and forked components: distinct identity, recorded pedigree, 14 — SBOM Content, Quality and Handling (what an SBOM must hold, and who may read it), Audit checklist
+
+### Community 1276 - "21 — File Upload Handling (CWE-434)"
+Cohesion: 0.67
+Nodes (3): 1. File upload handling (CWE-434), 21 — File Upload Handling (CWE-434), Audit checklist
 
 ### Community 1277 - "SOTA Network Security"
 Cohesion: 0.22
 Nodes (9): AUDIT mode, BUILD mode, Finding format, Operating notes, Purpose, Rules index, Severity conventions, SOTA Network Security (+1 more)
-
-### Community 1278 - "PolicyEffect"
-Cohesion: 0.33
-Nodes (6): PolicyEffect, Allow, Audit, Deny, RequireConsent, RequireMfa
 
 ### Community 1279 - "05 — ISA/IEC 62443 for OT / ICS / Embedded"
 Cohesion: 0.25
@@ -5856,9 +5901,13 @@ Nodes (9): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severit
 Cohesion: 0.22
 Nodes (9): 04 — EU Cyber Resilience Act (CRA), 1. Does it apply? Scope, 2. Essential requirements → engineering work (Annex I), 3. The reporting clocks (Article 14) — wire them into on-call, 3a. Triaging a report someone else sent you — what actually starts the clock, 3b. Publishing an advisory for your own product, 4. Conformity & the harmonized-standards route, 5. What this shares with the rest of the library (+1 more)
 
-### Community 1282 - "ToolStepStatus"
+### Community 1282 - "ShutdownPriority"
 Cohesion: 0.29
-Nodes (4): ToolStepStatus, Completed, Failed, Running
+Nodes (6): ShutdownPriority, Background, Final, Flush, Services, ShutdownStep
+
+### Community 1283 - "04 — GitOps Controller Security (Argo CD, Flux)"
+Cohesion: 0.20
+Nodes (10): 04 — GitOps Controller Security (Argo CD, Flux), 1. The controller is privileged — treat it as crown jewels, 2. Argo CD AppProject scoping — the `clusterResourceWhitelist` trap, 3. SSO, RBAC, and credentials, 4. ApplicationSet & templating injection, 5. Sync strategy & drift, 6. Patch the controller — recent Argo CD CVEs, 7. Write-back controllers — the success log is not the commit (+2 more)
 
 ### Community 1284 - "06 — Property-Based Testing, Fuzzing, Mutation & Approval Testing"
 Cohesion: 0.22
@@ -5868,25 +5917,25 @@ Nodes (9): 06 — Property-Based Testing, Fuzzing, Mutation & Approval Testing, 
 Cohesion: 0.22
 Nodes (9): 06 — AUDIT Mode: Reconstructing a Threat Model from an Existing System, 1. Audit procedure (ordered; timebox each phase), 2. Control-presence matrix, 3. Gap analysis — from absent control to ranked finding, 4. Severity calibration (audit-specific), 5. Tooling and timeboxing, 6. Finding format (binding), 7. Audit report structure (+1 more)
 
-### Community 1286 - "SOTA Web Frameworks (2026)"
+### Community 1286 - "KodusSecurityBoundary"
+Cohesion: 0.08
+Nodes (21): KodusReviewError, DiffError, Io, Provider, RemediationError, Security, Serialization, KodusProviderBridge (+13 more)
+
+### Community 1287 - "03 — Remote Attestation: Verify Before You Trust"
 Cohesion: 0.22
-Nodes (9): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Scope boundaries (what lives elsewhere), Severity conventions, SOTA Web Frameworks (2026) (+1 more)
+Nodes (9): 03 — Remote Attestation: Verify Before You Trust, 1. The RATS architecture (RFC 9334) — the map for every vendor diagram, 2. Attest-then-release — the only pattern that counts, 3. What Evidence must contain — and the hard verification rules, 4. Choosing a Verifier: hosted vs self-hosted, 5. Measurements, reference values, and TCB recovery, 6. Attested channels (RA-TLS), 7. Freshness, revocation, and monitoring (+1 more)
 
-### Community 1287 - "05 — Privileged Access & Workload Identity"
+### Community 1288 - "TaskAssignmentStatus"
 Cohesion: 0.29
-Nodes (7): 05 — Privileged Access & Workload Identity, 1. Admin-account separation, 2. Just-in-time / just-enough elevation, 3. Break-glass (emergency access), 4. Session recording & vaulting, 5. Machine / workload identity, Audit checklist
-
-### Community 1288 - "ExportBundle"
-Cohesion: 0.21
-Nodes (3): load_schema(), validate_artifact(), ExportBundle
+Nodes (7): TaskAssignmentStatus, Assigned, Cancelled, Completed, Failed, Pending, Running
 
 ### Community 1289 - "2. Integrated MCP Servers & Tool Suites"
 Cohesion: 0.25
 Nodes (7): 1. Overview, 2.1 Code Search & AST Inspection, 2.2 Science & External Viewers, 2.3 Memory & Knowledge Graphs, 2. Integrated MCP Servers & Tool Suites, 3. Protocol Enforcement, OSMOO Coding Harness MCP Integrations
 
-### Community 1290 - "02 — NIST 800-53 / 800-171 / CMMC / FedRAMP"
-Cohesion: 0.29
-Nodes (7): 02 — NIST 800-53 / 800-171 / CMMC / FedRAMP, 1. SP 800-53 — the control catalog, 2. SP 800-171 — protecting CUI on your systems, 3. CMMC — assessing 800-171 for DoD, 4. FIPS-validated cryptography — the recurring hard requirement, 5. FedRAMP — 800-53 for government cloud, Audit checklist
+### Community 1290 - "Urgency"
+Cohesion: 0.33
+Nodes (5): Urgency, Critical, High, Low, Medium
 
 ### Community 1291 - "2. Windows Security Model & Sandboxing Boundaries"
 Cohesion: 0.25
@@ -5896,9 +5945,9 @@ Nodes (7): 1. Security Principles, 2.1 Win32 Job Objects, 2.2 Filesystem Securit
 Cohesion: 0.25
 Nodes (7): Branch and history discipline, Commit granularity, Commit style detection, Git and PR Rules, PR content expectations, PR preparation, Safe git habits
 
-### Community 1293 - "CompanionError"
-Cohesion: 0.29
-Nodes (4): CompanionError, ConfigurationError, InvalidScore, StateError
+### Community 1293 - "04 — Async Rust & Tokio"
+Cohesion: 0.20
+Nodes (10): 04 — Async Rust & Tokio, 1. Never block the runtime, 2. Decoding Send/Sync bounds errors, 3. Cancellation safety, 4. Structured concurrency, 5. Locks across `.await`, 6. Channel selection, 7. Async traits & API design (+2 more)
 
 ### Community 1294 - "07 — Performance: profile, allocate less, respect the cache"
 Cohesion: 0.25
@@ -5908,9 +5957,9 @@ Nodes (8): 07 — Performance: profile, allocate less, respect the cache, 1. Mea
 Cohesion: 0.25
 Nodes (8): 08 — LLM & AI Application Security, 1. Prompt injection boundaries (LLM01), 1a. Inter-agent and agent-tool messages (ASI07), 2. Tool-call authorization (LLM06 — excessive agency), 3. Output handling (LLM05 — improper output handling), 4. RAG & data-plane risks (LLM08), 6. Audit grep starters, Audit checklist
 
-### Community 1296 - "GroundingError"
-Cohesion: 0.29
-Nodes (4): GroundingError, AmbiguousTarget, TargetNotFound, VerificationFailed
+### Community 1296 - "06 — MFA, Passwordless, Federation Risk & Assurance"
+Cohesion: 0.22
+Nodes (9): 06 — MFA, Passwordless, Federation Risk & Assurance, 1. Phishing-resistant MFA at the IdP, 2. Step-up, adaptive & conditional access, 3. Push-bombing / MFA-fatigue defenses, 4. B2B / B2C / social-login & account-linking risk, 5. Continuous Access Evaluation (CAEP / Shared Signals Framework), 6. Identity proofing & assurance levels (NIST SP 800-63-4), 7. Certificate-based authentication of users and devices (+1 more)
 
 ### Community 1297 - "20 — Browser Response Hardening"
 Cohesion: 0.25
@@ -5932,21 +5981,25 @@ Nodes (8): 1. What the standards ask for — and the one thing none of them ask,
 Cohesion: 0.25
 Nodes (8): AUDIT mode, BUILD mode, Finding format, Purpose, Rules index, Severity conventions, SOTA DevSecOps & Supply Chain Security, Top 10 non-negotiables
 
-### Community 1302 - "07 — Framework security: boundary, authz, SSRF, CVEs"
+### Community 1302 - "CompanionError"
 Cohesion: 0.29
-Nodes (7): 07 — Framework security: boundary, authz, SSRF, CVEs, 1. The server/client secret boundary, 2. Authorization placement (post-CVE-2025-29927), 3. SSRF surfaces specific to SSR apps, 4. Consolidated framework CVE reference (verify ranges at use time), 5. Framework security hygiene, Audit checklist
+Nodes (4): CompanionError, ConfigurationError, InvalidScore, StateError
 
-### Community 1303 - "CheckpointValidationError"
+### Community 1303 - "GroundingError"
 Cohesion: 0.29
-Nodes (3): CheckpointValidationError, _stage_requires_approval(), get_stage_human_approval_default()
+Nodes (4): GroundingError, AmbiguousTarget, TargetNotFound, VerificationFailed
 
-### Community 1304 - "04 — Lifecycle & Provisioning"
-Cohesion: 0.25
-Nodes (8): 04 — Lifecycle & Provisioning, 1. Source of truth and the JML model, 2. SCIM-driven provisioning AND deprovisioning, 3. The orphaned-account problem (#1 IAM failure), 4. Access reviews / recertification, 5. Just-in-time (JIT) provisioning, 6. Dormant-account detection, Audit checklist
-
-### Community 1306 - "_extract_mid_thumbnail"
+### Community 1304 - "GovernorError"
 Cohesion: 0.29
-Nodes (3): _DeadlineExceeded, _extract_mid_thumbnail(), remaining_seconds()
+Nodes (4): GovernorError, ConcurrencyExceeded, MemoryExceeded, TimeoutExceeded
+
+### Community 1305 - "ScheduleSpec"
+Cohesion: 0.29
+Nodes (6): ScheduleSpec, Cron, Delay, Immediate, Interval, Periodic
+
+### Community 1306 - "BrowserConfig"
+Cohesion: 0.29
+Nodes (5): BrowserConfig, BrowserType, Chrome, Custom, Edge
 
 ### Community 1307 - "SOTA Kubernetes Platform Security & Operations"
 Cohesion: 0.25
@@ -5960,13 +6013,21 @@ Nodes (8): 1. Fine-tuning vs prompting: the decision, 2. Dataset curation hygien
 Cohesion: 0.25
 Nodes (8): AUDIT mode — hunting quality violations, BUILD mode — eval-first by default, Finding format, Purpose, Rules index, Severity conventions, SOTA LLM Engineering, Top-10 non-negotiables
 
+### Community 1310 - "ApiRequest"
+Cohesion: 0.18
+Nodes (5): ApiErrorBody, ApiResponseEnvelope, ApiResponseEnvelope<T>, ApiRequest, ApiResponse
+
+### Community 1311 - "sota/SKILL.md"
+Cohesion: 0.10
+Nodes (9): 1. System prompt structure, 2. Context budget management, 3. Few-shot selection, 4. Injection-safe interpolation, 5. Caching-aware prompt structure, 6. Structured output: schema over parse-and-pray, 7. Prompt versioning, testing, and rot, Audit checklist (+1 more)
+
 ### Community 1312 - "Claude CLI Backend (`ClaudeCliBackend`) Audit Report"
 Cohesion: 0.33
 Nodes (5): 1. Overview & Verification, 2. Environment Verification, 3. Windows Execution Syntax & Fix, 4. Parameter Safety & Isolation, Claude CLI Backend (`ClaudeCliBackend`) Audit Report
 
-### Community 1313 - "AppScreen"
-Cohesion: 0.40
-Nodes (5): AppScreen, Auth, MainHud, Onboarding, Splash
+### Community 1313 - "05 — Storage & Performance"
+Cohesion: 0.29
+Nodes (7): 05 — Storage & Performance, Audit checklist, Compression, Cost levers (warehouse credit burn & lake scan cost), Parquet internals that matter, Partitioning vs clustering/sorting, Table formats: Iceberg / Delta
 
 ### Community 1314 - "Environment and Discovery Inventory"
 Cohesion: 0.29
@@ -5988,21 +6049,17 @@ Nodes (8): 1. Severity model, 2. Evidence standard — no finding without it, 3.
 Cohesion: 0.29
 Nodes (6): 1. Methodology, 2.1 Verified Facts, 2.2 Inferred / Assumed Capabilities, 2. Classification of Findings: Verified Facts vs Assumptions, 3. Implications for OSMOO Coding Harness, Reverse Engineering Investigation Audit
 
-### Community 1319 - "AuthMode"
-Cohesion: 0.40
-Nodes (5): AuthMode, ForgotPassword, SignIn, SignUp, VerifyEmail
+### Community 1319 - "06 — DNS, TLS & PKI"
+Cohesion: 0.29
+Nodes (7): 06 — DNS, TLS & PKI, 1. The cert-lifetime collapse forces automation, 2. TLS posture, 3. DNS security, 4. Internal PKI (e.g. step-ca), 5. Email authentication & anti-spoofing (SPF / DKIM / DMARC), Audit checklist
 
 ### Community 1320 - "1. Summary of Identified Defects"
 Cohesion: 0.29
 Nodes (6): 1.1 ModelRouter Silent Fallback Bug, 1.2 In-Memory Only AiActionJournal, 1.3 Unbounded Windows Subprocess Tree Termination, 1.4 Path Guard Absolute Path Handling, 1. Summary of Identified Defects, OSMOO Bug and Defect Audit
 
-### Community 1321 - "02-trust-boundary-and-capability.md"
-Cohesion: 0.07
-Nodes (27): 1. Provenance before content, and licence before both, 2. Pin it, and treat the description as the interface, 3. Review the closure, not the entry point, 4. Inventory what actually loads — not what is documented, 5. The marketplace is a distribution channel, not a review, Audit checklist, Provenance and installation — deciding what earns a place in the context, 1. Least capability, stated at the install point (+19 more)
-
-### Community 1322 - "FeatureFlagError"
-Cohesion: 0.33
-Nodes (3): FeatureFlagError, NotFound, ParseError
+### Community 1322 - "04 — Lifecycle & Provisioning"
+Cohesion: 0.25
+Nodes (8): 04 — Lifecycle & Provisioning, 1. Source of truth and the JML model, 2. SCIM-driven provisioning AND deprovisioning, 3. The orphaned-account problem (#1 IAM failure), 4. Access reviews / recertification, 5. Just-in-time (JIT) provisioning, 6. Dormant-account detection, Audit checklist
 
 ### Community 1323 - "Engineering Skills Discovery & Dynamic Injection Audit"
 Cohesion: 0.33
@@ -6012,129 +6069,181 @@ Nodes (5): 1. Overview & Verification, 2. Discovery Pathways, 3. Parsing & Seman
 Cohesion: 0.33
 Nodes (5): 1. Overview & Architecture, 2. Tool Registry & Schema Generation, 3. Security Gating & Risk Classification, 4. Test Verification, Model Context Protocol (MCP) Integration & Gating Audit
 
-### Community 1325 - "ReflectionError"
+### Community 1328 - "19 — Anti-Automation & Abuse of Value-Granting Features"
 Cohesion: 0.33
-Nodes (3): ReflectionError, EvaluationFailed, LearningFailed
-
-### Community 1328 - "ModelFormat"
-Cohesion: 0.33
-Nodes (6): ModelFormat, Gguf, OllamaBlob, Onnx, SafeTensors, Unknown
+Nodes (6): 19 — Anti-Automation & Abuse of Value-Granting Features, 1. Graduated responses to automation, 2. Signup abuse and multi-accounting, 3. Challenges: CAPTCHA and proof-of-work, 4. Commerce and incentive abuse, Audit checklist
 
 ### Community 1329 - "Self-Review Rules"
 Cohesion: 0.29
 Nodes (6): Final handoff standard, PR text quality, Read for maintainers, not for authors, Required review questions, Review stance, Self-Review Rules
 
-### Community 1330 - "SimulationError"
+### Community 1332 - "sota-devsecops/SKILL.md"
+Cohesion: 0.07
+Nodes (42): AUDIT mode, BUILD mode, Purpose, Rules index, SOTA Confidential Computing & PETs, Top-10 non-negotiables, 11 — After the gate fails: can anyone find out why, 4. A verdict that lives only in a garbage-collected log does not exist (+34 more)
+
+### Community 1333 - "SOTA Detection Engineering, SOC & Incident Response"
 Cohesion: 0.33
-Nodes (3): SimulationError, MockFailed, StateError
+Nodes (6): AUDIT mode, BUILD mode, Purpose, Rules index, SOTA Detection Engineering, SOC & Incident Response, Top 10 non-negotiables
 
-### Community 1331 - "Silent Control Failure — controls that look enabled and do nothing"
-Cohesion: 0.29
-Nodes (7): 1. The falsification question, 2. Where silent no-ops hide — moved to [`rules/16`](16-where-no-ops-hide.md), 3. Make degradation loud — one helper, deduped per cause, 4. Evidence rules for this hunt, 5. The mirror image: a control that fires too broadly, Audit checklist, Silent Control Failure — controls that look enabled and do nothing
-
-### Community 1333 - "Connection pooling"
-Cohesion: 0.29
-Nodes (6): Connection pooling, Diagnosing lock waits (keep this query handy), Rule: A pooler is mandatory; size pools small., Rule: Per-tenant/per-request session state must be SET LOCAL inside the transaction., Rule: PgBouncer mode dictates what your code may do., 3.3 Transactional Multi-File Patch Engine (`patch_engine.rs`)
-
-### Community 1334 - "TrustLevel"
+### Community 1335 - "AgentInfo"
 Cohesion: 0.33
-Nodes (6): TrustLevel, Admin, Authenticated, Local, Unknown, Verified
+Nodes (6): AgentInfo, AgentStatus, Error, Idle, Offline, Working
 
-### Community 1335 - "06 — Build, tooling, supply chain, CI"
+### Community 1336 - "FeatureFlagError"
 Cohesion: 0.33
-Nodes (6): 06 — Build, tooling, supply chain, CI, 1. Targeting & project hygiene, 2. Analyzers & formatting, 3. NuGet supply chain, 4. CI gates, Audit checklist
+Nodes (3): FeatureFlagError, NotFound, ParseError
 
-### Community 1336 - "SOTA JavaScript / TypeScript Engineering"
+### Community 1337 - "02-trust-boundary-and-capability.md"
+Cohesion: 0.07
+Nodes (27): 1. Provenance before content, and licence before both, 2. Pin it, and treat the description as the interface, 3. Review the closure, not the entry point, 4. Inventory what actually loads — not what is documented, 5. The marketplace is a distribution channel, not a review, Audit checklist, Provenance and installation — deciding what earns a place in the context, 1. Least capability, stated at the install point (+19 more)
+
+### Community 1338 - "BreakerState"
 Cohesion: 0.33
-Nodes (6): AUDIT mode (reviewing existing code), BUILD mode (writing or modifying code), Purpose, Rules index, SOTA JavaScript / TypeScript Engineering, Top 10 non-negotiables
-
-### Community 1337 - "04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer"
-Cohesion: 0.29
-Nodes (7): 04 — Security: deserialization, injection, XXE, JNDI, crypto, the web layer, 1. Deserialization — the signature Java RCE, 2. Injection (SQL, command, LDAP, expression), 4. Cryptography (the JCA), 5. Other boundaries, 7. Native and off-heap memory — JNI, FFM, `Unsafe`, Audit checklist
-
-### Community 1338 - "SOTA Observability & Reliability"
-Cohesion: 0.33
-Nodes (6): AUDIT mode, BUILD mode, Purpose, Rules index, SOTA Observability & Reliability, Top 10 non-negotiables
+Nodes (5): BreakerEntry, BreakerState, Closed, HalfOpen, Open
 
 ### Community 1339 - "REA Technical Assessment & Operational Boundaries"
 Cohesion: 0.33
 Nodes (5): 1. Scope & Execution Context, 2. Capabilities & Strengths, 3. Operational Limitations in Current Environment, 4. Assessment Strategy for Reverse Engineering, REA Technical Assessment & Operational Boundaries
 
-### Community 1340 - "Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance"
-Cohesion: 0.29
-Nodes (7): 1. Reproduction steps — a field of its own on every finding, 2. Tracking fields — optional, but all-or-nothing once used, 3. Report provenance — who reviewed, against which checklist, 4. A verdict is bound to the commit it was made at, 5. A fix is verified by three runs, not one, Audit checklist — quality gate on reproduction, tracking and provenance, Audit Report & Tracking — Reproduction, Finding Lifecycle, Report Provenance
-
-### Community 1341 - "SOTA Security & Compliance Engineering"
+### Community 1340 - "ObservabilityError"
 Cohesion: 0.33
-Nodes (6): AUDIT mode, BUILD mode, Rules index, SOTA Security & Compliance Engineering, The boundary — what this skill does and does not own, Top 10 non-negotiables
+Nodes (3): ObservabilityError, ExportFailed, TrackingFailed
 
-### Community 1342 - "09 — Listing and selection: the tool answered a different question"
+### Community 1341 - "Frame"
+Cohesion: 0.10
+Nodes (9): Major subsystems (Graphify communities, source-verified), AudioRawFrame, CancelFrame, Frame, FrameProcessor, OsmooAudioSink, OsmooBrainProcessor, TextFrame (+1 more)
+
+### Community 1342 - "ReflectionError"
 Cohesion: 0.33
-Nodes (6): 09 — Listing and selection: the tool answered a different question, 5. The listing tool answered your question about *one page*, 5a. The selector picked a different member than the question named, 5b. A filter that drops the file you named, 5c. Selecting processes by command-line substring selects the selector, Audit checklist
+Nodes (3): ReflectionError, EvaluationFailed, LearningFailed
 
-### Community 1346 - "PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION"
+### Community 1343 - "SdkError"
+Cohesion: 0.33
+Nodes (3): SdkError, InvalidApi, VersionMismatch
+
+### Community 1344 - "SimulationError"
+Cohesion: 0.33
+Nodes (3): SimulationError, MockFailed, StateError
+
+### Community 1345 - "Connection pooling"
 Cohesion: 0.29
-Nodes (6): 1. Executive Summary & Mission, 2. Relational Schema: Migration 105 (`skills_and_workflows`), 3. Skill Manifest Specification, 4. Runtime & Security Boundary Enforcement, PHASE 2.8 ARCHITECTURE & SYSTEM DESIGN SPECIFICATION, Subsystem: Skills + Workflows Ecosystem
+Nodes (6): Connection pooling, Diagnosing lock waits (keep this query handy), Rule: A pooler is mandatory; size pools small., Rule: Per-tenant/per-request session state must be SET LOCAL inside the transaction., Rule: PgBouncer mode dictates what your code may do., 3.3 Transactional Multi-File Patch Engine (`patch_engine.rs`)
+
+### Community 1346 - "OSMOO / VOXY Codebase Map"
+Cohesion: 0.33
+Nodes (5): Entry points & process boundaries, Identity, Known structural smells confirmed this session, OSMOO / VOXY Codebase Map, Text pipeline of daemon chat (main.rs)
 
 ### Community 1347 - "OSMOO Dynamic Skills Integration"
 Cohesion: 0.50
 Nodes (3): 1. Skill Resolution Architecture, 2. Skill Loading & Execution Flow, OSMOO Dynamic Skills Integration
 
-### Community 1348 - "19 — Anti-Automation & Abuse of Value-Granting Features"
+### Community 1348 - "05 — Privileged Access & Workload Identity"
+Cohesion: 0.29
+Nodes (7): 05 — Privileged Access & Workload Identity, 1. Admin-account separation, 2. Just-in-time / just-enough elevation, 3. Break-glass (emergency access), 4. Session recording & vaulting, 5. Machine / workload identity, Audit checklist
+
+### Community 1349 - "SOTA JavaScript / TypeScript Engineering"
 Cohesion: 0.33
-Nodes (6): 19 — Anti-Automation & Abuse of Value-Granting Features, 1. Graduated responses to automation, 2. Signup abuse and multi-accounting, 3. Challenges: CAPTCHA and proof-of-work, 4. Commerce and incentive abuse, Audit checklist
+Nodes (6): AUDIT mode (reviewing existing code), BUILD mode (writing or modifying code), Purpose, Rules index, SOTA JavaScript / TypeScript Engineering, Top 10 non-negotiables
 
-### Community 1349 - "OSMOO / VOXY Codebase Map"
+### Community 1350 - "02 — NIST 800-53 / 800-171 / CMMC / FedRAMP"
+Cohesion: 0.13
+Nodes (14): 02 — NIST 800-53 / 800-171 / CMMC / FedRAMP, 1. SP 800-53 — the control catalog, 2. SP 800-171 — protecting CUI on your systems, 3. CMMC — assessing 800-171 for DoD, 4. FIPS-validated cryptography — the recurring hard requirement, 5. FedRAMP — 800-53 for government cloud, Audit checklist, 03 — Secure SDLC: NIST SSDF (SP 800-218) (+6 more)
+
+### Community 1352 - "TaskPriority"
 Cohesion: 0.33
-Nodes (5): Entry points & process boundaries, Identity, Known structural smells confirmed this session, OSMOO / VOXY Codebase Map, Text pipeline of daemon chat (main.rs)
+Nodes (5): TaskPriority, Critical, High, Low, Medium
 
-### Community 1350 - "12 — SCM and CI Platform Governance (org-level settings)"
-Cohesion: 0.20
-Nodes (10): 12.1 Repository visibility and forking, 12.2 Org-wide MFA on SCM and CI platforms, 12.3 Fork-PR approval policy, and a self-hosted runner on a public repo, 12.4 Runner groups separate privilege tiers, 12.5 Review policy as an enforced setting: independent, qualified, risk-tiered approvers, 12.6 Least-privilege CI/CD administration, 12.7 Settings as governed configuration: distrust defaults, keep them as code, scan for drift, 12.8 Inventory CI plugins and build tools, and keep the workflow scanners current (+2 more)
+### Community 1356 - "probe_output"
+Cohesion: 0.04
+Nodes (22): _api_key(), _download_file(), CogVideoVideo, GeminiOmniFalVideo, HeyGenVideo, HunyuanVideo, LTXVideoModal, SeedanceVideo (+14 more)
 
-### Community 1354 - "06 — Build, tooling, supply chain, CI"
+### Community 1357 - "OSMOO Production Implementation: Executive Summary"
 Cohesion: 0.33
-Nodes (6): 06 — Build, tooling, supply chain, CI, 1. Build tool: Maven or Gradle, 2. Dependency management & supply chain, 3. Static analysis & formatting, 4. CI gates, Audit checklist
+Nodes (5): 1. Mission Context & Objective, 2. Capabilities Delivered & Verified, 3. Test Suite Pass Rates & Quality Metrics, 4. Production Readiness Verdict, OSMOO Production Implementation: Executive Summary
 
-### Community 1358 - "_requests_deadline"
+### Community 1359 - "probe_output"
+Cohesion: 0.05
+Nodes (24): KlingAvatar, DependencyError, account_usage_hint_for_error(), _cache_key(), get_account_costs(), reset_account_usage_cache(), validate_callback_url(), write_elements_artifact() (+16 more)
+
+### Community 1361 - "LogLevel"
 Cohesion: 0.40
-Nodes (4): _clamp_timeout(), _requests_deadline(), get_with_deadline(), iter_content_with_deadline()
+Nodes (5): LogLevel, Debug, Error, Info, Warn
 
-### Community 1360 - "08 — Child Processes & Outbound Requests (server-side)"
-Cohesion: 0.50
-Nodes (4): 08 — Child Processes & Outbound Requests (server-side), Audit checklist, Command injection via child_process, SSRF and server-side validation
+### Community 1366 - "OSMOO / VOXY: Production Readiness & Verification Audit Ledger"
+Cohesion: 0.40
+Nodes (4): AudioConfig, 1. Subsystem Production Readiness Matrix, 2. Verified Resolutions & Proof Ledger, OSMOO / VOXY: Production Readiness & Verification Audit Ledger
 
 ### Community 1368 - "Resume Bullet Template"
 Cohesion: 0.40
 Nodes (4): Examples, Formula, Resume Bullet Template, Rules
 
+### Community 1370 - "OSMOO Known Limitations & Operational Boundaries"
+Cohesion: 0.40
+Nodes (4): 1. External Cloud Services & Credentials, 2. Document Format Features, 3. Desktop Automation Performance, OSMOO Known Limitations & Operational Boundaries
+
+### Community 1371 - "OSMOO Remaining Work & Future Roadmap"
+Cohesion: 0.40
+Nodes (4): 1. Short-Term Enhancements (Next Sprint), 2. Medium-Term Enhancements (Quarterly Horizon), 3. Long-Term Architectural Evolution, OSMOO Remaining Work & Future Roadmap
+
+### Community 1372 - "Autonomous Coding Workflow & Harness Validation"
+Cohesion: 0.40
+Nodes (4): 1. Test Methodology, 2. Phased Pipeline Execution, 3. Regression Test Artifact, Autonomous Coding Workflow & Harness Validation
+
 ### Community 1374 - "STAR Story Template"
 Cohesion: 0.50
 Nodes (3): Guidance, STAR Story Template, Template
+
+### Community 1376 - "23 — LLM Platform & Supply Chain: Models, Prompts, MCP Servers, Logging"
+Cohesion: 0.67
+Nodes (3): 1. Platform & supply-chain notes, 23 — LLM Platform & Supply Chain: Models, Prompts, MCP Servers, Logging, Audit checklist
 
 ### Community 1377 - "22 — Constant-Time Comparison (CWE-208)"
 Cohesion: 0.50
 Nodes (4): 1.1 Constant time is a property of the emitted code, not of the source, 1. Constant-time comparison (CWE-208), 22 — Constant-Time Comparison (CWE-208), Audit checklist
 
+### Community 1390 - "OSMOO v0.1.0 Release Notes"
+Cohesion: 0.20
+Nodes (9): 1. Mandatory 5-Step First-Run Onboarding Wizard, 2. Layered Rigged 2D Cat Companion Overlay, 3. Core Engine & Production Hardening, Distributable Package Contents, Installation & CLI Flags, OSMOO v0.1.0 Release Notes, Overview, Uninstallation (+1 more)
+
+### Community 1395 - "08 — The Web Layer: Actuator, Request Binding, Authorization Rules, Filters"
+Cohesion: 0.67
+Nodes (3): 08 — The Web Layer: Actuator, Request Binding, Authorization Rules, Filters, 1. The web layer — actuator, request binding, authorization rules, filters, Audit checklist
+
+### Community 1411 - "OSMOO_Sample_Document_2ae4eb3b.md"
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary, 2. Core Capabilities Verified, 3. Performance Benchmarks, 4. Security Safeguards & Audit Ledger, OSMOO Architecture & Production Verification
+
+### Community 1412 - "OSMOO_Sample_Document_a475f2e2.md"
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary, 2. Core Capabilities Verified, 3. Performance Benchmarks, 4. Security Safeguards & Audit Ledger, OSMOO Architecture & Production Verification
+
+### Community 1419 - "17 — Sessions & Tokens"
+Cohesion: 0.50
+Nodes (4): 17 — Sessions & Tokens, 2. Session management (CWE-384, CWE-613), 3. JWT pitfalls (CWE-345, CWE-347), Audit checklist
+
+### Community 1420 - "18 — Tamper-Evident Logs & Audit Ledgers"
+Cohesion: 0.50
+Nodes (4): 18 — Tamper-Evident Logs & Audit Ledgers, 1. Tamper-evident logs & audit ledgers (NIST AU-9/AU-10), 2. Signed request/response exchanges and receipts, Audit checklist
+
 ## Knowledge Gaps
-- **2518 isolated node(s):** `Flush`, `Background`, `Services`, `Final`, `Conversation` (+2513 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 15031 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **186 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **2538 isolated node(s):** `Flush`, `Background`, `Services`, `Final`, `osmoo-installer` (+2533 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 15347 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **191 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `main()` connect `voxy_live_system.py` to `BaseTool`, `07 — Audit Bug Catalog: Signatures, Severity, Fixes`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `main()` connect `voxy_live_system.py` to `BaseTool`, `.run`?**
+  _High betweenness centrality (0.064) - this node is a cross-community bridge._
 - **Are the 143 inferred relationships involving `ToolResult` (e.g. with `Tool Class Naming Convention` and `When Building New Tools`) actually correct?**
   _`ToolResult` has 143 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Flush`, `Background`, `Services` to the rest of the system?**
-  _2518 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _2538 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `windows_uia.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.0321285140562249 - nodes in this community are weakly interconnected._
-- **Why does `ToolResult` connect `ToolResult` to `.run_command`, `MathAnimate`, `VideoCompose`, `HunyuanCloudVideo`, `ExportBundle`, `DoubaoTTS`, `GeminiOmniVideo`, `JimengVideo`, `MiniMaxVideo`, `.execute`, `SchemaMedia`, `.execute`, `LipSync`, `FalMedia`, `PriceQuoteRequired`, `corpus_builder.py`, `VeoVideo`, `PixabayMusic`, `.execute`, `scoring.py`, `.execute`, `KlingVideo`, `Corpus`, `HyperFramesCompose`, `SoraVideo`, `AzureSpeechToText`, `CogVideoVideo`, `VideoStitch`, `MusicLibrary`, `EyeEnhance`, `KlingClient`, `HiggsFieldVideo`, `DashscopeAsr`, `VideoAnalyzer`, `SubtitleGen`, `.execute`, `BaseTool`, `FishAudioTTS`, `FalElevenLabsMusic`, `TalkingHead`, `.execute`, `.execute`, `RemotionCaptionBurn`, `ScreenRecorder`, `_wan_engine.py`, `VideoSelector`, `AutoReframe`, `ComfyUIClient`, `VideoUnderstand`, `.execute`, `SeedanceArkVideo`, `._upscale_video`, `SunoMusic`, `AtlasVideo`, `DashscopeImage`, `HunyuanImage`, `MiniMaxImage`, `GreenScreenComposite`, `voxy_live_system.py`, `GeminiOmniFalVideo`, `GrokImage`, `SeedanceReplicate`, `._download`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+  _Cohesion score 0.031029887683228632 - nodes in this community are weakly interconnected._
+- **Why does `ToolResult` connect `ToolResult` to `MathAnimate`, `LipSync`, `HunyuanCloudVideo`, `DoubaoTTS`, `GeminiOmniVideo`, `MiniMaxVideo`, `FalMedia`, `corpus_builder.py`, `VeoVideo`, `PixabayMusic`, `AzureSpeechToText`, `CapRecorder`, `HyperFramesCompose`, `SoraVideo`, `OpenAITTS`, `ExportBundle`, `KlingVideo`, `MiniMaxFalVideo`, `SubtitleGen`, `RunwayVideo`, `SeedanceReplicate`, `DashscopeTTS`, `EyeEnhance`, `KlingOfficialImage`, `.run_command`, `FreesoundMusic`, `KlingTTS`, `VideoAnalyzer`, `MusicLibrary`, `BaseTool`, `pipeline_loader.py`, `FalElevenLabsMusic`, `Upscale`, `.execute`, `probe_output`, `KlingLipSync`, `probe_output`, `LocalDiffusion`, `SeedreamImage`, `.execute`, `ImageSelector`, `ScreenRecorder`, `RecraftImage`, `JimengVideo`, `.execute`, `HiggsFieldVideo`, `_wan_engine.py`, `AutoReframe`, `threejs_asset_catalog.py`, `ComfyUIClient`, `KlingOfficialVideo`, `SchemaMedia`, `VideoUnderstand`, `voxy_live_system.py`, `SeedanceArkVideo`, `SunoMusic`, `AtlasVideo`, `DashscopeImage`, `HunyuanImage`, `MiniMaxImage`, `GrokImage`, `DashscopeAsr`, `FishAudioTTS`, `PriceQuoteRequired`?**
+  _High betweenness centrality (0.053) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `BaseTool` (e.g. with `Communication Protocol` and `When Building New Tools`) actually correct?**
   _`BaseTool` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Should `.run_command` be split into smaller, more focused modules?**
-  _Cohesion score 0.07482993197278912 - nodes in this community are weakly interconnected._
+- **Should `SupervisorError` be split into smaller, more focused modules?**
+  _Cohesion score 0.06557377049180328 - nodes in this community are weakly interconnected._

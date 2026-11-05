@@ -29,7 +29,7 @@ pub struct VadConfig {
 impl Default for VadConfig {
     fn default() -> Self {
         Self {
-            threshold: 0.025,
+            threshold: 0.015,
             min_speech_frames: 3,
             silence_timeout_ms: 600,
             preroll_frames: 10, // ~200ms at 20ms/frame

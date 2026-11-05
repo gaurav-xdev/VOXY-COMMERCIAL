@@ -1,4 +1,5 @@
 pub mod app;
+pub mod assets;
 pub mod backend;
 pub mod bridge;
 pub mod components;

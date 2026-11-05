@@ -14,6 +14,9 @@ pub enum OfficeError {
     #[error("Invalid data format: {0}")]
     InvalidData(String),
 
+    #[error("Database error: {0}")]
+    Database(String),
+
     #[error("Scheduling conflict: event overlaps with '{conflict_title}' from {start} to {end}")]
     ConflictDetected {
         conflict_title: String,

@@ -129,6 +129,23 @@ pub struct CommandExecutionInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessExecutionInput {
+    pub program: PathBuf,
+    pub args: Vec<String>,
+    pub cwd: Option<PathBuf>,
+    pub timeout_ms: Option<u64>,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub stdin: Option<String>,
+    #[serde(default = "default_true")]
+    pub require_job_object: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandExecutionResult {
     pub exit_code: i32,
     pub stdout: String,
@@ -140,14 +157,40 @@ pub struct CommandExecutionResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CodingEvent {
     PlanCreated(TaskPlan),
-    StepStarted { step_id: String, active_form: String },
-    StepCompleted { step_id: String },
-    StepFailed { step_id: String, error: String },
-    FileModified { file_path: String, diff: String },
-    CommandExecuted { command: String, exit_code: i32, duration_ms: u64 },
-    ReviewComment { severity: String, file_path: String, message: String },
-    ApprovalRequested { request_id: String, tool: String, reason: String },
-    ApprovalResolved { request_id: String, approved: bool },
+    StepStarted {
+        step_id: String,
+        active_form: String,
+    },
+    StepCompleted {
+        step_id: String,
+    },
+    StepFailed {
+        step_id: String,
+        error: String,
+    },
+    FileModified {
+        file_path: String,
+        diff: String,
+    },
+    CommandExecuted {
+        command: String,
+        exit_code: i32,
+        duration_ms: u64,
+    },
+    ReviewComment {
+        severity: String,
+        file_path: String,
+        message: String,
+    },
+    ApprovalRequested {
+        request_id: String,
+        tool: String,
+        reason: String,
+    },
+    ApprovalResolved {
+        request_id: String,
+        approved: bool,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

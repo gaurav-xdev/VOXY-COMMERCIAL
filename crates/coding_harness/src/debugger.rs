@@ -44,7 +44,10 @@ impl Debugger {
 
         for cap in rust_err_re.captures_iter(output) {
             let code = cap.get(1).map(|m| m.as_str().to_string());
-            let msg = cap.get(2).map(|m| m.as_str().to_string()).unwrap_or_default();
+            let msg = cap
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
 
             diagnostics.push(Diagnostic {
                 file_path: rust_loc_file.clone(),
@@ -56,12 +59,17 @@ impl Debugger {
         }
 
         // Regex for standard file:line:col error patterns (TS, C, Clang, Python)
-        let std_loc_re = Regex::new(r"(?:^|\n)([\w/\\.-]+):(\d+)(?::(\d+))?:\s*(?:error|warning)?:\s*(.+)").unwrap();
+        let std_loc_re =
+            Regex::new(r"(?:^|\n)([\w/\\.-]+):(\d+)(?::(\d+))?:\s*(?:error|warning)?:\s*(.+)")
+                .unwrap();
 
         for cap in std_loc_re.captures_iter(output) {
             let file = cap.get(1).map(|m| m.as_str().to_string());
             let line = cap.get(2).and_then(|m| m.as_str().parse::<usize>().ok());
-            let msg = cap.get(4).map(|m| m.as_str().to_string()).unwrap_or_default();
+            let msg = cap
+                .get(4)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
 
             diagnostics.push(Diagnostic {
                 file_path: file,

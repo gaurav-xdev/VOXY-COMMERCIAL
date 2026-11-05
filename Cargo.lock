@@ -4899,6 +4899,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "osmoo-installer"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "sha2 0.10.9",
+ "windows 0.58.0",
+ "zip 9.0.5",
+]
+
+[[package]]
 name = "owned_ttf_parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8255,6 +8265,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "parking_lot",
+ "rusqlite",
  "serde",
  "serde_json",
  "tempfile",
@@ -8264,6 +8275,7 @@ dependencies = [
  "uuid",
  "voxy-security",
  "voxy-shared",
+ "zip 9.0.5",
 ]
 
 [[package]]
@@ -8350,6 +8362,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "voxy-desktop-runtime",
+ "voxy-desktop-ui",
  "voxy-event-bus",
  "voxy-ipc",
  "voxy-shared",
@@ -8664,10 +8677,12 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "dirs 6.0.0",
  "parking_lot",
  "reqwest",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
@@ -8676,6 +8691,7 @@ dependencies = [
  "voxy-database",
  "voxy-event-bus",
  "voxy-grounding",
+ "voxy-office",
  "voxy-platform-core",
  "voxy-platform-windows",
  "voxy-security",

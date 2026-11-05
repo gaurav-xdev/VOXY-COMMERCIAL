@@ -13,6 +13,7 @@
 
 pub mod agentic_loop;
 pub mod backends;
+pub mod checkpoint;
 pub mod config;
 pub mod cursor;
 pub mod error;
@@ -26,6 +27,7 @@ pub use backends::{
     hybrid::HybridBackend, hybrid::HybridBuilder, hybrid::HybridConfig, openclaw::OpenClawBackend,
     recovery::RecoveryEngine, verification::VerificationEngine, windows_uia::WindowsUiaBackend,
 };
+pub use checkpoint::{DesktopCheckpoint, UntrustedPayloadSanitizer, WorkflowCheckpointManager};
 pub use config::AutomationConfig;
 pub use cursor::{
     AutomationAction, ConfirmationStatus, DestructiveActionGuard, RiskEvaluation, RiskLevel,

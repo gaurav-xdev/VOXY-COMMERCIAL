@@ -157,10 +157,7 @@ impl Tool for BrowserFetchTool {
             .and_then(|v| v.as_u64())
             .unwrap_or(256 * 1024) as usize;
 
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
+        let client = BrowserRuntime::create_safe_http_client(std::time::Duration::from_secs(10))?;
 
         let response = client
             .get(url)
@@ -724,10 +721,7 @@ impl Tool for BrowserDownloadTool {
             let _ = tokio::fs::create_dir_all(parent).await;
         }
 
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
+        let client = BrowserRuntime::create_safe_http_client(Duration::from_secs(30))?;
 
         let resp = client
             .get(url)

@@ -2,6 +2,7 @@ pub mod commands;
 
 pub use commands::{BackendCommand, BackendError, BackendResult};
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -32,8 +33,9 @@ pub struct BackendDispatcher {
 
 impl BackendDispatcher {
     pub fn new(bridge: AppBridge) -> Self {
-        let primary_llm = bridge.settings.get().models.provider;
-        let model_router = Self::create_default_model_router(&primary_llm);
+        let snapshot = bridge.settings.get();
+        let primary_llm = snapshot.models.provider.clone();
+        let model_router = Self::create_default_model_router_with_keys(&primary_llm, Some(&snapshot.models.provider_keys));
         let tool_registry = Arc::new(ToolRegistry::with_builtins());
 
         // Initialize OSMOO Sovereign Video Studio Enclave (accessible exclusively to OSMOO)
@@ -91,6 +93,13 @@ impl BackendDispatcher {
     }
 
     pub fn create_default_model_router(settings_provider: &str) -> Arc<ModelRouter> {
+        Self::create_default_model_router_with_keys(settings_provider, None)
+    }
+
+    pub fn create_default_model_router_with_keys(
+        settings_provider: &str,
+        provider_keys: Option<&HashMap<String, String>>,
+    ) -> Arc<ModelRouter> {
         let registry = Arc::new(DefaultProviderRegistry::new());
         let router = Arc::new(ModelRouter::new(registry.clone()));
 
@@ -111,67 +120,76 @@ impl BackendDispatcher {
         router.register_llm("ollama", ollama);
 
         // 2. OpenAI Cloud
-        if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-            if !key.trim().is_empty() {
-                let config = voxy_openai::OpenAIConfig {
-                    api_key: key.into(),
-                    ..Default::default()
-                };
-                let openai = Arc::new(voxy_openai::OpenAIProvider::new(config));
-                let openai_info = ProviderInfo {
-                    id: "openai".into(),
-                    name: "OpenAI Cloud".into(),
-                    kind: ProviderKind::Cloud,
-                    capability: ProviderCapability::Llm,
-                    status: ProviderStatus::Available,
-                    models: vec![],
-                    health: ProviderHealth::new_healthy(None),
-                    base_url: None,
-                    priority: 2,
-                };
-                registry.register_sync(openai_info);
-                router.register_llm("openai", openai);
-            }
+        let openai_key = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .filter(|k| !k.trim().is_empty())
+            .or_else(|| provider_keys.and_then(|k| k.get("openai").cloned()))
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'));
+        if let Some(key) = openai_key {
+            let config = voxy_openai::OpenAIConfig {
+                api_key: key.into(),
+                ..Default::default()
+            };
+            let openai = Arc::new(voxy_openai::OpenAIProvider::new(config));
+            let openai_info = ProviderInfo {
+                id: "openai".into(),
+                name: "OpenAI Cloud".into(),
+                kind: ProviderKind::Cloud,
+                capability: ProviderCapability::Llm,
+                status: ProviderStatus::Available,
+                models: vec![],
+                health: ProviderHealth::new_healthy(None),
+                base_url: None,
+                priority: 2,
+            };
+            registry.register_sync(openai_info);
+            router.register_llm("openai", openai);
         }
 
         // 3. Anthropic Claude
-        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
-            if !key.trim().is_empty() {
-                let anthropic = Arc::new(voxy_anthropic::AnthropicProvider::new(key));
-                let anthropic_info = ProviderInfo {
-                    id: "anthropic".into(),
-                    name: "Anthropic Claude".into(),
-                    kind: ProviderKind::Cloud,
-                    capability: ProviderCapability::Llm,
-                    status: ProviderStatus::Available,
-                    models: vec![],
-                    health: ProviderHealth::new_healthy(None),
-                    base_url: None,
-                    priority: 3,
-                };
-                registry.register_sync(anthropic_info);
-                router.register_llm("anthropic", anthropic);
-            }
+        let anthropic_key = std::env::var("ANTHROPIC_API_KEY")
+            .ok()
+            .filter(|k| !k.trim().is_empty())
+            .or_else(|| provider_keys.and_then(|k| k.get("anthropic").cloned()))
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'));
+        if let Some(key) = anthropic_key {
+            let anthropic = Arc::new(voxy_anthropic::AnthropicProvider::new(key));
+            let anthropic_info = ProviderInfo {
+                id: "anthropic".into(),
+                name: "Anthropic Claude".into(),
+                kind: ProviderKind::Cloud,
+                capability: ProviderCapability::Llm,
+                status: ProviderStatus::Available,
+                models: vec![],
+                health: ProviderHealth::new_healthy(None),
+                base_url: None,
+                priority: 3,
+            };
+            registry.register_sync(anthropic_info);
+            router.register_llm("anthropic", anthropic);
         }
 
         // 4. Gemini Cloud
-        if let Ok(key) = std::env::var("GEMINI_API_KEY") {
-            if !key.trim().is_empty() {
-                let gemini = Arc::new(voxy_gemini::GeminiProvider::new(key));
-                let gemini_info = ProviderInfo {
-                    id: "gemini".into(),
-                    name: "Google Gemini".into(),
-                    kind: ProviderKind::Cloud,
-                    capability: ProviderCapability::Llm,
-                    status: ProviderStatus::Available,
-                    models: vec![],
-                    health: ProviderHealth::new_healthy(None),
-                    base_url: None,
-                    priority: 4,
-                };
-                registry.register_sync(gemini_info);
-                router.register_llm("gemini", gemini);
-            }
+        let gemini_key = std::env::var("GEMINI_API_KEY")
+            .ok()
+            .filter(|k| !k.trim().is_empty())
+            .or_else(|| provider_keys.and_then(|k| k.get("gemini").cloned()))
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'));
+        if let Some(key) = gemini_key {
+            let gemini = Arc::new(voxy_gemini::GeminiProvider::new(key));
+            let gemini_info = ProviderInfo {
+                id: "gemini".into(),
+                name: "Google Gemini".into(),
+                kind: ProviderKind::Cloud,
+                capability: ProviderCapability::Llm,
+                status: ProviderStatus::Available,
+                models: vec![],
+                health: ProviderHealth::new_healthy(None),
+                base_url: None,
+                priority: 4,
+            };
+            registry.register_sync(gemini_info);
+            router.register_llm("gemini", gemini);
         }
 
         let mode = match settings_provider.to_lowercase().as_str() {
@@ -182,8 +200,35 @@ impl BackendDispatcher {
             _ => RoutingMode::Auto,
         };
         router.set_mode(mode);
-
         router
+    }
+
+    pub fn register_cloud_providers(&self, keys: &HashMap<String, String>) {
+        if let Some(key) = keys
+            .get("openai")
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'))
+        {
+            let config = voxy_openai::OpenAIConfig {
+                api_key: key.clone().into(),
+                ..Default::default()
+            };
+            let openai = Arc::new(voxy_openai::OpenAIProvider::new(config));
+            self.model_router.register_llm("openai", openai);
+        }
+        if let Some(key) = keys
+            .get("anthropic")
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'))
+        {
+            let anthropic = Arc::new(voxy_anthropic::AnthropicProvider::new(key.clone()));
+            self.model_router.register_llm("anthropic", anthropic);
+        }
+        if let Some(key) = keys
+            .get("gemini")
+            .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'))
+        {
+            let gemini = Arc::new(voxy_gemini::GeminiProvider::new(key.clone()));
+            self.model_router.register_llm("gemini", gemini);
+        }
     }
 
     pub fn get_global() -> Option<BackendDispatcher> {
@@ -426,35 +471,14 @@ impl BackendDispatcher {
         match cmd {
             BackendCommand::LoadSettings => {
                 let snapshot = self.bridge.settings.get();
-                let form = SettingsFormState {
-                    assistant_name: snapshot.app_name,
-                    primary_llm: snapshot.models.provider,
-                    ollama_model: snapshot.models.model,
-                    autolaunch: true,
-                    stt_provider: snapshot
-                        .voice
-                        .stt_provider
-                        .unwrap_or_else(|| "groq".to_string()),
-                    tts_provider: snapshot
-                        .voice
-                        .tts_provider
-                        .unwrap_or_else(|| "cartesia".to_string()),
-                    audio_sample_rate: snapshot.voice.sample_rate,
-                    vad_sensitivity: snapshot.voice.wake_word_sensitivity as f32,
-                    minimize_to_tray: true,
-                    user_email: self
-                        .bridge
-                        .auth
-                        .current_session()
-                        .map(|s| s.email)
-                        .unwrap_or_else(|| "operator@osmoo.in".to_string()),
-                    active_tier: self
-                        .bridge
-                        .auth
-                        .current_session()
-                        .map(|s| s.active_tier)
-                        .unwrap_or_else(|| "free".to_string()),
+                let session = self.bridge.auth.current_session();
+                let email = if !snapshot.profile.user_email.trim().is_empty() {
+                    snapshot.profile.user_email.as_str()
+                } else {
+                    session.as_ref().map(|s| s.email.as_str()).unwrap_or("operator@osmoo.in")
                 };
+                let tier = session.as_ref().map(|s| s.active_tier.as_str()).unwrap_or("free");
+                let form = SettingsFormState::from_snapshot(&snapshot, email, tier);
                 Ok(BackendResult::SettingsLoaded(form))
             }
 
@@ -465,30 +489,166 @@ impl BackendDispatcher {
                         "Assistant designation must not be empty".to_string(),
                     ));
                 }
+                if form.wake_words.len() > 10 {
+                    return Err(BackendError::Validation(
+                        "Wake words count exceeds the maximum limit of 10".to_string(),
+                    ));
+                }
+                if form.companion_size < 0.2 || form.companion_size > 3.0 {
+                    return Err(BackendError::Validation(
+                        "Companion scale must be between 0.2 and 3.0".to_string(),
+                    ));
+                }
+                if form.speech_speed < 0.25 || form.speech_speed > 3.0 {
+                    return Err(BackendError::Validation(
+                        "Speech speed must be between 0.25 and 3.0".to_string(),
+                    ));
+                }
+                if form.speech_pitch < 0.25 || form.speech_pitch > 3.0 {
+                    return Err(BackendError::Validation(
+                        "Speech pitch must be between 0.25 and 3.0".to_string(),
+                    ));
+                }
+                if form.max_concurrent_tasks == 0 || form.max_concurrent_tasks > 10 {
+                    return Err(BackendError::Validation(
+                        "Concurrent tasks limit must be between 1 and 10".to_string(),
+                    ));
+                }
+                if !form.user_email.contains('@') {
+                    return Err(BackendError::Validation(
+                        "Invalid operator email address".to_string(),
+                    ));
+                }
 
                 let mut current = self.bridge.settings.get();
                 current.app_name = form.assistant_name;
+
+                // 1. Profile & General
+                current.profile.user_name = form.user_name;
+                current.profile.user_email = form.user_email;
+                current.profile.organization = form.organization;
+                current.profile.role = form.role;
+                current.profile.language = form.language;
+                current.profile.close_behavior = form.close_behavior;
+                current.appearance.theme = form.theme;
+                current.appearance.start_with_windows = form.autolaunch;
+                current.updates.auto_update = form.auto_update;
+                current.updates.channel = form.update_channel;
+
+                // 2. Models & Providers
                 current.models.provider = form.primary_llm.clone();
                 current.models.model = form.ollama_model;
+                current.models.coding_model = form.coding_model;
+                current.models.voice_model = form.voice_model;
+                current.models.embedding_model = form.embedding_model;
+                current.models.enable_fallback = form.enable_fallback;
+                for (k, v) in form.provider_keys {
+                    if !v.trim().is_empty() && v != "••••••••" {
+                        current.models.provider_keys.insert(k, v);
+                    }
+                }
+
+                // 3. Voice & Audio
+                current.voice.enabled = form.voice_enabled;
+                current.voice.wake_words = form.wake_words;
+                if let Some(first) = current.voice.wake_words.first() {
+                    current.voice.wake_word = first.clone();
+                }
                 current.voice.stt_provider = Some(form.stt_provider);
                 current.voice.tts_provider = Some(form.tts_provider);
+                current.voice.voice_name = Some(form.voice_name);
+                current.voice.speech_speed = form.speech_speed;
+                current.voice.speech_pitch = form.speech_pitch;
+                current.voice.interruption_barge_in = form.interruption_barge_in;
+                current.voice.noise_suppression = form.noise_suppression;
+                current.voice.echo_cancellation = form.echo_cancellation;
                 current.voice.sample_rate = form.audio_sample_rate;
                 current.voice.wake_word_sensitivity = form.vad_sensitivity as f64;
+                current.voice.input_device = if form.input_device.trim().is_empty() || form.input_device.starts_with("Default") {
+                    None
+                } else {
+                    Some(form.input_device)
+                };
+                current.voice.output_device = if form.output_device.trim().is_empty() || form.output_device.starts_with("Default") {
+                    None
+                } else {
+                    Some(form.output_device)
+                };
+
+                // 4. Companion & Viewport
+                current.companion.character_id = form.companion_character_id;
+                current.companion.character_size = form.companion_size;
+                current.companion.position_preset = form.companion_position;
+                current.companion.expression = form.companion_expression;
+                current.companion.lip_sync = form.companion_lip_sync;
+                current.companion.animations_enabled = form.companion_animations;
+                current.companion.draggable = form.companion_draggable;
+                current.companion.click_through = form.companion_click_through;
+                current.companion.desktop_overlay_mode = if form.desktop_overlay_mode {
+                    "overlay".to_string()
+                } else {
+                    "windowed".to_string()
+                };
+
+                // 5. Security & Permissions
+                current.security.file_system_access = form.file_system_access;
+                current.security.browser_automation = form.browser_automation;
+                current.security.shell_execution = form.shell_execution;
+                current.security.require_approval_sensitive = form.require_approval_sensitive;
+                current.security.require_approval_financial = form.require_approval_financial;
+                current.security.require_approval_email = form.require_approval_email;
+                current.security.require_approval_scripts = form.require_approval_scripts;
+                current.security.audit_logging_enabled = form.audit_logging_enabled;
+                current.security.emergency_stopped = form.emergency_stopped;
+
+                // 6. Memory & Personalization
+                current.memory.enabled = form.memory_enabled;
+                current.memory.retention_days = form.memory_retention_days;
+                current.memory.auto_consolidate = form.auto_consolidate;
+                current.memory.private_session = form.private_session;
+                current.memory.user_persona_notes = form.user_persona_notes;
+
+                // 7. Automation & Autonomy
+                current.automation.background_tasks_allowed = form.background_tasks_allowed;
+                current.automation.pause_on_battery = form.pause_on_battery;
+                current.automation.max_concurrent_tasks = form.max_concurrent_tasks;
+                current.automation.timeout_seconds = form.task_timeout_seconds;
+                current.automation.action_risk_threshold = form.action_risk_threshold;
+                current.automation.global_tasks_paused = form.global_tasks_paused;
+
+                // 8. Performance & Hardware
+                current.performance.max_memory_mb = form.max_memory_mb;
+                current.performance.max_cpu_percent = form.max_cpu_percent;
+                current.performance.gpu_acceleration = form.gpu_acceleration;
+                current.performance.model_unload_timeout_minutes = form.model_unload_timeout_minutes;
+
+                self.register_cloud_providers(&current.models.provider_keys);
+
+                // Strict model routing policy:
+                // When fallback is disabled, force the specified provider if available, otherwise Auto
+                let router_mode = if !form.enable_fallback {
+                    match form.primary_llm.to_lowercase().as_str() {
+                        "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
+                        "openai" if current.models.provider_keys.contains_key("openai") || std::env::var("OPENAI_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                            RoutingMode::ForceProvider("openai".into())
+                        }
+                        "anthropic" | "claude" if current.models.provider_keys.contains_key("anthropic") || std::env::var("ANTHROPIC_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                            RoutingMode::ForceProvider("anthropic".into())
+                        }
+                        "gemini" if current.models.provider_keys.contains_key("gemini") || std::env::var("GEMINI_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                            RoutingMode::ForceProvider("gemini".into())
+                        }
+                        _ => RoutingMode::Auto,
+                    }
+                } else {
+                    RoutingMode::Auto
+                };
+                self.model_router.set_mode(router_mode);
 
                 self.bridge
                     .settings
                     .update(current)
                     .map_err(|e| BackendError::Settings(e.to_string()))?;
-
-                // Update model router mode dynamically
-                let router_mode = match form.primary_llm.to_lowercase().as_str() {
-                    "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
-                    "openai" => RoutingMode::ForceProvider("openai".into()),
-                    "anthropic" | "claude" => RoutingMode::ForceProvider("anthropic".into()),
-                    "gemini" => RoutingMode::ForceProvider("gemini".into()),
-                    _ => RoutingMode::Auto,
-                };
-                self.model_router.set_mode(router_mode);
 
                 // Notify IPC daemon of routing change if connected
                 let _ = self
@@ -713,10 +873,34 @@ impl BackendDispatcher {
                 let mut current = self.bridge.settings.get();
                 current.app_name = cfg.assistant_name;
                 current.onboarded = true;
-                current.models.provider = cfg.primary_llm;
-                current.models.model = cfg.selected_model;
+                current.models.provider = cfg.primary_llm.clone();
+                current.models.model = cfg.selected_model.clone();
+                if let Some(ref key) = cfg.api_key {
+                    let trimmed = key.trim();
+                    if !trimmed.is_empty() {
+                        current
+                            .models
+                            .provider_keys
+                            .insert(cfg.primary_llm.to_lowercase(), trimmed.to_string());
+                    }
+                }
                 current.voice.stt_provider = Some(cfg.stt_provider);
                 current.voice.tts_provider = Some(cfg.tts_provider);
+                current.voice.always_listening = cfg.wake_word_enabled;
+                current.companion.character_size = cfg.companion_scale as f64;
+                current.companion.position_preset = cfg.companion_position;
+                current.appearance.start_with_windows = cfg.start_on_boot;
+                current.companion.animations_enabled = cfg.autowalk_enabled;
+
+                self.register_cloud_providers(&current.models.provider_keys);
+                let router_mode = match cfg.primary_llm.to_lowercase().as_str() {
+                    "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
+                    "openai" => RoutingMode::ForceProvider("openai".into()),
+                    "anthropic" | "claude" => RoutingMode::ForceProvider("anthropic".into()),
+                    "gemini" => RoutingMode::ForceProvider("gemini".into()),
+                    _ => RoutingMode::Auto,
+                };
+                self.model_router.set_mode(router_mode);
 
                 self.bridge
                     .settings
@@ -745,6 +929,221 @@ impl BackendDispatcher {
                     .await;
 
                 Ok(BackendResult::OnboardingCompleted)
+            }
+
+            BackendCommand::TestProviderConnection {
+                provider,
+                model,
+                api_key,
+            } => {
+                let start = std::time::Instant::now();
+                let lower = provider.to_lowercase();
+                if lower == "ollama" || lower == "local" {
+                    let client = reqwest::Client::builder()
+                        .timeout(std::time::Duration::from_millis(2500))
+                        .build()
+                        .unwrap_or_default();
+                    match client.get("http://127.0.0.1:11434/api/tags").send().await {
+                        Ok(resp) if resp.status().is_success() => {
+                            let latency_ms = start.elapsed().as_millis() as u64;
+                            Ok(BackendResult::ProviderTested {
+                                success: true,
+                                message: format!("Ollama daemon responsive. Target model: {model}"),
+                                latency_ms,
+                            })
+                        }
+                        Ok(resp) => {
+                            let latency_ms = start.elapsed().as_millis() as u64;
+                            Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Ollama returned HTTP status {}", resp.status()),
+                                latency_ms,
+                            })
+                        }
+                        Err(e) => {
+                            let latency_ms = start.elapsed().as_millis() as u64;
+                            Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Could not reach Ollama at 127.0.0.1:11434: {e}"),
+                                latency_ms,
+                            })
+                        }
+                    }
+                } else {
+                    let snapshot = self.bridge.settings.get();
+                    let effective_key = api_key
+                        .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'))
+                        .or_else(|| match lower.as_str() {
+                            "openai" => std::env::var("OPENAI_API_KEY").ok(),
+                            "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
+                            "gemini" => std::env::var("GEMINI_API_KEY").ok(),
+                            "groq" => std::env::var("GROQ_API_KEY").ok(),
+                            _ => None,
+                        })
+                        .or_else(|| snapshot.models.provider_keys.get(&lower).cloned());
+
+                    let latency_ms = start.elapsed().as_millis() as u64;
+                    if let Some(key) = effective_key {
+                        let trimmed = key.trim();
+                        if trimmed.is_empty() {
+                            return Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Missing API key for provider '{provider}'."),
+                                latency_ms,
+                            });
+                        }
+
+                        // Validate format
+                        let is_valid_format = match lower.as_str() {
+                            "openai" => trimmed.starts_with("sk-"),
+                            "anthropic" => trimmed.starts_with("sk-ant-"),
+                            "gemini" => trimmed.starts_with("AIza") || trimmed.len() >= 20,
+                            "groq" => trimmed.starts_with("gsk_") || trimmed.len() >= 20,
+                            _ => trimmed.len() >= 10,
+                        };
+
+                        if !is_valid_format {
+                            return Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Invalid API key format for {}. Key prefix does not match expected provider signature.", provider),
+                                latency_ms,
+                            });
+                        }
+
+                        // Try live HTTP ping to provider
+                        let client = reqwest::Client::builder()
+                            .timeout(std::time::Duration::from_millis(3500))
+                            .build()
+                            .unwrap_or_default();
+
+                        let ping_res = match lower.as_str() {
+                            "openai" => {
+                                client
+                                    .get("https://api.openai.com/v1/models")
+                                    .header("Authorization", format!("Bearer {trimmed}"))
+                                    .send()
+                                    .await
+                            }
+                            "anthropic" => {
+                                client
+                                    .get("https://api.anthropic.com/v1/models")
+                                    .header("x-api-key", trimmed)
+                                    .header("anthropic-version", "2023-06-01")
+                                    .send()
+                                    .await
+                            }
+                            "groq" => {
+                                client
+                                    .get("https://api.groq.com/openai/v1/models")
+                                    .header("Authorization", format!("Bearer {trimmed}"))
+                                    .send()
+                                    .await
+                            }
+                            _ => {
+                                let latency = start.elapsed().as_millis() as u64;
+                                return Ok(BackendResult::ProviderTested {
+                                    success: true,
+                                    message: format!("Provider '{provider}' format validated (latency: {latency}ms)."),
+                                    latency_ms: latency,
+                                });
+                            }
+                        };
+
+                        let latency = start.elapsed().as_millis() as u64;
+                        match ping_res {
+                            Ok(r) if r.status().is_success() => Ok(BackendResult::ProviderTested {
+                                success: true,
+                                message: format!("Connection confirmed to {provider} ({latency}ms). Credentials valid."),
+                                latency_ms: latency,
+                            }),
+                            Ok(r) if r.status() == 401 || r.status() == 403 => {
+                                Ok(BackendResult::ProviderTested {
+                                    success: false,
+                                    message: format!("Authentication failed (HTTP {}): API key is rejected by {provider}.", r.status()),
+                                    latency_ms: latency,
+                                })
+                            }
+                            Ok(r) if r.status().is_server_error() => Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Provider server error (HTTP {}): service temporarily unavailable.", r.status()),
+                                latency_ms: latency,
+                            }),
+                            Ok(r) if r.status() == 429 => Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Rate limited (HTTP 429): Quota exceeded for {provider}."),
+                                latency_ms: latency,
+                            }),
+                            Ok(r) => Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Provider returned unexpected status (HTTP {}).", r.status()),
+                                latency_ms: latency,
+                            }),
+                            Err(e) => Ok(BackendResult::ProviderTested {
+                                success: false,
+                                message: format!("Network error reaching {provider}: {e}"),
+                                latency_ms: latency,
+                            }),
+                        }
+                    } else {
+                        Ok(BackendResult::ProviderTested {
+                            success: false,
+                            message: format!("Provider '{provider}' API key not configured."),
+                            latency_ms,
+                        })
+                    }
+                }
+            }
+
+            BackendCommand::ExportDiagnostics => {
+                let snapshot = self.bridge.settings.get();
+                let mut sys = sysinfo::System::new();
+                sys.refresh_memory();
+                sys.refresh_cpu_all();
+                let cpu_pct = sys.global_cpu_usage();
+                let mem_mb = sys.used_memory() / (1024 * 1024);
+                let total_mem_mb = sys.total_memory() / (1024 * 1024);
+
+                let report = format!(
+                    "=== OSMOO SANITIZED SYSTEM DIAGNOSTICS ===\n                    Timestamp: {}\n                    OSMOO Version: v0.1.0-commercial\n                    Build Channel: {}\n                    Host Platform: {} (Arch: {})\n                    CPU Usage: {:.1}%\n                    Memory Usage: {} MB / {} MB\n                    \n                    --- Active Routing & Providers ---\n                    Primary Provider: {}\n                    Strict Routing: {}\n                    Reasoning Model: {}\n                    Coding Model: {}\n                    Voice Model: {}\n                    Embedding Model: {}\n                    STT Engine: {}\n                    TTS Engine: {}\n                    \n                    --- Companion & Viewport ---\n                    Avatar Mesh: {}\n                    Scale: {:.2}x\n                    Position Preset: {}\n                    Overlay Mode: {}\n                    \n                    --- Security Policies ---\n                    Filesystem Access: {}\n                    Browser Automation: {}\n                    Shell Execution Gate: {}\n                    Audit Logging Active: {}\n                    Emergency Stopped: {}\n                    \n                    --- Memory & Automation Subsystems ---\n                    Memory Retain Days: {}\n                    Private Session: {}\n                    Max Concurrent Tasks: {}\n                    Task Timeout: {}s\n                    Risk Threshold: {}\n                    Global Tasks Paused: {}\n                    \n                    [DPAPI REDACTED: All API keys, authorization tokens, and personal operator secrets masked.]",
+                    chrono::Utc::now().to_rfc3339(),
+                    snapshot.updates.channel,
+                    std::env::consts::OS,
+                    std::env::consts::ARCH,
+                    cpu_pct,
+                    mem_mb,
+                    total_mem_mb,
+                    snapshot.models.provider,
+                    if snapshot.models.enable_fallback { "Disabled (Fallback Allowed)" } else { "Active (Zero Silent Fallback)" },
+                    snapshot.models.model,
+                    snapshot.models.coding_model,
+                    snapshot.models.voice_model,
+                    snapshot.models.embedding_model,
+                    snapshot.voice.stt_provider.as_deref().unwrap_or("none"),
+                    snapshot.voice.tts_provider.as_deref().unwrap_or("none"),
+                    snapshot.companion.character_id,
+                    snapshot.companion.character_size,
+                    snapshot.companion.position_preset,
+                    snapshot.companion.desktop_overlay_mode,
+                    snapshot.security.file_system_access,
+                    snapshot.security.browser_automation,
+                    snapshot.security.shell_execution,
+                    snapshot.security.audit_logging_enabled,
+                    snapshot.security.emergency_stopped,
+                    snapshot.memory.retention_days,
+                    snapshot.memory.private_session,
+                    snapshot.automation.max_concurrent_tasks,
+                    snapshot.automation.timeout_seconds,
+                    snapshot.automation.action_risk_threshold,
+                    snapshot.automation.global_tasks_paused,
+                );
+
+                Ok(BackendResult::DiagnosticsExported { sanitized_report: report })
+            }
+
+            BackendCommand::PurgeStoredMemories => {
+                let stats = self.bridge.memory.stats().await.map(|s| s.total_items).unwrap_or(0);
+                self.bridge.memory.clear().await.map_err(|e| BackendError::Storage(e.to_string()))?;
+                Ok(BackendResult::MemoriesPurged { count: stats })
             }
         }
     }
