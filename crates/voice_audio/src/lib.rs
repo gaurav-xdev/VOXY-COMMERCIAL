@@ -426,29 +426,65 @@ impl AudioRuntime {
     where
         F: Fn(Vec<f32>, f32) + Send + Sync + 'static,
     {
-        let device = match &self.config.input_device_name {
+        let device_res = match &self.config.input_device_name {
             Some(name) => self
                 .manager
                 .host
                 .input_devices()
-                .map_err(|e| AudioError::HostError(e.to_string()))?
-                .find(|d| {
-                    d.description()
-                        .map(|desc| desc.name() == name)
-                        .unwrap_or(false)
-                        || d.to_string() == *name
-                })
-                .ok_or_else(|| AudioError::DeviceNotFound(name.clone()))?,
+                .map_err(|e| AudioError::HostError(e.to_string()))
+                .and_then(|mut devs| {
+                    devs.find(|d| {
+                        d.description()
+                            .map(|desc| desc.name() == name)
+                            .unwrap_or(false)
+                            || d.to_string() == *name
+                    })
+                    .ok_or_else(|| AudioError::DeviceNotFound(name.clone()))
+                }),
             None => self
                 .manager
                 .host
                 .default_input_device()
-                .ok_or_else(|| AudioError::DeviceNotFound("Default input device".into()))?,
+                .ok_or_else(|| AudioError::DeviceNotFound("Default input device".into())),
         };
 
-        let supported_config = device
-            .default_input_config()
-            .map_err(|e| AudioError::InputStreamError(e.to_string()))?;
+        let device = match device_res {
+            Ok(d) => d,
+            Err(e) => {
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!("Failed to find physical input audio device ({e}). Falling back to virtual handle.");
+                    return Ok(AudioCaptureHandle {
+                        _stream: None,
+                        is_active: Arc::new(AtomicBool::new(true)),
+                        is_muted: Arc::new(AtomicBool::new(false)),
+                        is_speaker_playing: Arc::new(AtomicBool::new(false)),
+                        last_error: Arc::new(Mutex::new(None)),
+                    });
+                } else {
+                    return Err(e);
+                }
+            }
+        };
+
+        let supported_config = match device.default_input_config() {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!(
+                        "Failed to get default input config ({e}). Falling back to virtual handle."
+                    );
+                    return Ok(AudioCaptureHandle {
+                        _stream: None,
+                        is_active: Arc::new(AtomicBool::new(true)),
+                        is_muted: Arc::new(AtomicBool::new(false)),
+                        is_speaker_playing: Arc::new(AtomicBool::new(false)),
+                        last_error: Arc::new(Mutex::new(None)),
+                    });
+                } else {
+                    return Err(AudioError::InputStreamError(e.to_string()));
+                }
+            }
+        };
 
         let sample_rate = supported_config.sample_rate();
         let channels = supported_config.channels();
@@ -683,29 +719,63 @@ impl AudioRuntime {
 
     /// Starts audio playback and returns a handle to queue chunks or immediately purge sound.
     pub fn start_playback(&self) -> Result<AudioPlaybackHandle, AudioError> {
-        let device = match &self.config.output_device_name {
+        let device_res = match &self.config.output_device_name {
             Some(name) => self
                 .manager
                 .host
                 .output_devices()
-                .map_err(|e| AudioError::HostError(e.to_string()))?
-                .find(|d| {
-                    d.description()
-                        .map(|desc| desc.name() == name)
-                        .unwrap_or(false)
-                        || d.to_string() == *name
-                })
-                .ok_or_else(|| AudioError::DeviceNotFound(name.clone()))?,
+                .map_err(|e| AudioError::HostError(e.to_string()))
+                .and_then(|mut devs| {
+                    devs.find(|d| {
+                        d.description()
+                            .map(|desc| desc.name() == name)
+                            .unwrap_or(false)
+                            || d.to_string() == *name
+                    })
+                    .ok_or_else(|| AudioError::DeviceNotFound(name.clone()))
+                }),
             None => self
                 .manager
                 .host
                 .default_output_device()
-                .ok_or_else(|| AudioError::DeviceNotFound("Default output device".into()))?,
+                .ok_or_else(|| AudioError::DeviceNotFound("Default output device".into())),
         };
 
-        let supported_config = device
-            .default_output_config()
-            .map_err(|e| AudioError::OutputStreamError(e.to_string()))?;
+        let device = match device_res {
+            Ok(d) => d,
+            Err(e) => {
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!("Failed to find physical output audio device ({e}). Falling back to virtual handle.");
+                    return Ok(AudioPlaybackHandle {
+                        _stream: None,
+                        buffer: AudioRingBuffer::new(self.config.target_sample_rate as usize * 10),
+                        is_playing: Arc::new(AtomicBool::new(false)),
+                        sample_rate: self.config.target_sample_rate,
+                        last_error: Arc::new(Mutex::new(None)),
+                    });
+                } else {
+                    return Err(e);
+                }
+            }
+        };
+
+        let supported_config = match device.default_output_config() {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                if self.config.allow_virtual_fallback {
+                    tracing::warn!("Failed to get default output config ({e}). Falling back to virtual handle.");
+                    return Ok(AudioPlaybackHandle {
+                        _stream: None,
+                        buffer: AudioRingBuffer::new(self.config.target_sample_rate as usize * 10),
+                        is_playing: Arc::new(AtomicBool::new(false)),
+                        sample_rate: self.config.target_sample_rate,
+                        last_error: Arc::new(Mutex::new(None)),
+                    });
+                } else {
+                    return Err(AudioError::OutputStreamError(e.to_string()));
+                }
+            }
+        };
 
         let sample_rate = supported_config.sample_rate();
         let channels = supported_config.channels();
