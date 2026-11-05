@@ -20,6 +20,9 @@ const SAFE_ENV_VARS: &[&str] = &[
     "TMP",
     "USERNAME",
     "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "PSMODULEPATH",
     "APPDATA",
     "LOCALAPPDATA",
     "PROGRAMFILES",
@@ -51,8 +54,11 @@ impl ProcessRunner {
         let mut cmd = if cfg!(windows) {
             let mut c = tokio::process::Command::new("powershell.exe");
             c.args([
+                "-NoLogo",
                 "-NoProfile",
                 "-NonInteractive",
+                "-InputFormat",
+                "None",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
@@ -76,6 +82,7 @@ impl ProcessRunner {
             }
         }
 
+        cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
 

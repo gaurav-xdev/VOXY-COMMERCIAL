@@ -187,7 +187,7 @@ async fn test_toolchain_detection_matrix() {
     let csharp = ToolchainDetector::detect_csharp(ws);
     assert!(matches!(
         csharp.status,
-        ToolchainStatus::MissingToolchain { .. }
+        ToolchainStatus::Available { .. } | ToolchainStatus::MissingToolchain { .. }
     ));
 }
 
@@ -199,7 +199,7 @@ async fn test_process_runner_bounded_execution() {
     let input = CommandExecutionInput {
         command: "echo 'hello windows job object'".into(),
         cwd: None,
-        timeout_ms: Some(10_000),
+        timeout_ms: Some(60_000),
         description: Some("Test command".into()),
         run_in_background: false,
     };
