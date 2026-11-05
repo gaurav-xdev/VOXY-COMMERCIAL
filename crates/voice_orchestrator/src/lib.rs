@@ -1210,8 +1210,11 @@ mod tests {
                 assert!(prod_pipeline.is_running.load(Ordering::SeqCst));
                 prod_pipeline.shutdown();
             }
-            Err(PipelineError::Audio(voxy_voice_audio::AudioError::InputStreamError(_))) => {
-                // Expected fail-closed behavior on systems with no mic permission!
+            Err(
+                PipelineError::Audio(voxy_voice_audio::AudioError::InputStreamError(_))
+                | PipelineError::Audio(voxy_voice_audio::AudioError::DeviceNotFound(_)),
+            ) => {
+                // Expected fail-closed behavior on systems with no mic or no permission!
             }
             Err(e) => panic!("Unexpected error: {e}"),
         }
