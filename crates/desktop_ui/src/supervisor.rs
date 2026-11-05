@@ -398,8 +398,9 @@ impl Supervisor {
         }
 
         // 3. Fallback to locating separate `voxy-overlay.exe`
-        let overlay_path = Self::locate_binary("voxy-overlay", None)
-            .ok_or_else(|| SupervisorError::BinaryNotFound("OSMOO overlay (self or voxy-overlay)".to_string()))?;
+        let overlay_path = Self::locate_binary("voxy-overlay", None).ok_or_else(|| {
+            SupervisorError::BinaryNotFound("OSMOO overlay (self or voxy-overlay)".to_string())
+        })?;
 
         let pid = self.spawn_child("overlay", &overlay_path, &[])?;
         Ok(Some(pid))

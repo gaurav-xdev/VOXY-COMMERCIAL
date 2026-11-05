@@ -50,7 +50,7 @@ pub struct CalendarEvent {
     pub description: Option<String>,
     pub attendees: Vec<String>,
     pub recurrence: RecurrenceRule,
-    pub status: String, // "confirmed", "tentative", "cancelled"
+    pub status: String,                // "confirmed", "tentative", "cancelled"
     pub sync_provider: Option<String>, // "google", "outlook", "local"
     pub sync_id: Option<String>,
     pub last_synced: Option<DateTime<Utc>>,
@@ -94,7 +94,10 @@ impl CalendarConnector {
     }
 
     /// Persistent SQLite storage on disk surviving application restarts
-    pub fn with_sqlite<P: AsRef<Path>>(path: P, audit_trail: Arc<OfficeAuditTrail>) -> Result<Self> {
+    pub fn with_sqlite<P: AsRef<Path>>(
+        path: P,
+        audit_trail: Arc<OfficeAuditTrail>,
+    ) -> Result<Self> {
         let p = path.as_ref();
         if let Some(parent) = p.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -160,7 +163,10 @@ impl CalendarConnector {
             .query(rusqlite::params![exclude_id, end_str, start_str])
             .map_err(|e| OfficeError::Database(format!("Query execution error: {e}")))?;
 
-        if let Some(row) = rows.next().map_err(|e| OfficeError::Database(e.to_string()))? {
+        if let Some(row) = rows
+            .next()
+            .map_err(|e| OfficeError::Database(e.to_string()))?
+        {
             let id: String = row.get(0).unwrap_or_default();
             let title: String = row.get(1).unwrap_or_default();
             let s_str: String = row.get(2).unwrap_or_default();
@@ -194,7 +200,11 @@ impl CalendarConnector {
                 status,
                 sync_provider: sp,
                 sync_id: sid,
-                last_synced: ls_str.as_deref().and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|d| d.with_timezone(&Utc))),
+                last_synced: ls_str.as_deref().and_then(|s| {
+                    DateTime::parse_from_rfc3339(s)
+                        .ok()
+                        .map(|d| d.with_timezone(&Utc))
+                }),
             }));
         }
 
@@ -296,7 +306,8 @@ impl CalendarConnector {
 
         {
             let conn = self.db_conn.lock();
-            let att_json = serde_json::to_string(&new_event.attendees).unwrap_or_else(|_| "[]".into());
+            let att_json =
+                serde_json::to_string(&new_event.attendees).unwrap_or_else(|_| "[]".into());
             conn.execute(
                 "INSERT INTO calendar_events (id, title, start_time, end_time, location, description, attendees, recurrence, status, sync_provider, sync_id, last_synced)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
@@ -403,7 +414,11 @@ impl CalendarConnector {
                     status,
                     sync_provider: sp,
                     sync_id: sid,
-                    last_synced: ls_str.as_deref().and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|d| d.with_timezone(&Utc))),
+                    last_synced: ls_str.as_deref().and_then(|s| {
+                        DateTime::parse_from_rfc3339(s)
+                            .ok()
+                            .map(|d| d.with_timezone(&Utc))
+                    }),
                 })
             })
             .map_err(|e| OfficeError::Database(format!("Query map error: {e}")))?;
@@ -429,7 +444,12 @@ impl CalendarConnector {
     }
 
     /// Delete event by ID from persistent storage
-    pub fn delete_event(&self, event_id: &str, scopes: &ScopeSet, user_id: Option<&str>) -> Result<bool> {
+    pub fn delete_event(
+        &self,
+        event_id: &str,
+        scopes: &ScopeSet,
+        user_id: Option<&str>,
+    ) -> Result<bool> {
         if let Err(e) = scopes.check(OfficeScope::CalendarWrite) {
             self.audit_trail.record(OfficeAuditEvent::new(
                 "Calendar",
@@ -445,7 +465,10 @@ impl CalendarConnector {
 
         let conn = self.db_conn.lock();
         let rows_affected = conn
-            .execute("DELETE FROM calendar_events WHERE id = ?1", params![event_id])
+            .execute(
+                "DELETE FROM calendar_events WHERE id = ?1",
+                params![event_id],
+            )
             .map_err(|e| OfficeError::Database(format!("Delete error: {e}")))?;
 
         let deleted = rows_affected > 0;
@@ -455,7 +478,11 @@ impl CalendarConnector {
             event_id,
             user_id,
             OfficeScope::CalendarWrite.as_str(),
-            if deleted { AuditStatus::Success } else { AuditStatus::Failed },
+            if deleted {
+                AuditStatus::Success
+            } else {
+                AuditStatus::Failed
+            },
             serde_json::json!({ "deleted": deleted }),
         ));
 
@@ -463,7 +490,11 @@ impl CalendarConnector {
     }
 
     /// Retrieve upcoming reminders starting within `lookahead_minutes`
-    pub fn get_upcoming_reminders(&self, now: DateTime<Utc>, lookahead_minutes: i64) -> Result<Vec<CalendarEvent>> {
+    pub fn get_upcoming_reminders(
+        &self,
+        now: DateTime<Utc>,
+        lookahead_minutes: i64,
+    ) -> Result<Vec<CalendarEvent>> {
         let future = now + chrono::Duration::minutes(lookahead_minutes);
         let scopes = ScopeSet::read_only();
         self.list_events(now, future, &scopes, Some("system_monitor"))

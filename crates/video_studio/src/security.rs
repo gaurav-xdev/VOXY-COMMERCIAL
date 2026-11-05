@@ -134,9 +134,7 @@ mod tests {
             .is_ok());
 
         // 2. Direct user access is strictly rejected
-        let user_err = controller
-            .verify_access("user", &valid_token)
-            .unwrap_err();
+        let user_err = controller.verify_access("user", &valid_token).unwrap_err();
         assert!(matches!(user_err, StudioError::Unauthorized(_)));
 
         // 3. UI client direct access is rejected

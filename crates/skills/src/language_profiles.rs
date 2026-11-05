@@ -72,7 +72,9 @@ impl SupportedLanguage {
         match trimmed {
             "rust" | "rs" => Some(SupportedLanguage::Rust),
             "typescript" | "ts" | "tsx" => Some(SupportedLanguage::TypeScript),
-            "javascript" | "js" | "jsx" | "mjs" | "cjs" | "node" => Some(SupportedLanguage::JavaScript),
+            "javascript" | "js" | "jsx" | "mjs" | "cjs" | "node" => {
+                Some(SupportedLanguage::JavaScript)
+            }
             "python" | "py" | "py3" => Some(SupportedLanguage::Python),
             "c" => Some(SupportedLanguage::C),
             "cpp" | "c++" | "cxx" | "cc" | "hpp" => Some(SupportedLanguage::Cpp),
@@ -702,7 +704,11 @@ impl RepositoryLanguageDetector {
                     .unwrap_or("")
                     .to_lowercase();
 
-                let rel_path = path.strip_prefix(root).unwrap_or(path).to_string_lossy().to_string();
+                let rel_path = path
+                    .strip_prefix(root)
+                    .unwrap_or(path)
+                    .to_string_lossy()
+                    .to_string();
 
                 for profile in registry.all_profiles() {
                     if profile.primary_extensions.iter().any(|e| e == &ext) {
@@ -756,9 +762,11 @@ impl RepositoryLanguageDetector {
 
         // Sort by file count & confidence descending
         detected_languages.sort_by(|a, b| {
-            b.file_count
-                .cmp(&a.file_count)
-                .then(b.confidence_score.partial_cmp(&a.confidence_score).unwrap_or(std::cmp::Ordering::Equal))
+            b.file_count.cmp(&a.file_count).then(
+                b.confidence_score
+                    .partial_cmp(&a.confidence_score)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
         });
 
         let primary_language = detected_languages.first().map(|d| d.language);
@@ -809,18 +817,41 @@ mod tests {
             .find(|d| d.language == SupportedLanguage::Rust)
             .unwrap();
         assert!(rust_evidence.file_count > 10);
-        assert!(rust_evidence.matched_manifests.contains(&"Cargo.toml".to_string()));
+        assert!(rust_evidence
+            .matched_manifests
+            .contains(&"Cargo.toml".to_string()));
         assert!(rust_evidence.confidence_score >= 0.8);
     }
 
     #[test]
     fn test_language_from_str_loose() {
-        assert_eq!(SupportedLanguage::from_str_loose("rust"), Some(SupportedLanguage::Rust));
-        assert_eq!(SupportedLanguage::from_str_loose("TypeScript"), Some(SupportedLanguage::TypeScript));
-        assert_eq!(SupportedLanguage::from_str_loose("py"), Some(SupportedLanguage::Python));
-        assert_eq!(SupportedLanguage::from_str_loose("C++"), Some(SupportedLanguage::Cpp));
-        assert_eq!(SupportedLanguage::from_str_loose("c#"), Some(SupportedLanguage::CSharp));
-        assert_eq!(SupportedLanguage::from_str_loose("golang"), Some(SupportedLanguage::Go));
-        assert_eq!(SupportedLanguage::from_str_loose("postgresql"), Some(SupportedLanguage::Sql));
+        assert_eq!(
+            SupportedLanguage::from_str_loose("rust"),
+            Some(SupportedLanguage::Rust)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("TypeScript"),
+            Some(SupportedLanguage::TypeScript)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("py"),
+            Some(SupportedLanguage::Python)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("C++"),
+            Some(SupportedLanguage::Cpp)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("c#"),
+            Some(SupportedLanguage::CSharp)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("golang"),
+            Some(SupportedLanguage::Go)
+        );
+        assert_eq!(
+            SupportedLanguage::from_str_loose("postgresql"),
+            Some(SupportedLanguage::Sql)
+        );
     }
 }

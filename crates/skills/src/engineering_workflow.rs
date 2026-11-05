@@ -17,8 +17,12 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::code_review::{CodeReviewReport, IndependentCodeReviewer};
-use crate::language_profiles::{MultiLanguageDetectionResult, RepositoryLanguageDetector, SupportedLanguage};
-use crate::toolchains::{ToolchainRegistry, VerificationExecutionResult, VerificationOp, VerificationStatus};
+use crate::language_profiles::{
+    MultiLanguageDetectionResult, RepositoryLanguageDetector, SupportedLanguage,
+};
+use crate::toolchains::{
+    ToolchainRegistry, VerificationExecutionResult, VerificationOp, VerificationStatus,
+};
 
 /// The 8 discrete stages of the production engineering lifecycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -114,12 +118,16 @@ impl ProductionEngineeringWorkflow {
         let start_understand = Instant::now();
         let arch = RepositoryLanguageDetector::detect(&self.workspace_root);
         let mut understand_notes = vec![
-            format!("Workspace indexed: {} code files found.", arch.total_code_files),
+            format!(
+                "Workspace indexed: {} code files found.",
+                arch.total_code_files
+            ),
             format!("Primary language: {:?}", arch.primary_language),
             format!("Languages active: {:?}", arch.language_names()),
         ];
         if arch.is_polyglot {
-            understand_notes.push("Polyglot repository detected. Multi-language expertise activated.".into());
+            understand_notes
+                .push("Polyglot repository detected. Multi-language expertise activated.".into());
         }
         stage_records.push(StageRecord {
             stage: WorkflowStage::Understand,
@@ -128,7 +136,10 @@ impl ProductionEngineeringWorkflow {
             notes: understand_notes,
             artifacts: vec!["architecture_detection".into()],
         });
-        evidence.push(format!("Stage 1 Understand: detected languages {:?}", arch.language_names()));
+        evidence.push(format!(
+            "Stage 1 Understand: detected languages {:?}",
+            arch.language_names()
+        ));
 
         // Stage 2: Plan
         let start_plan = Instant::now();
@@ -170,10 +181,16 @@ impl ProductionEngineeringWorkflow {
             stage: WorkflowStage::Baseline,
             completed: true,
             duration_ms: start_baseline.elapsed().as_millis() as u64,
-            notes: vec![format!("Established baseline across {} checks.", baseline_checks.len())],
+            notes: vec![format!(
+                "Established baseline across {} checks.",
+                baseline_checks.len()
+            )],
             artifacts: vec!["baseline_check_results".into()],
         });
-        evidence.push(format!("Stage 3 Baseline: executed {} pre-checks", baseline_checks.len()));
+        evidence.push(format!(
+            "Stage 3 Baseline: executed {} pre-checks",
+            baseline_checks.len()
+        ));
 
         // Stage 4: Implement
         let start_impl = Instant::now();
@@ -197,18 +214,24 @@ impl ProductionEngineeringWorkflow {
             post_checks.push(res);
         }
 
-        let verify_all_passed = post_checks
-            .iter()
-            .all(|c| c.status == VerificationStatus::Passed || c.status == VerificationStatus::Unavailable);
+        let verify_all_passed = post_checks.iter().all(|c| {
+            c.status == VerificationStatus::Passed || c.status == VerificationStatus::Unavailable
+        });
 
         stage_records.push(StageRecord {
             stage: WorkflowStage::VerifyContinuously,
             completed: true,
             duration_ms: start_verify.elapsed().as_millis() as u64,
-            notes: vec![format!("Continuous verification: all passed = {}", verify_all_passed)],
+            notes: vec![format!(
+                "Continuous verification: all passed = {}",
+                verify_all_passed
+            )],
             artifacts: vec!["continuous_verification_results".into()],
         });
-        evidence.push(format!("Stage 5 VerifyContinuously: checks evaluated, passed={}", verify_all_passed));
+        evidence.push(format!(
+            "Stage 5 VerifyContinuously: checks evaluated, passed={}",
+            verify_all_passed
+        ));
 
         // Stage 6: Review Independently
         let start_review = Instant::now();
@@ -224,11 +247,17 @@ impl ProductionEngineeringWorkflow {
             duration_ms: start_review.elapsed().as_millis() as u64,
             notes: vec![format!(
                 "Independent review: passed_cleanly={}",
-                review_report.as_ref().map(|r| r.passed_cleanly).unwrap_or(true)
+                review_report
+                    .as_ref()
+                    .map(|r| r.passed_cleanly)
+                    .unwrap_or(true)
             )],
             artifacts: vec!["independent_review_report".into()],
         });
-        evidence.push(format!("Stage 6 ReviewIndependently: blocking defects={}", !review_passed));
+        evidence.push(format!(
+            "Stage 6 ReviewIndependently: blocking defects={}",
+            !review_passed
+        ));
 
         // Stage 7: Correct and Reverify
         let start_reverify = Instant::now();
@@ -247,10 +276,16 @@ impl ProductionEngineeringWorkflow {
             stage: WorkflowStage::Report,
             completed: true,
             duration_ms: 1,
-            notes: vec![format!("Workflow concluded. Ready for merge: {}", ready_for_merge)],
+            notes: vec![format!(
+                "Workflow concluded. Ready for merge: {}",
+                ready_for_merge
+            )],
             artifacts: vec!["final_engineering_summary".into()],
         });
-        evidence.push(format!("Stage 8 Report: final ready_for_merge={}", ready_for_merge));
+        evidence.push(format!(
+            "Stage 8 Report: final ready_for_merge={}",
+            ready_for_merge
+        ));
 
         WorkflowExecutionSummary {
             task_id: spec.task_id.clone(),
@@ -273,8 +308,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_production_engineering_workflow_e2e() {
-        let temp_dir = std::env::temp_dir().join(format!("voxy_workflow_e2e_{}", uuid::Uuid::new_v4()));
-        tokio::fs::create_dir_all(temp_dir.join("src")).await.unwrap();
+        let temp_dir =
+            std::env::temp_dir().join(format!("voxy_workflow_e2e_{}", uuid::Uuid::new_v4()));
+        tokio::fs::create_dir_all(temp_dir.join("src"))
+            .await
+            .unwrap();
         tokio::fs::write(
             temp_dir.join("Cargo.toml"),
             "[package]\nname = \"test-math\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",

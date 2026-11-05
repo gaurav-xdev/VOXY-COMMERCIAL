@@ -1,6 +1,8 @@
 use crate::engine::KodusReviewEngine;
 use crate::error::Result;
-use crate::types::{KodusFinding, KodusReviewReport, RemediationStatus, ReviewScope, ReviewTrigger};
+use crate::types::{
+    KodusFinding, KodusReviewReport, RemediationStatus, ReviewScope, ReviewTrigger,
+};
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -75,7 +77,9 @@ impl KodusRemediationCoordinator {
                 let status = if iteration == 1 {
                     RemediationStatus::CleanPass
                 } else {
-                    RemediationStatus::RemediatedAndVerified { iterations: iteration }
+                    RemediationStatus::RemediatedAndVerified {
+                        iterations: iteration,
+                    }
                 };
                 return Ok((status, report));
             }

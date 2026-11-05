@@ -436,19 +436,43 @@ async fn test_external_capability_catalog_loading_and_integrity() {
     use crate::activation::{ActivationEngine, ExternalCapabilityCategory};
 
     let engine = ActivationEngine::new_embedded();
-    assert!(engine.total_available() >= 70, "Catalog should have >= 70 capabilities, got {}", engine.total_available());
+    assert!(
+        engine.total_available() >= 70,
+        "Catalog should have >= 70 capabilities, got {}",
+        engine.total_available()
+    );
 
     let caps = engine.list_available();
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::GeneralEngineering));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::FrontendUi));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WorkflowOrchestration));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::CodingTools));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::WebResearch));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::LanguageEngineering));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::SecurityHardening));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::ArchitectureDesign));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::QualityTesting));
-    assert!(caps.iter().any(|c| c.category == ExternalCapabilityCategory::OpenSourcePractices));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::GeneralEngineering));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::FrontendUi));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::WorkflowOrchestration));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::CodingTools));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::WebResearch));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::LanguageEngineering));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::SecurityHardening));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::ArchitectureDesign));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::QualityTesting));
+    assert!(caps
+        .iter()
+        .any(|c| c.category == ExternalCapabilityCategory::OpenSourcePractices));
 
     // Verify pinned commit hashes exist for all external capabilities
     for cap in caps {
@@ -585,13 +609,10 @@ async fn test_activation_policy_available_not_equal_to_active() {
         .any(|c| c.id == "frontend-ui:pmndrs-uikit"));
 
     // 6. Coding Tools MCP task: requires write_files and Modify risk tier
-    let coding_task_denied = TaskContext::new(
-        "t6",
-        "Apply patch using patch-engine",
-        PathBuf::from("."),
-    )
-    .with_tag("patch")
-    .with_max_risk(CapabilityRiskLevel::Read); // Read only, but capability requires Modify
+    let coding_task_denied =
+        TaskContext::new("t6", "Apply patch using patch-engine", PathBuf::from("."))
+            .with_tag("patch")
+            .with_max_risk(CapabilityRiskLevel::Read); // Read only, but capability requires Modify
 
     let result_denied = engine.evaluate_task(&coding_task_denied);
     assert!(!result_denied
@@ -599,14 +620,11 @@ async fn test_activation_policy_available_not_equal_to_active() {
         .iter()
         .any(|c| c.id == "coding-tools:mcp-suite"));
 
-    let coding_task_allowed = TaskContext::new(
-        "t7",
-        "Apply patch using patch-engine",
-        PathBuf::from("."),
-    )
-    .with_tag("patch")
-    .with_permission(SkillPermission::WriteFiles)
-    .with_max_risk(CapabilityRiskLevel::Modify);
+    let coding_task_allowed =
+        TaskContext::new("t7", "Apply patch using patch-engine", PathBuf::from("."))
+            .with_tag("patch")
+            .with_permission(SkillPermission::WriteFiles)
+            .with_max_risk(CapabilityRiskLevel::Modify);
 
     let result_allowed = engine.evaluate_task(&coding_task_allowed);
     assert!(result_allowed
@@ -627,7 +645,10 @@ async fn test_phase2_three_repositories_provenance_and_licensing() {
     let caps = engine.list_available();
 
     // 1. SOTA Skills
-    let sota_caps: Vec<_> = caps.iter().filter(|c| c.source_repo.contains("SOTA-skills")).collect();
+    let sota_caps: Vec<_> = caps
+        .iter()
+        .filter(|c| c.source_repo.contains("SOTA-skills"))
+        .collect();
     assert_eq!(sota_caps.len(), 43, "Expected 43 SOTA skills");
     for c in &sota_caps {
         assert_eq!(c.version_pinned, "2e9b417b14b21e62b6a35ceec803cf5d1cd081ef");
@@ -636,7 +657,10 @@ async fn test_phase2_three_repositories_provenance_and_licensing() {
     }
 
     // 2. Addy Osmani Agent Skills
-    let addy_caps: Vec<_> = caps.iter().filter(|c| c.source_repo.contains("agent-skills")).collect();
+    let addy_caps: Vec<_> = caps
+        .iter()
+        .filter(|c| c.source_repo.contains("agent-skills"))
+        .collect();
     assert_eq!(addy_caps.len(), 25, "Expected 25 Addy Osmani skills");
     for c in &addy_caps {
         assert_eq!(c.version_pinned, "aeac41d4d005999432bb7312f7ff06383a91d59d");
@@ -645,10 +669,18 @@ async fn test_phase2_three_repositories_provenance_and_licensing() {
     }
 
     // 3. Senior Open Source Engineer Skill
-    let oss_cap = caps.iter().find(|c| c.id == "oss:senior-open-source-engineer");
-    assert!(oss_cap.is_some(), "Senior Open Source Engineer skill must be present");
+    let oss_cap = caps
+        .iter()
+        .find(|c| c.id == "oss:senior-open-source-engineer");
+    assert!(
+        oss_cap.is_some(),
+        "Senior Open Source Engineer skill must be present"
+    );
     let oss = oss_cap.unwrap();
-    assert_eq!(oss.version_pinned, "2cd5fdb18de8468dc2fd145999b41dbdea844c63");
+    assert_eq!(
+        oss.version_pinned,
+        "2cd5fdb18de8468dc2fd145999b41dbdea844c63"
+    );
     assert_eq!(oss.author.as_deref(), Some("Mohit Kumar"));
     assert_eq!(oss.license.as_deref(), Some("MIT"));
 }
@@ -666,11 +698,20 @@ async fn test_phase3_autonomous_selection_rust_concurrency() {
     );
 
     let active = engine.evaluate_task(&task);
-    assert!(active.active_capabilities.len() <= 4, "Smallest effective set must not exceed 4");
-    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-rust" || c.id == "sota:sota-async-concurrency"));
+    assert!(
+        active.active_capabilities.len() <= 4,
+        "Smallest effective set must not exceed 4"
+    );
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "sota:sota-rust" || c.id == "sota:sota-async-concurrency"));
 
     // Conflicting languages must not be loaded
-    assert!(!active.active_capabilities.iter().any(|c| c.id.contains("python") || c.id.contains("ruby") || c.id.contains("php")));
+    assert!(!active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id.contains("python") || c.id.contains("ruby") || c.id.contains("php")));
 }
 
 #[tokio::test]
@@ -687,10 +728,16 @@ async fn test_phase3_autonomous_selection_react_ui() {
 
     let active = engine.evaluate_task(&task);
     assert!(active.active_capabilities.len() <= 4);
-    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-frontend-design" || c.id == "addy:frontend-ui-engineering"));
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "sota:sota-frontend-design" || c.id == "addy:frontend-ui-engineering"));
 
     // Backend language skills must not be loaded
-    assert!(!active.active_capabilities.iter().any(|c| c.id == "sota:sota-rust" || c.id.contains("kubernetes")));
+    assert!(!active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "sota:sota-rust" || c.id.contains("kubernetes")));
 }
 
 #[tokio::test]
@@ -707,7 +754,12 @@ async fn test_phase3_autonomous_selection_security_audit() {
 
     let active = engine.evaluate_task(&task);
     assert!(active.active_capabilities.len() <= 4);
-    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-code-security" || c.id == "sota:sota-threat-modeling" || c.id == "addy:security-and-hardening"));
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "sota:sota-code-security"
+            || c.id == "sota:sota-threat-modeling"
+            || c.id == "addy:security-and-hardening"));
 }
 
 #[tokio::test]
@@ -724,7 +776,10 @@ async fn test_phase3_autonomous_selection_architecture() {
 
     let active = engine.evaluate_task(&task);
     assert!(active.active_capabilities.len() <= 4);
-    assert!(active.active_capabilities.iter().any(|c| c.id == "sota:sota-architecture" || c.id == "addy:documentation-and-adrs"));
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "sota:sota-architecture" || c.id == "addy:documentation-and-adrs"));
 }
 
 #[tokio::test]
@@ -741,7 +796,11 @@ async fn test_phase3_autonomous_selection_bug_investigation() {
 
     let active = engine.evaluate_task(&task);
     assert!(active.active_capabilities.len() <= 4);
-    assert!(active.active_capabilities.iter().any(|c| c.id == "addy:debugging-and-error-recovery" || c.id == "addy:test-driven-development"));
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "addy:debugging-and-error-recovery"
+            || c.id == "addy:test-driven-development"));
 }
 
 #[tokio::test]
@@ -781,7 +840,10 @@ async fn test_phase4_deterministic_conflict_resolution() {
     );
 
     let active = engine.evaluate_task(&task);
-    assert!(active.active_capabilities.iter().any(|c| c.id == "oss:senior-open-source-engineer"));
+    assert!(active
+        .active_capabilities
+        .iter()
+        .any(|c| c.id == "oss:senior-open-source-engineer"));
     assert!(!active.conflict_resolutions.is_empty());
     assert!(active.conflict_resolutions[0].contains("priority 90"));
 }
@@ -791,9 +853,13 @@ async fn test_phase6_instruction_sanitization_defense() {
     use crate::activation::ActivationEngine;
 
     let engine = ActivationEngine::new_embedded();
-    let rust_cap = engine.find_capability("sota:sota-rust").expect("sota:sota-rust must exist");
+    let rust_cap = engine
+        .find_capability("sota:sota-rust")
+        .expect("sota:sota-rust must exist");
 
-    let instructions = engine.read_sanitized_instructions(rust_cap).expect("Should read instructions");
+    let instructions = engine
+        .read_sanitized_instructions(rust_cap)
+        .expect("Should read instructions");
     assert!(instructions.contains("<!-- OSMOO Engineering Capability: sota:sota-rust"));
     assert!(instructions.contains("Martin Holovsky"));
     assert!(!instructions.contains("<system>"));
@@ -878,7 +944,10 @@ async fn test_phase7_native_osmoo_skills_tools_lifecycle() {
     let tools = central_registry.list_tools().await;
     assert!(tools.iter().any(|t| t.name == "osmoo_skills_discover"));
     assert!(tools.iter().any(|t| t.name == "osmoo_skills_evaluate"));
-    assert!(tools.iter().any(|t| t.name == "osmoo_skills_load_instructions"));
-    assert!(tools.iter().any(|t| t.name == "osmoo_skills_verify_execution"));
+    assert!(tools
+        .iter()
+        .any(|t| t.name == "osmoo_skills_load_instructions"));
+    assert!(tools
+        .iter()
+        .any(|t| t.name == "osmoo_skills_verify_execution"));
 }
-

@@ -158,12 +158,31 @@ pub struct ActiveCapabilityContext {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillLifecycleEvent {
-    SkillDiscovered { skill_id: String, source_repo: String },
-    SkillLoaded { skill_id: String, instruction_bytes: usize },
-    SkillInstructionsApplied { skill_id: String, task_id: String },
-    ToolExecuted { tool_name: String, success: bool, duration_ms: u64 },
-    VerificationPassed { check_name: String, evidence: String },
-    VerificationFailed { check_name: String, error: String },
+    SkillDiscovered {
+        skill_id: String,
+        source_repo: String,
+    },
+    SkillLoaded {
+        skill_id: String,
+        instruction_bytes: usize,
+    },
+    SkillInstructionsApplied {
+        skill_id: String,
+        task_id: String,
+    },
+    ToolExecuted {
+        tool_name: String,
+        success: bool,
+        duration_ms: u64,
+    },
+    VerificationPassed {
+        check_name: String,
+        evidence: String,
+    },
+    VerificationFailed {
+        check_name: String,
+        error: String,
+    },
 }
 
 /// Record of verified skill execution for a task.
@@ -310,21 +329,56 @@ impl TaskContext {
         let p = prompt.to_lowercase();
         if p.contains("scrape") || p.contains("crawl") || p.contains("firecrawl") {
             TaskType::General
-        } else if (p.contains("readme") || p.contains("documentation") || p.contains("docs") || p.contains("adr"))
-            && !p.contains("fix") && !p.contains("bug") && !p.contains("concurrency") && !p.contains("refactor")
+        } else if (p.contains("readme")
+            || p.contains("documentation")
+            || p.contains("docs")
+            || p.contains("adr"))
+            && !p.contains("fix")
+            && !p.contains("bug")
+            && !p.contains("concurrency")
+            && !p.contains("refactor")
         {
             TaskType::Documentation
-        } else if p.contains("security") || p.contains("audit") || p.contains("threat") || p.contains("vulnerability") || p.contains("secret") || p.contains("ssrf") {
+        } else if p.contains("security")
+            || p.contains("audit")
+            || p.contains("threat")
+            || p.contains("vulnerability")
+            || p.contains("secret")
+            || p.contains("ssrf")
+        {
             TaskType::SecurityAudit
-        } else if p.contains("bug") || p.contains("crash") || p.contains("panic") || p.contains("fix") || p.contains("investigate") || p.contains("error") {
+        } else if p.contains("bug")
+            || p.contains("crash")
+            || p.contains("panic")
+            || p.contains("fix")
+            || p.contains("investigate")
+            || p.contains("error")
+        {
             TaskType::BugFix
-        } else if p.contains("architecture") || p.contains("system design") || p.contains("boundary") || p.contains("microservice") {
+        } else if p.contains("architecture")
+            || p.contains("system design")
+            || p.contains("boundary")
+            || p.contains("microservice")
+        {
             TaskType::ArchitectureDesign
-        } else if p.contains("perf") || p.contains("optimize") || p.contains("bottleneck") || p.contains("allocation") {
+        } else if p.contains("perf")
+            || p.contains("optimize")
+            || p.contains("bottleneck")
+            || p.contains("allocation")
+        {
             TaskType::PerformanceOptimization
-        } else if p.contains("ui") || p.contains("react") || p.contains("modal") || p.contains("accessibility") || p.contains("frontend") {
+        } else if p.contains("ui")
+            || p.contains("react")
+            || p.contains("modal")
+            || p.contains("accessibility")
+            || p.contains("frontend")
+        {
             TaskType::FrontendUi
-        } else if p.contains("refactor") || p.contains("simplify") || p.contains("clean up") || p.contains("dead code") {
+        } else if p.contains("refactor")
+            || p.contains("simplify")
+            || p.contains("clean up")
+            || p.contains("dead code")
+        {
             TaskType::Refactoring
         } else {
             TaskType::General
@@ -334,32 +388,63 @@ impl TaskContext {
     fn infer_languages(prompt: &str) -> Vec<String> {
         let p = prompt.to_lowercase();
         let mut langs = Vec::new();
-        if p.contains("rust") || p.contains("cargo") || p.contains("tokio") || p.contains("clippy") {
+        if p.contains("rust") || p.contains("cargo") || p.contains("tokio") || p.contains("clippy")
+        {
             langs.push("rust".into());
         }
-        if p.contains("python") || p.contains("pytest") || p.contains("pip") || p.contains("django") || p.contains("fastapi") {
+        if p.contains("python")
+            || p.contains("pytest")
+            || p.contains("pip")
+            || p.contains("django")
+            || p.contains("fastapi")
+        {
             langs.push("python".into());
         }
-        if p.contains("typescript") || p.contains("react") || p.contains("javascript") || p.contains("npm") || p.contains("node") || p.contains("nextjs") {
+        if p.contains("typescript")
+            || p.contains("react")
+            || p.contains("javascript")
+            || p.contains("npm")
+            || p.contains("node")
+            || p.contains("nextjs")
+        {
             langs.push("typescript".into());
             langs.push("javascript".into());
         }
         if p.contains("c++") || p.contains("cpp") || p.contains("cmake") {
             langs.push("cpp".into());
             langs.push("c".into());
-        } else if p.contains(" c ") || p.contains("ansi c") || p.contains("gcc") || p.contains("clang") {
+        } else if p.contains(" c ")
+            || p.contains("ansi c")
+            || p.contains("gcc")
+            || p.contains("clang")
+        {
             langs.push("c".into());
         }
-        if p.contains("c#") || p.contains("csharp") || p.contains("dotnet") || p.contains(".net") || p.contains("csproj") {
+        if p.contains("c#")
+            || p.contains("csharp")
+            || p.contains("dotnet")
+            || p.contains(".net")
+            || p.contains("csproj")
+        {
             langs.push("csharp".into());
         }
-        if p.contains("java") || p.contains("jvm") || p.contains("maven") || p.contains("gradle") || p.contains("spring") {
+        if p.contains("java")
+            || p.contains("jvm")
+            || p.contains("maven")
+            || p.contains("gradle")
+            || p.contains("spring")
+        {
             langs.push("java".into());
         }
         if p.contains("golang") || p.contains("go ") || p.contains("goroutine") {
             langs.push("go".into());
         }
-        if p.contains("sql") || p.contains("postgres") || p.contains("sqlite") || p.contains("database") || p.contains("migration") {
+        if p.contains("sql")
+            || p.contains("postgres")
+            || p.contains("sqlite")
+            || p.contains("database")
+            || p.contains("migration")
+        {
             langs.push("sql".into());
         }
         langs
@@ -456,7 +541,8 @@ impl ActivationEngine {
     /// Sanitize raw skill markdown against prompt injection attacks.
     fn sanitize_prompt_content(content: &str) -> String {
         let patterns = [
-            "<system>", "</system>",
+            "<system>",
+            "</system>",
             "IGNORE ALL PREVIOUS INSTRUCTIONS",
             "SYSTEM INSTRUCTION:",
             "OVERRIDE_SECURITY_BOUNDARY",
@@ -572,7 +658,8 @@ impl ActivationEngine {
             // Documentation-only task guardrail:
             // Small docs changes must NOT load heavy engineering skills (concurrency, rust, k8s, etc.)
             if task.task_type == TaskType::Documentation {
-                let is_doc_relevant = cap.category == ExternalCapabilityCategory::ArchitectureDesign
+                let is_doc_relevant = cap.category
+                    == ExternalCapabilityCategory::ArchitectureDesign
                     || cap.id.contains("docs")
                     || cap.id.contains("adrs")
                     || cap.id.contains("senior-open-source");
@@ -581,7 +668,8 @@ impl ActivationEngine {
                     rejected.push(ActivationDecision {
                         capability_id: cap.id.clone(),
                         activated: false,
-                        reason: "Task is documentation-only: heavy engineering skill excluded".into(),
+                        reason: "Task is documentation-only: heavy engineering skill excluded"
+                            .into(),
                     });
                     continue;
                 }
@@ -623,7 +711,10 @@ impl ActivationEngine {
                 .filter(|t| combined_tags.contains(&t.to_lowercase()))
                 .count();
 
-            if matching_tag_count == 0 && language_score == 0 && !prompt_lower.contains(&cap.name.to_lowercase()) {
+            if matching_tag_count == 0
+                && language_score == 0
+                && !prompt_lower.contains(&cap.name.to_lowercase())
+            {
                 rejected.push(ActivationDecision {
                     capability_id: cap.id.clone(),
                     activated: false,
@@ -636,7 +727,9 @@ impl ActivationEngine {
 
             // Task type affinity boost
             match task.task_type {
-                TaskType::SecurityAudit if cap.category == ExternalCapabilityCategory::SecurityHardening => {
+                TaskType::SecurityAudit
+                    if cap.category == ExternalCapabilityCategory::SecurityHardening =>
+                {
                     score += 45;
                 }
                 TaskType::BugFix
@@ -651,13 +744,12 @@ impl ActivationEngine {
                 {
                     score += 45;
                 }
-                TaskType::FrontendUi
-                    if cap.category == ExternalCapabilityCategory::FrontendUi =>
-                {
+                TaskType::FrontendUi if cap.category == ExternalCapabilityCategory::FrontendUi => {
                     score += 45;
                 }
                 TaskType::Refactoring
-                    if cap.id.contains("simplification") || cap.category == ExternalCapabilityCategory::QualityTesting =>
+                    if cap.id.contains("simplification")
+                        || cap.category == ExternalCapabilityCategory::QualityTesting =>
                 {
                     score += 35;
                 }
@@ -705,7 +797,9 @@ impl ActivationEngine {
                 active.push((*cap).clone());
 
                 for chk in &cap.required_checks {
-                    if !required_checks.iter().any(|c: &EngineeringCheckItem| c.skill_id == cap.id && c.check_name == *chk) {
+                    if !required_checks.iter().any(|c: &EngineeringCheckItem| {
+                        c.skill_id == cap.id && c.check_name == *chk
+                    }) {
                         required_checks.push(EngineeringCheckItem {
                             skill_id: cap.id.clone(),
                             check_name: chk.clone(),
@@ -754,7 +848,11 @@ impl ActivationEngine {
             task_id: task.task_id.clone(),
             prompt: task.prompt.clone(),
             task_type: task.task_type,
-            active_skills: ctx.active_capabilities.iter().map(|c| c.id.clone()).collect(),
+            active_skills: ctx
+                .active_capabilities
+                .iter()
+                .map(|c| c.id.clone())
+                .collect(),
             required_checks: ctx.required_checks.clone(),
             conflict_resolutions: ctx.conflict_resolutions.clone(),
             lifecycle_events: Vec::new(),
@@ -790,9 +888,10 @@ impl ActivationEngine {
         }
 
         // Verify if all required checks are passed or skipped
-        record.all_passed = record.required_checks.iter().all(|c| {
-            c.status == CheckStatus::Passed || c.status == CheckStatus::Skipped
-        });
+        record.all_passed = record
+            .required_checks
+            .iter()
+            .all(|c| c.status == CheckStatus::Passed || c.status == CheckStatus::Skipped);
 
         if record.all_passed {
             record.completed_at = Some(chrono::Utc::now().to_rfc3339());
@@ -807,14 +906,24 @@ impl ActivationEngine {
         use crate::tools::{
             OsmooBenchmarkRunTool, OsmooCodeReviewDiffTool, OsmooEngineeringWorkflowRunTool,
             OsmooLanguageProfileGetTool, OsmooProjectDetectLanguagesTool, OsmooSkillsDiscoverTool,
-            OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool, OsmooSkillsVerifyExecutionTool,
-            OsmooToolchainsInspectTool,
+            OsmooSkillsEvaluateTool, OsmooSkillsLoadInstructionsTool,
+            OsmooSkillsVerifyExecutionTool, OsmooToolchainsInspectTool,
         };
         let store = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new()));
-        registry.register_sync(std::sync::Arc::new(OsmooSkillsDiscoverTool::new(std::sync::Arc::clone(self))));
-        registry.register_sync(std::sync::Arc::new(OsmooSkillsEvaluateTool::new(std::sync::Arc::clone(self), std::sync::Arc::clone(&store))));
-        registry.register_sync(std::sync::Arc::new(OsmooSkillsLoadInstructionsTool::new(std::sync::Arc::clone(self))));
-        registry.register_sync(std::sync::Arc::new(OsmooSkillsVerifyExecutionTool::new(std::sync::Arc::clone(self), store)));
+        registry.register_sync(std::sync::Arc::new(OsmooSkillsDiscoverTool::new(
+            std::sync::Arc::clone(self),
+        )));
+        registry.register_sync(std::sync::Arc::new(OsmooSkillsEvaluateTool::new(
+            std::sync::Arc::clone(self),
+            std::sync::Arc::clone(&store),
+        )));
+        registry.register_sync(std::sync::Arc::new(OsmooSkillsLoadInstructionsTool::new(
+            std::sync::Arc::clone(self),
+        )));
+        registry.register_sync(std::sync::Arc::new(OsmooSkillsVerifyExecutionTool::new(
+            std::sync::Arc::clone(self),
+            store,
+        )));
         registry.register_sync(std::sync::Arc::new(OsmooToolchainsInspectTool::new()));
         registry.register_sync(std::sync::Arc::new(OsmooProjectDetectLanguagesTool::new()));
         registry.register_sync(std::sync::Arc::new(OsmooLanguageProfileGetTool::new()));

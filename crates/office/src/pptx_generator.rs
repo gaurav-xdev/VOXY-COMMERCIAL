@@ -53,7 +53,11 @@ impl PptxPresentation {
         self
     }
 
-    pub fn add_title_slide(&mut self, title: impl Into<String>, subtitle: impl Into<String>) -> &mut Self {
+    pub fn add_title_slide(
+        &mut self,
+        title: impl Into<String>,
+        subtitle: impl Into<String>,
+    ) -> &mut Self {
         self.slides.push(PptxSlide {
             content: SlideContent::TitleSlide {
                 title: title.into(),
@@ -64,7 +68,11 @@ impl PptxPresentation {
         self
     }
 
-    pub fn add_content_slide(&mut self, title: impl Into<String>, bullets: Vec<String>) -> &mut Self {
+    pub fn add_content_slide(
+        &mut self,
+        title: impl Into<String>,
+        bullets: Vec<String>,
+    ) -> &mut Self {
         self.slides.push(PptxSlide {
             content: SlideContent::BulletSlide {
                 title: title.into(),
@@ -318,8 +326,11 @@ impl PptxPresentation {
                 ));
 
                 for _ in 0..col_count {
-                    xml.push_str(&format!(r#"                <a:gridCol w="{}"/>
-"#, col_width));
+                    xml.push_str(&format!(
+                        r#"                <a:gridCol w="{}"/>
+"#,
+                        col_width
+                    ));
                 }
                 xml.push_str("              </a:tblGrid>\n");
 
@@ -388,8 +399,8 @@ impl PptxPresentation {
         }
 
         let mut buffer = Cursor::new(Vec::new());
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         {
             let mut zip = ZipWriter::new(&mut buffer);

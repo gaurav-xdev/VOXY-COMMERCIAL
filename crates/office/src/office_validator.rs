@@ -53,9 +53,9 @@ impl OfficeValidator {
         let part_count = zip.len();
 
         for i in 0..zip.len() {
-            let mut file = zip
-                .by_index(i)
-                .map_err(|e| OfficeError::InvalidData(format!("Error reading zip entry {i}: {e}")))?;
+            let mut file = zip.by_index(i).map_err(|e| {
+                OfficeError::InvalidData(format!("Error reading zip entry {i}: {e}"))
+            })?;
             let name = file.name().unwrap_or_default().to_string();
 
             if name == "[Content_Types].xml" {
@@ -105,7 +105,10 @@ impl OfficeValidator {
         };
 
         if kind == OfficeDocumentKind::Unknown {
-            errors.push("Package does not contain recognizable Word, Excel, or PowerPoint main part".to_string());
+            errors.push(
+                "Package does not contain recognizable Word, Excel, or PowerPoint main part"
+                    .to_string(),
+            );
         }
 
         let valid = errors.is_empty();
@@ -125,7 +128,10 @@ impl OfficeValidator {
         let close_tag = format!("</{}>", tag);
 
         let mut pos = 0;
-        while let Some(start_idx) = xml[pos..].find(&open_tag).or_else(|| xml[pos..].find(&open_tag_prefix)) {
+        while let Some(start_idx) = xml[pos..]
+            .find(&open_tag)
+            .or_else(|| xml[pos..].find(&open_tag_prefix))
+        {
             let actual_start = pos + start_idx;
             if let Some(tag_end) = xml[actual_start..].find('>') {
                 let val_start = actual_start + tag_end + 1;

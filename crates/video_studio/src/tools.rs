@@ -54,16 +54,22 @@ impl Tool for VideoStudioPipelineTool {
         &self.metadata
     }
 
-    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> voxy_tool_calling::Result<ToolResult> {
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
         let caller = params["caller_identity"]
             .as_str()
             .unwrap_or("untrusted_user");
-        let token = params["enclave_auth_token"]
-            .as_str()
-            .unwrap_or("");
+        let token = params["enclave_auth_token"].as_str().unwrap_or("");
 
         // STRICT ACCESS ENFORCEMENT: Only OSMOO can execute this tool
-        if let Err(e) = self.enclave.access_controller().verify_access(caller, token) {
+        if let Err(e) = self
+            .enclave
+            .access_controller()
+            .verify_access(caller, token)
+        {
             return Ok(ToolResult::failure(format!("ACCESS DENIED: {e}"))
                 .with_observation("Unauthorized attempt to invoke OSMOO Video Studio"));
         }
@@ -77,9 +83,7 @@ impl Tool for VideoStudioPipelineTool {
         let topic = params["topic"]
             .as_str()
             .ok_or_else(|| ToolError::InvalidParams("Missing 'topic'".into()))?;
-        let duration = params["target_duration_secs"]
-            .as_u64()
-            .unwrap_or(60) as u32;
+        let duration = params["target_duration_secs"].as_u64().unwrap_or(60) as u32;
         let aspect_ratio = params["aspect_ratio"]
             .as_str()
             .unwrap_or("16:9")
@@ -156,17 +160,36 @@ impl Tool for VideoStudioInspectTool {
         &self.metadata
     }
 
-    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> voxy_tool_calling::Result<ToolResult> {
-        let caller = params["caller_identity"].as_str().unwrap_or("untrusted_user");
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let caller = params["caller_identity"]
+            .as_str()
+            .unwrap_or("untrusted_user");
         let token = params["enclave_auth_token"].as_str().unwrap_or("");
 
-        if let Err(e) = self.enclave.access_controller().verify_access(caller, token) {
+        if let Err(e) = self
+            .enclave
+            .access_controller()
+            .verify_access(caller, token)
+        {
             return Ok(ToolResult::failure(format!("ACCESS DENIED: {e}")));
         }
 
-        let pipelines = self.enclave.list_pipelines(token).map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
-        let skills = self.enclave.list_skills(token).map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
-        let tools = self.enclave.list_tools(token).map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
+        let pipelines = self
+            .enclave
+            .list_pipelines(token)
+            .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
+        let skills = self
+            .enclave
+            .list_skills(token)
+            .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
+        let tools = self
+            .enclave
+            .list_tools(token)
+            .map_err(|e| ToolError::ExecutionFailed(e.to_string()))?;
 
         Ok(ToolResult::success(json!({
             "enclave_status": "active_and_isolated",

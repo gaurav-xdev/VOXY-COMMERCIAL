@@ -16,7 +16,9 @@ pub mod security;
 pub mod tool;
 pub mod types;
 
-pub use engine::{deduplicate_findings, extract_changed_files, parse_kodus_findings, KodusReviewEngine};
+pub use engine::{
+    deduplicate_findings, extract_changed_files, parse_kodus_findings, KodusReviewEngine,
+};
 pub use error::{KodusReviewError, Result};
 pub use provider_bridge::KodusProviderBridge;
 pub use remediation_loop::{KodusRemediationCoordinator, DEFAULT_MAX_REMEDIATION_ITERATIONS};
@@ -103,17 +105,24 @@ mod tests {
         assert!(format!("{user_err}").contains("Direct user or external access forbidden"));
 
         // 2. Desktop UI client cannot access Kodus directly
-        let ui_err = boundary.verify_caller("desktop_ui_user", &token).unwrap_err();
+        let ui_err = boundary
+            .verify_caller("desktop_ui_user", &token)
+            .unwrap_err();
         assert!(format!("{ui_err}").contains("Direct user or external access forbidden"));
 
         // 3. Fake token is rejected
         let token_err = boundary
             .verify_caller(OSMOO_OPERATOR_IDENTITY, "invalid-token")
             .unwrap_err();
-        assert!(matches!(token_err, security::KodusSecurityError::InvalidToken));
+        assert!(matches!(
+            token_err,
+            security::KodusSecurityError::InvalidToken
+        ));
 
         // 4. Autonomous OSMOO operator with valid token is authorized
-        assert!(boundary.verify_caller(OSMOO_OPERATOR_IDENTITY, &token).is_ok());
+        assert!(boundary
+            .verify_caller(OSMOO_OPERATOR_IDENTITY, &token)
+            .is_ok());
     }
 
     #[test]
@@ -165,7 +174,11 @@ mod tests {
         assert_eq!(findings.len(), 2, "Initially parsed 2 findings");
 
         deduplicate_findings(&mut findings);
-        assert_eq!(findings.len(), 1, "Deduplication reduced to 1 unique finding");
+        assert_eq!(
+            findings.len(),
+            1,
+            "Deduplication reduced to 1 unique finding"
+        );
         assert_eq!(findings[0].severity, KodusSeverity::Critical);
         assert!(findings[0].severity.is_blocking());
     }
@@ -244,7 +257,9 @@ mod tests {
 
         let (status, _report) = coordinator
             .run_loop(
-                ReviewScope::WorkingTree,
+                ReviewScope::ExplicitDiff(
+                    "diff --git a/crates/foo/src/lib.rs b/crates/foo/src/lib.rs\n--- a/crates/foo/src/lib.rs\n+++ b/crates/foo/src/lib.rs\n@@ -10,3 +10,3 @@\n-old\n+new\n".into(),
+                ),
                 &token,
                 |_finding| Ok(true), // Simulates applying fix
                 || Ok(false),        // Tests keep failing
@@ -253,7 +268,10 @@ mod tests {
             .unwrap();
 
         match status {
-            RemediationStatus::MaxIterationsReached { iterations, remaining_findings } => {
+            RemediationStatus::MaxIterationsReached {
+                iterations,
+                remaining_findings,
+            } => {
                 assert_eq!(iterations, 2);
                 assert_eq!(remaining_findings, 1);
             }

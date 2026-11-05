@@ -77,6 +77,7 @@ pub enum ReviewScope {
     Branch(String),
     Commit(String),
     Files(Vec<PathBuf>),
+    ExplicitDiff(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +125,10 @@ impl KodusReviewReport {
     }
 
     pub fn blocking_findings(&self) -> Vec<&KodusFinding> {
-        self.findings.iter().filter(|f| f.severity.is_blocking()).collect()
+        self.findings
+            .iter()
+            .filter(|f| f.severity.is_blocking())
+            .collect()
     }
 }
 
@@ -132,7 +136,14 @@ impl KodusReviewReport {
 #[serde(rename_all = "snake_case")]
 pub enum RemediationStatus {
     CleanPass,
-    RemediatedAndVerified { iterations: usize },
-    MaxIterationsReached { iterations: usize, remaining_findings: usize },
-    EscalatedToHuman { reason: String },
+    RemediatedAndVerified {
+        iterations: usize,
+    },
+    MaxIterationsReached {
+        iterations: usize,
+        remaining_findings: usize,
+    },
+    EscalatedToHuman {
+        reason: String,
+    },
 }

@@ -105,7 +105,8 @@ impl MultiLanguageBenchmarkHarness {
             name: "Rust Concurrency & Unsafe Memory Safety".into(),
             language: SupportedLanguage::Rust,
             category: BenchmarkTaskCategory::SecuritySensitiveFix,
-            prompt: "Fix memory access and concurrency in Rust network packet parser with tokio".into(),
+            prompt: "Fix memory access and concurrency in Rust network packet parser with tokio"
+                .into(),
             expected_sota_skill: "sota-rust".into(),
             sample_bad_diff: r#"
 diff --git a/src/parser.rs b/src/parser.rs
@@ -115,7 +116,8 @@ diff --git a/src/parser.rs b/src/parser.rs
  pub fn read_packet(ptr: *const u8) -> u32 {
 +    unsafe { *ptr as u32 }
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/src/parser.rs b/src/parser.rs
 --- a/src/parser.rs
@@ -124,7 +126,8 @@ diff --git a/src/parser.rs b/src/parser.rs
  pub fn read_packet(slice: &[u8]) -> Option<u32> {
 +    slice.first().map(|&b| b as u32)
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "RUST-UNSAFE-001".into(),
         });
 
@@ -144,7 +147,8 @@ diff --git a/src/client.ts b/src/client.ts
  export function handleResponse(res: any) {
 +    return res.data as any;
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/src/client.ts b/src/client.ts
 --- a/src/client.ts
@@ -154,7 +158,8 @@ diff --git a/src/client.ts b/src/client.ts
 +export function handleResponse(res: ApiResponse) {
 +    return res.kind === 'success' ? res.data : null;
 +}
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "TS-TYPE-001".into(),
         });
 
@@ -164,7 +169,8 @@ diff --git a/src/client.ts b/src/client.ts
             name: "JavaScript Dynamic Eval Removal".into(),
             language: SupportedLanguage::JavaScript,
             category: BenchmarkTaskCategory::SecuritySensitiveFix,
-            prompt: "Fix arbitrary code execution vulnerability in JavaScript formula evaluator".into(),
+            prompt: "Fix arbitrary code execution vulnerability in JavaScript formula evaluator"
+                .into(),
             expected_sota_skill: "sota-javascript-typescript".into(),
             sample_bad_diff: r#"
 diff --git a/src/calc.js b/src/calc.js
@@ -174,7 +180,8 @@ diff --git a/src/calc.js b/src/calc.js
  function calculate(input) {
 +    return eval(input);
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/src/calc.js b/src/calc.js
 --- a/src/calc.js
@@ -184,7 +191,8 @@ diff --git a/src/calc.js b/src/calc.js
 +    const parsed = Number(input);
 +    return Number.isFinite(parsed) ? parsed : 0;
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "JS-SEC-001".into(),
         });
 
@@ -194,7 +202,8 @@ diff --git a/src/calc.js b/src/calc.js
             name: "Python SQL Injection & Deserialization Fix".into(),
             language: SupportedLanguage::Python,
             category: BenchmarkTaskCategory::SecuritySensitiveFix,
-            prompt: "Fix database query vulnerability and session handling in Python FastAPI".into(),
+            prompt: "Fix database query vulnerability and session handling in Python FastAPI"
+                .into(),
             expected_sota_skill: "sota-python".into(),
             sample_bad_diff: r#"
 diff --git a/app/routes.py b/app/routes.py
@@ -203,7 +212,8 @@ diff --git a/app/routes.py b/app/routes.py
 @@ -10,3 +10,4 @@
  def query_user(user_id: str):
 +    return db.execute(f"SELECT * FROM users WHERE id = '{user_id}'")
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/app/routes.py b/app/routes.py
 --- a/app/routes.py
@@ -211,7 +221,8 @@ diff --git a/app/routes.py b/app/routes.py
 @@ -10,3 +10,4 @@
  def query_user(user_id: str):
 +    return db.execute("SELECT * FROM users WHERE id = :id", {"id": user_id})
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "SEC-SQLI-001".into(),
         });
 
@@ -231,7 +242,8 @@ diff --git a/src/net.c b/src/net.c
  void copy_name(char *dst, const char *src) {
 +    strcpy(dst, src);
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/src/net.c b/src/net.c
 --- a/src/net.c
@@ -240,7 +252,8 @@ diff --git a/src/net.c b/src/net.c
  void copy_name(char *dst, size_t dst_size, const char *src) {
 +    snprintf(dst, dst_size, "%s", src);
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "C-SEC-001".into(),
         });
 
@@ -260,7 +273,8 @@ diff --git a/src/engine.cpp b/src/engine.cpp
  void cleanup(Node* node) {
 +    delete node;
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/src/engine.cpp b/src/engine.cpp
 --- a/src/engine.cpp
@@ -269,7 +283,8 @@ diff --git a/src/engine.cpp b/src/engine.cpp
  void process(std::unique_ptr<Node> node) {
 +    // node automatically reclaimed at end of scope via RAII
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "CPP-RAII-001".into(),
         });
 
@@ -289,7 +304,8 @@ diff --git a/Worker.cs b/Worker.cs
  public class Service {
 +    public async void ProcessAsync() { await Task.Delay(100); }
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/Worker.cs b/Worker.cs
 --- a/Worker.cs
@@ -298,7 +314,8 @@ diff --git a/Worker.cs b/Worker.cs
  public class Service {
 +    public async Task ProcessAsync(CancellationToken ct = default) { await Task.Delay(100, ct); }
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "CS-ASYNC-001".into(),
         });
 
@@ -319,7 +336,8 @@ diff --git a/App.java b/App.java
 +catch (Throwable t) {
 +    System.out.println("Error");
 +}
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/App.java b/App.java
 --- a/App.java
@@ -329,7 +347,8 @@ diff --git a/App.java b/App.java
 +catch (IllegalArgumentException e) {
 +    logger.error("Invalid arguments", e);
 +}
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "JAVA-ERR-001".into(),
         });
 
@@ -349,7 +368,8 @@ diff --git a/server.go b/server.go
  func writeData(w io.Writer, data []byte) {
 +    _ = w.Write(data)
  }
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/server.go b/server.go
 --- a/server.go
@@ -359,7 +379,8 @@ diff --git a/server.go b/server.go
 +    _, err := w.Write(data)
 +    return err
  }
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "GO-ERR-001".into(),
         });
 
@@ -378,7 +399,8 @@ diff --git a/migrations/002_drop.sql b/migrations/002_drop.sql
 @@ -1,2 +1,3 @@
  -- Drop old table
 +DROP TABLE customer_records;
-"#.into(),
+"#
+            .into(),
             sample_good_diff: r#"
 diff --git a/migrations/002_drop.sql b/migrations/002_drop.sql
 --- a/migrations/002_drop.sql
@@ -386,7 +408,8 @@ diff --git a/migrations/002_drop.sql b/migrations/002_drop.sql
 @@ -1,2 +1,3 @@
  -- Drop old table safely
 +DROP TABLE IF EXISTS customer_records;
-"#.into(),
+"#
+            .into(),
             expected_defect_rule: "SQL-MIG-001".into(),
         });
 
@@ -434,12 +457,17 @@ diff --git a/migrations/002_drop.sql b/migrations/002_drop.sql
                 false_positives += 1;
             }
 
-            let overall_passed = skill_routed_correctly && bad_diff_detected && defect_rule_matched && good_diff_passed;
+            let overall_passed = skill_routed_correctly
+                && bad_diff_detected
+                && defect_rule_matched
+                && good_diff_passed;
             if overall_passed {
                 passed_cases += 1;
             }
 
-            let entry = lang_score_map.entry(case.language.as_str().to_string()).or_insert((0, 0));
+            let entry = lang_score_map
+                .entry(case.language.as_str().to_string())
+                .or_insert((0, 0));
             entry.1 += 1;
             if overall_passed {
                 entry.0 += 1;
@@ -461,7 +489,8 @@ diff --git a/migrations/002_drop.sql b/migrations/002_drop.sql
         let total = self.cases.len();
         let pass_rate_percent = (passed_cases as f32 / total as f32) * 100.0;
         let skill_routing_accuracy_percent = (correct_skill_routes as f32 / total as f32) * 100.0;
-        let defect_detection_rate_percent = (correct_defect_detections as f32 / total as f32) * 100.0;
+        let defect_detection_rate_percent =
+            (correct_defect_detections as f32 / total as f32) * 100.0;
         let false_positive_rate_percent = (false_positives as f32 / total as f32) * 100.0;
 
         let mut language_scores = HashMap::new();
@@ -491,8 +520,14 @@ mod tests {
         let harness = MultiLanguageBenchmarkHarness::new();
         let scorecard = harness.execute_benchmark();
 
-        assert_eq!(scorecard.total_cases, 10, "Must have exactly 10 language cases");
-        assert_eq!(scorecard.passed_cases, 10, "All 10 benchmark cases must pass cleanly");
+        assert_eq!(
+            scorecard.total_cases, 10,
+            "Must have exactly 10 language cases"
+        );
+        assert_eq!(
+            scorecard.passed_cases, 10,
+            "All 10 benchmark cases must pass cleanly"
+        );
         assert_eq!(scorecard.pass_rate_percent, 100.0);
         assert_eq!(scorecard.skill_routing_accuracy_percent, 100.0);
         assert_eq!(scorecard.defect_detection_rate_percent, 100.0);

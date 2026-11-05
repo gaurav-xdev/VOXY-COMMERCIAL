@@ -116,10 +116,14 @@ impl Tool for OfficeDocxCreateTool {
         let p = PathBuf::from(path_str);
         if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
             if !ext.eq_ignore_ascii_case("docx") {
-                return Err(ToolError::InvalidParams(format!("Target path must have .docx extension, found .{ext}")));
+                return Err(ToolError::InvalidParams(format!(
+                    "Target path must have .docx extension, found .{ext}"
+                )));
             }
         } else {
-            return Err(ToolError::InvalidParams("Target path must have .docx extension".into()));
+            return Err(ToolError::InvalidParams(
+                "Target path must have .docx extension".into(),
+            ));
         }
         if p.exists() && !ctx.user_confirmed {
             return Err(ToolError::ExecutionFailed(format!(
@@ -130,10 +134,13 @@ impl Tool for OfficeDocxCreateTool {
         doc.save(&p)
             .map_err(|e| ToolError::ExecutionFailed(format!("Failed to save .docx: {e}")))?;
 
-        Ok(ToolResult::success(
-            json!({ "path": path_str, "format": "docx", "title": title })
+        Ok(
+            ToolResult::success(json!({ "path": path_str, "format": "docx", "title": title }))
+                .with_observation(format!(
+                    "Successfully generated Microsoft Word document at '{}'",
+                    path_str
+                )),
         )
-        .with_observation(format!("Successfully generated Microsoft Word document at '{}'", path_str)))
     }
 }
 
@@ -230,10 +237,14 @@ impl Tool for OfficeXlsxCreateTool {
         let p = PathBuf::from(path_str);
         if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
             if !ext.eq_ignore_ascii_case("xlsx") {
-                return Err(ToolError::InvalidParams(format!("Target path must have .xlsx extension, found .{ext}")));
+                return Err(ToolError::InvalidParams(format!(
+                    "Target path must have .xlsx extension, found .{ext}"
+                )));
             }
         } else {
-            return Err(ToolError::InvalidParams("Target path must have .xlsx extension".into()));
+            return Err(ToolError::InvalidParams(
+                "Target path must have .xlsx extension".into(),
+            ));
         }
         if p.exists() && !ctx.user_confirmed {
             return Err(ToolError::ExecutionFailed(format!(
@@ -244,10 +255,13 @@ impl Tool for OfficeXlsxCreateTool {
         wb.save(&p)
             .map_err(|e| ToolError::ExecutionFailed(format!("Failed to save .xlsx: {e}")))?;
 
-        Ok(ToolResult::success(
-            json!({ "path": path_str, "format": "xlsx", "sheet": sheet_name })
+        Ok(
+            ToolResult::success(json!({ "path": path_str, "format": "xlsx", "sheet": sheet_name }))
+                .with_observation(format!(
+                    "Successfully generated Microsoft Excel workbook at '{}'",
+                    path_str
+                )),
         )
-        .with_observation(format!("Successfully generated Microsoft Excel workbook at '{}'", path_str)))
     }
 }
 
@@ -338,10 +352,14 @@ impl Tool for OfficePptxCreateTool {
         let p = PathBuf::from(path_str);
         if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
             if !ext.eq_ignore_ascii_case("pptx") {
-                return Err(ToolError::InvalidParams(format!("Target path must have .pptx extension, found .{ext}")));
+                return Err(ToolError::InvalidParams(format!(
+                    "Target path must have .pptx extension, found .{ext}"
+                )));
             }
         } else {
-            return Err(ToolError::InvalidParams("Target path must have .pptx extension".into()));
+            return Err(ToolError::InvalidParams(
+                "Target path must have .pptx extension".into(),
+            ));
         }
         if p.exists() && !ctx.user_confirmed {
             return Err(ToolError::ExecutionFailed(format!(
@@ -352,10 +370,13 @@ impl Tool for OfficePptxCreateTool {
         pres.save(&p)
             .map_err(|e| ToolError::ExecutionFailed(format!("Failed to save .pptx: {e}")))?;
 
-        Ok(ToolResult::success(
-            json!({ "path": path_str, "format": "pptx", "title": title })
+        Ok(
+            ToolResult::success(json!({ "path": path_str, "format": "pptx", "title": title }))
+                .with_observation(format!(
+                    "Successfully generated Microsoft PowerPoint presentation at '{}'",
+                    path_str
+                )),
         )
-        .with_observation(format!("Successfully generated Microsoft PowerPoint presentation at '{}'", path_str)))
     }
 }
 

@@ -16,10 +16,10 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{Cursor, Read, Write};
-use std::path::{Path, PathBuf};
-use std::process::Command;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 const APP_NAME: &str = "OSMOO";
 const APP_DISPLAY_NAME: &str = "OSMOO AI Operating Companion";
@@ -43,13 +43,15 @@ struct InstallOptions {
 }
 
 fn print_banner() {
-    println!(r"
+    println!(
+        r"
 ╔══════════════════════════════════════════════════════════════╗
 ║             OSMOO AI OPERATING COMPANION SETUP               ║
 ║                        Version {APP_VERSION}                         ║
 ║               (c) 2026 {APP_PUBLISHER}                ║
 ╚══════════════════════════════════════════════════════════════╝
-");
+"
+    );
 }
 
 fn main() {
@@ -123,9 +125,15 @@ fn main() {
 
 fn get_default_install_dir() -> PathBuf {
     if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
-        PathBuf::from(local_app_data).join("Programs").join(APP_NAME)
+        PathBuf::from(local_app_data)
+            .join("Programs")
+            .join(APP_NAME)
     } else if let Ok(user_profile) = env::var("USERPROFILE") {
-        PathBuf::from(user_profile).join("AppData").join("Local").join("Programs").join(APP_NAME)
+        PathBuf::from(user_profile)
+            .join("AppData")
+            .join("Local")
+            .join("Programs")
+            .join(APP_NAME)
     } else {
         PathBuf::from(r"C:\Program Files").join(APP_NAME)
     }
@@ -136,7 +144,10 @@ fn perform_install(opts: &InstallOptions) {
         print_banner();
     }
 
-    let install_dir = opts.target_dir.clone().unwrap_or_else(get_default_install_dir);
+    let install_dir = opts
+        .target_dir
+        .clone()
+        .unwrap_or_else(get_default_install_dir);
 
     if !opts.silent {
         println!("[1/6] Performing System & Prerequisite Checks...");
@@ -158,7 +169,9 @@ fn perform_install(opts: &InstallOptions) {
         }
         None => {
             println!("  [!] NOTICE: Microsoft Edge WebView2 Runtime not detected.");
-            println!("      OSMOO UI requires WebView2. It will download automatically on first launch,");
+            println!(
+                "      OSMOO UI requires WebView2. It will download automatically on first launch,"
+            );
             println!("      or you can install it from: https://go.microsoft.com/fwlink/p/?LinkId=2124703");
         }
     }
@@ -178,7 +191,10 @@ fn perform_install(opts: &InstallOptions) {
     }
 
     if let Err(e) = fs::create_dir_all(&install_dir) {
-        eprintln!("[FATAL] Failed to create installation directory {}: {e}", install_dir.display());
+        eprintln!(
+            "[FATAL] Failed to create installation directory {}: {e}",
+            install_dir.display()
+        );
         std::process::exit(1);
     }
 
@@ -349,7 +365,8 @@ fn perform_uninstall(opts: &InstallOptions) {
             if current_exe.starts_with(&install_dir) {
                 let dir_str = install_dir.to_string_lossy().to_string();
                 let exe_str = current_exe.to_string_lossy().to_string();
-                let temp_bat = env::temp_dir().join(format!("osmoo_uninst_{}.bat", std::process::id()));
+                let temp_bat =
+                    env::temp_dir().join(format!("osmoo_uninst_{}.bat", std::process::id()));
                 let bat_content = format!(
                     "@echo off\r\n:loop\r\ndel /f /q \"{}\" >nul 2>&1\r\nif exist \"{}\" (\r\n  ping 127.0.0.1 -n 1 >nul\r\n  goto loop\r\n)\r\nrmdir \"{}\" >nul 2>&1\r\n((goto) 2>nul & del /f /q \"%~f0\" >nul 2>&1)\r\n",
                     exe_str, exe_str, dir_str
@@ -381,14 +398,17 @@ fn perform_uninstall(opts: &InstallOptions) {
 
 fn extract_payload(dest_dir: &Path, silent: bool) -> Result<(), String> {
     let reader = Cursor::new(PAYLOAD_ZIP);
-    let mut archive = zip::ZipArchive::new(reader)
-        .map_err(|e| format!("Failed to read embedded ZIP: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(reader).map_err(|e| format!("Failed to read embedded ZIP: {e}"))?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i)
+        let mut file = archive
+            .by_index(i)
             .map_err(|e| format!("Failed to read archive entry {i}: {e}"))?;
 
-        let name_cow = file.name().map_err(|e| format!("Failed to read entry name: {e}"))?;
+        let name_cow = file
+            .name()
+            .map_err(|e| format!("Failed to read entry name: {e}"))?;
         let raw_name = name_cow.replace('\\', "/");
         if raw_name.is_empty() || raw_name.ends_with('/') {
             continue;
@@ -406,18 +426,26 @@ fn extract_payload(dest_dir: &Path, silent: bool) -> Result<(), String> {
                 .map_err(|e| format!("Failed to create directory {}: {e}", parent.display()))?;
         }
 
-        let mut out_file = File::create(&out_path)
-            .map_err(|e| format!("Failed to create destination file {}: {e}", out_path.display()))?;
+        let mut out_file = File::create(&out_path).map_err(|e| {
+            format!(
+                "Failed to create destination file {}: {e}",
+                out_path.display()
+            )
+        })?;
 
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)
             .map_err(|e| format!("Failed to extract file {raw_name}: {e}"))?;
 
-        out_file.write_all(&buf)
+        out_file
+            .write_all(&buf)
             .map_err(|e| format!("Failed to write file {}: {e}", out_path.display()))?;
 
         if !silent {
-            let filename = out_path.file_name().and_then(|n| n.to_str()).unwrap_or(&raw_name);
+            let filename = out_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(&raw_name);
             println!("  -> Extracted: {filename}");
         }
     }
@@ -460,8 +488,8 @@ fn create_shortcut(shortcut_path: &Path, target_path: &Path, work_dir: &Path, ic
 #[cfg(windows)]
 fn register_uninstaller(install_dir: &Path, icon_path: &Path) {
     use windows::Win32::System::Registry::{
-        RegCreateKeyExW, RegSetValueExW, HKEY_CURRENT_USER, KEY_ALL_ACCESS,
-        REG_OPTION_NON_VOLATILE, REG_SZ, REG_DWORD,
+        RegCreateKeyExW, RegSetValueExW, HKEY_CURRENT_USER, KEY_ALL_ACCESS, REG_DWORD,
+        REG_OPTION_NON_VOLATILE, REG_SZ,
     };
 
     let uninstall_exe = install_dir.join("Uninstall.exe");
@@ -483,7 +511,10 @@ fn register_uninstaller(install_dir: &Path, icon_path: &Path) {
     ];
 
     unsafe {
-        let key_wide: Vec<u16> = UNINSTALL_REG_KEY.encode_utf16().chain(std::iter::once(0)).collect();
+        let key_wide: Vec<u16> = UNINSTALL_REG_KEY
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
         let mut hkey = Default::default();
 
         let res = RegCreateKeyExW(
@@ -500,7 +531,8 @@ fn register_uninstaller(install_dir: &Path, icon_path: &Path) {
 
         if res.is_ok() {
             for (val_name, val_str) in values {
-                let name_wide: Vec<u16> = val_name.encode_utf16().chain(std::iter::once(0)).collect();
+                let name_wide: Vec<u16> =
+                    val_name.encode_utf16().chain(std::iter::once(0)).collect();
                 let wide: Vec<u16> = val_str.encode_utf16().chain(std::iter::once(0)).collect();
                 let mut bytes = vec![0u8; wide.len() * 2];
                 for (i, w) in wide.iter().enumerate() {
@@ -517,7 +549,10 @@ fn register_uninstaller(install_dir: &Path, icon_path: &Path) {
             }
 
             // Write EstimatedSize (DWORD KB)
-            let size_name: Vec<u16> = "EstimatedSize".encode_utf16().chain(std::iter::once(0)).collect();
+            let size_name: Vec<u16> = "EstimatedSize"
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
             let size_val: u32 = 32768; // ~32 MB
             let size_bytes = size_val.to_le_bytes();
             let _ = RegSetValueExW(
@@ -540,8 +575,14 @@ fn register_uninstaller(_install_dir: &Path, _icon_path: &Path) {}
 fn unregister_uninstaller() {
     use windows::Win32::System::Registry::{RegDeleteKeyW, HKEY_CURRENT_USER};
     unsafe {
-        let key_wide: Vec<u16> = UNINSTALL_REG_KEY.encode_utf16().chain(std::iter::once(0)).collect();
-        let _ = RegDeleteKeyW(HKEY_CURRENT_USER, windows::core::PCWSTR::from_raw(key_wide.as_ptr()));
+        let key_wide: Vec<u16> = UNINSTALL_REG_KEY
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let _ = RegDeleteKeyW(
+            HKEY_CURRENT_USER,
+            windows::core::PCWSTR::from_raw(key_wide.as_ptr()),
+        );
     }
 }
 
@@ -555,7 +596,10 @@ fn register_autostart(osmoo_exe: &Path) {
         REG_OPTION_NON_VOLATILE, REG_SZ,
     };
     unsafe {
-        let key_wide: Vec<u16> = RUN_REG_KEY.encode_utf16().chain(std::iter::once(0)).collect();
+        let key_wide: Vec<u16> = RUN_REG_KEY
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
         let name_wide: Vec<u16> = APP_NAME.encode_utf16().chain(std::iter::once(0)).collect();
         let cmd = format!("\"{}\" --autostart", osmoo_exe.display());
         let val_wide: Vec<u16> = cmd.encode_utf16().chain(std::iter::once(0)).collect();
@@ -577,7 +621,9 @@ fn register_autostart(osmoo_exe: &Path) {
             None,
             &mut hkey,
             None,
-        ).is_ok() {
+        )
+        .is_ok()
+        {
             let _ = RegSetValueExW(
                 hkey,
                 windows::core::PCWSTR::from_raw(name_wide.as_ptr()),
@@ -595,9 +641,14 @@ fn register_autostart(_osmoo_exe: &Path) {}
 
 #[cfg(windows)]
 fn unregister_autostart() {
-    use windows::Win32::System::Registry::{RegOpenKeyExW, RegDeleteValueW, HKEY_CURRENT_USER, KEY_SET_VALUE};
+    use windows::Win32::System::Registry::{
+        RegDeleteValueW, RegOpenKeyExW, HKEY_CURRENT_USER, KEY_SET_VALUE,
+    };
     unsafe {
-        let key_wide: Vec<u16> = RUN_REG_KEY.encode_utf16().chain(std::iter::once(0)).collect();
+        let key_wide: Vec<u16> = RUN_REG_KEY
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
         let name_wide: Vec<u16> = APP_NAME.encode_utf16().chain(std::iter::once(0)).collect();
         let mut hkey = Default::default();
         if RegOpenKeyExW(
@@ -606,7 +657,9 @@ fn unregister_autostart() {
             0,
             KEY_SET_VALUE,
             &mut hkey,
-        ).is_ok() {
+        )
+        .is_ok()
+        {
             let _ = RegDeleteValueW(hkey, windows::core::PCWSTR::from_raw(name_wide.as_ptr()));
             let _ = windows::Win32::System::Registry::RegCloseKey(hkey);
         }

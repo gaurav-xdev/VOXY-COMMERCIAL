@@ -27,8 +27,7 @@ pub fn AssistantHud(
     on_open_settings: EventHandler<()>,
     on_emergency_stop: EventHandler<()>,
     on_toggle_mode: EventHandler<CompanionMode>,
-    #[props(default)]
-    on_toggle_overlay: Option<EventHandler<()>>,
+    #[props(default)] on_toggle_overlay: Option<EventHandler<()>>,
     telemetry: TelemetryStats,
     chat_history: Vec<ChatTurn>,
     current_mode: CompanionMode,

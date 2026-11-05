@@ -35,7 +35,9 @@ pub use mail_connector::{EmailDraft, EmailMessage, EmailProvider, MailConnector,
 pub use office_validator::{OfficeDocumentKind, OfficeValidator, ValidationReport};
 pub use pptx_generator::{PptxPresentation, PptxSlide, SlideContent};
 pub use scope::{OfficeScope, ScopeSet};
-pub use shopping_connector::{CartItem, ProductItem, SandboxPaymentReceipt, ShoppingCart, ShoppingConnector};
+pub use shopping_connector::{
+    CartItem, ProductItem, SandboxPaymentReceipt, ShoppingCart, ShoppingConnector,
+};
 pub use spreadsheet_connector::{SpreadsheetConnector, TabularSheet};
 pub use travel_connector::{FlightOption, HotelOption, TravelConnector, TravelItinerary};
 pub use xlsx_generator::{CellValue, XlsxSheet, XlsxWorkbook};
@@ -231,7 +233,10 @@ mod tests {
         let rendered = doc_conn
             .render_template(template, &vars, &scopes, Some("manager"))
             .unwrap();
-        assert_eq!(rendered, "Project VOXY COM status for Q3 is currently On Track.");
+        assert_eq!(
+            rendered,
+            "Project VOXY COM status for Q3 is currently On Track."
+        );
 
         let highlights = vec![
             "Completed Office connector security audit".to_string(),
@@ -268,11 +273,27 @@ mod tests {
             .add_bullet("Native OpenXML document compilers deployed")
             .add_heading("3. Performance Matrix", 2)
             .add_table(
-                vec!["Metric".to_string(), "Target".to_string(), "Actual".to_string()],
                 vec![
-                    vec!["First Word TTFT".to_string(), "< 150ms".to_string(), "108ms".to_string()],
-                    vec!["Barge-In Cancel".to_string(), "< 50ms".to_string(), "32ms".to_string()],
-                    vec!["Test Coverage".to_string(), "> 95%".to_string(), "100%".to_string()],
+                    "Metric".to_string(),
+                    "Target".to_string(),
+                    "Actual".to_string(),
+                ],
+                vec![
+                    vec![
+                        "First Word TTFT".to_string(),
+                        "< 150ms".to_string(),
+                        "108ms".to_string(),
+                    ],
+                    vec![
+                        "Barge-In Cancel".to_string(),
+                        "< 50ms".to_string(),
+                        "32ms".to_string(),
+                    ],
+                    vec![
+                        "Test Coverage".to_string(),
+                        "> 95%".to_string(),
+                        "100%".to_string(),
+                    ],
                 ],
             );
 
@@ -283,8 +304,14 @@ mod tests {
         let report = OfficeValidator::validate_file(&docx_path).expect("Failed to validate docx");
         assert!(report.valid);
         assert_eq!(report.kind, OfficeDocumentKind::WordDocx);
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("Q3 Engineering")));
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("First Word TTFT")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("Q3 Engineering")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("First Word TTFT")));
     }
 
     #[test]
@@ -313,7 +340,8 @@ mod tests {
 
         // Also test CSV import onto a second sheet
         let csv_data = "Item,Count,Cost\nServers,4,12000\nMicrophones,8,3200\nMonitors,12,4800";
-        wb.import_csv("Inventory", csv_data).expect("CSV import failed");
+        wb.import_csv("Inventory", csv_data)
+            .expect("CSV import failed");
 
         wb.save(&xlsx_path).expect("Failed to save .xlsx");
         assert!(xlsx_path.exists());
@@ -322,8 +350,14 @@ mod tests {
         let report = OfficeValidator::validate_file(&xlsx_path).expect("Failed to validate xlsx");
         assert!(report.valid);
         assert_eq!(report.kind, OfficeDocumentKind::ExcelXlsx);
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("Cloud Compute")));
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("Inventory") || s.contains("Servers")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("Cloud Compute")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("Inventory") || s.contains("Servers")));
     }
 
     #[test]
@@ -347,14 +381,33 @@ mod tests {
         );
         pres.add_table_slide(
             "Verification Summary",
-            vec!["Subsystem".to_string(), "Status".to_string(), "Tests".to_string()],
             vec![
-                vec!["Voice Audio".to_string(), "Verified".to_string(), "15 passed".to_string()],
-                vec!["Coding Harness".to_string(), "Verified".to_string(), "12 passed".to_string()],
-                vec!["Office Compilers".to_string(), "Verified".to_string(), "Full pass".to_string()],
+                "Subsystem".to_string(),
+                "Status".to_string(),
+                "Tests".to_string(),
+            ],
+            vec![
+                vec![
+                    "Voice Audio".to_string(),
+                    "Verified".to_string(),
+                    "15 passed".to_string(),
+                ],
+                vec![
+                    "Coding Harness".to_string(),
+                    "Verified".to_string(),
+                    "12 passed".to_string(),
+                ],
+                vec![
+                    "Office Compilers".to_string(),
+                    "Verified".to_string(),
+                    "Full pass".to_string(),
+                ],
             ],
         );
-        pres.set_speaker_notes(0, "Welcome stakeholders. Today we demonstrate production readiness.");
+        pres.set_speaker_notes(
+            0,
+            "Welcome stakeholders. Today we demonstrate production readiness.",
+        );
 
         pres.save(&pptx_path).expect("Failed to save .pptx");
         assert!(pptx_path.exists());
@@ -363,8 +416,14 @@ mod tests {
         let report = OfficeValidator::validate_file(&pptx_path).expect("Failed to validate pptx");
         assert!(report.valid);
         assert_eq!(report.kind, OfficeDocumentKind::PowerPointPptx);
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("Autonomous Operating Companion")));
-        assert!(report.extracted_text_snippets.iter().any(|s| s.contains("Key Architectural Pillars")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("Autonomous Operating Companion")));
+        assert!(report
+            .extracted_text_snippets
+            .iter()
+            .any(|s| s.contains("Key Architectural Pillars")));
     }
 
     #[test]
@@ -401,9 +460,18 @@ mod tests {
         {
             let cal2 = CalendarConnector::with_sqlite(&db_path, audit).unwrap();
             let events = cal2
-                .list_events(start - Duration::hours(1), end + Duration::hours(1), &scopes, Some("user_alice"))
+                .list_events(
+                    start - Duration::hours(1),
+                    end + Duration::hours(1),
+                    &scopes,
+                    Some("user_alice"),
+                )
                 .expect("Failed to list events");
-            assert_eq!(events.len(), 1, "Calendar events must survive connector restarts!");
+            assert_eq!(
+                events.len(),
+                1,
+                "Calendar events must survive connector restarts!"
+            );
             assert_eq!(events[0].title, "Architecture Board Meeting");
             assert_eq!(events[0].recurrence, RecurrenceRule::Weekly);
             assert_eq!(events[0].location.as_deref(), Some("Virtual Room 4"));
@@ -431,13 +499,18 @@ mod tests {
         });
 
         // 1. Search inbox
-        let search_results = mail.search_inbox("Report Delivery", 10, &scopes, Some("user_alice")).unwrap();
+        let search_results = mail
+            .search_inbox("Report Delivery", 10, &scopes, Some("user_alice"))
+            .unwrap();
         assert_eq!(search_results.len(), 1);
 
         // 2. Read thread and extract action items
         let summary = mail.summarize_thread("thread_505", &scopes).unwrap();
         assert_eq!(summary.subject, "Urgent: Q3 Report Delivery Deadline");
-        assert!(!summary.action_items.is_empty(), "Should extract action items with deadline keywords");
+        assert!(
+            !summary.action_items.is_empty(),
+            "Should extract action items with deadline keywords"
+        );
 
         // 3. Create draft
         let draft = mail
@@ -455,12 +528,18 @@ mod tests {
         assert!(!draft.is_approved);
 
         // 4. Try sending WITHOUT user approval confirmation -> MUST FAIL!
-        let unauthorized_send = mail.send_approved_email(&draft.id, false, &scopes, Some("user_alice"));
-        assert!(matches!(unauthorized_send.unwrap_err(), OfficeError::PermissionDenied { .. }));
+        let unauthorized_send =
+            mail.send_approved_email(&draft.id, false, &scopes, Some("user_alice"));
+        assert!(matches!(
+            unauthorized_send.unwrap_err(),
+            OfficeError::PermissionDenied { .. }
+        ));
 
         // 5. Approve draft and send with explicit confirmation -> MUST SUCCEED!
         mail.approve_draft(&draft.id, Some("user_alice")).unwrap();
-        let sent = mail.send_approved_email(&draft.id, true, &scopes, Some("user_alice")).unwrap();
+        let sent = mail
+            .send_approved_email(&draft.id, true, &scopes, Some("user_alice"))
+            .unwrap();
         assert_eq!(sent.to, vec!["client@enterprise.com".to_string()]);
         assert_eq!(sent.labels, vec!["SENT".to_string()]);
     }
@@ -472,16 +551,27 @@ mod tests {
         let scopes = ScopeSet::full_access();
 
         let dep_date = NaiveDate::from_ymd_opt(2026, 11, 15).unwrap();
-        let flights = travel.search_flights("SFO", "JFK", dep_date, 1, &scopes, Some("traveler")).unwrap();
+        let flights = travel
+            .search_flights("SFO", "JFK", dep_date, 1, &scopes, Some("traveler"))
+            .unwrap();
         assert!(!flights.is_empty());
-        assert!(flights[0].verified_booking_url.contains("google.com/travel") || flights[0].verified_booking_url.contains("skyscanner.com"));
+        assert!(
+            flights[0]
+                .verified_booking_url
+                .contains("google.com/travel")
+                || flights[0].verified_booking_url.contains("skyscanner.com")
+        );
 
         let check_out = NaiveDate::from_ymd_opt(2026, 11, 19).unwrap();
-        let hotels = travel.search_hotels("New York", dep_date, check_out, &scopes, Some("traveler")).unwrap();
+        let hotels = travel
+            .search_hotels("New York", dep_date, check_out, &scopes, Some("traveler"))
+            .unwrap();
         assert!(!hotels.is_empty());
         assert!(hotels[0].verified_booking_url.contains("booking.com"));
 
-        let itinerary = travel.build_itinerary("New York City", flights, hotels).unwrap();
+        let itinerary = travel
+            .build_itinerary("New York City", flights, hotels)
+            .unwrap();
         assert!(itinerary.total_estimated_cost_usd > 0.0);
         assert_eq!(itinerary.destination, "New York City");
     }
@@ -492,18 +582,30 @@ mod tests {
         let shopping = ShoppingConnector::new(audit);
         let scopes = ScopeSet::full_access();
 
-        let products = shopping.discover_products("Mechanical Keyboard", &scopes, Some("shopper")).unwrap();
+        let products = shopping
+            .discover_products("Mechanical Keyboard", &scopes, Some("shopper"))
+            .unwrap();
         assert_eq!(products.len(), 2);
-        assert!(products[0].direct_product_url.contains("amazon.com") || products[0].direct_product_url.contains("bestbuy.com"));
+        assert!(
+            products[0].direct_product_url.contains("amazon.com")
+                || products[0].direct_product_url.contains("bestbuy.com")
+        );
 
         let cart = shopping
             .prepare_cart(vec![(products[0].clone(), 2), (products[1].clone(), 1)])
             .unwrap();
-        assert!(cart.total_usd > cart.subtotal_usd, "Total must include estimated taxes");
+        assert!(
+            cart.total_usd > cart.subtotal_usd,
+            "Total must include estimated taxes"
+        );
 
         // 1. Attempt payment with forbidden raw card string -> MUST BE REJECTED
-        let bad_payment = shopping.execute_sandbox_test_payment(&cart, "4111222233334444", Some("shopper"));
-        assert!(matches!(bad_payment.unwrap_err(), OfficeError::PermissionDenied { .. }));
+        let bad_payment =
+            shopping.execute_sandbox_test_payment(&cart, "4111222233334444", Some("shopper"));
+        assert!(matches!(
+            bad_payment.unwrap_err(),
+            OfficeError::PermissionDenied { .. }
+        ));
 
         // 2. Execute test payment with authorized sandbox token -> MUST SUCCEED
         let receipt = shopping

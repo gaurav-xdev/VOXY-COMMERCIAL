@@ -4,13 +4,9 @@ use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use voxy_tool_calling::{
-    RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult,
-};
+use voxy_tool_calling::{RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult};
 
-use crate::activation::{
-    ActivationEngine, CheckStatus, SkillExecutionRecord, TaskContext,
-};
+use crate::activation::{ActivationEngine, CheckStatus, SkillExecutionRecord, TaskContext};
 
 /// Tool 1: Discover available SOTA, Addy Osmani, and Senior Open Source skills.
 pub struct OsmooSkillsDiscoverTool {
@@ -52,9 +48,18 @@ impl Tool for OsmooSkillsDiscoverTool {
         _ctx: &ToolContext,
     ) -> voxy_tool_calling::Result<ToolResult> {
         let category_filter = params.get("category").and_then(|v| v.as_str());
-        let language_filter = params.get("language").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
-        let role_filter = params.get("role").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
-        let query_filter = params.get("query").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
+        let language_filter = params
+            .get("language")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_lowercase());
+        let role_filter = params
+            .get("role")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_lowercase());
+        let query_filter = params
+            .get("query")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_lowercase());
 
         let all = self.engine.list_available();
         let filtered: Vec<_> = all
@@ -108,7 +113,8 @@ impl Tool for OsmooSkillsDiscoverTool {
         Ok(ToolResult::success(json!({
             "total_matched": total_count,
             "skills": filtered
-        })).with_observation(format!("Found {} matching skills in catalog", total_count)))
+        }))
+        .with_observation(format!("Found {} matching skills in catalog", total_count)))
     }
 }
 
@@ -166,10 +172,14 @@ impl Tool for OsmooSkillsEvaluateTool {
         let prompt = params["prompt"].as_str().unwrap_or("");
         let language = params.get("language").and_then(|v| v.as_str());
         let role = params.get("role").and_then(|v| v.as_str());
-        let max_skills = params.get("max_skills").and_then(|v| v.as_u64()).unwrap_or(4) as usize;
+        let max_skills = params
+            .get("max_skills")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(4) as usize;
 
-        let mut task = TaskContext::new(task_id, prompt, std::env::current_dir().unwrap_or_default())
-            .with_max_skills(max_skills);
+        let mut task =
+            TaskContext::new(task_id, prompt, std::env::current_dir().unwrap_or_default())
+                .with_max_skills(max_skills);
 
         if let Some(l) = language {
             task = task.with_language(l);
@@ -217,7 +227,8 @@ impl Tool for OsmooSkillsEvaluateTool {
             "conflict_resolutions": active_ctx.conflict_resolutions,
             "required_checks": active_ctx.required_checks,
             "rejected_count": active_ctx.rejected_capabilities.len(),
-        })).with_observation(format!(
+        }))
+        .with_observation(format!(
             "Activated {} focused skills for task (type: {:?})",
             active_ctx.active_capabilities.len(),
             task.task_type
@@ -290,10 +301,8 @@ impl Tool for OsmooSkillsLoadInstructionsTool {
                         }
                     }
                 } else {
-                    instructions_map.insert(
-                        id_str.to_string(),
-                        json!("Skill not found in catalog"),
-                    );
+                    instructions_map
+                        .insert(id_str.to_string(), json!("Skill not found in catalog"));
                 }
             }
         }
@@ -301,7 +310,8 @@ impl Tool for OsmooSkillsLoadInstructionsTool {
         Ok(ToolResult::success(json!({
             "loaded_count": loaded_count,
             "instructions": instructions_map
-        })).with_observation(format!("Loaded instructions for {} skills", loaded_count)))
+        }))
+        .with_observation(format!("Loaded instructions for {} skills", loaded_count)))
     }
 }
 
@@ -362,7 +372,10 @@ impl Tool for OsmooSkillsVerifyExecutionTool {
         let skill_id = params["skill_id"].as_str().unwrap_or("");
         let check_name = params["check_name"].as_str().unwrap_or("");
         let status_str = params["status"].as_str().unwrap_or("failed");
-        let evidence = params.get("evidence").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let evidence = params
+            .get("evidence")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         let check_status = match status_str {
             "passed" => CheckStatus::Passed,
@@ -381,7 +394,10 @@ impl Tool for OsmooSkillsVerifyExecutionTool {
                 check_status,
                 evidence,
             ) {
-                return Ok(ToolResult::failure(format!("Failed to record check: {}", e)));
+                return Ok(ToolResult::failure(format!(
+                    "Failed to record check: {}",
+                    e
+                )));
             }
 
             Ok(ToolResult::success(json!({
@@ -395,7 +411,10 @@ impl Tool for OsmooSkillsVerifyExecutionTool {
                 check_name, skill_id, check_status, r.all_passed
             )))
         } else {
-            Ok(ToolResult::failure(format!("No execution record found for task_id '{}'", task_id)))
+            Ok(ToolResult::failure(format!(
+                "No execution record found for task_id '{}'",
+                task_id
+            )))
         }
     }
 }
@@ -403,7 +422,9 @@ impl Tool for OsmooSkillsVerifyExecutionTool {
 use crate::benchmarks::MultiLanguageBenchmarkHarness;
 use crate::code_review::IndependentCodeReviewer;
 use crate::engineering_workflow::{EngineeringTaskSpec, ProductionEngineeringWorkflow};
-use crate::language_profiles::{LanguageProfileRegistry, RepositoryLanguageDetector, SupportedLanguage};
+use crate::language_profiles::{
+    LanguageProfileRegistry, RepositoryLanguageDetector, SupportedLanguage,
+};
 use crate::toolchains::ToolchainRegistry;
 
 /// Tool 5: Inspect compiler, linter, and test toolchains across all 10 languages.
@@ -448,12 +469,17 @@ impl Tool for OsmooToolchainsInspectTool {
         params: serde_json::Value,
         _ctx: &ToolContext,
     ) -> voxy_tool_calling::Result<ToolResult> {
-        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
+        let root = params
+            .get("workspace_root")
+            .and_then(|v| v.as_str())
+            .unwrap_or(".");
         let lang_str = params.get("language").and_then(|v| v.as_str());
 
         let registry = ToolchainRegistry::new(root);
         let langs_to_check = if let Some(s) = lang_str {
-            SupportedLanguage::from_str_loose(s).map(|l| vec![l]).unwrap_or_default()
+            SupportedLanguage::from_str_loose(s)
+                .map(|l| vec![l])
+                .unwrap_or_default()
         } else {
             SupportedLanguage::all().to_vec()
         };
@@ -470,7 +496,11 @@ impl Tool for OsmooToolchainsInspectTool {
         Ok(ToolResult::success(json!({
             "workspace_root": root,
             "toolchains": reports,
-        })).with_observation(format!("Inspected toolchains across {} languages", reports.len())))
+        }))
+        .with_observation(format!(
+            "Inspected toolchains across {} languages",
+            reports.len()
+        )))
     }
 }
 
@@ -515,7 +545,10 @@ impl Tool for OsmooProjectDetectLanguagesTool {
         params: serde_json::Value,
         _ctx: &ToolContext,
     ) -> voxy_tool_calling::Result<ToolResult> {
-        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
+        let root = params
+            .get("workspace_root")
+            .and_then(|v| v.as_str())
+            .unwrap_or(".");
         let result = RepositoryLanguageDetector::detect(root);
 
         Ok(ToolResult::success(json!({
@@ -524,7 +557,8 @@ impl Tool for OsmooProjectDetectLanguagesTool {
             "primary_language": result.primary_language.map(|l| l.as_str()),
             "is_polyglot": result.is_polyglot,
             "detected_languages": result.detected_languages,
-        })).with_observation(format!(
+        }))
+        .with_observation(format!(
             "Detected {} code files across {} languages (primary: {:?}, polyglot: {})",
             result.total_code_files,
             result.detected_languages.len(),
@@ -580,10 +614,17 @@ impl Tool for OsmooLanguageProfileGetTool {
         params: serde_json::Value,
         _ctx: &ToolContext,
     ) -> voxy_tool_calling::Result<ToolResult> {
-        let lang_str = params.get("language").and_then(|v| v.as_str()).unwrap_or("");
+        let lang_str = params
+            .get("language")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         if let Some(profile) = self.registry.get_by_name(lang_str) {
-            Ok(ToolResult::success(json!(profile))
-                .with_observation(format!("Retrieved authoritative engineering profile for {}", profile.name)))
+            Ok(
+                ToolResult::success(json!(profile)).with_observation(format!(
+                    "Retrieved authoritative engineering profile for {}",
+                    profile.name
+                )),
+            )
         } else {
             Ok(ToolResult::failure(format!(
                 "Unsupported language '{}'. Supported: rust, typescript, javascript, python, c, cpp, csharp, java, go, sql",
@@ -641,10 +682,19 @@ impl Tool for OsmooEngineeringWorkflowRunTool {
         params: serde_json::Value,
         _ctx: &ToolContext,
     ) -> voxy_tool_calling::Result<ToolResult> {
-        let root = params.get("workspace_root").and_then(|v| v.as_str()).unwrap_or(".");
-        let task_id = params.get("task_id").and_then(|v| v.as_str()).unwrap_or("task-eng-01");
+        let root = params
+            .get("workspace_root")
+            .and_then(|v| v.as_str())
+            .unwrap_or(".");
+        let task_id = params
+            .get("task_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("task-eng-01");
         let title = params.get("title").and_then(|v| v.as_str()).unwrap_or("");
-        let description = params.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let description = params
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let diff = params.get("diff").and_then(|v| v.as_str());
 
         let target_langs = params
@@ -678,10 +728,12 @@ impl Tool for OsmooEngineeringWorkflowRunTool {
         let workflow = ProductionEngineeringWorkflow::new(root);
         let summary = workflow.run_workflow(&spec, diff).await;
 
-        Ok(ToolResult::success(json!(summary)).with_observation(format!(
-            "Workflow finished across 8 stages. Ready for merge: {}",
-            summary.ready_for_merge
-        )))
+        Ok(
+            ToolResult::success(json!(summary)).with_observation(format!(
+                "Workflow finished across 8 stages. Ready for merge: {}",
+                summary.ready_for_merge
+            )),
+        )
     }
 }
 
@@ -784,10 +836,11 @@ impl Tool for OsmooBenchmarkRunTool {
         let harness = MultiLanguageBenchmarkHarness::new();
         let scorecard = harness.execute_benchmark();
 
-        Ok(ToolResult::success(json!(scorecard)).with_observation(format!(
-            "Benchmark passed {}/{} ({}%) across 10 languages",
-            scorecard.passed_cases, scorecard.total_cases, scorecard.pass_rate_percent
-        )))
+        Ok(
+            ToolResult::success(json!(scorecard)).with_observation(format!(
+                "Benchmark passed {}/{} ({}%) across 10 languages",
+                scorecard.passed_cases, scorecard.total_cases, scorecard.pass_rate_percent
+            )),
+        )
     }
 }
-

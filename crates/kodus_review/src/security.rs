@@ -56,7 +56,11 @@ impl KodusSecurityBoundary {
     /// # Security Contract
     /// - Ordinary human users, UI actions, or external IPC callers are unconditionally rejected.
     /// - Token comparison is performed in constant time.
-    pub fn verify_caller(&self, caller_identity: &str, provided_token: &str) -> Result<(), KodusSecurityError> {
+    pub fn verify_caller(
+        &self,
+        caller_identity: &str,
+        provided_token: &str,
+    ) -> Result<(), KodusSecurityError> {
         if caller_identity != OSMOO_OPERATOR_IDENTITY {
             tracing::warn!(
                 caller = %caller_identity,
@@ -111,7 +115,9 @@ mod tests {
         let token = boundary.session_token();
 
         // 1. Authorized OSMOO caller succeeds
-        assert!(boundary.verify_caller(OSMOO_OPERATOR_IDENTITY, &token).is_ok());
+        assert!(boundary
+            .verify_caller(OSMOO_OPERATOR_IDENTITY, &token)
+            .is_ok());
 
         // 2. Direct user caller is rejected
         let user_err = boundary.verify_caller("user", &token).unwrap_err();

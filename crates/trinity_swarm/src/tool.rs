@@ -2,9 +2,7 @@ use crate::coordinator::SwarmCoordinator;
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
-use voxy_tool_calling::{
-    RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult,
-};
+use voxy_tool_calling::{RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult};
 
 /// Internal OSMOO tool for executing multi-agent swarm tasks using Trinity & SwarmClaw.
 pub struct OsmooSwarmOrchestratorTool {
@@ -44,8 +42,14 @@ impl Tool for OsmooSwarmOrchestratorTool {
         &self.metadata
     }
 
-    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> voxy_tool_calling::Result<ToolResult> {
-        let caller = params["caller_identity"].as_str().unwrap_or("untrusted_user");
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let caller = params["caller_identity"]
+            .as_str()
+            .unwrap_or("untrusted_user");
         let token = params["internal_token"].as_str().unwrap_or("");
         let goal = params["goal"].as_str().unwrap_or("");
 
@@ -69,12 +73,9 @@ impl Tool for OsmooSwarmOrchestratorTool {
                 let json_data = serde_json::to_value(&receipt)
                     .unwrap_or_else(|_| json!({ "error": "receipt serialization failed" }));
 
-                Ok(ToolResult::success(json_data)
-                    .with_observation(observation))
+                Ok(ToolResult::success(json_data).with_observation(observation))
             }
-            Err(e) => {
-                Ok(ToolResult::failure(format!("Swarm execution failed: {e}")))
-            }
+            Err(e) => Ok(ToolResult::failure(format!("Swarm execution failed: {e}"))),
         }
     }
 }
@@ -115,14 +116,23 @@ impl Tool for OsmooSwarmStatusTool {
         &self.metadata
     }
 
-    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> voxy_tool_calling::Result<ToolResult> {
-        let caller = params["caller_identity"].as_str().unwrap_or("untrusted_user");
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let caller = params["caller_identity"]
+            .as_str()
+            .unwrap_or("untrusted_user");
         let token = params["internal_token"].as_str().unwrap_or("");
 
         // Strict internal permission boundary
         if let Err(e) = self.coordinator.security().verify_caller(caller, token) {
-            return Ok(ToolResult::failure(format!("ACCESS DENIED: {e}"))
-                .with_observation("Direct user attempt to inspect internal swarm status was blocked"));
+            return Ok(
+                ToolResult::failure(format!("ACCESS DENIED: {e}")).with_observation(
+                    "Direct user attempt to inspect internal swarm status was blocked",
+                ),
+            );
         }
 
         let total_messages = self.coordinator.message_bus().count();
@@ -134,7 +144,9 @@ impl Tool for OsmooSwarmStatusTool {
             "artifacts": artifacts,
         });
 
-        Ok(ToolResult::success(data)
-            .with_observation(format!("Swarm Status: {total_messages} A2A messages, {} artifacts", artifacts.len())))
+        Ok(ToolResult::success(data).with_observation(format!(
+            "Swarm Status: {total_messages} A2A messages, {} artifacts",
+            artifacts.len()
+        )))
     }
 }

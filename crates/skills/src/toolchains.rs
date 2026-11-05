@@ -352,7 +352,12 @@ impl ToolchainRegistry {
             language: SupportedLanguage::C,
             operation: VerificationOp::Check,
             program: "gcc".into(),
-            default_args: vec!["-Wall".into(), "-Wextra".into(), "-Werror".into(), "-fsyntax-only".into()],
+            default_args: vec![
+                "-Wall".into(),
+                "-Wextra".into(),
+                "-Werror".into(),
+                "-fsyntax-only".into(),
+            ],
             timeout_seconds: 60,
         });
 
@@ -463,7 +468,10 @@ impl ToolchainRegistry {
     }
 
     /// Inspect availability of toolchains for the target language.
-    pub async fn inspect_toolchain(&self, language: SupportedLanguage) -> Vec<ToolAvailabilityInfo> {
+    pub async fn inspect_toolchain(
+        &self,
+        language: SupportedLanguage,
+    ) -> Vec<ToolAvailabilityInfo> {
         let specs_for_lang: Vec<_> = self
             .command_specs
             .iter()
@@ -510,7 +518,12 @@ impl ToolchainRegistry {
         relative_cwd: Option<&Path>,
     ) -> VerificationExecutionResult {
         let start = Instant::now();
-        let check_id = format!("{}-{}-{}", language.as_str(), operation.as_str(), uuid::Uuid::new_v4().simple());
+        let check_id = format!(
+            "{}-{}-{}",
+            language.as_str(),
+            operation.as_str(),
+            uuid::Uuid::new_v4().simple()
+        );
 
         let spec = self
             .command_specs
@@ -530,10 +543,18 @@ impl ToolchainRegistry {
                     exit_code: None,
                     duration_ms: start.elapsed().as_millis() as u64,
                     stdout: String::new(),
-                    stderr: format!("No command specification configured for {} {:?}", language.as_str(), operation),
+                    stderr: format!(
+                        "No command specification configured for {} {:?}",
+                        language.as_str(),
+                        operation
+                    ),
                     parsed_diagnostics: DiagnosticReport::new(),
                     truth_verified: false,
-                    observation: format!("Verification operation {:?} not configured for {}", operation, language.as_str()),
+                    observation: format!(
+                        "Verification operation {:?} not configured for {}",
+                        operation,
+                        language.as_str()
+                    ),
                 };
             }
         };
@@ -551,7 +572,10 @@ impl ToolchainRegistry {
                 exit_code: None,
                 duration_ms: start.elapsed().as_millis() as u64,
                 stdout: String::new(),
-                stderr: format!("Tool '{}' is not installed or available on system PATH", spec.program),
+                stderr: format!(
+                    "Tool '{}' is not installed or available on system PATH",
+                    spec.program
+                ),
                 parsed_diagnostics: DiagnosticReport::new(),
                 truth_verified: false,
                 observation: format!("Skipped: tool '{}' unavailable", spec.program),
@@ -589,7 +613,10 @@ impl ToolchainRegistry {
                 };
 
                 let obs = if truth_verified {
-                    format!("Passed: '{}' completed in {}ms with 0 errors", command_str, duration_ms)
+                    format!(
+                        "Passed: '{}' completed in {}ms with 0 errors",
+                        command_str, duration_ms
+                    )
                 } else {
                     format!(
                         "Failed: '{}' exited with code {:?} ({} errors parsed)",
@@ -657,7 +684,10 @@ mod tests {
         let info = registry.inspect_toolchain(SupportedLanguage::Rust).await;
         assert!(!info.is_empty());
         let cargo = info.iter().find(|t| t.tool_name == "cargo").unwrap();
-        assert!(cargo.is_available, "cargo must be available in dev environment");
+        assert!(
+            cargo.is_available,
+            "cargo must be available in dev environment"
+        );
         assert!(cargo.detected_version.is_some());
     }
 

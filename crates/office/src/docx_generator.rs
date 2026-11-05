@@ -10,10 +10,22 @@ use zip::ZipWriter;
 
 #[derive(Debug, Clone)]
 pub enum DocxElement {
-    Heading { text: String, level: u8 },
-    Paragraph { text: String, bold: bool, italic: bool },
-    BulletItem { text: String },
-    Table { headers: Vec<String>, rows: Vec<Vec<String>> },
+    Heading {
+        text: String,
+        level: u8,
+    },
+    Paragraph {
+        text: String,
+        bold: bool,
+        italic: bool,
+    },
+    BulletItem {
+        text: String,
+    },
+    Table {
+        headers: Vec<String>,
+        rows: Vec<Vec<String>>,
+    },
     PageBreak,
 }
 
@@ -70,7 +82,8 @@ impl DocxDocument {
     }
 
     pub fn add_bullet(&mut self, text: impl Into<String>) -> &mut Self {
-        self.elements.push(DocxElement::BulletItem { text: text.into() });
+        self.elements
+            .push(DocxElement::BulletItem { text: text.into() });
         self
     }
 
@@ -309,8 +322,8 @@ impl DocxDocument {
     /// Generate raw binary bytes of the .docx package
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         let mut buffer = Cursor::new(Vec::new());
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         {
             let mut zip = ZipWriter::new(&mut buffer);

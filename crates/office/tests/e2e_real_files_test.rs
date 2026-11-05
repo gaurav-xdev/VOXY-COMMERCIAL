@@ -23,12 +23,37 @@ fn test_generate_real_office_deliverables_on_disk() {
     doc.add_bullet("Strict payment sandbox tokenization (raw credit cards rejected)");
     doc.add_heading("3. Performance Benchmarks", 2);
     doc.add_table(
-        vec!["Metric".to_string(), "Target".to_string(), "Actual Result".to_string(), "Compliance".to_string()],
         vec![
-            vec!["Docx Generation Time".to_string(), "< 100ms".to_string(), "12ms".to_string(), "EXCEEDED".to_string()],
-            vec!["Xlsx Generation Time".to_string(), "< 100ms".to_string(), "9ms".to_string(), "EXCEEDED".to_string()],
-            vec!["Pptx Generation Time".to_string(), "< 150ms".to_string(), "18ms".to_string(), "EXCEEDED".to_string()],
-            vec!["Zero Fallback Route Leak".to_string(), "0%".to_string(), "0%".to_string(), "100% STRICT".to_string()],
+            "Metric".to_string(),
+            "Target".to_string(),
+            "Actual Result".to_string(),
+            "Compliance".to_string(),
+        ],
+        vec![
+            vec![
+                "Docx Generation Time".to_string(),
+                "< 100ms".to_string(),
+                "12ms".to_string(),
+                "EXCEEDED".to_string(),
+            ],
+            vec![
+                "Xlsx Generation Time".to_string(),
+                "< 100ms".to_string(),
+                "9ms".to_string(),
+                "EXCEEDED".to_string(),
+            ],
+            vec![
+                "Pptx Generation Time".to_string(),
+                "< 150ms".to_string(),
+                "18ms".to_string(),
+                "EXCEEDED".to_string(),
+            ],
+            vec![
+                "Zero Fallback Route Leak".to_string(),
+                "0%".to_string(),
+                "0%".to_string(),
+                "100% STRICT".to_string(),
+            ],
         ],
     );
     doc.add_page_break();
@@ -41,7 +66,10 @@ fn test_generate_real_office_deliverables_on_disk() {
     let docx_report = OfficeValidator::validate_file(&docx_path).expect("validate docx");
     assert!(docx_report.valid);
     assert_eq!(docx_report.kind, OfficeDocumentKind::WordDocx);
-    assert!(docx_report.extracted_text_snippets.iter().any(|s| s.contains("Executive Summary")));
+    assert!(docx_report
+        .extracted_text_snippets
+        .iter()
+        .any(|s| s.contains("Executive Summary")));
 
     // 2. Generate XLSX
     let xlsx_path = out_dir.join("OSMOO_Sample_Spreadsheet.xlsx");
@@ -68,18 +96,14 @@ fn test_generate_real_office_deliverables_on_disk() {
         sheet.set_number(r, 3, *q2);
         sheet.set_number(r, 4, *q3);
         sheet.set_number(r, 5, *q4);
-        sheet.set_formula(
-            r,
-            6,
-            format!("SUM(B{}:E{})", r, r),
-            Some(q1 + q2 + q3 + q4),
-        );
+        sheet.set_formula(r, 6, format!("SUM(B{}:E{})", r, r), Some(q1 + q2 + q3 + q4));
     }
     sheet.freeze_panes(1, 1);
 
     // Also import a second sheet from CSV
     let csv_metrics = "Node_ID,Uptime_Pct,Latency_ms\nnode-useast-01,99.99,4.2\nnode-uswest-02,99.95,6.8\nnode-euwest-01,99.98,5.1";
-    wb.import_csv("System_Metrics", csv_metrics).expect("import csv");
+    wb.import_csv("System_Metrics", csv_metrics)
+        .expect("import csv");
 
     wb.save(&xlsx_path).expect("save xlsx");
     assert!(xlsx_path.exists());
@@ -88,7 +112,10 @@ fn test_generate_real_office_deliverables_on_disk() {
     let xlsx_report = OfficeValidator::validate_file(&xlsx_path).expect("validate xlsx");
     assert!(xlsx_report.valid);
     assert_eq!(xlsx_report.kind, OfficeDocumentKind::ExcelXlsx);
-    assert!(xlsx_report.extracted_text_snippets.iter().any(|s| s.contains("Financial_Projections") || s.contains("Engineering")));
+    assert!(xlsx_report
+        .extracted_text_snippets
+        .iter()
+        .any(|s| s.contains("Financial_Projections") || s.contains("Engineering")));
 
     // 3. Generate PPTX
     let pptx_path = out_dir.join("OSMOO_Sample_Presentation.pptx");
@@ -101,23 +128,44 @@ fn test_generate_real_office_deliverables_on_disk() {
     pres.add_content_slide(
         "Native Office Architecture",
         vec![
-            "Zero external runtime dependencies (no headless Office or Python required)".to_string(),
+            "Zero external runtime dependencies (no headless Office or Python required)"
+                .to_string(),
             "Standard ECMA-376 OpenXML standard compliance".to_string(),
-            "Full support for Word styles, Excel formulas, and PowerPoint widescreen layouts".to_string(),
+            "Full support for Word styles, Excel formulas, and PowerPoint widescreen layouts"
+                .to_string(),
             "Automated internal structural validation via OfficeValidator".to_string(),
         ],
     );
     pres.add_table_slide(
         "Enterprise Readiness Assessment",
-        vec!["Dimension".to_string(), "Standard Requirement".to_string(), "OSMOO Implementation".to_string()],
         vec![
-            vec!["File Integrity".to_string(), "100% valid XML package".to_string(), "Verified by ZIP/XML schemas".to_string()],
-            vec!["Security".to_string(), "No raw cards / approval gates".to_string(), "Zero card storage / Gated email send".to_string()],
-            vec!["Scheduling".to_string(), "Survive restarts".to_string(), "Persistent SQLite database".to_string()],
+            "Dimension".to_string(),
+            "Standard Requirement".to_string(),
+            "OSMOO Implementation".to_string(),
+        ],
+        vec![
+            vec![
+                "File Integrity".to_string(),
+                "100% valid XML package".to_string(),
+                "Verified by ZIP/XML schemas".to_string(),
+            ],
+            vec![
+                "Security".to_string(),
+                "No raw cards / approval gates".to_string(),
+                "Zero card storage / Gated email send".to_string(),
+            ],
+            vec![
+                "Scheduling".to_string(),
+                "Survive restarts".to_string(),
+                "Persistent SQLite database".to_string(),
+            ],
         ],
     );
     pres.set_speaker_notes(0, "Presenter notes for Title Slide: Welcome all attendees.");
-    pres.set_speaker_notes(1, "Presenter notes for Slide 2: Emphasize zero runtime dependencies.");
+    pres.set_speaker_notes(
+        1,
+        "Presenter notes for Slide 2: Emphasize zero runtime dependencies.",
+    );
     pres.save(&pptx_path).expect("save pptx");
     assert!(pptx_path.exists());
 
@@ -125,5 +173,8 @@ fn test_generate_real_office_deliverables_on_disk() {
     let pptx_report = OfficeValidator::validate_file(&pptx_path).expect("validate pptx");
     assert!(pptx_report.valid);
     assert_eq!(pptx_report.kind, OfficeDocumentKind::PowerPointPptx);
-    assert!(pptx_report.extracted_text_snippets.iter().any(|s| s.contains("OSMOO Companion 2027")));
+    assert!(pptx_report
+        .extracted_text_snippets
+        .iter()
+        .any(|s| s.contains("OSMOO Companion 2027")));
 }

@@ -192,10 +192,15 @@ impl MailConnector {
     pub fn summarize_thread(&self, thread_id: &str, scopes: &ScopeSet) -> Result<ThreadSummary> {
         let messages = self.read_thread(thread_id, scopes, Some("summarizer"))?;
         if messages.is_empty() {
-            return Err(OfficeError::NotFound(format!("Thread {thread_id} not found")));
+            return Err(OfficeError::NotFound(format!(
+                "Thread {thread_id} not found"
+            )));
         }
 
-        let subject = messages.first().map(|m| m.subject.clone()).unwrap_or_default();
+        let subject = messages
+            .first()
+            .map(|m| m.subject.clone())
+            .unwrap_or_default();
         let mut participants = std::collections::HashSet::new();
         let mut full_body = String::new();
 
@@ -257,7 +262,9 @@ impl MailConnector {
         scopes.check(OfficeScope::DocumentWrite)?;
 
         if to.is_empty() {
-            return Err(OfficeError::InvalidData("Draft must have at least one recipient".into()));
+            return Err(OfficeError::InvalidData(
+                "Draft must have at least one recipient".into(),
+            ));
         }
 
         let draft = EmailDraft {
@@ -360,7 +367,10 @@ impl MailConnector {
 
         let sent_message = EmailMessage {
             id: format!("sent_{}", Uuid::new_v4()),
-            thread_id: draft.in_reply_to.clone().unwrap_or_else(|| Uuid::new_v4().to_string()),
+            thread_id: draft
+                .in_reply_to
+                .clone()
+                .unwrap_or_else(|| Uuid::new_v4().to_string()),
             from: self.email_address.clone(),
             to: draft.to.clone(),
             cc: draft.cc.clone(),

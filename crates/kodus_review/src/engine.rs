@@ -115,6 +115,9 @@ impl KodusReviewEngine {
             ReviewScope::Commit(commit) => {
                 cmd.args(["diff", &format!("{commit}~1"), commit]);
             }
+            ReviewScope::ExplicitDiff(diff) => {
+                return Ok(filter_diff_noise(diff));
+            }
             ReviewScope::Files(paths) => {
                 cmd.args(["diff", "HEAD", "--"]);
                 for p in paths {
@@ -129,7 +132,9 @@ impl KodusReviewEngine {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(KodusReviewError::DiffError(format!("git diff failed: {stderr}")));
+            return Err(KodusReviewError::DiffError(format!(
+                "git diff failed: {stderr}"
+            )));
         }
 
         let raw = String::from_utf8_lossy(&output.stdout).to_string();
@@ -242,7 +247,12 @@ pub fn parse_kodus_findings(text: &str) -> Vec<KodusFinding> {
             let is_confirmed = item["is_confirmed"].as_bool().unwrap_or(true);
             let confidence = item["confidence_score"].as_f64().unwrap_or(0.85) as f32;
 
-            let severity = match item["severity"].as_str().unwrap_or("medium").to_lowercase().as_str() {
+            let severity = match item["severity"]
+                .as_str()
+                .unwrap_or("medium")
+                .to_lowercase()
+                .as_str()
+            {
                 "critical" => KodusSeverity::Critical,
                 "high" => KodusSeverity::High,
                 "low" => KodusSeverity::Low,
@@ -250,12 +260,19 @@ pub fn parse_kodus_findings(text: &str) -> Vec<KodusFinding> {
                 _ => KodusSeverity::Medium,
             };
 
-            let category = match item["category"].as_str().unwrap_or("logic_bug").to_lowercase().as_str() {
+            let category = match item["category"]
+                .as_str()
+                .unwrap_or("logic_bug")
+                .to_lowercase()
+                .as_str()
+            {
                 "security_vulnerability" | "security" => KodusCategory::SecurityVulnerability,
                 "rust_memory_safety" | "rust" => KodusCategory::RustMemorySafety,
                 "windows_native_ipc" | "windows" | "ipc" => KodusCategory::WindowsNativeIpc,
                 "python_sidecar_reliability" | "python" => KodusCategory::PythonSidecarReliability,
-                "react_typescript_correctness" | "react" | "typescript" => KodusCategory::ReactTypeScriptCorrectness,
+                "react_typescript_correctness" | "react" | "typescript" => {
+                    KodusCategory::ReactTypeScriptCorrectness
+                }
                 "performance_regression" | "performance" => KodusCategory::PerformanceRegression,
                 "missing_tests" | "tests" => KodusCategory::MissingTests,
                 "architecture_violation" | "architecture" => KodusCategory::ArchitectureViolation,

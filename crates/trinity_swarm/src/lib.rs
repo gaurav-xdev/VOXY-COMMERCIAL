@@ -124,7 +124,8 @@ mod tests {
     #[tokio::test]
     async fn test_secret_redaction() {
         let boundary = SwarmSecurityBoundary::new();
-        let leaked = "Found keys: sk-proj-12345678901234567890 and sk-ant-api03-abcdefghijklmnopqrstu";
+        let leaked =
+            "Found keys: sk-proj-12345678901234567890 and sk-ant-api03-abcdefghijklmnopqrstu";
         let clean = boundary.redact_secrets(leaked);
         assert!(!clean.contains("sk-proj"));
         assert!(!clean.contains("sk-ant"));
@@ -139,20 +140,20 @@ mod tests {
         let task_a = SwarmTask::new("A", "Task A", "First", AgentRole::Architect);
         let task_b = SwarmTask::new("B", "Task B", "Second", AgentRole::SpecialistWorker)
             .with_dependency("A");
-        let task_c = SwarmTask::new("C", "Task C", "Third", AgentRole::QaTester)
-            .with_dependency("B");
+        let task_c =
+            SwarmTask::new("C", "Task C", "Third", AgentRole::QaTester).with_dependency("B");
 
         graph.add_tasks(vec![task_a, task_b, task_c]);
         assert!(graph.validate_dag().is_ok());
 
         // Now introduce a cycle: A depends on C
         let cyclic_graph = TaskGraph::new();
-        let task_x = SwarmTask::new("X", "Task X", "First", AgentRole::Architect)
-            .with_dependency("Z");
+        let task_x =
+            SwarmTask::new("X", "Task X", "First", AgentRole::Architect).with_dependency("Z");
         let task_y = SwarmTask::new("Y", "Task Y", "Second", AgentRole::SpecialistWorker)
             .with_dependency("X");
-        let task_z = SwarmTask::new("Z", "Task Z", "Third", AgentRole::QaTester)
-            .with_dependency("Y");
+        let task_z =
+            SwarmTask::new("Z", "Task Z", "Third", AgentRole::QaTester).with_dependency("Y");
 
         cyclic_graph.add_tasks(vec![task_x, task_y, task_z]);
         let res = cyclic_graph.validate_dag();
@@ -175,17 +176,19 @@ mod tests {
         assert_eq!(ready1[0].id, "A");
 
         // Complete A
-        graph.set_task_result(
-            "A",
-            TaskResult {
-                task_id: "A".into(),
-                success: true,
-                output: "Architecture spec completed".into(),
-                artifacts_produced: vec!["arch.md".into()],
-                execution_ms: 10,
-                error_message: None,
-            },
-        ).unwrap();
+        graph
+            .set_task_result(
+                "A",
+                TaskResult {
+                    task_id: "A".into(),
+                    success: true,
+                    output: "Architecture spec completed".into(),
+                    artifacts_produced: vec!["arch.md".into()],
+                    execution_ms: 10,
+                    error_message: None,
+                },
+            )
+            .unwrap();
 
         // Now B is ready
         let ready2 = graph.get_ready_tasks();
@@ -197,8 +200,8 @@ mod tests {
     async fn test_cascading_failure_blocks_downstream_tasks() {
         let graph = TaskGraph::new();
         let task_a = SwarmTask::new("A", "Task A", "First", AgentRole::SpecialistWorker);
-        let task_b = SwarmTask::new("B", "Task B", "Second", AgentRole::QaTester)
-            .with_dependency("A");
+        let task_b =
+            SwarmTask::new("B", "Task B", "Second", AgentRole::QaTester).with_dependency("A");
 
         graph.add_tasks(vec![task_a, task_b]);
 

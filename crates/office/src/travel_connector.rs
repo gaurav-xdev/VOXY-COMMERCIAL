@@ -106,7 +106,8 @@ impl TravelConnector {
                 price_usd: 249.00 * passengers as f64,
                 stops: 0,
                 baggage_included: true,
-                cancellation_policy: "Refundable up to 24h before departure with $50 fee".to_string(),
+                cancellation_policy: "Refundable up to 24h before departure with $50 fee"
+                    .to_string(),
                 verified_booking_url: google_flights_url,
             },
             FlightOption {

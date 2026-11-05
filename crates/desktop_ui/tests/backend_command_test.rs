@@ -254,7 +254,9 @@ async fn test_backend_dispatcher_system_telemetry_metrics() {
     let data_dir = tempfile::tempdir().expect("tempdir");
     let dispatcher = BackendDispatcher::create_for_test(data_dir.path()).await;
 
-    let res = dispatcher.dispatch(BackendCommand::GetSystemTelemetry).await;
+    let res = dispatcher
+        .dispatch(BackendCommand::GetSystemTelemetry)
+        .await;
     assert!(res.is_ok());
     match res.unwrap() {
         BackendResult::SystemTelemetry {
@@ -283,7 +285,10 @@ async fn test_backend_dispatcher_settings_10_sections_roundtrip() {
     let data_dir = tempfile::tempdir().expect("tempdir");
     let dispatcher = BackendDispatcher::create_for_test(data_dir.path()).await;
 
-    let load_res = dispatcher.dispatch(BackendCommand::LoadSettings).await.unwrap();
+    let load_res = dispatcher
+        .dispatch(BackendCommand::LoadSettings)
+        .await
+        .unwrap();
     let initial_form = match load_res {
         BackendResult::SettingsLoaded(f) => f,
         other => panic!("Unexpected result: {:?}", other),
@@ -357,10 +362,16 @@ async fn test_backend_dispatcher_settings_10_sections_roundtrip() {
     form.gpu_acceleration = true;
     form.model_unload_timeout_minutes = 20;
 
-    let save_res = dispatcher.dispatch(BackendCommand::SaveSettings(form.clone())).await;
+    let save_res = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form.clone()))
+        .await;
     assert!(save_res.is_ok(), "SaveSettings failed: {:?}", save_res);
 
-    let reloaded = match dispatcher.dispatch(BackendCommand::LoadSettings).await.unwrap() {
+    let reloaded = match dispatcher
+        .dispatch(BackendCommand::LoadSettings)
+        .await
+        .unwrap()
+    {
         BackendResult::SettingsLoaded(f) => f,
         other => panic!("Unexpected result: {:?}", other),
     };
@@ -384,30 +395,50 @@ async fn test_backend_dispatcher_settings_validation_limits() {
     // 1. Exceeding 10 wake words must fail validation
     let mut form = SettingsFormState::default();
     form.wake_words = (0..11).map(|i| format!("Hotword {i}")).collect();
-    let err = dispatcher.dispatch(BackendCommand::SaveSettings(form)).await;
+    let err = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form))
+        .await;
     assert!(err.is_err());
-    assert!(err.unwrap_err().to_string().contains("Wake words count exceeds"));
+    assert!(err
+        .unwrap_err()
+        .to_string()
+        .contains("Wake words count exceeds"));
 
     // 2. Companion size out of bounds (< 0.2 or > 3.0) must fail
     let mut form2 = SettingsFormState::default();
     form2.companion_size = 5.0;
-    let err2 = dispatcher.dispatch(BackendCommand::SaveSettings(form2)).await;
+    let err2 = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form2))
+        .await;
     assert!(err2.is_err());
-    assert!(err2.unwrap_err().to_string().contains("Companion scale must be between"));
+    assert!(err2
+        .unwrap_err()
+        .to_string()
+        .contains("Companion scale must be between"));
 
     // 3. Speech speed out of bounds (< 0.25 or > 3.0) must fail
     let mut form3 = SettingsFormState::default();
     form3.speech_speed = 0.1;
-    let err3 = dispatcher.dispatch(BackendCommand::SaveSettings(form3)).await;
+    let err3 = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form3))
+        .await;
     assert!(err3.is_err());
-    assert!(err3.unwrap_err().to_string().contains("Speech speed must be between"));
+    assert!(err3
+        .unwrap_err()
+        .to_string()
+        .contains("Speech speed must be between"));
 
     // 4. Invalid email format must fail
     let mut form4 = SettingsFormState::default();
     form4.user_email = "invalid_email_without_at".to_string();
-    let err4 = dispatcher.dispatch(BackendCommand::SaveSettings(form4)).await;
+    let err4 = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form4))
+        .await;
     assert!(err4.is_err());
-    assert!(err4.unwrap_err().to_string().contains("Invalid operator email address"));
+    assert!(err4
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid operator email address"));
 }
 
 #[tokio::test]
@@ -419,7 +450,9 @@ async fn test_backend_dispatcher_settings_strict_routing_zero_silent_fallback() 
     form.primary_llm = "ollama".to_string();
     form.enable_fallback = false;
 
-    let res = dispatcher.dispatch(BackendCommand::SaveSettings(form)).await;
+    let res = dispatcher
+        .dispatch(BackendCommand::SaveSettings(form))
+        .await;
     assert!(res.is_ok());
 
     // When enable_fallback is false, router mode is ForceProvider("ollama")
@@ -450,7 +483,9 @@ async fn test_backend_dispatcher_purge_stored_memories() {
     let data_dir = tempfile::tempdir().expect("tempdir");
     let dispatcher = BackendDispatcher::create_for_test(data_dir.path()).await;
 
-    let res = dispatcher.dispatch(BackendCommand::PurgeStoredMemories).await;
+    let res = dispatcher
+        .dispatch(BackendCommand::PurgeStoredMemories)
+        .await;
     assert!(res.is_ok());
     match res.unwrap() {
         BackendResult::MemoriesPurged { .. } => {}

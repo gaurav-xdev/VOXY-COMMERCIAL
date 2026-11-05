@@ -69,7 +69,8 @@ mod tests {
         let skills = enclave.list_skills(&token).expect("List skills");
         assert!(!skills.is_empty(), "Should contain installed skills");
         assert!(
-            skills.iter().any(|s| s.contains("ffmpeg")) || skills.iter().any(|s| s.contains("remotion")),
+            skills.iter().any(|s| s.contains("ffmpeg"))
+                || skills.iter().any(|s| s.contains("remotion")),
             "Should contain core editing skills"
         );
     }

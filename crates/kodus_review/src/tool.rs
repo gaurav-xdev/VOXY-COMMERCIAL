@@ -4,9 +4,7 @@ use async_trait::async_trait;
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
-use voxy_tool_calling::{
-    RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult,
-};
+use voxy_tool_calling::{RiskTier, Tool, ToolCategory, ToolContext, ToolMetadata, ToolResult};
 
 /// Internal OSMOO tool for executing Kodus code reviews during autonomous workflows.
 pub struct KodusInternalReviewTool {
@@ -55,14 +53,23 @@ impl Tool for KodusInternalReviewTool {
         &self.metadata
     }
 
-    async fn execute(&self, params: serde_json::Value, _ctx: &ToolContext) -> voxy_tool_calling::Result<ToolResult> {
-        let caller = params["caller_identity"].as_str().unwrap_or("untrusted_user");
+    async fn execute(
+        &self,
+        params: serde_json::Value,
+        _ctx: &ToolContext,
+    ) -> voxy_tool_calling::Result<ToolResult> {
+        let caller = params["caller_identity"]
+            .as_str()
+            .unwrap_or("untrusted_user");
         let token = params["internal_token"].as_str().unwrap_or("");
 
         // 1. Strict internal permission boundary
         if let Err(e) = self.engine.security().verify_caller(caller, token) {
-            return Ok(ToolResult::failure(format!("ACCESS DENIED: {e}"))
-                .with_observation("Direct user attempt to invoke internal Kodus reviewer was blocked"));
+            return Ok(
+                ToolResult::failure(format!("ACCESS DENIED: {e}")).with_observation(
+                    "Direct user attempt to invoke internal Kodus reviewer was blocked",
+                ),
+            );
         }
 
         // 2. Parse scope

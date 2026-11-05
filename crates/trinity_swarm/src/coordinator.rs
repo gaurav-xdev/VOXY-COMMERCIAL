@@ -153,9 +153,17 @@ impl SwarmCoordinator {
     }
 
     /// Execute a discrete swarm task with Trinity A2A notifications and SwarmClaw handoffs.
-    pub async fn execute_task(&self, task: &SwarmTask, conversation_id: &str) -> Result<TaskResult> {
+    pub async fn execute_task(
+        &self,
+        task: &SwarmTask,
+        conversation_id: &str,
+    ) -> Result<TaskResult> {
         let start = Instant::now();
-        let agent_id = AgentId(format!("{}-{}", task.assigned_role.display_name(), Uuid::new_v4()));
+        let agent_id = AgentId(format!(
+            "{}-{}",
+            task.assigned_role.display_name(),
+            Uuid::new_v4()
+        ));
 
         // Emit Trinity A2A TaskAccepted
         self.message_bus.publish(
@@ -170,7 +178,10 @@ impl SwarmCoordinator {
         );
 
         // Retrieve relevant context from blackboard
-        let shared_context = self.blackboard.get_context("supervisor_plan").unwrap_or_default();
+        let shared_context = self
+            .blackboard
+            .get_context("supervisor_plan")
+            .unwrap_or_default();
 
         let prompt = format!(
             "Execute Task ID: {}\nTitle: {}\nDescription: {}\nCanary Criteria: {:?}",
@@ -209,7 +220,10 @@ impl SwarmCoordinator {
                 task_id: task.id.clone(),
                 summary: format!("Completed {} for task {}", task.title, task.id),
                 artifact_ids: vec![artifact_id.clone()],
-                instructions: format!("Proceed with next phase based on output for task {}", task.id),
+                instructions: format!(
+                    "Proceed with next phase based on output for task {}",
+                    task.id
+                ),
                 created_at: Utc::now(),
             });
         }
@@ -279,11 +293,10 @@ impl SwarmCoordinator {
             }
 
             for task in ready_tasks {
-                let _permit = semaphore
-                    .clone()
-                    .acquire_owned()
-                    .await
-                    .map_err(|_| SwarmError::Cancelled("Concurrency semaphore closed".into()))?;
+                let _permit =
+                    semaphore.clone().acquire_owned().await.map_err(|_| {
+                        SwarmError::Cancelled("Concurrency semaphore closed".into())
+                    })?;
 
                 // Mark running
                 graph.update_task_status(&task.id, TaskStatus::Running)?;

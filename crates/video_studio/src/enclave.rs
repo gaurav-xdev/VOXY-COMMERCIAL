@@ -57,7 +57,8 @@ impl VideoStudioEnclave {
 
     /// Initialize and secure the workspace directory.
     pub fn initialize(&self, token: &str) -> Result<()> {
-        self.controller.verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
+        self.controller
+            .verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
         let ws = self.workspace_path();
         self.controller.secure_workspace_permissions(&ws)?;
         Ok(())
@@ -65,7 +66,8 @@ impl VideoStudioEnclave {
 
     /// Enumerate all installed production pipelines (YAML).
     pub fn list_pipelines(&self, token: &str) -> Result<Vec<String>> {
-        self.controller.verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
+        self.controller
+            .verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
         let p_path = self.pipelines_path();
         if !p_path.exists() {
             return Ok(Vec::new());
@@ -87,7 +89,8 @@ impl VideoStudioEnclave {
 
     /// Enumerate installed skills across core, creative, and pipelines.
     pub fn list_skills(&self, token: &str) -> Result<Vec<String>> {
-        self.controller.verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
+        self.controller
+            .verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
         let s_path = self.skills_path();
         if !s_path.exists() {
             return Ok(Vec::new());
@@ -101,7 +104,8 @@ impl VideoStudioEnclave {
 
     /// Enumerate installed tool modules.
     pub fn list_tools(&self, token: &str) -> Result<Vec<String>> {
-        self.controller.verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
+        self.controller
+            .verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
         let t_path = self.tools_path();
         if !t_path.exists() {
             return Ok(Vec::new());
@@ -123,7 +127,8 @@ impl VideoStudioEnclave {
 
     /// Load the raw YAML playbook for a pipeline.
     pub fn get_pipeline_yaml(&self, pipeline_name: &str, token: &str) -> Result<String> {
-        self.controller.verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
+        self.controller
+            .verify_access(OSMOO_OPERATOR_IDENTITY, token)?;
         let path = self.pipelines_path().join(format!("{pipeline_name}.yaml"));
         if !path.exists() {
             return Err(StudioError::PipelineError(format!(

@@ -159,13 +159,7 @@ impl IndependentCodeReviewer {
                 current_line += 1;
 
                 if let Some(lang) = current_lang {
-                    self.analyze_line(
-                        lang,
-                        code_line,
-                        &current_file,
-                        current_line,
-                        &mut findings,
-                    );
+                    self.analyze_line(lang, code_line, &current_file, current_line, &mut findings);
                 }
             } else if !line.starts_with('-') {
                 current_line += 1;
@@ -182,7 +176,10 @@ impl IndependentCodeReviewer {
         lang_vec.sort_by_key(|l| l.as_str());
 
         let summary = if passed_cleanly {
-            format!("Independent review passed with 0 findings across {} files.", files_analyzed)
+            format!(
+                "Independent review passed with 0 findings across {} files.",
+                files_analyzed
+            )
         } else {
             format!(
                 "Independent review identified {} findings ({} blocking) across {} files.",
@@ -226,8 +223,13 @@ impl IndependentCodeReviewer {
         }
 
         // 1. Cross-language SQL Injection Detection
-        if (trimmed.contains("execute(") || trimmed.contains("query(") || trimmed.contains("raw_query("))
-            && (trimmed.contains("format!") || trimmed.contains("f\"") || trimmed.contains("$\"") || trimmed.contains(" + "))
+        if (trimmed.contains("execute(")
+            || trimmed.contains("query(")
+            || trimmed.contains("raw_query("))
+            && (trimmed.contains("format!")
+                || trimmed.contains("f\"")
+                || trimmed.contains("$\"")
+                || trimmed.contains(" + "))
         {
             findings.push(CodeReviewFinding {
                 rule_id: "SEC-SQLI-001".into(),
@@ -245,8 +247,16 @@ impl IndependentCodeReviewer {
 
         // 1b. Cross-language Hardcoded Secret Detection
         let lower = trimmed.to_lowercase();
-        if (lower.contains("sk-ant-") || lower.contains("ghp_") || lower.contains("xoxb-") || lower.contains("aws_secret_access_key") || lower.contains("api_key = \"") || lower.contains("password = \"") || lower.contains("token = \""))
-            && !lower.contains("env::var") && !lower.contains("os.environ") && !lower.contains("process.env")
+        if (lower.contains("sk-ant-")
+            || lower.contains("ghp_")
+            || lower.contains("xoxb-")
+            || lower.contains("aws_secret_access_key")
+            || lower.contains("api_key = \"")
+            || lower.contains("password = \"")
+            || lower.contains("token = \""))
+            && !lower.contains("env::var")
+            && !lower.contains("os.environ")
+            && !lower.contains("process.env")
         {
             findings.push(CodeReviewFinding {
                 rule_id: "SEC-SECRET-001".into(),
@@ -299,7 +309,9 @@ impl IndependentCodeReviewer {
 
             SupportedLanguage::TypeScript | SupportedLanguage::JavaScript => {
                 // TypeScript 'any' escape hatch
-                if (trimmed.contains(": any") || trimmed.contains("as any")) && !file.contains("test") {
+                if (trimmed.contains(": any") || trimmed.contains("as any"))
+                    && !file.contains("test")
+                {
                     findings.push(CodeReviewFinding {
                         rule_id: "TS-TYPE-001".into(),
                         severity: FindingSeverity::Medium,
@@ -324,8 +336,11 @@ impl IndependentCodeReviewer {
                         line_number: Some(line_num),
                         title: "Dynamic code execution via eval() or Function constructor".into(),
                         evidence: trimmed.to_string(),
-                        impact: "Arbitrary code execution if untrusted user strings reach eval.".into(),
-                        remediation: "Parse data with JSON.parse() or a secure parser; eliminate eval.".into(),
+                        impact: "Arbitrary code execution if untrusted user strings reach eval."
+                            .into(),
+                        remediation:
+                            "Parse data with JSON.parse() or a secure parser; eliminate eval."
+                                .into(),
                     });
                 }
             }
@@ -365,7 +380,10 @@ impl IndependentCodeReviewer {
 
             SupportedLanguage::C | SupportedLanguage::Cpp => {
                 // Dangerous C string functions
-                if trimmed.contains("strcpy(") || trimmed.contains("sprintf(") || trimmed.contains("gets(") {
+                if trimmed.contains("strcpy(")
+                    || trimmed.contains("sprintf(")
+                    || trimmed.contains("gets(")
+                {
                     findings.push(CodeReviewFinding {
                         rule_id: "C-SEC-001".into(),
                         severity: FindingSeverity::Critical,
@@ -434,7 +452,9 @@ impl IndependentCodeReviewer {
 
             SupportedLanguage::Go => {
                 // Unhandled error in Go: _ = fn()
-                if trimmed.starts_with("_ = ") && (trimmed.contains("(") || trimmed.contains("Write")) {
+                if trimmed.starts_with("_ = ")
+                    && (trimmed.contains("(") || trimmed.contains("Write"))
+                {
                     findings.push(CodeReviewFinding {
                         rule_id: "GO-ERR-001".into(),
                         severity: FindingSeverity::Medium,
@@ -508,7 +528,10 @@ diff --git a/src/lib.rs b/src/lib.rs
 "#;
         let report = reviewer.review_diff(diff);
         assert_eq!(report.findings.len(), 2);
-        assert!(report.findings.iter().any(|f| f.rule_id == "RUST-UNSAFE-001"));
+        assert!(report
+            .findings
+            .iter()
+            .any(|f| f.rule_id == "RUST-UNSAFE-001"));
         assert!(report.findings.iter().any(|f| f.rule_id == "RUST-ERR-001"));
     }
 

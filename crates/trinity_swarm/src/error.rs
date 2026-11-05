@@ -20,16 +20,10 @@ pub enum SwarmError {
     CyclicDependency(String),
 
     #[error("Task execution failed for '{task_id}': {reason}")]
-    TaskExecutionFailed {
-        task_id: String,
-        reason: String,
-    },
+    TaskExecutionFailed { task_id: String, reason: String },
 
     #[error("Canary check failed for task '{task_id}': {details}")]
-    CanaryFailed {
-        task_id: String,
-        details: String,
-    },
+    CanaryFailed { task_id: String, details: String },
 
     #[error("Task '{0}' timed out")]
     Timeout(String),

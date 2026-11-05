@@ -54,12 +54,22 @@ pub fn build_kodus_user_prompt(
     surrounding_context: Option<&str>,
 ) -> String {
     let trigger_desc = match trigger {
-        ReviewTrigger::SubstantialCodeChange => "Trigger: Substantial code change detected across workspace.",
-        ReviewTrigger::PreTaskCompletion => "Trigger: Pre-task completion quality and security gate.",
+        ReviewTrigger::SubstantialCodeChange => {
+            "Trigger: Substantial code change detected across workspace."
+        }
+        ReviewTrigger::PreTaskCompletion => {
+            "Trigger: Pre-task completion quality and security gate."
+        }
         ReviewTrigger::PrePullRequestMerge => "Trigger: Pre-PR merge verification.",
-        ReviewTrigger::SecuritySensitiveChange => "Trigger: Security-sensitive boundary or credential modification.",
-        ReviewTrigger::TestFailureInvestigation => "Trigger: Test failure or suspected regression investigation.",
-        ReviewTrigger::ExplicitAgentRequest => "Trigger: Autonomous coding agent explicitly requested review.",
+        ReviewTrigger::SecuritySensitiveChange => {
+            "Trigger: Security-sensitive boundary or credential modification."
+        }
+        ReviewTrigger::TestFailureInvestigation => {
+            "Trigger: Test failure or suspected regression investigation."
+        }
+        ReviewTrigger::ExplicitAgentRequest => {
+            "Trigger: Autonomous coding agent explicitly requested review."
+        }
     };
 
     let mut prompt = format!(

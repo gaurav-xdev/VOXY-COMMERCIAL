@@ -233,7 +233,11 @@ for line in sys.stdin:
     .unwrap();
 
     let python_bin = std::env::var("PYTHON").unwrap_or_else(|_| {
-        if std::process::Command::new("python").arg("--version").output().is_ok() {
+        if std::process::Command::new("python")
+            .arg("--version")
+            .output()
+            .is_ok()
+        {
             "python".to_string()
         } else {
             "python3".to_string()

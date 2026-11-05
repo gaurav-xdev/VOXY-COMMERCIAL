@@ -73,7 +73,9 @@ impl SwarmSecurityBoundary {
 
     /// Validate that a requested file path stays strictly within the workspace directory.
     pub fn validate_workspace_path(&self, workspace_root: &Path, target: &Path) -> Result<PathBuf> {
-        let canonical_root = workspace_root.canonicalize().unwrap_or_else(|_| workspace_root.to_path_buf());
+        let canonical_root = workspace_root
+            .canonicalize()
+            .unwrap_or_else(|_| workspace_root.to_path_buf());
         let full_path = if target.is_absolute() {
             target.to_path_buf()
         } else {

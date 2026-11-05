@@ -448,7 +448,8 @@ fn main() {
     BRIDGE.set(bridge.clone()).ok();
 
     let icon_bytes = include_bytes!("app_icon_32.rgba");
-    let window_icon = dioxus::desktop::tao::window::Icon::from_rgba(icon_bytes.to_vec(), 32, 32).ok();
+    let window_icon =
+        dioxus::desktop::tao::window::Icon::from_rgba(icon_bytes.to_vec(), 32, 32).ok();
 
     let mut window_builder = dioxus::desktop::WindowBuilder::new()
         .with_title("OSMOO — Windows AI Operating Companion")

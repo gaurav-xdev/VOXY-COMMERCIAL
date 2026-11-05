@@ -167,7 +167,11 @@ impl ShoppingConnector {
             amount_usd: cart.total_usd,
             currency: "USD".to_string(),
             status: "sandbox_settled".to_string(),
-            payment_token: format!("{}...{}", &sandbox_token[..10], &sandbox_token[sandbox_token.len().saturating_sub(4)..]),
+            payment_token: format!(
+                "{}...{}",
+                &sandbox_token[..10],
+                &sandbox_token[sandbox_token.len().saturating_sub(4)..]
+            ),
             timestamp: Utc::now(),
             environment: "sandbox_test_only".to_string(),
         };

@@ -89,17 +89,16 @@ impl Tool for TravelSearchFlightsTool {
         let destination = args
             .get("destination")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| ToolError::InvalidParams("Missing 'destination' parameter".to_string()))?;
+            .ok_or_else(|| {
+                ToolError::InvalidParams("Missing 'destination' parameter".to_string())
+            })?;
 
         let date_str = args
             .get("date")
             .and_then(|v| v.as_str())
             .ok_or_else(|| ToolError::InvalidParams("Missing 'date' parameter".to_string()))?;
 
-        let passengers = args
-            .get("passengers")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(1) as u32;
+        let passengers = args.get("passengers").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
 
         let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d").map_err(|e| {
             ToolError::InvalidParams(format!("Invalid date format (must be YYYY-MM-DD): {e}"))
@@ -108,8 +107,17 @@ impl Tool for TravelSearchFlightsTool {
         let connector = get_travel_connector();
         let scopes = ScopeSet::full_access();
         let flights = connector
-            .search_flights(origin, destination, date, passengers, &scopes, Some(ctx.session_id.as_str()))
-            .map_err(|e| ToolError::ExecutionFailed(format!("travel_search_flights failed: {e}")))?;
+            .search_flights(
+                origin,
+                destination,
+                date,
+                passengers,
+                &scopes,
+                Some(ctx.session_id.as_str()),
+            )
+            .map_err(|e| {
+                ToolError::ExecutionFailed(format!("travel_search_flights failed: {e}"))
+            })?;
 
         Ok(ToolResult::success(json!({
             "origin": origin,
@@ -182,13 +190,21 @@ impl Tool for TravelSearchHotelsTool {
         })?;
 
         let check_out = NaiveDate::parse_from_str(check_out_str, "%Y-%m-%d").map_err(|e| {
-            ToolError::InvalidParams(format!("Invalid check_out format (must be YYYY-MM-DD): {e}"))
+            ToolError::InvalidParams(format!(
+                "Invalid check_out format (must be YYYY-MM-DD): {e}"
+            ))
         })?;
 
         let connector = get_travel_connector();
         let scopes = ScopeSet::full_access();
         let hotels = connector
-            .search_hotels(city, check_in, check_out, &scopes, Some(ctx.session_id.as_str()))
+            .search_hotels(
+                city,
+                check_in,
+                check_out,
+                &scopes,
+                Some(ctx.session_id.as_str()),
+            )
             .map_err(|e| ToolError::ExecutionFailed(format!("travel_search_hotels failed: {e}")))?;
 
         Ok(ToolResult::success(json!({
@@ -254,7 +270,9 @@ impl Tool for ShoppingDiscoverProductsTool {
         let scopes = ScopeSet::full_access();
         let mut products = connector
             .discover_products(query, &scopes, Some(ctx.session_id.as_str()))
-            .map_err(|e| ToolError::ExecutionFailed(format!("shopping_discover_products failed: {e}")))?;
+            .map_err(|e| {
+                ToolError::ExecutionFailed(format!("shopping_discover_products failed: {e}"))
+            })?;
 
         products.truncate(max_results);
 
@@ -317,23 +335,26 @@ impl Tool for PaymentExecuteSandboxTestTool {
             .ok_or_else(|| ToolError::InvalidParams("Missing 'amount' parameter".to_string()))?;
 
         let connector = get_shopping_connector();
-        let cart = connector.prepare_cart(vec![(
-            voxy_office::ProductItem {
-                id: uuid::Uuid::new_v4().to_string(),
-                title: "Sandbox Test Order".to_string(),
-                merchant: "OSMOO Sandbox Shop".to_string(),
-                price_usd: amount,
-                rating: 5.0,
-                in_stock: true,
-                direct_product_url: "https://sandbox.checkout.local".to_string(),
-            },
-            1,
-        )])
-        .map_err(|e| ToolError::ExecutionFailed(format!("prepare_cart failed: {e}")))?;
+        let cart = connector
+            .prepare_cart(vec![(
+                voxy_office::ProductItem {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    title: "Sandbox Test Order".to_string(),
+                    merchant: "OSMOO Sandbox Shop".to_string(),
+                    price_usd: amount,
+                    rating: 5.0,
+                    in_stock: true,
+                    direct_product_url: "https://sandbox.checkout.local".to_string(),
+                },
+                1,
+            )])
+            .map_err(|e| ToolError::ExecutionFailed(format!("prepare_cart failed: {e}")))?;
 
         let receipt = connector
             .execute_sandbox_test_payment(&cart, token, Some(ctx.session_id.as_str()))
-            .map_err(|e| ToolError::ExecutionFailed(format!("payment_execute_sandbox_test failed: {e}")))?;
+            .map_err(|e| {
+                ToolError::ExecutionFailed(format!("payment_execute_sandbox_test failed: {e}"))
+            })?;
 
         Ok(ToolResult::success(json!({
             "status": "success",

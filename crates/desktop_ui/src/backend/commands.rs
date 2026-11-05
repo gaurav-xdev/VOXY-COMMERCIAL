@@ -8,9 +8,14 @@ use serde::{Deserialize, Serialize};
 pub enum BackendCommand {
     LoadSettings,
     SaveSettings(SettingsFormState),
-    SendPrompt { text: String },
+    SendPrompt {
+        text: String,
+    },
     EmergencyStop,
-    GetChatHistory { limit: usize, offset: usize },
+    GetChatHistory {
+        limit: usize,
+        offset: usize,
+    },
     GetSystemTelemetry,
     CompleteOnboarding(OnboardingConfig),
     TestProviderConnection {

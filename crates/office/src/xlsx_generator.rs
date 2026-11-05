@@ -14,7 +14,10 @@ use zip::ZipWriter;
 pub enum CellValue {
     String(String),
     Number(f64),
-    Formula { expr: String, cached_val: Option<f64> },
+    Formula {
+        expr: String,
+        cached_val: Option<f64>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +46,13 @@ impl XlsxSheet {
         self.cells.insert((row, col), CellValue::Number(val));
     }
 
-    pub fn set_formula(&mut self, row: u32, col: u32, expr: impl Into<String>, cached: Option<f64>) {
+    pub fn set_formula(
+        &mut self,
+        row: u32,
+        col: u32,
+        expr: impl Into<String>,
+        cached: Option<f64>,
+    ) {
         self.cells.insert(
             (row, col),
             CellValue::Formula {
@@ -136,7 +145,9 @@ impl XlsxWorkbook {
 
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         if self.sheets.is_empty() {
-            return Err(OfficeError::InvalidData("Workbook must contain at least one sheet".into()));
+            return Err(OfficeError::InvalidData(
+                "Workbook must contain at least one sheet".into(),
+            ));
         }
 
         // 1. Gather all shared strings
@@ -156,8 +167,8 @@ impl XlsxWorkbook {
         }
 
         let mut buffer = Cursor::new(Vec::new());
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         {
             let mut zip = ZipWriter::new(&mut buffer);

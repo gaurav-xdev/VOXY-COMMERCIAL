@@ -6,9 +6,8 @@ use voxy_provider_core::{
 };
 use voxy_tool_calling::{Tool, ToolContext};
 use voxy_trinity_swarm::{
-    AgentRole, OsmooSwarmOrchestratorTool, OsmooSwarmStatusTool,
-    SwarmCollaborationWorkflow, SwarmCoordinator, SwarmProviderBridge,
-    SwarmSecurityBoundary, OSMOO_OPERATOR_IDENTITY,
+    AgentRole, OsmooSwarmOrchestratorTool, OsmooSwarmStatusTool, SwarmCollaborationWorkflow,
+    SwarmCoordinator, SwarmProviderBridge, SwarmSecurityBoundary, OSMOO_OPERATOR_IDENTITY,
 };
 
 struct DynamicMockLlm;
@@ -21,9 +20,15 @@ impl LlmProvider for DynamicMockLlm {
         } else if prompt.contains("Architect") {
             Ok("Architect: Defined schema for SecureChannel and TokenVerifier.".into())
         } else if prompt.contains("Specialist Worker") {
-            Ok("Specialist Worker: Implemented HMAC-SHA256 constant-time comparison in Rust.".into())
+            Ok(
+                "Specialist Worker: Implemented HMAC-SHA256 constant-time comparison in Rust."
+                    .into(),
+            )
         } else if prompt.contains("Reviewer") {
-            Ok("Reviewer: Kodus AI inspection passed with 0 blocking defects. Invariant held.".into())
+            Ok(
+                "Reviewer: Kodus AI inspection passed with 0 blocking defects. Invariant held."
+                    .into(),
+            )
         } else if prompt.contains("QA and Canary Tester") {
             Ok("QA: All unit and canary assertions verified successfully.".into())
         } else {
@@ -99,15 +104,25 @@ async fn test_end_to_end_trinity_swarm_mission_execution() {
     assert!(total_messages >= 9);
 
     // Verify SwarmClaw handoff envelopes were generated
-    let worker_handoffs = coordinator.blackboard().get_handoffs_for_role(AgentRole::SpecialistWorker);
+    let worker_handoffs = coordinator
+        .blackboard()
+        .get_handoffs_for_role(AgentRole::SpecialistWorker);
     assert_eq!(worker_handoffs.len(), 1);
-    assert!(worker_handoffs[0].summary.contains("Architectural & Contract"));
+    assert!(worker_handoffs[0]
+        .summary
+        .contains("Architectural & Contract"));
 
-    let reviewer_handoffs = coordinator.blackboard().get_handoffs_for_role(AgentRole::Reviewer);
+    let reviewer_handoffs = coordinator
+        .blackboard()
+        .get_handoffs_for_role(AgentRole::Reviewer);
     assert_eq!(reviewer_handoffs.len(), 1);
-    assert!(reviewer_handoffs[0].summary.contains("Specialist Code Implementation"));
+    assert!(reviewer_handoffs[0]
+        .summary
+        .contains("Specialist Code Implementation"));
 
-    let qa_handoffs = coordinator.blackboard().get_handoffs_for_role(AgentRole::QaTester);
+    let qa_handoffs = coordinator
+        .blackboard()
+        .get_handoffs_for_role(AgentRole::QaTester);
     assert_eq!(qa_handoffs.len(), 1);
     assert!(qa_handoffs[0].summary.contains("Kodus & Security Review"));
 }
@@ -118,7 +133,11 @@ async fn test_collaboration_workflow_bounded_loop() {
     let workflow = SwarmCollaborationWorkflow::new(coordinator.clone()).with_max_loops(2);
 
     let receipt = workflow
-        .run("Build hardened sandbox boundary", OSMOO_OPERATOR_IDENTITY, &token)
+        .run(
+            "Build hardened sandbox boundary",
+            OSMOO_OPERATOR_IDENTITY,
+            &token,
+        )
         .await
         .expect("Workflow run should succeed");
 

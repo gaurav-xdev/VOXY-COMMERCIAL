@@ -111,7 +111,8 @@ impl SecretScanner {
                     ""
                 };
 
-                let clean_val = val_part.trim_matches(|c| c == '"' || c == '\'' || c == ',' || c == ';');
+                let clean_val =
+                    val_part.trim_matches(|c| c == '"' || c == '\'' || c == ',' || c == ';');
                 if clean_val.len() >= 20
                     && !clean_val.contains("placeholder")
                     && !clean_val.contains("example")

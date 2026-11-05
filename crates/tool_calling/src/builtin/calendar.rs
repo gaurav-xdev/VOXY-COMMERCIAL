@@ -132,19 +132,19 @@ impl Tool for CalendarCreateEventTool {
                 &scopes,
                 Some(&ctx.session_id),
             )
-            .map_err(|e| ToolError::ExecutionFailed(format!("Failed to create calendar event: {e}")))?;
+            .map_err(|e| {
+                ToolError::ExecutionFailed(format!("Failed to create calendar event: {e}"))
+            })?;
 
-        Ok(ToolResult::success(
-            json!({
-                "id": event.id,
-                "title": event.title,
-                "start_time": event.start_time.to_rfc3339(),
-                "end_time": event.end_time.to_rfc3339(),
-                "location": event.location,
-                "recurrence": event.recurrence.as_str(),
-                "status": event.status,
-            })
-        )
+        Ok(ToolResult::success(json!({
+            "id": event.id,
+            "title": event.title,
+            "start_time": event.start_time.to_rfc3339(),
+            "end_time": event.end_time.to_rfc3339(),
+            "location": event.location,
+            "recurrence": event.recurrence.as_str(),
+            "status": event.status,
+        }))
         .with_observation(format!(
             "Scheduled '{}' from {} to {} (survives restarts)",
             event.title,
@@ -232,10 +232,11 @@ impl Tool for CalendarListEventsTool {
             })
             .collect();
 
-        Ok(ToolResult::success(
-            json!({ "events": ev_values, "count": count })
+        Ok(
+            ToolResult::success(json!({ "events": ev_values, "count": count })).with_observation(
+                format!("Found {} calendar events in the next {} days", count, days),
+            ),
         )
-        .with_observation(format!("Found {} calendar events in the next {} days", count, days)))
     }
 }
 
@@ -290,13 +291,13 @@ impl Tool for CalendarDeleteEventTool {
             .delete_event(event_id, &scopes, Some(&ctx.session_id))
             .map_err(|e| ToolError::ExecutionFailed(format!("Delete error: {e}")))?;
 
-        Ok(ToolResult::success(
-            json!({ "event_id": event_id, "deleted": deleted })
+        Ok(
+            ToolResult::success(json!({ "event_id": event_id, "deleted": deleted }))
+                .with_observation(if deleted {
+                    format!("Calendar event '{}' successfully deleted", event_id)
+                } else {
+                    format!("Calendar event '{}' was not found", event_id)
+                }),
         )
-        .with_observation(if deleted {
-            format!("Calendar event '{}' successfully deleted", event_id)
-        } else {
-            format!("Calendar event '{}' was not found", event_id)
-        }))
     }
 }

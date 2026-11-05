@@ -120,7 +120,8 @@ impl reqwest::dns::Resolve for SsrfSafeDnsResolver {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::PermissionDenied,
                     format!("SSRF defense: host '{}' is in a restricted namespace", host),
-                )) as Box<dyn std::error::Error + Send + Sync>);
+                ))
+                    as Box<dyn std::error::Error + Send + Sync>);
             }
 
             // 2. Direct IP literal check
@@ -129,7 +130,8 @@ impl reqwest::dns::Resolve for SsrfSafeDnsResolver {
                     return Err(Box::new(std::io::Error::new(
                         std::io::ErrorKind::PermissionDenied,
                         format!("SSRF defense: destination IP '{}' is restricted", ip),
-                    )) as Box<dyn std::error::Error + Send + Sync>);
+                    ))
+                        as Box<dyn std::error::Error + Send + Sync>);
                 }
                 let addrs: Box<dyn Iterator<Item = std::net::SocketAddr> + Send> =
                     Box::new(std::iter::once(std::net::SocketAddr::new(ip, 0)));
@@ -175,7 +177,8 @@ impl reqwest::dns::Resolve for SsrfSafeDnsResolver {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
                     format!("Host '{host}' did not resolve to any addresses"),
-                )) as Box<dyn std::error::Error + Send + Sync>);
+                ))
+                    as Box<dyn std::error::Error + Send + Sync>);
             }
 
             let addrs: Box<dyn Iterator<Item = std::net::SocketAddr> + Send> =
@@ -276,7 +279,9 @@ impl BrowserRuntime {
             }
             let target = attempt.url().as_str();
             if let Err(e) = voxy_security::validate_destination_url_str(target) {
-                return attempt.error(format!("SSRF defense blocked redirect to restricted destination: {e}"));
+                return attempt.error(format!(
+                    "SSRF defense blocked redirect to restricted destination: {e}"
+                ));
             }
             attempt.follow()
         });

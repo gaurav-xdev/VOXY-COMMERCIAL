@@ -35,7 +35,10 @@ impl BackendDispatcher {
     pub fn new(bridge: AppBridge) -> Self {
         let snapshot = bridge.settings.get();
         let primary_llm = snapshot.models.provider.clone();
-        let model_router = Self::create_default_model_router_with_keys(&primary_llm, Some(&snapshot.models.provider_keys));
+        let model_router = Self::create_default_model_router_with_keys(
+            &primary_llm,
+            Some(&snapshot.models.provider_keys),
+        );
         let tool_registry = Arc::new(ToolRegistry::with_builtins());
 
         // Initialize OSMOO Sovereign Video Studio Enclave (accessible exclusively to OSMOO)
@@ -43,21 +46,45 @@ impl BackendDispatcher {
             .unwrap_or_else(|_| PathBuf::from("."))
             .join("crates/video_studio/enclave");
         let video_enclave = voxy_video_studio::VideoStudioEnclave::new(enclave_path);
-        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioPipelineTool::new(video_enclave.clone())));
-        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioInspectTool::new(video_enclave)));
+        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioPipelineTool::new(
+            video_enclave.clone(),
+        )));
+        tool_registry.register_sync(Arc::new(voxy_video_studio::VideoStudioInspectTool::new(
+            video_enclave,
+        )));
 
         // Initialize OSMOO Internal Kodus AI Code Review Engine (accessible exclusively to OSMOO)
         let kodus_security = voxy_kodus_review::KodusSecurityBoundary::new();
-        let kodus_bridge = voxy_kodus_review::KodusProviderBridge::new(model_router.clone(), kodus_security.clone());
-        let kodus_engine = Arc::new(voxy_kodus_review::KodusReviewEngine::new(".", kodus_bridge, kodus_security));
-        tool_registry.register_sync(Arc::new(voxy_kodus_review::KodusInternalReviewTool::new(kodus_engine)));
+        let kodus_bridge = voxy_kodus_review::KodusProviderBridge::new(
+            model_router.clone(),
+            kodus_security.clone(),
+        );
+        let kodus_engine = Arc::new(voxy_kodus_review::KodusReviewEngine::new(
+            ".",
+            kodus_bridge,
+            kodus_security,
+        ));
+        tool_registry.register_sync(Arc::new(voxy_kodus_review::KodusInternalReviewTool::new(
+            kodus_engine,
+        )));
 
         // Initialize OSMOO Trinity & SwarmClaw Multi-Agent Engine (accessible exclusively to OSMOO)
         let swarm_security = voxy_trinity_swarm::SwarmSecurityBoundary::new();
-        let swarm_bridge = voxy_trinity_swarm::SwarmProviderBridge::new(model_router.clone(), swarm_security.clone());
-        let swarm_coordinator = Arc::new(voxy_trinity_swarm::SwarmCoordinator::new(swarm_bridge, swarm_security, "."));
-        tool_registry.register_sync(Arc::new(voxy_trinity_swarm::OsmooSwarmOrchestratorTool::new(swarm_coordinator.clone())));
-        tool_registry.register_sync(Arc::new(voxy_trinity_swarm::OsmooSwarmStatusTool::new(swarm_coordinator)));
+        let swarm_bridge = voxy_trinity_swarm::SwarmProviderBridge::new(
+            model_router.clone(),
+            swarm_security.clone(),
+        );
+        let swarm_coordinator = Arc::new(voxy_trinity_swarm::SwarmCoordinator::new(
+            swarm_bridge,
+            swarm_security,
+            ".",
+        ));
+        tool_registry.register_sync(Arc::new(
+            voxy_trinity_swarm::OsmooSwarmOrchestratorTool::new(swarm_coordinator.clone()),
+        ));
+        tool_registry.register_sync(Arc::new(voxy_trinity_swarm::OsmooSwarmStatusTool::new(
+            swarm_coordinator,
+        )));
 
         let dispatcher = Self {
             bridge,
@@ -475,9 +502,15 @@ impl BackendDispatcher {
                 let email = if !snapshot.profile.user_email.trim().is_empty() {
                     snapshot.profile.user_email.as_str()
                 } else {
-                    session.as_ref().map(|s| s.email.as_str()).unwrap_or("operator@osmoo.in")
+                    session
+                        .as_ref()
+                        .map(|s| s.email.as_str())
+                        .unwrap_or("operator@osmoo.in")
                 };
-                let tier = session.as_ref().map(|s| s.active_tier.as_str()).unwrap_or("free");
+                let tier = session
+                    .as_ref()
+                    .map(|s| s.active_tier.as_str())
+                    .unwrap_or("free");
                 let form = SettingsFormState::from_snapshot(&snapshot, email, tier);
                 Ok(BackendResult::SettingsLoaded(form))
             }
@@ -564,12 +597,16 @@ impl BackendDispatcher {
                 current.voice.echo_cancellation = form.echo_cancellation;
                 current.voice.sample_rate = form.audio_sample_rate;
                 current.voice.wake_word_sensitivity = form.vad_sensitivity as f64;
-                current.voice.input_device = if form.input_device.trim().is_empty() || form.input_device.starts_with("Default") {
+                current.voice.input_device = if form.input_device.trim().is_empty()
+                    || form.input_device.starts_with("Default")
+                {
                     None
                 } else {
                     Some(form.input_device)
                 };
-                current.voice.output_device = if form.output_device.trim().is_empty() || form.output_device.starts_with("Default") {
+                current.voice.output_device = if form.output_device.trim().is_empty()
+                    || form.output_device.starts_with("Default")
+                {
                     None
                 } else {
                     Some(form.output_device)
@@ -620,7 +657,8 @@ impl BackendDispatcher {
                 current.performance.max_memory_mb = form.max_memory_mb;
                 current.performance.max_cpu_percent = form.max_cpu_percent;
                 current.performance.gpu_acceleration = form.gpu_acceleration;
-                current.performance.model_unload_timeout_minutes = form.model_unload_timeout_minutes;
+                current.performance.model_unload_timeout_minutes =
+                    form.model_unload_timeout_minutes;
 
                 self.register_cloud_providers(&current.models.provider_keys);
 
@@ -629,13 +667,28 @@ impl BackendDispatcher {
                 let router_mode = if !form.enable_fallback {
                     match form.primary_llm.to_lowercase().as_str() {
                         "local" | "ollama" => RoutingMode::ForceProvider("ollama".into()),
-                        "openai" if current.models.provider_keys.contains_key("openai") || std::env::var("OPENAI_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                        "openai"
+                            if current.models.provider_keys.contains_key("openai")
+                                || std::env::var("OPENAI_API_KEY")
+                                    .map(|v| !v.trim().is_empty())
+                                    .unwrap_or(false) =>
+                        {
                             RoutingMode::ForceProvider("openai".into())
                         }
-                        "anthropic" | "claude" if current.models.provider_keys.contains_key("anthropic") || std::env::var("ANTHROPIC_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                        "anthropic" | "claude"
+                            if current.models.provider_keys.contains_key("anthropic")
+                                || std::env::var("ANTHROPIC_API_KEY")
+                                    .map(|v| !v.trim().is_empty())
+                                    .unwrap_or(false) =>
+                        {
                             RoutingMode::ForceProvider("anthropic".into())
                         }
-                        "gemini" if current.models.provider_keys.contains_key("gemini") || std::env::var("GEMINI_API_KEY").map(|v| !v.trim().is_empty()).unwrap_or(false) => {
+                        "gemini"
+                            if current.models.provider_keys.contains_key("gemini")
+                                || std::env::var("GEMINI_API_KEY")
+                                    .map(|v| !v.trim().is_empty())
+                                    .unwrap_or(false) =>
+                        {
                             RoutingMode::ForceProvider("gemini".into())
                         }
                         _ => RoutingMode::Auto,
@@ -680,7 +733,9 @@ impl BackendDispatcher {
                     .map_err(BackendError::Storage)?;
 
                 // 2. Check for native tool execution intent first
-                let assistant_text = if let Some(tool_output) = self.try_execute_native_tool(trimmed).await? {
+                let assistant_text = if let Some(tool_output) =
+                    self.try_execute_native_tool(trimmed).await?
+                {
                     tool_output
                 } else {
                     // 3. AI Reasoning via ModelRouter with Memory Context
@@ -726,7 +781,8 @@ impl BackendDispatcher {
                                     if let Some(out_str) = cog_res.result.as_str() {
                                         out_str.to_string()
                                     } else if !cog_res.result.is_null()
-                                        && cog_res.result != serde_json::json!({"status": "processed"})
+                                        && cog_res.result
+                                            != serde_json::json!({"status": "processed"})
                                     {
                                         cog_res.result.to_string()
                                     } else {
@@ -972,7 +1028,9 @@ impl BackendDispatcher {
                 } else {
                     let snapshot = self.bridge.settings.get();
                     let effective_key = api_key
-                        .filter(|k| !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*'))
+                        .filter(|k| {
+                            !k.trim().is_empty() && !k.chars().all(|c| c == '•' || c == '*')
+                        })
                         .or_else(|| match lower.as_str() {
                             "openai" => std::env::var("OPENAI_API_KEY").ok(),
                             "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
@@ -1137,12 +1195,24 @@ impl BackendDispatcher {
                     snapshot.automation.global_tasks_paused,
                 );
 
-                Ok(BackendResult::DiagnosticsExported { sanitized_report: report })
+                Ok(BackendResult::DiagnosticsExported {
+                    sanitized_report: report,
+                })
             }
 
             BackendCommand::PurgeStoredMemories => {
-                let stats = self.bridge.memory.stats().await.map(|s| s.total_items).unwrap_or(0);
-                self.bridge.memory.clear().await.map_err(|e| BackendError::Storage(e.to_string()))?;
+                let stats = self
+                    .bridge
+                    .memory
+                    .stats()
+                    .await
+                    .map(|s| s.total_items)
+                    .unwrap_or(0);
+                self.bridge
+                    .memory
+                    .clear()
+                    .await
+                    .map_err(|e| BackendError::Storage(e.to_string()))?;
                 Ok(BackendResult::MemoriesPurged { count: stats })
             }
         }
@@ -1175,10 +1245,22 @@ impl BackendDispatcher {
                         • **Host Name**: {}\n\
                         • **Displays Attached**: {}\n\
                         • **Execution Time**: {}ms",
-                        res.data.get("os").and_then(|v| v.as_str()).unwrap_or("Windows"),
-                        res.data.get("version").and_then(|v| v.as_str()).unwrap_or("Unknown"),
-                        res.data.get("arch").and_then(|v| v.as_str()).unwrap_or("x86_64"),
-                        res.data.get("hostname").and_then(|v| v.as_str()).unwrap_or("localhost"),
+                        res.data
+                            .get("os")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Windows"),
+                        res.data
+                            .get("version")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Unknown"),
+                        res.data
+                            .get("arch")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("x86_64"),
+                        res.data
+                            .get("hostname")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("localhost"),
                         res.data
                             .get("displays")
                             .and_then(|v| v.as_array())
@@ -1243,8 +1325,10 @@ impl BackendDispatcher {
                     let mut out = String::from("⚙️ **Running Processes (Sample)**:\n");
                     if let Some(list) = procs {
                         for (i, proc) in list.iter().take(15).enumerate() {
-                            let name =
-                                proc.get("name").and_then(|v| v.as_str()).unwrap_or("unknown");
+                            let name = proc
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("unknown");
                             let pid = proc.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
                             let mem = proc
                                 .get("memory_bytes")
@@ -1269,10 +1353,7 @@ impl BackendDispatcher {
             }
         }
 
-        if lower == "screenshot"
-            || lower == "take screenshot"
-            || lower == "capture screen"
-        {
+        if lower == "screenshot" || lower == "take screenshot" || lower == "capture screen" {
             match self
                 .tool_registry
                 .execute("system_screenshot", serde_json::json!({}), &ctx)

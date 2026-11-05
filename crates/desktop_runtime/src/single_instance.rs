@@ -17,7 +17,7 @@ impl SingleInstanceGuard {
     /// or `None` if an instance is already running.
     pub fn acquire(name: &str) -> Option<Self> {
         use windows::core::HSTRING;
-        use windows::Win32::Foundation::{CloseHandle, ERROR_ALREADY_EXISTS, GetLastError};
+        use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS};
         use windows::Win32::System::Threading::CreateMutexW;
 
         // Scope to current Windows user session
@@ -71,7 +71,10 @@ mod tests {
         #[cfg(windows)]
         {
             let second = SingleInstanceGuard::acquire(lock_name);
-            assert!(second.is_none(), "Second acquisition of same mutex must return None (conflict blocked)");
+            assert!(
+                second.is_none(),
+                "Second acquisition of same mutex must return None (conflict blocked)"
+            );
         }
 
         drop(first);

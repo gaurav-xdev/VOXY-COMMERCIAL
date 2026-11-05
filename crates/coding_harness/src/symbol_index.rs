@@ -366,11 +366,7 @@ impl SymbolIndexer {
             idx -= 1;
             let l = lines[idx].trim();
             if l.starts_with("///") || l.starts_with("//!") || l.starts_with('#') {
-                doc_lines.push(
-                    l.trim_start_matches(['/', '!', '#'])
-                        .trim()
-                        .to_string(),
-                );
+                doc_lines.push(l.trim_start_matches(['/', '!', '#']).trim().to_string());
             } else {
                 break;
             }

@@ -242,7 +242,15 @@ impl Tool for EmailCreateDraftTool {
         let connector = get_mail_connector();
         let scopes = ScopeSet::full_access();
         let draft = connector
-            .create_draft(to, cc, subject, body, in_reply_to, &scopes, Some(ctx.session_id.as_str()))
+            .create_draft(
+                to,
+                cc,
+                subject,
+                body,
+                in_reply_to,
+                &scopes,
+                Some(ctx.session_id.as_str()),
+            )
             .map_err(|e| ToolError::ExecutionFailed(format!("email_create_draft failed: {e}")))?;
 
         Ok(ToolResult::success(json!({
@@ -303,7 +311,12 @@ impl Tool for EmailSendApprovedTool {
             .get("approval_token")
             .and_then(|v| v.as_str())
             .filter(|t| !t.trim().is_empty())
-            .ok_or_else(|| ToolError::InvalidParams("Missing or empty 'approval_token' parameter (mandatory user approval gate)".to_string()))?;
+            .ok_or_else(|| {
+                ToolError::InvalidParams(
+                    "Missing or empty 'approval_token' parameter (mandatory user approval gate)"
+                        .to_string(),
+                )
+            })?;
 
         if approval_token.trim().len() < 6 {
             return Err(ToolError::InvalidParams(
@@ -313,7 +326,8 @@ impl Tool for EmailSendApprovedTool {
 
         if !ctx.user_confirmed {
             return Err(ToolError::ExecutionFailed(
-                "Human approval required: user confirmation was not granted for email send".to_string(),
+                "Human approval required: user confirmation was not granted for email send"
+                    .to_string(),
             ));
         }
 
@@ -325,7 +339,12 @@ impl Tool for EmailSendApprovedTool {
 
         let scopes = ScopeSet::full_access();
         let sent_message = connector
-            .send_approved_email(draft_id, ctx.user_confirmed, &scopes, Some(ctx.session_id.as_str()))
+            .send_approved_email(
+                draft_id,
+                ctx.user_confirmed,
+                &scopes,
+                Some(ctx.session_id.as_str()),
+            )
             .map_err(|e| ToolError::ExecutionFailed(format!("email_send_approved failed: {e}")))?;
 
         Ok(ToolResult::success(json!({

@@ -1045,7 +1045,10 @@ mod tests {
         s.voice.wake_words = (1..=11).map(|i| format!("WakeWord{}", i)).collect();
         let res = mgr.validate(&s);
         assert!(res.is_err());
-        assert!(res.unwrap_err().to_string().contains("maximum of 10 wake words"));
+        assert!(res
+            .unwrap_err()
+            .to_string()
+            .contains("maximum of 10 wake words"));
     }
 
     #[test]

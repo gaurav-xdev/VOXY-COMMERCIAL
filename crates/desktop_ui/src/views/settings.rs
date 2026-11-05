@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::components::icons::{IconSearch, IconSettings, IconUser};
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SettingsTab {
@@ -50,16 +50,36 @@ impl SettingsTab {
 
     pub fn description(&self) -> &'static str {
         match self {
-            SettingsTab::General => "Identity, workspace attributes, window lifecycle, and client channels.",
-            SettingsTab::AiModels => "Model selection, strict routing invariants, and provider API credentials.",
-            SettingsTab::Voice => "Speech-to-text, neural synthesis, hotwords, and acoustic parameters.",
-            SettingsTab::Companion => "Avatar mesh selection, 2D/3D spatial scale, expressions, and viewport overlay.",
-            SettingsTab::Security => "Filesystem sandboxing, browser bounds, shell gates, and safety matrix.",
-            SettingsTab::Memory => "Semantic retrieval retention, privacy sessions, and operator persona notes.",
-            SettingsTab::Automation => "Background execution, concurrency gates, timeouts, and risk thresholds.",
-            SettingsTab::Integrations => "Status matrix of native OpenXML office suites and cloud service connectors.",
-            SettingsTab::Performance => "Hardware telemetry, host memory ceilings, and GPU offloading.",
-            SettingsTab::Diagnostics => "Operational audit logs, DPAPI sanitized diagnostic bundles, and build info.",
+            SettingsTab::General => {
+                "Identity, workspace attributes, window lifecycle, and client channels."
+            }
+            SettingsTab::AiModels => {
+                "Model selection, strict routing invariants, and provider API credentials."
+            }
+            SettingsTab::Voice => {
+                "Speech-to-text, neural synthesis, hotwords, and acoustic parameters."
+            }
+            SettingsTab::Companion => {
+                "Avatar mesh selection, 2D/3D spatial scale, expressions, and viewport overlay."
+            }
+            SettingsTab::Security => {
+                "Filesystem sandboxing, browser bounds, shell gates, and safety matrix."
+            }
+            SettingsTab::Memory => {
+                "Semantic retrieval retention, privacy sessions, and operator persona notes."
+            }
+            SettingsTab::Automation => {
+                "Background execution, concurrency gates, timeouts, and risk thresholds."
+            }
+            SettingsTab::Integrations => {
+                "Status matrix of native OpenXML office suites and cloud service connectors."
+            }
+            SettingsTab::Performance => {
+                "Hardware telemetry, host memory ceilings, and GPU offloading."
+            }
+            SettingsTab::Diagnostics => {
+                "Operational audit logs, DPAPI sanitized diagnostic bundles, and build info."
+            }
         }
     }
 }
@@ -251,8 +271,18 @@ impl SettingsFormState {
         active_tier: &str,
     ) -> Self {
         let mut keys = HashMap::new();
-        for prov in &["openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "openrouter"] {
-            if snapshot.models.provider_keys.contains_key(*prov) || std::env::var(format!("{}_API_KEY", prov.to_uppercase())).is_ok() {
+        for prov in &[
+            "openai",
+            "anthropic",
+            "gemini",
+            "groq",
+            "mistral",
+            "deepseek",
+            "openrouter",
+        ] {
+            if snapshot.models.provider_keys.contains_key(*prov)
+                || std::env::var(format!("{}_API_KEY", prov.to_uppercase())).is_ok()
+            {
                 keys.insert(prov.to_string(), "••••••••".to_string());
             } else {
                 keys.insert(prov.to_string(), String::new());
@@ -261,7 +291,11 @@ impl SettingsFormState {
 
         Self {
             user_name: snapshot.profile.user_name.clone(),
-            user_email: if user_email.is_empty() { snapshot.profile.user_email.clone() } else { user_email.to_string() },
+            user_email: if user_email.is_empty() {
+                snapshot.profile.user_email.clone()
+            } else {
+                user_email.to_string()
+            },
             organization: snapshot.profile.organization.clone(),
             role: snapshot.profile.role.clone(),
             language: snapshot.profile.language.clone(),
@@ -282,16 +316,36 @@ impl SettingsFormState {
             voice_enabled: snapshot.voice.enabled,
             wake_words: snapshot.voice.wake_words.clone(),
             vad_sensitivity: snapshot.voice.wake_word_sensitivity as f32,
-            stt_provider: snapshot.voice.stt_provider.clone().unwrap_or_else(|| "sherpa_onnx_whisper".to_string()),
-            tts_provider: snapshot.voice.tts_provider.clone().unwrap_or_else(|| "piper_en_libritts".to_string()),
-            voice_name: snapshot.voice.voice_name.clone().unwrap_or_else(|| "en-us-amber".to_string()),
+            stt_provider: snapshot
+                .voice
+                .stt_provider
+                .clone()
+                .unwrap_or_else(|| "sherpa_onnx_whisper".to_string()),
+            tts_provider: snapshot
+                .voice
+                .tts_provider
+                .clone()
+                .unwrap_or_else(|| "piper_en_libritts".to_string()),
+            voice_name: snapshot
+                .voice
+                .voice_name
+                .clone()
+                .unwrap_or_else(|| "en-us-amber".to_string()),
             speech_speed: snapshot.voice.speech_speed,
             speech_pitch: snapshot.voice.speech_pitch,
             interruption_barge_in: snapshot.voice.interruption_barge_in,
             noise_suppression: snapshot.voice.noise_suppression,
             echo_cancellation: snapshot.voice.echo_cancellation,
-            input_device: snapshot.voice.input_device.clone().unwrap_or_else(|| "Default System Microphone".to_string()),
-            output_device: snapshot.voice.output_device.clone().unwrap_or_else(|| "Default System Speakers".to_string()),
+            input_device: snapshot
+                .voice
+                .input_device
+                .clone()
+                .unwrap_or_else(|| "Default System Microphone".to_string()),
+            output_device: snapshot
+                .voice
+                .output_device
+                .clone()
+                .unwrap_or_else(|| "Default System Speakers".to_string()),
             audio_sample_rate: snapshot.voice.sample_rate,
 
             companion_character_id: snapshot.companion.character_id.clone(),

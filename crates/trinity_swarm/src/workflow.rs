@@ -38,9 +38,16 @@ impl SwarmCollaborationWorkflow {
 
         while iteration < self.max_loops {
             iteration += 1;
-            tracing::info!(iteration, goal, "Executing Trinity/SwarmClaw collaboration round");
+            tracing::info!(
+                iteration,
+                goal,
+                "Executing Trinity/SwarmClaw collaboration round"
+            );
 
-            let receipt = self.coordinator.execute_mission(goal, caller, token).await?;
+            let receipt = self
+                .coordinator
+                .execute_mission(goal, caller, token)
+                .await?;
             if receipt.success {
                 return Ok(receipt);
             }
@@ -49,11 +56,9 @@ impl SwarmCollaborationWorkflow {
         }
 
         // Return final receipt even if not all tasks completed
-        last_receipt.ok_or_else(|| {
-            crate::error::SwarmError::TaskExecutionFailed {
-                task_id: "mission".into(),
-                reason: "Swarm loop terminated without receipt".into(),
-            }
+        last_receipt.ok_or_else(|| crate::error::SwarmError::TaskExecutionFailed {
+            task_id: "mission".into(),
+            reason: "Swarm loop terminated without receipt".into(),
         })
     }
 

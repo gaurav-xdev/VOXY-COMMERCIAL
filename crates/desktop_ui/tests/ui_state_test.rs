@@ -196,10 +196,16 @@ mod tests {
 
         // Standard PNG base64 header signature is always iVBORw0KGgo
         assert!(OSMOO_CAT_DATA_URI.starts_with("data:image/png;base64,iVBORw0KGgo"));
-        assert!(OSMOO_CAT_DATA_URI.len() > 100_000, "Cat image asset must be full-fidelity PNG");
+        assert!(
+            OSMOO_CAT_DATA_URI.len() > 100_000,
+            "Cat image asset must be full-fidelity PNG"
+        );
 
         assert!(OSMOO_CAT_SHADOW_DATA_URI.starts_with("data:image/png;base64,iVBORw0KGgo"));
-        assert!(OSMOO_CAT_SHADOW_DATA_URI.len() > 1_000, "Contact shadow asset must be present");
+        assert!(
+            OSMOO_CAT_SHADOW_DATA_URI.len() > 1_000,
+            "Contact shadow asset must be present"
+        );
     }
 
     #[test]

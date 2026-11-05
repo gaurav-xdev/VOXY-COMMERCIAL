@@ -108,20 +108,62 @@ END
     // Add assets
     let asset_files = [
         ("assets/icons/osmoo.ico", "assets/icons/osmoo.ico"),
-        ("assets/icons/osmoo_app_icon.png", "assets/icons/osmoo_app_icon.png"),
-        ("assets/icons/osmoo_mark_black.png", "assets/icons/osmoo_mark_black.png"),
-        ("assets/icons/osmoo_mark_white.png", "assets/icons/osmoo_mark_white.png"),
-        ("crates/desktop_ui/src/assets/osmoo_cat.png", "assets/osmoo_cat.png"),
-        ("crates/desktop_ui/src/assets/osmoo_cat_cropped.png", "assets/osmoo_cat_cropped.png"),
-        ("crates/desktop_ui/src/assets/osmoo_cat_shadow.png", "assets/osmoo_cat_shadow.png"),
-        ("crates/desktop_ui/src/assets/osmoo_cat_transparent.png", "assets/osmoo_cat_transparent.png"),
-        ("crates/desktop_ui/src/assets/osmoo_cat_new_transparent.png", "assets/osmoo_cat_new_transparent.png"),
-        ("crates/desktop_ui/src/assets/rig_body.png", "assets/rig_body.png"),
-        ("crates/desktop_ui/src/assets/rig_head.png", "assets/rig_head.png"),
-        ("crates/desktop_ui/src/assets/rig_tail.png", "assets/rig_tail.png"),
-        ("crates/desktop_ui/src/assets/rig_sunglasses.png", "assets/rig_sunglasses.png"),
-        ("crates/desktop_ui/src/assets/rig_ear_left.png", "assets/rig_ear_left.png"),
-        ("crates/desktop_ui/src/assets/rig_ear_right.png", "assets/rig_ear_right.png"),
+        (
+            "assets/icons/osmoo_app_icon.png",
+            "assets/icons/osmoo_app_icon.png",
+        ),
+        (
+            "assets/icons/osmoo_mark_black.png",
+            "assets/icons/osmoo_mark_black.png",
+        ),
+        (
+            "assets/icons/osmoo_mark_white.png",
+            "assets/icons/osmoo_mark_white.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/osmoo_cat.png",
+            "assets/osmoo_cat.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/osmoo_cat_cropped.png",
+            "assets/osmoo_cat_cropped.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/osmoo_cat_shadow.png",
+            "assets/osmoo_cat_shadow.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/osmoo_cat_transparent.png",
+            "assets/osmoo_cat_transparent.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/osmoo_cat_new_transparent.png",
+            "assets/osmoo_cat_new_transparent.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_body.png",
+            "assets/rig_body.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_head.png",
+            "assets/rig_head.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_tail.png",
+            "assets/rig_tail.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_sunglasses.png",
+            "assets/rig_sunglasses.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_ear_left.png",
+            "assets/rig_ear_left.png",
+        ),
+        (
+            "crates/desktop_ui/src/assets/rig_ear_right.png",
+            "assets/rig_ear_right.png",
+        ),
         (".env.example", ".env.example"),
         ("LICENSE", "LICENSE"),
     ];
@@ -136,13 +178,9 @@ END
     zip.finish().expect("Failed to finalize payload.zip");
 }
 
-fn add_file_to_zip(
-    zip: &mut ZipWriter<File>,
-    src: &Path,
-    dest: &str,
-    options: SimpleFileOptions,
-) {
-    let mut file = File::open(src).unwrap_or_else(|e| panic!("Failed to open {}: {e}", src.display()));
+fn add_file_to_zip(zip: &mut ZipWriter<File>, src: &Path, dest: &str, options: SimpleFileOptions) {
+    let mut file =
+        File::open(src).unwrap_or_else(|e| panic!("Failed to open {}: {e}", src.display()));
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
     zip.start_file(dest, options).unwrap();
@@ -150,7 +188,8 @@ fn add_file_to_zip(
 }
 
 fn find_rc_exe() -> Option<PathBuf> {
-    let candidate = PathBuf::from(r"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe");
+    let candidate =
+        PathBuf::from(r"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe");
     if candidate.exists() {
         return Some(candidate);
     }

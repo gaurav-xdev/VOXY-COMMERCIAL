@@ -50,21 +50,32 @@ async fn test_autonomous_coding_task_with_skills_lifecycle() {
     assert!(active_ctx.active_capabilities.len() <= 4);
     assert!(!active_ctx.active_capabilities.is_empty());
 
-    let active_ids: Vec<_> = active_ctx.active_capabilities.iter().map(|c| c.id.as_str()).collect();
+    let active_ids: Vec<_> = active_ctx
+        .active_capabilities
+        .iter()
+        .map(|c| c.id.as_str())
+        .collect();
     println!("Active skills selected: {:?}", active_ids);
 
     // Concurrency/Rust/Debugging skills selected
     assert!(
-        active_ids.iter().any(|id| *id == "sota:sota-rust" || *id == "sota:sota-async-concurrency"),
+        active_ids
+            .iter()
+            .any(|id| *id == "sota:sota-rust" || *id == "sota:sota-async-concurrency"),
         "Must select SOTA Rust or Async Concurrency"
     );
     assert!(
-        active_ids.iter().any(|id| *id == "addy:debugging-and-error-recovery" || *id == "addy:test-driven-development"),
+        active_ids
+            .iter()
+            .any(|id| *id == "addy:debugging-and-error-recovery"
+                || *id == "addy:test-driven-development"),
         "Must select Addy Debugging or TDD"
     );
 
     // Irrelevant languages must NOT be activated
-    assert!(!active_ids.iter().any(|id| id.contains("python") || id.contains("php") || id.contains("ruby")));
+    assert!(!active_ids
+        .iter()
+        .any(|id| id.contains("python") || id.contains("php") || id.contains("ruby")));
 
     // =========================================================================
     // STEP 3: Multi-Agent Role Guidance Extraction
@@ -88,7 +99,10 @@ async fn test_autonomous_coding_task_with_skills_lifecycle() {
         .filter(|c| c.target_roles.contains(&"qa".to_string()))
         .collect();
 
-    assert!(!implementer_skills.is_empty(), "Implementer must receive role guidance");
+    assert!(
+        !implementer_skills.is_empty(),
+        "Implementer must receive role guidance"
+    );
     println!("Implementer guidance count: {}", implementer_skills.len());
     println!("QA guidance count: {}", qa_skills.len());
     println!("Architect guidance count: {}", architect_skills.len());
@@ -116,8 +130,14 @@ async fn test_autonomous_coding_task_with_skills_lifecycle() {
 
     // Initialize execution record in store
     let record = engine.create_execution_record(&task, &active_ctx);
-    assert!(!record.all_passed, "Checks must initially be unverified (pending)");
-    assert!(!record.required_checks.is_empty(), "Active skills must have required checks");
+    assert!(
+        !record.all_passed,
+        "Checks must initially be unverified (pending)"
+    );
+    assert!(
+        !record.required_checks.is_empty(),
+        "Active skills must have required checks"
+    );
 
     {
         let mut l = store.lock().await;
@@ -144,7 +164,16 @@ async fn test_autonomous_coding_task_with_skills_lifecycle() {
 
     // Verify all requirements are satisfied
     let final_store = store.lock().await;
-    let final_record = final_store.iter().find(|r| r.task_id == "task-eng-upgrade-2026").unwrap();
-    assert!(final_record.all_passed, "All engineering checks must pass before completion");
-    assert!(final_record.completed_at.is_some(), "Must have completed_at timestamp");
+    let final_record = final_store
+        .iter()
+        .find(|r| r.task_id == "task-eng-upgrade-2026")
+        .unwrap();
+    assert!(
+        final_record.all_passed,
+        "All engineering checks must pass before completion"
+    );
+    assert!(
+        final_record.completed_at.is_some(),
+        "Must have completed_at timestamp"
+    );
 }

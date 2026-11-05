@@ -170,7 +170,9 @@ impl TaskGraph {
     pub fn set_task_result(&self, task_id: &str, result: TaskResult) -> Result<()> {
         let mut tasks = self.tasks.write();
         let task = tasks.get_mut(task_id).ok_or_else(|| {
-            SwarmError::TaskNotFound(format!("Cannot set result on non-existent task '{task_id}'"))
+            SwarmError::TaskNotFound(format!(
+                "Cannot set result on non-existent task '{task_id}'"
+            ))
         })?;
 
         task.status = if result.success {
@@ -188,7 +190,10 @@ impl TaskGraph {
         tasks.values().all(|t| {
             matches!(
                 t.status,
-                TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Blocked | TaskStatus::Cancelled
+                TaskStatus::Completed
+                    | TaskStatus::Failed
+                    | TaskStatus::Blocked
+                    | TaskStatus::Cancelled
             )
         })
     }
@@ -203,7 +208,10 @@ impl TaskGraph {
     pub fn cancel_all(&self) {
         let mut tasks = self.tasks.write();
         for task in tasks.values_mut() {
-            if matches!(task.status, TaskStatus::Pending | TaskStatus::Ready | TaskStatus::Running) {
+            if matches!(
+                task.status,
+                TaskStatus::Pending | TaskStatus::Ready | TaskStatus::Running
+            ) {
                 task.status = TaskStatus::Cancelled;
             }
         }

@@ -61,7 +61,9 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
                 if strict_routing {
                     tracing::error!("[PROVIDER] VOXY_API_KEYS_OPENAI not set and strict routing active. Rejecting fallback to Ollama.");
                 } else {
-                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_OPENAI not set, falling back to Ollama");
+                    tracing::warn!(
+                        "[PROVIDER] VOXY_API_KEYS_OPENAI not set, falling back to Ollama"
+                    );
                     return create_ollama_provider();
                 }
             }
@@ -94,7 +96,9 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
                 if strict_routing {
                     tracing::error!("[PROVIDER] VOXY_API_KEYS_GEMINI not set and strict routing active. Rejecting fallback to Ollama.");
                 } else {
-                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_GEMINI not set, falling back to Ollama");
+                    tracing::warn!(
+                        "[PROVIDER] VOXY_API_KEYS_GEMINI not set, falling back to Ollama"
+                    );
                     return create_ollama_provider();
                 }
             }
@@ -146,7 +150,9 @@ fn create_llm_provider() -> Arc<dyn LlmProvider> {
                 if strict_routing {
                     tracing::error!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set and strict routing active. Rejecting fallback to Ollama.");
                 } else {
-                    tracing::warn!("[PROVIDER] VOXY_API_KEYS_NVIDIA not set, falling back to Ollama");
+                    tracing::warn!(
+                        "[PROVIDER] VOXY_API_KEYS_NVIDIA not set, falling back to Ollama"
+                    );
                     return create_ollama_provider();
                 }
             }
@@ -1749,14 +1755,33 @@ fn run_pipeline(running: Arc<AtomicBool>, metrics: Arc<VoiceMetrics>) -> Pipelin
                                 "[IPC] Human confirmation decision received"
                             );
                         }
-                        Some(voxy_ipc::ClientCommand::ExecuteCodingTask { task_id, prompt, workspace_root }) => {
+                        Some(voxy_ipc::ClientCommand::ExecuteCodingTask {
+                            task_id,
+                            prompt,
+                            workspace_root,
+                        }) => {
                             tracing::info!(task_id = %task_id, prompt = %prompt, "[IPC] Autonomous coding task received");
-                            let ws_path = workspace_root.map(std::path::PathBuf::from).unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+                            let ws_path = workspace_root
+                                .map(std::path::PathBuf::from)
+                                .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
                             let engine = voxy_coding_harness::CodingEngine::new(&ws_path);
                             let _ = engine.initialize();
                             let toolchains = engine.detect_toolchains();
-                            let available_count = toolchains.iter().filter(|t| matches!(t.status, voxy_coding_harness::ToolchainStatus::Available { .. })).count();
-                            let report = format!("Task '{}' initialized in '{}'. Verified {} available toolchains.", task_id, ws_path.display(), available_count);
+                            let available_count = toolchains
+                                .iter()
+                                .filter(|t| {
+                                    matches!(
+                                        t.status,
+                                        voxy_coding_harness::ToolchainStatus::Available { .. }
+                                    )
+                                })
+                                .count();
+                            let report = format!(
+                                "Task '{}' initialized in '{}'. Verified {} available toolchains.",
+                                task_id,
+                                ws_path.display(),
+                                available_count
+                            );
                             ipc_srv.broadcast(voxy_ipc::DaemonMessage::ToolStep {
                                 id: 100,
                                 tool: "voxy-coding-harness".into(),
@@ -2141,14 +2166,19 @@ async fn main() {
         return;
     }
 
-    let _instance_guard = match voxy_desktop_runtime::SingleInstanceGuard::acquire("OSMOO_DAEMON_INSTANCE_MUTEX") {
-        Some(guard) => guard,
-        None => {
-            eprintln!("[INFO] Another instance of OSMOO daemon is already active. Exiting cleanly.");
-            tracing::info!("[INSTANCE] Another instance of OSMOO daemon is already active. Exiting cleanly.");
-            return;
-        }
-    };
+    let _instance_guard =
+        match voxy_desktop_runtime::SingleInstanceGuard::acquire("OSMOO_DAEMON_INSTANCE_MUTEX") {
+            Some(guard) => guard,
+            None => {
+                eprintln!(
+                    "[INFO] Another instance of OSMOO daemon is already active. Exiting cleanly."
+                );
+                tracing::info!(
+                "[INSTANCE] Another instance of OSMOO daemon is already active. Exiting cleanly."
+            );
+                return;
+            }
+        };
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = Arc::new(VoiceMetrics::new());
