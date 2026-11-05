@@ -50,7 +50,7 @@ pub use journal::AiActionJournal;
 pub use monitoring::{ForensicsEvent, SecurityEventSeverity, SecurityMonitor};
 pub use path_guard::{
     contains_symlink_or_reparse, is_protected_file, is_symlink_or_reparse_point, path_is_contained,
-    validate_path,
+    strip_verbatim_prefix, validate_path,
 };
 pub use policy::{PolicyEngine, PolicyInput, PolicyResult, PolicyRule};
 pub use prompt::SystemPromptBuilder;

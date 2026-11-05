@@ -121,7 +121,7 @@ pub fn contains_symlink_or_reparse(root: &Path, rel: &Path) -> bool {
     false
 }
 
-fn strip_verbatim_prefix(path: &Path) -> PathBuf {
+pub fn strip_verbatim_prefix(path: &Path) -> PathBuf {
     let s = path.to_string_lossy();
     if let Some(stripped) = s.strip_prefix(r"\\?\UNC\") {
         PathBuf::from(format!(r"\\{}", stripped))

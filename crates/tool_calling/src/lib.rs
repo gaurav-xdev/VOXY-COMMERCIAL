@@ -66,6 +66,9 @@ mod tests {
         let registry = ToolRegistry::with_builtins();
         let temp_dir = std::env::temp_dir().join(format!("voxy_test_{}", uuid::Uuid::new_v4()));
         let _ = tokio::fs::create_dir_all(&temp_dir).await;
+        let temp_dir = voxy_security::path_guard::strip_verbatim_prefix(
+            &temp_dir.canonicalize().unwrap_or(temp_dir.clone()),
+        );
 
         let ctx = ToolContext::new("test-session").with_working_dir(temp_dir.clone());
         let test_file = temp_dir.join("sample.txt");

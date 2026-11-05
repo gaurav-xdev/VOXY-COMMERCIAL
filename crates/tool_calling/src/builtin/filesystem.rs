@@ -13,7 +13,7 @@ use crate::metadata::{RiskTier, ToolCategory, ToolContext, ToolMetadata, ToolRes
 use crate::traits::Tool;
 
 use voxy_security::path_guard::{
-    is_protected_file, is_symlink_or_reparse_point, path_is_contained,
+    is_protected_file, is_symlink_or_reparse_point, path_is_contained, strip_verbatim_prefix,
 };
 
 #[cfg(windows)]
@@ -93,6 +93,7 @@ pub fn resolve_and_validate_path(raw: &str, ctx: &ToolContext) -> Result<PathBuf
     let canon_root = root.canonicalize().map_err(|e| {
         ToolError::ExecutionFailed(format!("Invalid workspace root {:?}: {}", root, e))
     })?;
+    let canon_root = strip_verbatim_prefix(&canon_root);
 
     let candidate = if raw_path.is_absolute() {
         raw_path.to_path_buf()
@@ -139,6 +140,7 @@ pub fn resolve_and_validate_path(raw: &str, ctx: &ToolContext) -> Result<PathBuf
         let canon_ancestor = ancestor.canonicalize().map_err(|e| {
             ToolError::ExecutionFailed(format!("Failed to resolve ancestor {:?}: {}", ancestor, e))
         })?;
+        let canon_ancestor = strip_verbatim_prefix(&canon_ancestor);
 
         if !path_is_contained(&canon_ancestor, &canon_root) {
             return Err(ToolError::SecurityViolation(format!(
@@ -147,10 +149,16 @@ pub fn resolve_and_validate_path(raw: &str, ctx: &ToolContext) -> Result<PathBuf
             )));
         }
 
-        if !path_is_contained(&candidate, &canon_root) {
+        let resolved_candidate = if let Ok(rel) = candidate.strip_prefix(&ancestor) {
+            canon_ancestor.join(rel)
+        } else {
+            candidate.clone()
+        };
+
+        if !path_is_contained(&resolved_candidate, &canon_root) {
             return Err(ToolError::SecurityViolation(format!(
                 "Target path {:?} escapes workspace boundary {:?}",
-                candidate, canon_root
+                resolved_candidate, canon_root
             )));
         }
 
@@ -160,7 +168,7 @@ pub fn resolve_and_validate_path(raw: &str, ctx: &ToolContext) -> Result<PathBuf
             ));
         }
 
-        Ok(candidate)
+        Ok(resolved_candidate)
     }
 }
 
